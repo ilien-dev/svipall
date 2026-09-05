@@ -70,12 +70,17 @@ jobs:
             target: aarch64-apple-darwin
             ext: ""
             models: true
-          - os: ubuntu-latest
+          # 22.04, not `ubuntu-latest`. A binary links the glibc of the machine that built it, so
+          # building on the newest runner produces one that runs only on the newest distributions:
+          # the first published build needed GLIBC_2.39 and would not start on Debian 12, Ubuntu
+          # 22.04 or RHEL 9. The `runs on an older distribution` step below is what keeps this
+          # honest, because the failure is invisible on the runner that produced it.
+          - os: ubuntu-22.04
             target: x86_64-unknown-linux-gnu
             ext: ""
             models: true
           # Native arm runner: BoringSSL cross-compiles badly and does not need to.
-          - os: ubuntu-24.04-arm
+          - os: ubuntu-22.04-arm
             target: aarch64-unknown-linux-gnu
             ext: ""
             models: true
@@ -167,6 +172,17 @@ jobs:
           grep -q '"detect"' doctor.json
           grep -q '"segment"' doctor.json
 
+      # The binary that is about to be published, started on a distribution older than the one
+      # that built it. A glibc that is too new is invisible here otherwise: the runner has it, so
+      # everything passes, and the first person on Debian gets `GLIBC_2.39 not found`.
+      - name: Runs on an older distribution
+        if: contains(matrix.target, 'linux')
+        shell: bash
+        env:
+          CARGO_TARGET_DIR: ./t
+        run: |
+          docker run --rm -v "$PWD/t/${{ matrix.target }}/dist:/x" debian:bookworm-slim             /x/svipall --version
+
       # Both binaries: the MCP server and the CLI the skill documents. Shipping only the server
       # left `svipall fetch` a build-from-source feature.
       #
@@ -242,8 +258,13 @@ jobs:
           cargo deb -p svipall-mcp --no-build --no-strip --deb-version "$PKGVER" --output packaging/dist/
           cargo generate-rpm -p crates/svipall-mcp --output packaging/dist/ -s "version = \"$PKGVER\""
 
+      # Only the manifests. They live beside the .deb and the .rpm, and the first release bundled
+      # all of it into a 282 MB "manifests" tarball that duplicated both packages.
       - name: Bundle the manifests
-        run: cd packaging && tar -czf ../packaging-manifests.tar.gz dist
+        run: |
+          cd packaging/dist
+          tar -czf ../../packaging-manifests.tar.gz homebrew scoop aur winget
+          ls -la ../../packaging-manifests.tar.gz
 
       - uses: actions/upload-artifact@v4
         with:
