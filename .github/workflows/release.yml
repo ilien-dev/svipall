@@ -78,7 +78,9 @@ jobs:
           # Keep BoringSSL's nested build paths under Windows MAX_PATH.
           CARGO_TARGET_DIR: ${{ runner.os == 'Windows' && 'C:\t' || './t' }}
         run: |
-          case "${{ matrix.target }}" in aarch64-*) unset RUSTFLAGS ;; esac
+          # Empty, not unset: unsetting it hands the build back to .cargo/config.toml and
+          # its `target-cpu=native`, which `ring` rejects on aarch64 apple targets.
+          case "${{ matrix.target }}" in aarch64-*) RUSTFLAGS= ;; esac
           cargo build --profile dist --target ${{ matrix.target }} --bin svipall-mcp --bin svipall \
             --features onnx-ocr,onnx-grid,onnx-audio,onnx-detect,onnx-segment,onnx-zeroshot
 
