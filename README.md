@@ -257,6 +257,10 @@ Publish `-p 8787:8787` to reach the dashboard: loopback inside a container means
 the entrypoint writes a `/data/config.toml` binding `0.0.0.0` the first time it starts, and never
 touches one you wrote yourself.
 
+A pre-release publishes its own version tag and leaves the moving ones alone, so while the newest
+release is a candidate, `:latest` and `:slim` may not exist yet or may point at the release before
+it — pull `ghcr.io/ilien-dev/svipall:<version>` to get the newest.
+
 Tagged releases attach builds for **Windows x86-64, macOS Intel, macOS Apple silicon, Linux x86-64
 and Linux arm64** with a `sha256sums.txt` and a GitHub build attestation, and push both images to
 `ghcr.io`.

@@ -181,7 +181,9 @@ claude mcp add svipall -- docker run -i --rm -v svipall-home:/data ghcr.io/ilien
 ```
 
 `-i` keeps stdin open for MCP, and `-v svipall-home:/data` is what makes it remember anything.
-Two tags: `latest` (browser and models, linux/amd64) and `slim` (http tier only, amd64 and arm64).
+Two moving tags: `latest` (browser and models, linux/amd64) and `slim` (http tier only, amd64 and
+arm64). A pre-release does not move either of them, so when the newest release is a candidate,
+pull its version tag instead — `ghcr.io/ilien-dev/svipall:1.0.0-rc`, and `:1.0.0-rc-slim`.
 
 ---
 
