@@ -18,7 +18,7 @@
   <a href="https://www.rust-lang.org"><img alt="Rust" src="https://img.shields.io/badge/Rust-stable-A7472C?style=flat-square&labelColor=0B1A2B"></a>
   <a href="#license"><img alt="License: AGPL-3.0" src="https://img.shields.io/badge/License-AGPL--3.0-EAD9C4?style=flat-square&labelColor=0B1A2B"></a>
   <a href="#mcp-tools"><img alt="MCP" src="https://img.shields.io/badge/MCP-29%20tools-DF8D27?style=flat-square&labelColor=0B1A2B"></a>
-  <a href="#development"><img alt="Tests" src="https://img.shields.io/badge/tests-1120%20passing-EAD9C4?style=flat-square&labelColor=0B1A2B"></a>
+  <a href="#development"><img alt="Tests" src="https://img.shields.io/badge/tests-1143%20passing-EAD9C4?style=flat-square&labelColor=0B1A2B"></a>
   <a href="#proof-every-number-with-the-command-that-reproduces-it"><img alt="Benchmarks" src="https://img.shields.io/badge/benchmarks-published%2C%20failures%20included-A7472C?style=flat-square&labelColor=0B1A2B"></a>
   <a href="#privacy-and-safety"><img alt="No telemetry" src="https://img.shields.io/badge/telemetry-none-3F7D63?style=flat-square&labelColor=0B1A2B"></a>
 </p>
@@ -46,18 +46,18 @@ article.
 
 ## Why Svipall
 
-| ⚠️ What goes wrong | ✅ Svipall |
+| What goes wrong | Svipall |
 |---|---|
-| 🥷 Your agent reads a **"checking your browser" screen** and summarises it as the article. It was a `200`, so nothing flagged it | **Twelve wall kinds, each naming the move it implies.** A block is never reported as a success [→](#judging-what-came-back) |
-| 🗑️ You crawl **5,000 pages** and can't tell which are worth keeping | **Every page labelled on arrival** — integrity, substance, provenance, near-duplicates — **and never removed** [→](#judging-what-came-back) |
-| 💸 One page = **300,000 tokens** of raw HTML. The fixes are four manual jobs you now own | **All four are defaults:** clean Markdown, tables as rows, `out_file` to disk, the site's own JSON API [→](#reading) |
-| 🤖 Beating a captcha means **paying a service** — quotas, per-solve fees, your pages sent away | **Nine strategies, vision models inside the binary**, a phone dashboard for the rest [→](#captcha-solving-fully-local) |
+| Your agent reads a "checking your browser" screen and summarises it as the article. It was a `200`, so nothing flagged it | Twelve wall kinds, each naming the move it implies. **A block is never reported as a success** [→](#judging-what-came-back) |
+| You crawl 5,000 pages and can't tell which are worth keeping | Every page labelled on arrival — integrity, substance, provenance, near-duplicates — and **never removed** [→](#judging-what-came-back) |
+| One page = 300,000 tokens of raw HTML. The fixes are four manual jobs you now own | All four are defaults: clean Markdown, tables as rows, `out_file` to disk, the site's own JSON API [→](#reading) |
+| Beating a captcha means paying a service — quotas, per-solve fees, your pages sent away | Nine strategies, vision models inside the binary, and a phone dashboard for the rest [→](#captcha-solving-fully-local) |
 
-🔬 **It shows its work.** Three benchmark lists, raw logs committed — including four sites it *cannot*
-beat, a round where the score dropped, and two finished features shipped **off** because the
-measurement said so. [→](#proof-every-number-with-the-command-that-reproduces-it)
+It shows its work: three benchmark lists with the raw logs committed, including four sites it
+*cannot* beat, a round where the score dropped, and two finished features shipped **off** because
+the measurement said so. [→](#proof-every-number-with-the-command-that-reproduces-it)
 
-⚙️ Rust · MCP + CLI + REST · no Node, no Python, no API key · **nothing leaves your machine**
+Rust · MCP + CLI + REST · no Node, no Python, no API key · nothing leaves your machine
 → **[Install in 60 seconds ↓](#60-second-start)**
 
 Where another tool is the better choice, [the comparison table](#how-svipall-compares) says so.
@@ -66,7 +66,7 @@ Where another tool is the better choice, [the comparison table](#how-svipall-com
 <summary><b>Table of contents</b></summary>
 
 - [**Why Svipall**](#why-svipall)
-- [60-second start](#60-second-start) — [from a shell](#or-drive-it-from-a-shell) · [what comes back](#what-comes-back) · [in a container](#or-run-it-in-a-container)
+- [60-second start](#60-second-start) — [from a shell](#or-drive-it-from-a-shell) · [what comes back](#what-comes-back) · [in a container](#or-run-it-in-a-container) · [full install guide](docs/install.md) · [never done this before](GET-STARTED.md)
 - [What you can actually do with it](#what-you-can-actually-do-with-it) · [who it is for](#who-it-is-for)
 - [**Proof**: every number, with the command that reproduces it](#proof-every-number-with-the-command-that-reproduces-it)
   - [Extraction quality vs. readability, trafilatura and resiliparse](#extraction-quality--measured-against-public-corpora-including-where-it-loses)
@@ -81,7 +81,7 @@ Where another tool is the better choice, [the comparison table](#how-svipall-com
 - [Privacy and safety](#privacy-and-safety) · [limits, stated on purpose](#limits-stated-on-purpose)
 - [Configuration](#configuration)
 - [How Svipall compares](#how-svipall-compares) — Firecrawl, Crawl4AI, Scrapling, Playwright MCP
-- [Architecture](#architecture) · [documentation](#documentation) · [development](#development)
+- [Architecture](#architecture) · [documentation](#documentation) · [development](#development) — [build from source](#build-from-source)
 - [FAQ](#faq) · [about the name](#about-the-name) · [licence](#license) · [trademark](#trademark) · [disclaimer](#disclaimer)
 
 </details>
@@ -90,40 +90,82 @@ Where another tool is the better choice, [the comparison table](#how-svipall-com
 
 ## 60-second start
 
-**1. Build** — Rust toolchain plus `cmake`, `nasm`, `perl` and `llvm` (BoringSSL).
+**1. Install it.** One line, no toolchain, nothing to compile.
 
 ```bash
-git clone https://github.com/ilien-dev/svipall
-cd svipall
-cargo build --release
-./target/release/svipall browser install     # optional, recommended: a dedicated Chrome for Testing
+curl -fsSL https://raw.githubusercontent.com/ilien-dev/svipall/main/install.sh | sh   # macOS, Linux
+irm https://raw.githubusercontent.com/ilien-dev/svipall/main/install.ps1 | iex        # Windows
 ```
 
-On Windows, set a short `CARGO_TARGET_DIR` (e.g. `C:\t`) — BoringSSL's build paths run into
-`MAX_PATH`. No BoringSSL toolchain at all? `cargo build --release --no-default-features` builds
-without the browser-grade TLS fingerprint, falling back to reqwest; `web_status` reports which engine
-is live under `http_engine`, and asking for the emulating one explicitly on such a build is a **hard
-error rather than a silent downgrade**, because a silent downgrade is exactly the failure that is
-hard to notice.
+**Or let the agent you already have do it.** Paste this into Claude Code, Cursor, Codex, opencode or
+anything else that can run a command:
+
+```
+Install and configure Svipall by following the instructions here:
+https://raw.githubusercontent.com/ilien-dev/svipall/main/docs/install.md
+```
+
+That page is written to be executed: it works out the platform, picks a channel, verifies the
+download and registers the MCP server, asking before each step.
+
+<details>
+<summary>Or a package manager, or a container</summary>
+
+```bash
+brew install ilien-dev/svipall/svipall               # macOS, Linux
+scoop bucket add svipall https://github.com/ilien-dev/scoop-svipall && scoop install svipall
+winget install ilien-dev.svipall                     # Windows
+yay -S svipall-bin                                   # Arch
+docker pull ghcr.io/ilien-dev/svipall:latest         # container
+npx --yes svipall@latest --version                   # if node is already there
+```
+
+`.deb` and `.rpm` packages are attached to each release. Never installed anything from a terminal
+before? [**GET-STARTED.md**](GET-STARTED.md) is the same thing with nothing assumed. Everything
+else, including [building from source](docs/install.md#3-building-from-source-instead), is in
+[docs/install.md](docs/install.md).
+</details>
+
+Then ask it what it can actually do on this machine, and what to run for anything it cannot:
+
+```bash
+svipall doctor
+```
 
 **2. Plug it into your assistant**
 
-```bash
-claude mcp add svipall -- /absolute/path/to/target/release/svipall-mcp
+In Claude Code the plugin does all of it — the MCP server, the skills, and optionally making
+Svipall the way Claude reaches the web in every project:
+
+```
+/plugin marketplace add ilien-dev/svipall
+/plugin install svipall@svipall
+/svipall:setup
 ```
 
+`/svipall:setup` installs the binary if it is missing, checks the server answers, and asks before
+each of the optional steps. `/svipall:doctor` reports what this installation can do, and
+`/svipall:uninstall` reverses everything setup touched.
+
 <details>
-<summary>Claude Desktop, Cursor, or any other MCP client</summary>
+<summary>By hand, or in Claude Desktop, Cursor, or any other MCP client</summary>
+
+```bash
+claude mcp add svipall -- svipall-mcp
+```
 
 ```json
 {
   "mcpServers": {
     "svipall": {
-      "command": "/absolute/path/to/target/release/svipall-mcp"
+      "command": "svipall-mcp"
     }
   }
 }
 ```
+
+Use an absolute path if the client does not inherit your shell's PATH — GUI apps on macOS usually
+do not.
 </details>
 
 **3. Ask for something.** That is the whole setup — no key to paste, no account to create, no
@@ -187,16 +229,23 @@ and a `note` telling your agent what to do next. Straight from a committed bench
 ### Or run it in a container
 
 ```bash
-docker build -t svipall .
-claude mcp add svipall -- docker run -i --rm -v svipall-home:/data svipall
+claude mcp add svipall -- docker run -i --rm -v svipall-home:/data ghcr.io/ilien-dev/svipall:latest
 ```
 
-The image carries both binaries, and downloads a Chrome for Testing of its own at **build** time —
-never at run time, and the build continues without it if the download fails, leaving an http-tier-only
-image. Everything it learns lives in the `svipall-home` volume. Publish `-p 8787:8787` to reach the dashboard. Tagged releases attach builds
-for **Windows x86-64, macOS Intel, macOS Apple silicon, Linux x86-64 and Linux arm64** with a
-`sha256sums.txt`, and push the image to `ghcr.io`.
+Two tags, and the difference between them is real. `latest` carries Chrome for Testing **and** the
+captcha models, both put there at build time and never fetched at run time, so every tier works.
+`slim` carries neither: it is the http tier, and a page behind a challenge stays blocked. `latest`
+is `linux/amd64` only, because Chrome for Testing publishes no linux-arm64 build and an arm64
+"full" image would be a full image with no browser in it; `slim` is built for both architectures.
 
+Everything it learns lives in the `svipall-home` volume, and `-i` is what keeps stdin open for MCP.
+Publish `-p 8787:8787` to reach the dashboard: loopback inside a container means the container, so
+the entrypoint writes a `/data/config.toml` binding `0.0.0.0` the first time it starts, and never
+touches one you wrote yourself.
+
+Tagged releases attach builds for **Windows x86-64, macOS Intel, macOS Apple silicon, Linux x86-64
+and Linux arm64** with a `sha256sums.txt` and a GitHub build attestation, and push both images to
+`ghcr.io`.
 ---
 
 ## What you can actually do with it
@@ -242,7 +291,7 @@ rounds of work that improved nothing, and the rounds where a number went *down*.
 
 | Gate | Result | Needs network? | Command |
 |---|---|---|---|
-| Test suite | **1,120 passing**, 0 failing, 16 ignored | no | `cargo test --workspace` |
+| Test suite | **1,143 passing**, 0 failing, 16 ignored | no | `cargo test --workspace` |
 | Automation tells | **160 / 160** probes clean — 32 probes × 5 browser passes | no, but needs a browser | `bench tells --assert` |
 | Identity coherence | **8 / 8** — 7 identities plus a 1,500-machine sweep | no | `bench fingerprint --engine chrome` |
 | Network fingerprint | **8 / 8** wire checks against `tls.peet.ws` | yes | `bench fingerprint` |
@@ -276,17 +325,17 @@ ROUGE-LSum F1, median over the 3,975 gradable pages of the **SIGIR-23 gold stand
 | **Svipall** | **0.920** | 0.831 | 0.773 – 0.976 |
 | Svipall, boilerplate removal off | 0.732 | 0.696 | 0.551 – 0.887 |
 
-**Three published extractors are above Svipall on median and the table says so.** Boilerplate
-removal is worth **+0.19 F1** over the same Markdown with it switched off, which is the number that
+Three published extractors are above Svipall on median and the table says so. Boilerplate removal
+is worth **+0.19 F1** over the same Markdown with it switched off, which is the number that
 actually matters to a token bill.
 
 <details>
 <summary><b>The ensemble vote, and the router that was tried and retired</b></summary>
 
-SIGIR-23 benchmarked fourteen extractors and then built three ensembles on top of them; **all three
-beat every individual system**, and the paper's closing advice is that combining simple models may
+SIGIR-23 benchmarked fourteen extractors and then built three ensembles on top of them; all three
+beat every individual system, and the paper's closing advice is that combining simple models may
 beat a larger single one. `svipall-extract` implements that as a vote of several heuristics reading
-one page — but at **unanimity**, not the paper's two-thirds. A block is removed only when *every*
+one page, but at unanimity rather than the paper's two-thirds. A block is removed only when *every*
 voter condemns it.
 
 That makes the failure mode one-sided by construction: a misfiring voter, a badly-tuned threshold or
@@ -295,21 +344,19 @@ None of them can drop content, which costs the answer. The two-thirds rule is st
 `Rule::Majority` for a caller who wants precision over recall; it is not the default and the module
 says it never will be.
 
-Read the row honestly: the vote is **0.919 against 0.920 on median — a wash** — but it lifts the
-mean from 0.831 to 0.846 and the lower quartile from 0.773 to 0.804. It helps the pages that were
+The vote is 0.919 against 0.920 on median, a wash, but it lifts the mean from 0.831 to 0.846 and the lower quartile from 0.773 to 0.804. It helps the pages that were
 going badly and does nothing for the ones that were already fine.
 
-**The router is the part worth reading.** A model to classify page type was tried here and retired,
-because the cheap structural signal beat it: the posting types the forum detector reads have
-**precision 1.000 on both halves of WCXB**, against a model that named forums right about a third of
+A model to classify page type was tried here and retired, because the cheap structural signal beat it: the posting types the forum detector reads have
+precision 1.000 on both halves of WCXB, against a model that named forums right about a third of
 the time. When the cheaper signal is the more reliable one, it is the only one left — and it costs
 one pass over a tree that is already parsed.
 
 </details>
 
-The metric that matters more than F1 is whether the sentences a person marked as *required* survived
-extraction — a page scoring 0.92 that dropped the one sentence carrying the answer is a failure F1
-cannot see. **WCXB** ships those phrases, written by the corpus author:
+F1 cannot see whether the sentences a person marked as *required* survived extraction, and a page
+scoring 0.92 that dropped the one sentence carrying the answer is still a failure. WCXB ships those
+phrases, written by the corpus author:
 
 | | required kept | boilerplate leaked | F1 |
 |---|---|---|---|
@@ -321,7 +368,7 @@ leaderboard. Five languages on DAnIEL, the remaining losses traced phrase by phr
 experiments that were tried against them and *rejected* are all in
 [`docs/extraction.md`](docs/extraction.md) — with the reason each one stayed out.
 
-**These are floors, not just figures.** `bench extract --assert` fails the run if any of them slips,
+These are floors rather than figures: `bench extract --assert` fails the run if any of them slips,
 so the table above cannot quietly rot:
 
 | what is held | floor | measured |
@@ -337,7 +384,7 @@ The floors sit a little below the measurements on purpose — at the measured nu
 variation turns into a red build; far below it, the gate stops being one. Raising one after an
 improvement is the intended use; lowering one has to be argued for in the commit that does it.
 
-**Reproduce it yourself.** None of these corpora are vendored — they are other people's data and
+None of these corpora are vendored — they are other people's data and
 hundreds of megabytes of it — so four scripts fetch them, each naming its paper and its licence:
 
 ```bash
@@ -362,7 +409,7 @@ error`) ported verbatim into `bench/src/targets.rs`, so a cell here means what a
 |---|---|---|---|---|
 | **Svipall** | 25, 26, 26 | **26 / 31** | 25..26 | **0** |
 
-**Zero `blocked` is the number worth reading.** 77 `ok` and 16 `gated` across 93 cells, and not one
+Zero `blocked` is the column that matters: 77 `ok` and 16 `gated` across 93 cells, and not one
 cell where a site made a decision about *this address* rather than about a request. The benchmark
 this list comes from published a `blocked` column for all seven tools it measured, and only one of
 them reached zero:
@@ -378,7 +425,7 @@ them reached zero:
 | rebrowser-playwright | 24 | 2 | 5 |
 | **Svipall** | **26** | 5 | **0** |
 
-**Read that table as a citation, not as a measurement.** The seven rows above Svipall are the figures
+That table is a citation, not a measurement. The seven rows above Svipall are the figures
 that benchmark published; this project did not run those tools and cannot vouch for them. Different
 machine, different address, months apart — **the OK counts are not comparable cell for cell and are
 not offered as if they were.** What *is* checkable here is the porting: the target list and the
@@ -424,7 +471,7 @@ stays the headline.
 ### Anti-bot: `hard12`, our own list, chosen *because* it has walls
 
 Twelve sites, scored by whether the expected text came back with no wall reported. Three runs,
-2026-09-04. **A 7/12 here and a 26/31 there are not the same kind of number**, and quoting one
+2026-09-04. A 7/12 here and a 26/31 there are not the same kind of number, and quoting one
 against the other — in either direction — is reading noise as signal. Both are published, each with
 its list, so nobody has to.
 
@@ -451,27 +498,27 @@ three runs of this list, in 1.5 s, 2.1 s and 1.6 s.
 Two targets each behind **Kasada** (`twitch`, `hyatt`), **Akamai** (`newegg`, `homedepot`),
 **DataDome** (`g2`, `idealista`) and **Cloudflare**'s managed challenge (`crunchbase`, `indeed`) —
 the same ids the committed `bench/baseline/vendors8.json` uses. **Median 3/8, range 2..3.** It scores
-worse than `hard12` — that is the point of publishing it. `hard12` and `public31` stay frozen, because a number only means something against
+worse than `hard12`, which is the point of publishing it. `hard12` and `public31` stay frozen, because a number only means something against
 its own list.
 
-What the list actually says, beyond the score:
+Beyond the score:
 
-- **Kasada is passable.** `twitch` clears at the `real` tier in all three runs —
+- Kasada is passable: `twitch` clears at the `real` tier in all three runs —
   9.3 s, then 1.9 s, then 1.8 s. `hyatt`, behind the same vendor, fails in a way worth reading:
   28 s, then 63 s, then a timeout, across three runs minutes apart. The baseline reads that
   as the vendor's documented behaviour — the puzzle gets harder for an address it has seen
   repeatedly — and says so as a reading of the timings, not as something it measured inside the
   vendor.
-- **Akamai: the `homedepot` target answers `200` with its own error template** — *"Oops!!
+- Akamai: the `homedepot` target answers `200` with its own error template — *"Oops!!
   Something went wrong. Please refresh page"*, 206 characters — after a day of benchmark runs
   against this address, and `403` with the same page over plain HTTP. That is a soft block wearing a
   success code. Svipall was returning those 206 characters *as the page*; it now treats a short
   "something went wrong, please refresh" as the stand-in it is.
-- **The two published records of the previous round disagree with each other**, and rather than pick
+- The two published records of the previous round disagree with each other, and rather than pick
   the flattering one, [`bench/baseline/README.md`](bench/baseline/README.md) says so and declines to
   assert any movement at all: *"until that is resolved, 'the median left the previous range' cannot
   be asserted."*
-- **A change that fixed real detection is explicitly not credited with the score.** Vendor signs on
+- A change that fixed real detection is explicitly not credited with the score. Vendor signs on
   headers and cookies had been declared and never read, so a whole class of wall was reported as
   "the page did not render". Fixing it renames a block; it cannot make a page arrive — and the
   baseline says exactly that.
@@ -487,7 +534,7 @@ the server's side by something the tool cannot change from a single home connect
 | **crunchbase.com** | Passed at six seconds early in the day; refuses the same code, on a fresh profile wearing a different machine, after fifteen visits within the hour | The decision is **per visit and per address**, taken server-side from traffic history. Svipall behaves correctly on the page and the outcome still depends on how the address has been scored that hour |
 | **indeed.com** | Not a fixed answer at all: 0 of 3 on `hard12` (2026-09-04), 2 of 3 on `public31` the next day, and 1 of 3 in an earlier round | Same shape as crunchbase. `indeed`, `crunchbase` and `zillow` have swapped places across four measurement rounds: this is the noise band of a list run from one address, not a code change, which is why it is listed here rather than counted as a pass |
 
-> **Stated plainly:** Svipall's answer to all of these is `web_route` — send the domain through a
+> Svipall's answer to all of these is `web_route` — send the domain through a
 > residential proxy *you* supply — and that is the one thing a local-only tool cannot provide for
 > itself. It will never bundle proxies, never call a captcha farm, and never report a block as a
 > success.
@@ -507,7 +554,7 @@ itself on loopback, across **five browser passes** — `browser`, `browser (reus
 cargo run -p svipall-bench --release -- tells --assert
 ```
 
-**It opened at 22 of 52 clean** — fourteen probes across four tiers, before the harness grew to 32
+It opened at 22 of 52 clean, fourteen probes across four tiers, before the harness grew to 32
 probes and five passes. Every failure was a real contradiction that had been shipping. A sample of
 what a harness catches that a person does not:
 
@@ -520,7 +567,7 @@ what a harness catches that a person does not:
 | `screen_plausible` | Headless reports an 800×600 display while the flags size the window to 1366×768: a window wider than its screen |
 | `worker_realm` | A worker reporting the host's real 32 cores beside a document reporting the identity's 8. One `postMessage` to catch |
 | `cross_realm_tostring` | A same-origin `about:blank` iframe is a realm of its own, so the `toString` mask had never seen the top realm's accessors. One line returned the patch *and* the value it hid, at every tier |
-| `navigator_webdriver` | `navigator.webdriver` was **deleted outright**. Every Chrome since 89 carries the property and answers `false` — the deletion was the only thing producing a navigator no real browser has |
+| `navigator_webdriver` | `navigator.webdriver` was deleted outright. Every Chrome since 89 carries the property and answers `false` — the deletion was the only thing producing a navigator no real browser has |
 | `runtime_domain_unobservable` | A watchdog, not a defect: it fires only if Chrome reopens the `Runtime.enable` console leak the CDP client's design rests on |
 
 All 32 pass at all five passes now. Two of the fixes were structural rather than cosmetic: the
@@ -638,11 +685,11 @@ headroom for exactly that reason; the structural checks are exact and cannot fla
 
 ### Judging what came back
 
-Most tools tell you a request succeeded. Svipall tells you what *arrived* — and **never withholds a
-page over it.** Nothing in this section removes a document, stops the ladder or subtracts from a
+Most tools tell you a request succeeded. Svipall tells you what *arrived*, and never withholds a
+page over it. Nothing in this section removes a document, stops the ladder or subtracts from a
 verdict. It labels; the caller decides.
 
-**A `200` is not an answer.** Every response carries a `wall_kind`, and each one names the move it
+A `200` is not an answer. Every response carries a `wall_kind`, and each one names the move it
 actually implies rather than a generic retry. These are the wire values, verbatim:
 
 | `wall_kind` | What it is | What happens next |
@@ -658,7 +705,7 @@ actually implies rather than a generic retry. These are the wire values, verbati
 | `notfound` · `softnotfound` | A real 404, or **a `200` whose body says the page is not there** | both stop the ladder; no tier fixes either, and the second is the one that would otherwise reach a model as content |
 | `timeout` | No tier answered inside the budget. Not a wall at all, and it is not dressed up as one | raise `timeout`, or lower `max_tier` |
 
-Two details worth having: `empty` and `status` are the **only** two verdicts a vendor sign found on a
+`empty` and `status` are the only two verdicts a vendor sign found on a
 header or cookie may rename — they mean "blocked, cause unknown", so naming the vendor is an upgrade,
 and a wire sign never invents a wall anywhere else. And `softnotfound` matches on the whole trimmed
 title, never a substring, because *"Understanding soft 404s"* is an article.
@@ -949,7 +996,7 @@ curl -sH "Authorization: Bearer $KEY" -H 'content-type: application/json' \
 `svipall-mcp` mounts the same router when `rest_port` is set, on its own listener, sharing one
 browser pool, one page cache and one set of learned tiers with the MCP tools.
 
-**Nineteen routes, one per tool**, each taking that tool's own JSON as the body:
+Nineteen routes, one per tool, each taking that tool's own JSON as the body:
 
 | | |
 |---|---|
@@ -962,13 +1009,13 @@ browser pool, one page cache and one set of learned tiers with the MCP tools.
 | `GET`/`POST /v1/status` | what this installation has learned. `GET` is read-only by construction: the three clearing fields are reachable only by `POST` |
 | `GET /v1/health` | the one route with no key, so a container healthcheck does not need one |
 
-**A blocked page is a `200`.** The call ran; the *page* did not. `blocked_reason`, `wall_kind` and
+A blocked page is a `200`: the call ran, the *page* did not. `blocked_reason`, `wall_kind` and
 `note` are in the body, exactly as they are over MCP. Only a malformed body (`400`), a bad key
 (`401`), a browser `Origin` or a rebound `Host` (`403`), a body over 2 MB (`413`) or a broken
 installation (`500`) is not a `2xx`. A client that read a wall as a `5xx` would retry forever against
 something that is never going to move.
 
-**Every route needs the key, including on loopback.** A local port is not a boundary: Svipall carries
+Every route needs the key, including on loopback. A local port is not a boundary: Svipall carries
 logged-in profiles, cookies and your exit address, so an open one is a proxy wearing your identity.
 Two more checks sit in front of the key, because binding to `127.0.0.1` does not stop a page in your
 own browser being served a DNS answer of `127.0.0.1` and posting to it: any request carrying an
@@ -983,7 +1030,7 @@ must not make a window appear on your desktop and hold the connection for an hou
 classic solver wire shape. Twenty-nine tools minus those ten is the nineteen routes above. A new
 `#[tool]` **fails the test suite** until it is listed as a route or as a named exclusion.
 
-**A long crawl is a job, not a held connection.** `"async": true` answers `202` with an id; `GET
+A long crawl is a job rather than a held connection. `"async": true` answers `202` with an id; `GET
 /v1/jobs/{id}` polls it, `GET /v1/jobs/{id}/stream` follows it as Server-Sent Events, `DELETE` stops
 it. The id **is** the `crawl_id`, so there is one handle to learn and resuming is `{"crawl_id": "…"}`
 — the same word the MCP tool and the CLI already use. A cancelled crawl stops between pages *after*
@@ -998,13 +1045,13 @@ which is the scarcest thing a local-only tool has. Full contract in [`docs/rest.
 
 ## Privacy and safety
 
-- **Prompt-injection defence.** Text a person cannot see (`display:none`, `opacity:0`, off-screen,
+- **Prompt-injection defence** — text a person cannot see (`display:none`, `opacity:0`, off-screen,
   zero-width characters) is removed before the content reaches the model. The rules are deliberately
   narrow: five of `sanitize.rs`'s seven tests exist to prove visible text is *not* dropped.
 - **Credentials never enter the context.** `{"do":"type","ref":"e4","text":"${SHOP_PASSWORD}"}` is
   substituted from `~/.svipall/secrets.env` on the way to the browser. `web_status` lists names,
   never values.
-- **Origin policy, checked before the request.** `allow_origins`, `block_origins` (blocking wins),
+- **Origin policy, checked before the request** — `allow_origins`, `block_origins` (blocking wins),
   and `block_ads` (cached lists, silent when offline). `refuse_private_addresses` stops an agent
   following a link to `169.254.169.254` — it is **off by default**, deliberately, because fetching
   `http://localhost` is an ordinary thing to ask a local-first tool to do; turn it on for an
@@ -1194,7 +1241,7 @@ is not proof of absence, and no row here is a measurement of somebody else's cod
 | Training corpus from every captcha solved | ✅ | — | — | — | — |
 | Publishes its own anti-bot benchmark — three lists, failures and raw logs in-repo | ✅ | — | — | — | — |
 
-**Where the overlap is real.** Scrapling is the closest project to this one and has plenty Svipall
+Scrapling is the closest project to this one and has plenty Svipall
 does not: remote browsers over CDP, Scrapy-style spiders with streaming and ready-made templates, a
 much larger ecosystem and far more users. Firecrawl and Crawl4AI are the better fit if you want a
 managed or containerised service with an HTTP API in front of it. Playwright MCP is the right choice
@@ -1236,6 +1283,8 @@ convention:
 
 | | |
 |---|---|
+| [`docs/install.md`](docs/install.md) | Every way to install it, per platform, written so an AI agent can execute it; the MCP registration for every client; and the failures that actually happen, with what each one means |
+| [`GET-STARTED.md`](GET-STARTED.md) | The same thing with nothing assumed, for somebody who has never installed anything from a terminal |
 | [`docs/bench.md`](docs/bench.md) | Every benchmark mode, the three target lists, and the rule each number is read under |
 | [`docs/extraction.md`](docs/extraction.md) | How a fetched page becomes the text a model reads, how good that is against three published extractors, and how to measure it yourself |
 | [`docs/exits.md`](docs/exits.md) | Proxy pools: sticky vs round-robin, the health arithmetic, healing, `(domain, exit)` pacing, and the four leaks |
@@ -1250,8 +1299,40 @@ convention:
 
 ## Development
 
+### Build from source
+
+Only worth it to contribute, or on a platform with no published build. Needs a Rust toolchain plus
+`cmake`, `nasm`, `perl` and `llvm` (BoringSSL).
+
+```bash
+git clone https://github.com/ilien-dev/svipall
+cd svipall
+cargo build --release
+./target/release/svipall browser install     # optional, recommended: a dedicated Chrome for Testing
+```
+
+Three things a source build does differently from a release one, and `svipall doctor` reports all
+three:
+
+- On Windows, set a short `CARGO_TARGET_DIR` (e.g. `C:\t`) first: BoringSSL's build paths run into
+  `MAX_PATH` and the failure is an unhelpful cmake error.
+- `.cargo/config.toml` sets `target-cpu=native`, so what `--release` produces is **for this machine
+  only** and can die with an illegal instruction on another. Release artefacts use `--profile dist`
+  with an explicit baseline; never ship what `--release` builds here.
+- A clean clone carries no models, so image captchas go to the human dashboard rather than being
+  answered. `tools/models/export.py` reproduces them; the release workflow and the `full` container
+  image both run it.
+
+No BoringSSL toolchain at all? `cargo build --release --no-default-features` builds without the
+browser-grade TLS fingerprint, falling back to reqwest; `web_status` reports which engine is live
+under `http_engine`, and asking for the emulating one explicitly on such a build is a **hard error
+rather than a silent downgrade**, because a silent downgrade is exactly the failure that is hard to
+notice.
+
+### The gate
+
 **TDD: a test before every behaviour change**, and it must fail without the change. `cargo test
---workspace` must be green — **1,120 tests pass today**, plus 16 ignored by default because they need
+--workspace` must be green — **1,143 tests pass today**, plus 16 ignored by default because they need
 the network or a real browser, and more behind `--features http3`. Four of them run a real ONNX
 Runtime session over hand-built fixture graphs, so the inference paths are executed rather than only
 lint-checked.
@@ -1265,9 +1346,11 @@ pwsh scripts/qc.ps1 -Fix   # fmt + clippy --fix
 
 `scripts/qc.sh` is the bash equivalent. **CI** runs fmt, clippy across the feature matrix (including
 `--no-default-features` and `http3`), the full test suite, the ONNX model tests, `micro --assert`,
-`fingerprint --engine chrome`, unused-dependency and file-size guards, and a container build — on
-**Linux, Windows and macOS**, on every push and pull request. Tagged releases build five targets,
-publish `sha256sums.txt` and push the image to `ghcr.io`.
+`fingerprint --engine chrome`, unused-dependency and file-size guards, the plugin manifests, both
+installer scripts end to end, and a container build — on **Linux, Windows and macOS**, on every push
+and pull request. Tagged releases build five targets, smoke-test each binary they are about to
+publish, attach `sha256sums.txt` with a GitHub build attestation, and push both container images to
+`ghcr.io`.
 
 Two steps are the ones that keep this project honest, and **both run offline**: `tells --assert`
 opens a page on loopback at all five browser passes and fails the build if anything of ours is
@@ -1304,7 +1387,13 @@ blocklists if you turn `block_ads` on. See [Privacy and safety](#privacy-and-saf
 
 Windows, macOS and Linux. CI runs the whole gate on all three on every push, and tagged releases
 attach binaries for **Windows x86-64, macOS Intel, macOS Apple silicon, Linux x86-64 and Linux
-arm64**, with a `sha256sums.txt`. There is also a container image on `ghcr.io`. On Windows, keep
+arm64**, with a `sha256sums.txt` and a build attestation. Install them with a one-line script, with
+Homebrew, Scoop, winget or the AUR, from a `.deb` or `.rpm`, through npm, or as a container image on
+`ghcr.io` — [docs/install.md](docs/install.md) has all of it.
+
+Two honest gaps. **Linux arm64 has no browser tiers**: Chrome for Testing publishes no linux-arm64
+build, so that artefact is the http tier unless you point `browser_path` at your own Chromium.
+**Windows arm64 has no build at all**; the x64 one runs under emulation. On Windows, keep
 `CARGO_TARGET_DIR` short when building from source — BoringSSL's paths run into `MAX_PATH`.
 </details>
 

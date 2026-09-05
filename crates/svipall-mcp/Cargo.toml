@@ -1,6 +1,6 @@
 [package]
 name = "svipall-mcp"
-version = "1.0.0"
+version = "1.0.0-rc"
 edition = "2021"
 license = "AGPL-3.0-only"
 description = "MCP server for svipall: web exploration with a real tier ladder and local captcha solving"
@@ -73,3 +73,39 @@ onnx-segment = ["dep:ort", "onnx"]
 # A grid subject the classifier was never taught, scored by a contrastive image-text pair the
 # operator installs (clip_image.onnx, clip_text.onnx, clip.json, vocab.json, merges.txt).
 onnx-zeroshot = ["dep:ort", "onnx"]
+
+# Native Linux packages, built with `--no-build` from the release tarball unpacked into
+# `packaging/staging/`. Nothing is compiled twice, and the .deb and the .rpm therefore contain
+# exactly the bytes the tarball and the checksum file already describe.
+#
+# No browser dependency on purpose: the http tier needs none, the browser tiers want one, and
+# svipall can keep a Chrome for Testing of its own. `svipall doctor` says which case you are in.
+[package.metadata.deb]
+name = "svipall"
+maintainer = "ilien <code@ilien.dev>"
+copyright = "Copyright the svipall authors"
+license-file = ["../../LICENSE", "0"]
+extended-description = """\
+Turns any web page into LLM-ready Markdown, crawls whole sites, searches without an API key, and \
+answers the captchas it can - all on this machine. No cloud, no API keys, no paid solving \
+service, no telemetry. Run `svipall doctor` after installing."""
+section = "web"
+priority = "optional"
+recommends = "chromium | google-chrome-stable"
+assets = [
+    ["../../packaging/staging/svipall", "usr/bin/", "755"],
+    ["../../packaging/staging/svipall-mcp", "usr/bin/", "755"],
+    ["../../README.md", "usr/share/doc/svipall/README.md", "644"],
+    ["../../skill/SKILL.md", "usr/share/doc/svipall/SKILL.md", "644"],
+]
+
+[package.metadata.generate-rpm]
+name = "svipall"
+summary = "Local-first web scraping and captcha MCP server for AI agents"
+license = "AGPL-3.0-only"
+assets = [
+    { source = "../../packaging/staging/svipall", dest = "/usr/bin/svipall", mode = "755" },
+    { source = "../../packaging/staging/svipall-mcp", dest = "/usr/bin/svipall-mcp", mode = "755" },
+    { source = "../../README.md", dest = "/usr/share/doc/svipall/README.md", mode = "644" },
+    { source = "../../skill/SKILL.md", dest = "/usr/share/doc/svipall/SKILL.md", mode = "644" },
+]

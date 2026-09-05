@@ -1,0 +1,16 @@
+{
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "WebFetch|WebSearch",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "svipall hook claude-web",
+            "timeout": 5
+          }
+        ]
+      }
+    ]
+  }
+}

@@ -6,9 +6,13 @@ pub mod blocklists;
 pub mod browser;
 pub mod capture;
 pub mod detect;
+/// What this build is, and whether it will work on this machine.
+pub mod doctor;
 pub mod grid;
 /// A live challenge handed to a person at the dashboard and finished on the page.
 pub mod handoff;
+/// Answers for an AI harness's tool-call hooks.
+pub mod hooks;
 /// Work that outlives the request that asked for it.
 pub mod jobs;
 /// Where a model comes from: the operator's file first, the embedded copy second.

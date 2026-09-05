@@ -1,0 +1,17 @@
+# yaml-language-server: $schema=https://aka.ms/winget-manifest.installer.1.6.0.schema.json
+PackageIdentifier: ilien-dev.svipall
+PackageVersion: "@VERSION@"
+InstallerType: zip
+# Portable: two binaries and nothing to run. winget puts them on PATH itself.
+NestedInstallerType: portable
+NestedInstallerFiles:
+  - RelativeFilePath: svipall.exe
+    PortableCommandAlias: svipall
+  - RelativeFilePath: svipall-mcp.exe
+    PortableCommandAlias: svipall-mcp
+Installers:
+  - Architecture: x64
+    InstallerUrl: https://github.com/ilien-dev/svipall/releases/download/v@VERSION@/svipall-@VERSION@-x86_64-pc-windows-msvc.zip
+    InstallerSha256: @SHA_X86_64_PC_WINDOWS_MSVC_UPPER@
+ManifestType: installer
+ManifestVersion: 1.6.0

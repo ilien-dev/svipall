@@ -1,0 +1,7 @@
+{
+  "mcpServers": {
+    "svipall": {
+      "command": "svipall-mcp"
+    }
+  }
+}

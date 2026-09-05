@@ -19,6 +19,7 @@ svipall — local-first web scraping, from a shell
 
 USAGE:
     svipall <command> [arguments]
+    svipall --version           What this build is: version, target triple, compiled-in features.
 
 COMMANDS:
     fetch <url> [--query Q] [--out FILE] [--text] [--mobile] [--isolated] [--full] [--tables]
@@ -56,6 +57,13 @@ COMMANDS:
                             ~/.svipall/api_key. Runs until ctrl-c.
     browser [status|install|update|remove]
                             Which browser runs, or download Chrome for Testing (~190 MB).
+    doctor                  Whether this installation will work on this machine: which build this
+                            is, which browser would run, which models are compiled in, whether the
+                            dashboard port is free — and, for anything that is wrong, the command
+                            that fixes it. What an installer runs when it has finished unpacking.
+    hook <event>            Answer an AI harness's tool-call hook, reading its JSON on stdin.
+                            `claude-web` declines Claude Code's WebFetch and WebSearch in favour of
+                            svipall, and only while ~/.svipall/claude_strict exists.
     solver export-corpus --out DIR [--since DAYS] [--modality M] [--source model|zeroshot|human]
                             The challenges this machine has seen and how they were answered, as
                             images plus a manifest.jsonl, for training your own models.
@@ -77,6 +85,34 @@ async fn main() {
     if args.is_empty() || args[0] == "-h" || args[0] == "--help" || args[0] == "help" {
         eprint!("{USAGE}");
         std::process::exit(if args.is_empty() { 1 } else { 0 });
+    }
+    // Answered before the config is read, the logger is built or a directory is created. An
+    // installer asks this of a binary it has just unpacked and may not yet own a home for, and a
+    // package manager's smoke test asks it of a binary in a sandbox.
+    if matches!(args[0].as_str(), "--version" | "-V" | "version") {
+        println!(
+            "{}",
+            serde_json::to_string_pretty(&svipall_mcp::doctor::version_json()).unwrap_or_default()
+        );
+        std::process::exit(0);
+    }
+    // A hook runs before every matching tool call somebody makes, so it opens no database, starts
+    // no browser pool and reads no cache. Straight from stdin to stdout.
+    if args[0] == "hook" {
+        let event = args.get(1).map(String::as_str).unwrap_or_default();
+        match svipall_mcp::hooks::run(event) {
+            Ok(value) => {
+                println!("{}", serde_json::to_string(&value).unwrap_or_default());
+                std::process::exit(0);
+            }
+            Err(e) => {
+                // Never exit 2 here: that is the harness's "block", and a hook that cannot read
+                // its own input has no business blocking anybody's tool call.
+                eprintln!("svipall hook: {e}");
+                println!("{{}}");
+                std::process::exit(0);
+            }
+        }
     }
     // Warnings and progress on stderr, so stdout is only ever the answer.
     tracing_subscriber::fmt()
@@ -360,6 +396,8 @@ async fn run(args: &[String]) -> anyhow::Result<Value> {
             }
         }
         "status" => server.status_json(serde_json::from_value(json!({}))?).await,
+        // Reads this machine rather than a page, which is why it takes the config and nothing else.
+        "doctor" => Ok(svipall_mcp::doctor::report(&cfg)),
         "serve" => {
             // The one command whose object is about itself rather than about a page, and the one
             // that answers when it *stops* rather than when it starts. Handled here rather than in
@@ -610,17 +648,49 @@ mod tests {
             "svipall solver",
             "svipall quality",
             "svipall serve",
+            "svipall doctor",
         ] {
             assert!(skill.contains(cmd), "{cmd} is not in the skill");
         }
     }
 
     #[test]
+    fn the_plugin_ships_the_same_skill_the_release_tarball_does() {
+        // Two copies of the skill exist because they are consumed differently: the tarball ships
+        // `SKILL.md` next to the binaries, and a Claude Code plugin has to carry its skills inside
+        // itself. Nothing else keeps them equal, and a plugin quietly a version behind teaches an
+        // agent commands this binary no longer has. `scripts/sync-plugin` is what makes them so.
+        let canonical = include_str!("../../../../skill/SKILL.md");
+        let shipped = include_str!("../../../../plugins/svipall/skills/svipall/SKILL.md");
+        assert_eq!(
+            canonical, shipped,
+            "plugins/svipall/skills/svipall/SKILL.md has drifted from skill/SKILL.md;              run scripts/sync-plugin.sh (or .ps1)"
+        );
+    }
+
+    #[test]
     fn the_usage_text_names_every_command_the_binary_answers_to() {
         // A command that works and is undocumented is a command nobody runs.
         for cmd in [
-            "fetch", "crawl", "snapshot", "capture", "search", "map", "log", "notes", "watch",
-            "profile", "status", "browser", "route", "solver", "quality", "serve",
+            "fetch",
+            "crawl",
+            "snapshot",
+            "capture",
+            "search",
+            "map",
+            "log",
+            "notes",
+            "watch",
+            "profile",
+            "status",
+            "browser",
+            "route",
+            "solver",
+            "quality",
+            "serve",
+            "doctor",
+            "hook",
+            "--version",
         ] {
             assert!(USAGE.contains(cmd), "{cmd} is missing from the usage text");
         }
