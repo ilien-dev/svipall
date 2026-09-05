@@ -24,7 +24,7 @@
 </p>
 
 <p align="center">
-  <a href="#60-second-start"><b>Quick start</b></a> &middot;
+  <a href="#install"><b>Install</b></a> &middot;
   <a href="#what-you-can-actually-do-with-it"><b>Use cases</b></a> &middot;
   <a href="#proof-every-number-with-the-command-that-reproduces-it"><b>Proof</b></a> &middot;
   <a href="#mcp-tools"><b>Tools</b></a> &middot;
@@ -58,7 +58,7 @@ It shows its work: three benchmark lists with the raw logs committed, including 
 the measurement said so. [→](#proof-every-number-with-the-command-that-reproduces-it)
 
 Rust · MCP + CLI + REST · no Node, no Python, no API key · nothing leaves your machine
-→ **[Install in 60 seconds ↓](#60-second-start)**
+→ **[Install it ↓](#install)**
 
 Where another tool is the better choice, [the comparison table](#how-svipall-compares) says so.
 
@@ -66,7 +66,7 @@ Where another tool is the better choice, [the comparison table](#how-svipall-com
 <summary><b>Table of contents</b></summary>
 
 - [**Why Svipall**](#why-svipall)
-- [60-second start](#60-second-start) — [ask your agent](#ask-the-agent-you-already-have) · [**Claude Code plugin**](#claude-code-install-the-plugin) · [install it yourself](#install-it-yourself) · [from a shell](#or-drive-it-from-a-shell) · [what comes back](#what-comes-back) · [in a container](#or-run-it-in-a-container) · [full install guide](docs/install.md) · [never done this before](GET-STARTED.md)
+- [Install](#install) — [ask your agent](#ask-the-agent-you-already-have) · [**Claude Code plugin**](#claude-code-install-the-plugin) · [install it yourself](#install-it-yourself) · [from a shell](#or-drive-it-from-a-shell) · [what comes back](#what-comes-back) · [in a container](#or-run-it-in-a-container) · [full install guide](docs/install.md) · [never done this before](GET-STARTED.md)
 - [What you can actually do with it](#what-you-can-actually-do-with-it) · [who it is for](#who-it-is-for)
 - [**Proof**: every number, with the command that reproduces it](#proof-every-number-with-the-command-that-reproduces-it)
   - [Extraction quality vs. readability, trafilatura and resiliparse](#extraction-quality--measured-against-public-corpora-including-where-it-loses)
@@ -88,7 +88,7 @@ Where another tool is the better choice, [the comparison table](#how-svipall-com
 
 ---
 
-## 60-second start
+## Install
 
 Three ways in. The first two install Svipall **and** wire it into your assistant in one step; the
 third is for everyone else.
