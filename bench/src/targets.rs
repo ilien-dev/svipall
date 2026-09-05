@@ -402,6 +402,15 @@ static GATE_BODY: LazyLock<Regex> = LazyLock::new(|| {
 /// Verbatim port of the public benchmark's `_classify`, over the final status, the title and the
 /// rendered HTML. `body` is scanned to 50 KB, as there.
 pub fn public_verdict(status: Option<u16>, title: &str, body: &str) -> Verdict {
+    if !status.is_some_and(|s| (100..=599).contains(&s)) {
+        return Verdict::Error;
+    }
+    historical_verdict(status, title, body)
+}
+
+/// Original public scoring, retained separately so correcting transport errors does not erase
+/// the historical comparison. The UTF-8 boundary fix changes no matching rule.
+pub fn historical_verdict(status: Option<u16>, title: &str, body: &str) -> Verdict {
     if status.is_none() && title.is_empty() && body.is_empty() {
         return Verdict::Error;
     }
@@ -413,9 +422,8 @@ pub fn public_verdict(status: Option<u16>, title: &str, body: &str) -> Verdict {
     if GATE_TITLE.is_match(title) {
         return Verdict::Gated;
     }
-    let head = &body[..body.len().min(50_000)];
     // Slicing a UTF-8 string at a byte offset can land inside a character; back off to a boundary.
-    let mut end = head.len();
+    let mut end = body.len().min(50_000);
     while !body.is_char_boundary(end) {
         end -= 1;
     }
@@ -431,6 +439,20 @@ pub fn public_verdict(status: Option<u16>, title: &str, body: &str) -> Verdict {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn invalid_transport_status_is_never_success() {
+        for status in [None, Some(0), Some(99), Some(600)] {
+            assert_eq!(public_verdict(status, "", ""), Verdict::Error);
+        }
+        assert_eq!(historical_verdict(Some(0), "", ""), Verdict::Ok);
+    }
+
+    #[test]
+    fn public_body_limit_can_split_a_unicode_character() {
+        let body = format!("{}é", "x".repeat(49_999));
+        assert_eq!(public_verdict(Some(200), "Article", &body), Verdict::Ok);
+    }
 
     #[test]
     fn the_public_rule_reads_a_challenge_title_as_gated_not_blocked() {
