@@ -1406,10 +1406,13 @@ arm64**, with a `sha256sums.txt` and a build attestation. Install them with a on
 Homebrew, Scoop, winget or the AUR, from a `.deb` or `.rpm`, through npm, or as a container image on
 `ghcr.io` — [docs/install.md](docs/install.md) has all of it.
 
-Two honest gaps. **Linux arm64 has no browser tiers**: Chrome for Testing publishes no linux-arm64
-build, so that artefact is the http tier unless you point `browser_path` at your own Chromium.
-**Windows arm64 has no build at all**; the x64 one runs under emulation. On Windows, keep
-`CARGO_TARGET_DIR` short when building from source — BoringSSL's paths run into `MAX_PATH`.
+Three honest gaps. **Linux arm64 has no browser tiers**: Chrome for Testing publishes no
+linux-arm64 build, so that artefact is the http tier unless you point `browser_path` at your own
+Chromium. **macOS Intel has no local captcha models**: ONNX Runtime publishes no x86-64 macOS
+build, so image challenges go to the human dashboard there. **Windows arm64 has no build at all**;
+the x64 one runs under emulation. `svipall doctor` reports whichever of these applies to the
+machine it is on. On Windows, keep `CARGO_TARGET_DIR` short when building from source —
+BoringSSL's paths run into `MAX_PATH`.
 </details>
 
 <details>

@@ -56,19 +56,29 @@ jobs:
           - os: windows-latest
             target: x86_64-pc-windows-msvc
             ext: .exe
+            models: true
+          # The one target with no local model inference. ONNX Runtime publishes no x86_64 macOS
+          # build at the version `ort` is pinned to, and `download-binaries` fails the build rather
+          # than falling back, so this artefact is built without the `onnx-*` features — and
+          # without the weights nothing in it could read. Image captchas go to the human dashboard,
+          # `svipall doctor` reports `no_models`, and the platform table says so out loud.
           - os: macos-latest
             target: x86_64-apple-darwin
             ext: ""
+            models: false
           - os: macos-latest
             target: aarch64-apple-darwin
             ext: ""
+            models: true
           - os: ubuntu-latest
             target: x86_64-unknown-linux-gnu
             ext: ""
+            models: true
           # Native arm runner: BoringSSL cross-compiles badly and does not need to.
           - os: ubuntu-24.04-arm
             target: aarch64-unknown-linux-gnu
             ext: ""
+            models: true
     steps:
       - uses: actions/checkout@v4
 
@@ -98,6 +108,7 @@ jobs:
         with:
           python-version: "3.12"
       - name: Export embedded models
+        if: matrix.models
         shell: bash
         run: |
           python -m pip install --quiet torch torchvision --index-url https://download.pytorch.org/whl/cpu
@@ -118,8 +129,12 @@ jobs:
           # Empty, not unset: unsetting it hands the build back to .cargo/config.toml and
           # its `target-cpu=native`, which `ring` rejects on aarch64 apple targets.
           case "${{ matrix.target }}" in aarch64-*) RUSTFLAGS= ;; esac
-          cargo build --profile dist --target ${{ matrix.target }} --bin svipall-mcp --bin svipall \
-            --features onnx-ocr,onnx-grid,onnx-audio,onnx-detect,onnx-segment,onnx-zeroshot
+          if [ "${{ matrix.models }}" = "true" ]; then
+            feats="--features onnx-ocr,onnx-grid,onnx-audio,onnx-detect,onnx-segment,onnx-zeroshot"
+          else
+            feats=""
+          fi
+          cargo build --profile dist --target ${{ matrix.target }} --bin svipall-mcp --bin svipall $feats
 
       # Ad-hoc, because notarisation needs an Apple Developer ID this project does not have. It
       # stops the "damaged and can't be opened" dialog for a binary copied between machines; a
