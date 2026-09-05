@@ -172,8 +172,14 @@ jobs:
           # No browser on a CI runner, so `doctor` reports problems and that is correct. What must
           # hold is that the models made it in.
           "$bin" doctor | tee doctor.json
-          grep -q '"detect"' doctor.json
-          grep -q '"segment"' doctor.json
+          # Asserted both ways, because "no models" is a real answer for some targets and a
+          # regression for others, and only the matrix knows which this is.
+          if [ "${{ matrix.models }}" = "true" ]; then
+            grep -q '"detect"' doctor.json
+            grep -q '"segment"' doctor.json
+          else
+            grep -q '"no_models"' doctor.json
+          fi
 
       # The binary that is about to be published, started on a distribution older than the one
       # that built it. A glibc that is too new is invisible here otherwise: the runner has it, so
