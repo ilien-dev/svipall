@@ -53,6 +53,7 @@ RUN if [ "$FLAVOR" = "full" ]; then \
         && rm -rf /var/lib/apt/lists/* \
         && pip3 install --quiet --break-system-packages torch torchvision \
              --index-url https://download.pytorch.org/whl/cpu \
+             --extra-index-url https://pypi.org/simple \
         && pip3 install --quiet --break-system-packages onnx \
         && python3 tools/models/export.py \
         && ls -la crates/svipall-models/models ; \
