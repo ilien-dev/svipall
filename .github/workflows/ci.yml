@@ -48,6 +48,14 @@ jobs:
         if: runner.os == 'Windows'
         run: echo "CARGO_TARGET_DIR=C:\t" >> $env:GITHUB_ENV
 
+      # .cargo/config.toml pins `target-cpu=native` for local builds, and RUSTFLAGS as an
+      # environment variable replaces that section outright. On the aarch64 macOS runner `native`
+      # enables features past the static baseline `ring` asserts for apple targets and it refuses
+      # to compile, so this job builds portable.
+      - name: Portable rustflags (macOS)
+        if: runner.os == 'macOS'
+        run: echo "RUSTFLAGS=" >> $GITHUB_ENV
+
       - name: fmt
         run: cargo fmt --all --check
 
