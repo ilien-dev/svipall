@@ -333,7 +333,7 @@ pub(crate) fn links_detailed(doc: &Html, base_url: &str) -> Links {
 
 #[cfg(test)]
 mod tests {
-    use crate::extraction::{parse_page, ParseWants};
+    use crate::{parse_page, ParseWants};
 
     const PAGE: &str = r#"<!doctype html><html lang="en-GB">
       <head>
@@ -363,7 +363,7 @@ mod tests {
         <img src="/img/a.png" alt="An image">
       </body></html>"#;
 
-    fn meta() -> crate::extraction::meta::Metadata {
+    fn meta() -> crate::meta::Metadata {
         let wants = ParseWants {
             metadata: true,
             metadata_base_url: Some("https://example.com/page".into()),

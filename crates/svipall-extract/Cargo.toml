@@ -1,0 +1,21 @@
+# Permissively licensed on purpose. This crate is the part of svipall that is useful to anyone
+# parsing HTML, so it carries the Rust ecosystem's usual `MIT OR Apache-2.0` rather than the
+# workspace's AGPL — a library nobody can depend on is a library nobody reads.
+[package]
+name = "svipall-extract"
+version = "1.0.0"
+edition = "2021"
+license = "MIT OR Apache-2.0"
+description = "HTML to text, Markdown, links, metadata and typed tables in a single DOM parse, with declarative CSS extraction that relocates its selectors when a site is redesigned"
+keywords = ["html", "markdown", "scraping", "extraction", "dom"]
+categories = ["text-processing", "web-programming"]
+readme = "README.md"
+repository = "https://github.com/ilien-dev/svipall"
+
+[dependencies]
+scraper = { workspace = true }
+regex = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+url = { workspace = true }
+ego-tree = "0.9"

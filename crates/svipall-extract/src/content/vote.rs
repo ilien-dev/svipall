@@ -40,7 +40,7 @@
 
 use super::stats::Doc;
 use super::{blocks, candidates};
-use crate::extraction::prune;
+use crate::prune;
 use ego_tree::{NodeId, NodeRef};
 use scraper::Node;
 use std::collections::HashSet;

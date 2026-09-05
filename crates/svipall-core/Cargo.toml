@@ -13,10 +13,9 @@ tracing = { workspace = true }
 regex = { workspace = true }
 dirs = { workspace = true }
 url = { workspace = true }
-scraper = { workspace = true }
+svipall-extract = { workspace = true }
 anyhow = { workspace = true }
 rusqlite = { workspace = true }
-ego-tree = "0.9"
 quick-xml = { version = "0.37", default-features = false }
 flate2 = { version = "1.0", default-features = false, features = ["rust_backend"] }
 # Proof-of-work challenges: a hash loop, no model, no person. Already in the tree transitively;

@@ -17,7 +17,10 @@ pub mod document;
 pub mod domain;
 pub mod exits;
 pub mod export;
-pub mod extraction;
+// The extraction engine lives in its own permissively licensed crate so that anything outside
+// this workspace can depend on it. Re-exported here under its old name: `svipall_core::extraction`
+// and `crate::extraction` still resolve, in this crate and in every consumer.
+pub use svipall_extract as extraction;
 pub mod fleet;
 pub mod forms;
 pub mod frontier;

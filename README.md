@@ -680,10 +680,12 @@ commercial use. Two obligations come with it: a fork stays under the same licenc
 its source published, and anyone who offers svipall to others **over a network** must
 publish the complete source of what they run (section 13). See [`LICENSE`](LICENSE).
 
+`crates/svipall-extract`, the extraction engine, is deliberately **MIT OR Apache-2.0**
+so that anything can depend on it: a library nobody can use is a library nobody reads.
 `crates/svipall-cdp` keeps its upstream terms (chromiumoxide, MIT OR Apache-2.0) and
 `crates/svipall-quic` keeps its own (quiche, BSD-2-Clause); the default build links
 BoringSSL under an explicit AGPL section 7 linking exception.
-Both are set out in [`NOTICE`](NOTICE) and
+These are set out in [`NOTICE`](NOTICE) and
 [`THIRD-PARTY-NOTICES.md`](THIRD-PARTY-NOTICES.md).
 
 Contributions are taken under the DCO — no CLA, no copyright assignment. See

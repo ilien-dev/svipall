@@ -38,6 +38,20 @@ If you modify this program, you may extend this exception to your version, but y
 not obliged to do so. To remove it, delete this paragraph from your version.
 
 
+PERMISSIVELY LICENSED COMPONENT
+
+`crates/svipall-extract` is part of this project and is published by the same copyright
+holder, but under the MIT and Apache-2.0 licences at the recipient's option rather than
+the AGPL. It is the HTML extraction engine, and it is useful to anyone parsing a web
+page, so it carries the terms the Rust ecosystem expects of a library. Its licence texts
+are kept beside it in crates/svipall-extract/LICENSE-MIT and LICENSE-APACHE.
+
+Nothing about that choice weakens the AGPL over the rest of this program. A work that
+links `svipall-extract` alone takes only that crate's permissive terms; a work that links
+any other crate in this workspace is governed by the GNU Affero General Public License as
+set out above.
+
+
 THIRD-PARTY MATERIAL
 
 This distribution includes material from third parties under their own licenses. See

@@ -5,10 +5,10 @@ never by breaking access controls. Everything runs on this machine.
 
 ## Layout
 `crates/svipall-*` plus `bench/`, a workspace member **not** under `crates/`.
-- `core` — classify, ladder, identity+`coherence`, extraction, `quality`, policy, `exits`, throttle,
-  widgets, `answer`, `session`, SQLite stores, config.
-- `cdp` (CDP) and `quic` (quiche+h3) are **vendored**: every deviation needs a `PATCHES.md` entry.
-- `http` — http tier; `impersonate` (default) = Chrome/Firefox TLS+HTTP2 on BoringSSL. `http3`
+- `core` — classify, ladder, identity+`coherence`, `quality`, policy, `exits`, throttle, widgets,
+  `answer`, `session`, SQLite stores, config. `extract` — extraction, MIT/Apache, re-exported.
+- `cdp` and `quic` (quiche+h3) are **vendored**: every deviation needs a `PATCHES.md` entry.
+- `http` tier; `impersonate` (default) = Chrome/Firefox TLS+HTTP2 on BoringSSL. `http3`
   (opt-in) uses QUIC only where `Alt-Svc` said so: never a first visit, never past a proxy.
 - `solver` store+API, `dashboard` human panel, `models` ONNX, `mcp` the product (both binaries).
 
