@@ -338,12 +338,16 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          # The browser is what makes the tier ladder work, and Chrome for Testing publishes no
-          # linux-arm64 build. An arm64 "full" image would be a full image with no browser in it,
-          # so it is not built; arm64 users get `slim`, which is honest about being http-only.
+          # Both flavours, both architectures. The arm64 `full` image is the only way to run
+          # everything on arm64 Linux at all: that binary can carry neither the models (glibc) nor
+          # a managed browser (Chrome for Testing publishes no linux-arm64 build), so the image
+          # uses the distribution's Chromium instead and says so.
           - flavor: full
             arch: amd64
             os: ubuntu-22.04
+          - flavor: full
+            arch: arm64
+            os: ubuntu-22.04-arm
           - flavor: slim
             arch: amd64
             os: ubuntu-22.04

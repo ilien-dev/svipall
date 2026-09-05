@@ -17,6 +17,7 @@
 use std::time::Instant;
 
 mod daniel;
+mod comparison;
 mod evasion;
 mod extraction;
 mod fingerprint;
@@ -94,6 +95,7 @@ async fn main() -> anyhow::Result<()> {
 
     let started = Instant::now();
     let failures = match mode {
+        "compare" => comparison::run(&args).await?,
         "micro" => micro::run(assert),
         "tells" => tells::run(assert).await,
         "cache" => evasion::run_cache().await,

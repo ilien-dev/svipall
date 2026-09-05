@@ -10,12 +10,16 @@
 #   docker run --rm -v svipall-home:/data svipall svipall fetch https://example.com
 #   docker run --rm -v svipall-home:/data svipall svipall doctor         # what this image can do
 #
-# Two flavours, and the difference is real rather than cosmetic. `full` carries Chrome for Testing
-# and the captcha models, so the tier ladder and local solving both work. `slim` carries neither:
-# it is the http tier, and a page behind a challenge stays blocked. `slim` is also the only one
-# built for arm64, because Chrome for Testing publishes no linux-arm64 build — an arm64 "full"
-# image would be a full image with no browser in it, which is a worse thing to ship than an
-# honest slim one.
+# Two flavours, and the difference is real rather than cosmetic. `full` carries a browser and the
+# captcha models, so the tier ladder and local solving both work. `slim` carries neither: it is the
+# http tier, and a page behind a challenge stays blocked. Both are built for amd64 and arm64.
+#
+# The browser differs by architecture, and the image says which one it has. On amd64 it is Chrome
+# for Testing, downloaded at build time. On arm64 Chrome for Testing publishes nothing, so it is
+# the distribution's own Chromium from apt: the same major, reported by `svipall doctor` as
+# `chromium` rather than `managed`, which is one step down on fingerprint quality and still a real
+# browser. That is why this image exists for arm64 at all — the native arm64 binary can carry
+# neither a browser nor the models, so the container is the only way to run everything there.
 #
 # The REST API is off unless asked for, in the image as everywhere else — it grants everything the
 # MCP tools do. Opt in with a port and a key of your own:
@@ -89,17 +93,29 @@ RUN chmod +x /usr/local/bin/docker-entrypoint.sh \
 
 # ---------------------------------------------------------------------------------------------
 FROM runtime-base AS runtime-full
-# What Chrome for Testing needs to start headless, and nothing it does not.
+ARG TARGETARCH
+# What a headless Chromium needs to start, and nothing it does not. On arm64 the browser itself
+# comes from here too, because Chrome for Testing publishes no build to download.
 RUN apt-get update && apt-get install -y --no-install-recommends \
         fonts-liberation libasound2 libatk-bridge2.0-0 libatk1.0-0 libcups2 \
         libdbus-1-3 libdrm2 libgbm1 libglib2.0-0 libnspr4 libnss3 libpango-1.0-0 libx11-6 \
         libxcomposite1 libxdamage1 libxext6 libxfixes3 libxkbcommon0 libxrandr2 xdg-utils \
+    && if [ "$TARGETARCH" = "arm64" ]; then \
+           apt-get install -y --no-install-recommends chromium; \
+       fi \
     && rm -rf /var/lib/apt/lists/*
+# Named rather than guessed. A path that does not exist is filtered out by `browser::detect_all`,
+# so this is inert on amd64 and the managed Chrome for Testing still wins there.
+ENV SVIPALL_BROWSER=/usr/bin/chromium
 USER svipall
-# A browser of its own, so the browser tiers work out of the box. Downloaded at build time,
-# never at run time. Fatal on purpose: an image that quietly became http-only is the failure this
-# whole flavour exists to prevent, and `slim` is the supported way to ask for one.
-RUN svipall browser install
+# A browser of its own on amd64, downloaded at build time and never at run time; on arm64 apt
+# already did it above. Then asserted, because an image that quietly became http-only is the exact
+# failure this flavour exists to prevent and `slim` is the supported way to ask for one.
+RUN if [ "$TARGETARCH" != "arm64" ]; then svipall browser install; fi \
+    && svipall doctor > /tmp/d.json \
+    && grep -q '"in_use"' /tmp/d.json \
+    && ! grep -q '"no_browser"' /tmp/d.json \
+    && rm -f /tmp/d.json
 
 # ---------------------------------------------------------------------------------------------
 FROM runtime-base AS runtime-slim
