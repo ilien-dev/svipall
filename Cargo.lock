@@ -3970,16 +3970,15 @@ dependencies = [
  "anydoc",
  "anyhow",
  "dirs",
- "ego-tree",
  "flate2",
  "pdf-extract",
  "quick-xml 0.37.5",
  "regex",
  "rusqlite",
- "scraper",
  "serde",
  "serde_json",
  "sha2",
+ "svipall-extract",
  "tokio",
  "toml",
  "tracing",
@@ -3997,6 +3996,18 @@ dependencies = [
  "svipall-solver",
  "tokio",
  "tower",
+]
+
+[[package]]
+name = "svipall-extract"
+version = "1.0.0"
+dependencies = [
+ "ego-tree",
+ "regex",
+ "scraper",
+ "serde",
+ "serde_json",
+ "url",
 ]
 
 [[package]]

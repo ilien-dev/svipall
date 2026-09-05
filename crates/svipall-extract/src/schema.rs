@@ -431,7 +431,7 @@ pub(crate) fn extract_from(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::extraction::{parse_page, MarkdownOpts, ParseWants};
+    use crate::{parse_page, MarkdownOpts, ParseWants};
 
     fn grid(n: usize) -> String {
         let mut html = String::from("<html><body>");
@@ -610,7 +610,7 @@ mod tests {
         )
         .unwrap();
         let (compiled, _) = CompiledSchema::from_value(&v).unwrap();
-        let before = crate::extraction::dom_parse_count();
+        let before = crate::dom_parse_count();
         let wants = ParseWants {
             text: true,
             title: true,
@@ -619,14 +619,14 @@ mod tests {
             ..Default::default()
         };
         let _ = parse_page(&grid(5), &wants);
-        assert_eq!(crate::extraction::dom_parse_count() - before, 1);
+        assert_eq!(crate::dom_parse_count() - before, 1);
     }
 }
 
 #[cfg(test)]
 mod heal_tests {
     use super::*;
-    use crate::extraction::{parse_page, ParseWants};
+    use crate::{parse_page, ParseWants};
 
     const V1: &str = "<html><body><main>\
         <div class=\"card\"><h2 class=\"title\">Cup</h2><span class=\"price\">3</span></div>\
