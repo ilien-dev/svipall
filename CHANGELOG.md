@@ -50,6 +50,24 @@ ever been tagged. This is what it produces.
 - **`docs/install.md`**, written to be executed by an agent rather than read, and
   **`GET-STARTED.md`** for somebody who has never installed anything from a terminal.
 
+Every channel below was installed from the published `v1.0.0-rc` the way a user would, and each one
+ends with a real `svipall fetch https://example.com` returning `200 Example Domain`:
+
+| Channel | Where it was run |
+|---|---|
+| `install.sh` | `debian:bookworm-slim` — real download, checksum, PATH |
+| `install.ps1` | Windows 11 — real download, all seven features present |
+| `.deb` | `dpkg -i` on Debian 12, installs as `1.0.0~rc` |
+| `.rpm` | `rpm -i` on Fedora 41, installs as `1.0.0~rc-1` |
+| Homebrew | `brew install ilien-dev/svipall/svipall` in `homebrew/brew` |
+| Scoop | `scoop bucket add` + `scoop install` in a sandboxed Scoop root |
+| Container | `:1.0.0-rc` reports `ok: true` with the models and Chrome 152; `:1.0.0-rc-slim` is a real amd64 + arm64 manifest |
+| Claude Code plugin | `/plugin marketplace add ilien-dev/svipall`, then install: five skills, one hook, one MCP server |
+
+**macOS is not on that list, and is not claimed.** There is no Mac here. The release smoke test runs
+the arm64 binary on its own runner; the Intel one is cross-built and cannot be run where it is made.
+**npm is unpublished.**
+
 ### Getting in
 
 - **A tiered fetch ladder** — `http → browser → stealth → real → warm` — learned per domain and
@@ -170,6 +188,22 @@ one reads `"exit": null`. Until somebody does, that qualifier applies to every n
   *"skipped: set `SVIPALL_CORPUS`"* on a machine without the corpora. Run against the SIGIR-23 gold
   standard it reproduces the figures `docs/extraction.md` already publishes, exactly — including
   the three published extractors this project is **below** on median and says so.
+
+- **The Linux binary only ran on the distribution that built it.** `ubuntu-latest` is 24.04, so the
+  first published artefact wanted `GLIBC_2.39` and would not start on Debian 12, Ubuntu 22.04,
+  RHEL 9 or Amazon Linux 2023 — nor would the `.deb` and `.rpm`, which carry the same binaries.
+  Linux builds on 22.04 now, and a release step starts the binary inside a `debian:bookworm-slim`
+  container before packaging it, because this failure is invisible on the machine that produces it.
+- **Linux and macOS Intel gave up the model features to get there.** The ONNX Runtime builds `ort`
+  downloads reference glibc 2.38 and GCC 13's libstdc++, so a Linux binary either uses them or
+  starts on Debian 12. It starts. The container image keeps the models, because a container carries
+  its own glibc, and `svipall doctor` reports `no_models` wherever they are absent.
+- **The `.deb` and `.rpm` versions.** RPM rejects a hyphen outright, and dpkg takes `1.0.0-rc` and
+  then sorts it *above* `1.0.0`, so somebody on the candidate would never be offered the release.
+  Both are `1.0.0~rc`.
+- **The container images were built through QEMU.** `slim` was still emulating arm64 after
+  thirty-two minutes while the native amd64 half finished in eight. Each architecture now builds on
+  a runner of that architecture, and the tags are assembled from the digests.
 
 ### Still open, and named so it is not lost
 
