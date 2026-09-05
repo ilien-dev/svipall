@@ -1,0 +1,12 @@
+# Line endings are normalised in the repository: LF is stored, and each checkout follows its own
+# platform's convention. Without this, a contributor whose core.autocrlf is off commits CRLF and
+# every later diff is the whole file rather than the lines they changed.
+* text=auto
+
+# Runs on Linux and macOS in CI, so it must stay LF even in a Windows checkout.
+*.sh text eol=lf
+
+# Binary assets git must not try to normalise.
+*.png binary
+*.ico binary
+*.onnx binary
