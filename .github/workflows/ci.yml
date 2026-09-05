@@ -149,7 +149,8 @@ jobs:
         shell: pwsh
         run: |
           New-Item -ItemType Directory -Force -Path ci-pkg | Out-Null
-          Copy-Item "$env:CARGO_TARGET_DIR\debug\svipall.exe","$env:CARGO_TARGET_DIR\debug\svipall-mcp.exe" ci-pkg          Compress-Archive -Path ci-pkg\* -DestinationPath svipall-ci.zip -Force
+          Copy-Item -Path "$env:CARGO_TARGET_DIR\debug\svipall.exe","$env:CARGO_TARGET_DIR\debug\svipall-mcp.exe" -Destination ci-pkg
+          Compress-Archive -Path ci-pkg\* -DestinationPath svipall-ci.zip -Force
           .\install.ps1 -FromFile svipall-ci.zip -Prefix "$PWD\ci-prefix" -NoPath -NoBrowser
           & "$PWD\ci-prefix\svipall.exe" --version
           & "$PWD\ci-prefix\svipall.exe" doctor > $null
