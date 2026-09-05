@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "mcp__svipall__web_search",
+      "mcp__svipall__web_fetch",
+      "mcp__grep__searchGitHub",
+      "mcp__svipall__web_fetch_many",
+      "mcp__hlid__web_fetch"
+    ]
+  }
+}

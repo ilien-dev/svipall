@@ -1,0 +1,16 @@
+<!doctype html><html lang="en"><head><title>Configuring the retry policy</title></head>
+<body><main>
+<h1>Configuring the retry policy</h1>
+<p>The client retries a request when the response is a connection error or one of the status codes
+listed in <code>retry_on</code>. Every other response, including a 400, is returned to the caller
+unchanged: retrying a request the server has understood and rejected only wastes the quota.</p>
+<h2>Backoff</h2>
+<p>Delays grow exponentially from <code>base_delay</code> and are capped at <code>max_delay</code>.
+Jitter is applied by default, because a fleet that retries on the same schedule turns one outage
+into a thundering herd when the service comes back. Set <code>jitter = false</code> only when you
+are reproducing a timing bug and need the sequence to be deterministic.</p>
+<h2>Budgets</h2>
+<p>A retry budget bounds the additional load retries may add, expressed as a fraction of the
+original request rate. When the budget is exhausted the client stops retrying until it refills,
+which keeps a failing dependency from being retried into the ground.</p>
+</main></body></html>

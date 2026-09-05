@@ -1,0 +1,75 @@
+[package]
+name = "svipall-mcp"
+version = "1.0.0"
+edition = "2021"
+license = "AGPL-3.0-only"
+description = "MCP server for svipall: web exploration with a real tier ladder and local captcha solving"
+
+[dependencies]
+svipall-core = { path = "../svipall-core" }
+svipall-http = { path = "../svipall-http", default-features = false }
+svipall-solver = { path = "../svipall-solver" }
+svipall-dashboard = { path = "../svipall-dashboard" }
+svipall-models = { path = "../svipall-models" }
+tokio = { workspace = true }
+axum = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+anyhow = { workspace = true }
+tracing = { workspace = true }
+tracing-subscriber = { workspace = true }
+svipall-cdp = { workspace = true }
+chrono = { workspace = true }
+uuid = { workspace = true }
+base64 = { workspace = true }
+once_cell = { workspace = true }
+rmcp = { version = "0.5", features = ["server", "transport-io"] }
+schemars = "1.2"
+futures = { workspace = true }
+urlencoding = { workspace = true }
+scraper = { workspace = true }
+url = { workspace = true }
+zip = { version = "2.2", default-features = false, features = ["deflate", "aes-crypto"] }
+md5 = "0.7"
+
+# Local OCR (optional). Enable with --features onnx-ocr and drop a model in ~/.svipall/models/.
+ort = { version = "=2.0.0-rc.13", features = ["download-binaries"], optional = true }
+# Audio decoding for the audio-captcha path. Pure Rust, so a solve never depends on what happens
+# to be installed on the machine.
+symphonia = { version = "0.5", default-features = false, features = ["mp3", "wav", "isomp4", "aac"], optional = true }
+# Image geometry for slider and rotation captchas, which need no model at all. On by default via
+# the `vision` feature; `ort` stays optional because a model file is a different kind of ask.
+image = { version = "0.25" }
+
+[dev-dependencies]
+# `ServiceExt::oneshot`: the REST tests drive the Router directly rather than binding a socket,
+# which is how `svipall-solver` and `svipall-dashboard` already test their own HTTP surfaces.
+tower = { workspace = true }
+
+[features]
+# Browser-grade TLS/HTTP2 emulation for the http tier. On by default; needs cmake, perl, llvm and
+# nasm to build BoringSSL. `--no-default-features` drops to reqwest and the server says so.
+default = ["impersonate"]
+impersonate = ["svipall-http/impersonate"]
+# HTTP/3 over QUIC for sites that advertised it. Off by default; `config.http3` still has to be
+# true, so building with this costs a binary that is larger and nothing else.
+http3 = ["svipall-http/http3"]
+# Umbrella every model feature enables, so shared inference code has one cfg to sit behind.
+onnx = []
+onnx-ocr = ["dep:ort", "onnx"]
+# Local image-grid solving ("select all images with ..."). Same arrangement as onnx-ocr: the
+# inference path is compiled in, the model is installed by the operator at ~/.svipall/models/grid.onnx.
+onnx-grid = ["dep:ort", "onnx"]
+# Local audio-captcha solving. Same arrangement again: inference compiled in here, the model
+# installed by the operator at ~/.svipall/models/audio.onnx. Decoding is pure Rust — no external
+# media binary is ever invoked.
+onnx-audio = ["dep:ort", "dep:symphonia", "onnx"]
+# "Click on the …" and "draw a box around the …": a single-stage detector the operator installs
+# at ~/.svipall/models/detect.onnx (+ detect.json). Same arrangement as onnx-grid.
+onnx-detect = ["dep:ort", "onnx"]
+# The 4x4 "select all squares" grid is one picture: a segmentation model marks every cell its
+# mask touches. Same arrangement as onnx-detect; model at segment.onnx (+ segment.json).
+onnx-segment = ["dep:ort", "onnx"]
+# A grid subject the classifier was never taught, scored by a contrastive image-text pair the
+# operator installs (clip_image.onnx, clip_text.onnx, clip.json, vocab.json, merges.txt).
+onnx-zeroshot = ["dep:ort", "onnx"]

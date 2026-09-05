@@ -1,0 +1,43 @@
+    Finished `release` profile [optimized] target(s) in 0.38s
+     Running `C:\Users\jesus\Documents\Projects\hlid\target\release\svipall-bench.exe evasion --set vendors8 --runs 3`
+
+== vendors8 run 1/3 ==
+target               wall                     tier     secs  verdict  result
+datadome-g2          captcha-delivery.com     warm     25.2  ok       FAIL browser-fingerprinting wall (captcha-delivery.com, cookie datadome) [captcha-delivery.com]
+datadome-idealista   captcha-delivery.com     warm     25.2  ok       FAIL browser-fingerprinting wall (captcha-delivery.com, cookie datadome) [captcha-delivery.com]
+kasada-hyatt         kasada                   warm     28.0  ok       FAIL browser-fingerprinting wall (kpsdk.io, header x-kpsdk-ct) [kpsdk.io]
+cloudflare-crunchbase managed-challenge        warm     32.0  gated    FAIL cloudflare wall (just a moment)
+akamai-newegg        akamai                   http      0.4  ok       PASS
+akamai-homedepot     akamai                   warm     25.2  gated    FAIL the site's own error page instead of the content (something went wrong) [akamaihd.net]
+kasada-twitch        kasada                   real      9.3  ok       PASS
+cloudflare-indeed    managed-challenge        warm     26.7  gated    FAIL cloudflare wall (just a moment)
+run 1: 2/8 in 172.1s
+
+== vendors8 run 2/3 ==
+target               wall                     tier     secs  verdict  result
+akamai-homedepot     akamai                   warm     62.0  gated    FAIL the site's own error page instead of the content (something went wrong) [akamaihd.net]
+datadome-g2          captcha-delivery.com        -     90.0  ok       FAIL timeout
+akamai-newegg        akamai                   http      1.6  ok       PASS
+cloudflare-crunchbase managed-challenge           -     90.0  ok       FAIL timeout
+kasada-twitch        kasada                   real      1.9  ok       PASS
+kasada-hyatt         kasada                   warm     62.8  ok       FAIL browser-fingerprinting wall (kpsdk.io, header x-kpsdk-ct) [kpsdk.io]
+cloudflare-indeed    managed-challenge        http      1.3  ok       PASS
+datadome-idealista   captcha-delivery.com        -     90.0  ok       FAIL timeout
+run 2: 3/8 in 399.6s
+
+== vendors8 run 3/3 ==
+target               wall                     tier     secs  verdict  result
+akamai-homedepot     akamai                      -     90.0  ok       FAIL timeout
+cloudflare-indeed    managed-challenge        http      1.2  ok       PASS
+akamai-newegg        akamai                   http      1.2  ok       PASS
+kasada-hyatt         kasada                      -     90.0  ok       FAIL timeout
+cloudflare-crunchbase managed-challenge           -     90.0  ok       FAIL timeout
+datadome-idealista   captcha-delivery.com        -     90.0  ok       FAIL timeout
+datadome-g2          captcha-delivery.com        -     90.0  ok       FAIL timeout
+kasada-twitch        kasada                   real      1.8  ok       PASS
+run 3: 3/8 in 454.3s
+
+vendors8 — median 3/8 (range 2..3 over 3 runs) — resolved by tier: {"http": 5, "real": 3}
+cost — median 399.6s per run of 8, 49.9s per page; every cell by tier: {"-": 8, "http": 5, "real": 3, "warm": 8}
+
+evasion finished in 1026.0s

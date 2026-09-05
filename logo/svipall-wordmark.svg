@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 120" width="600" height="120" role="img" aria-label="svipall">
+  <title>svipall</title>
+  <g fill="none" stroke="#12161F" stroke-width="15" stroke-linecap="butt" stroke-linejoin="miter" stroke-miterlimit="8">
+    <g transform="translate(14,10)">
+      <!-- S -->
+      <path d="M66 22 L54 6 L18 6 L6 22 L6 34 L18 44 L54 56 L66 68 L66 78 L54 94 L18 94 L6 78"/>
+      <!-- V -->
+      <path transform="translate(92,0)" d="M6 6 L28 94 L44 94 L66 6"/>
+      <!-- I -->
+      <path transform="translate(184,0)" d="M14 6 L14 94"/>
+      <!-- P -->
+      <path transform="translate(232,0)" d="M8 94 L8 6 L46 6 L64 24 L64 38 L46 54 L8 54"/>
+      <!-- A -->
+      <path transform="translate(322,0)" d="M6 94 L28 8 L44 8 L66 94 M18 62 L54 62"/>
+      <!-- L -->
+      <path transform="translate(414,0)" d="M10 6 L10 94 L62 94"/>
+      <!-- L -->
+      <path transform="translate(500,0)" d="M10 6 L10 94 L62 94"/>
+    </g>
+  </g>
+</svg>

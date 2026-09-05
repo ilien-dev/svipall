@@ -1,0 +1,111 @@
+
+== public31 run 1/3 ==
+target               wall                     tier     secs  verdict  result
+github-explore       content                  http      1.8  ok       PASS
+nowsecure-cf         turnstile                real      2.7  ok       PASS
+indeed-jobs          managed-challenge        warm     28.5  gated    FAIL cloudflare wall (just a moment)
+ceo-ca               content                  real      4.1  ok       PASS
+devto                content                  http      0.4  ok       PASS
+rebrowser-detector   panel                    http      0.3  ok       PASS
+pixelscan-bot        panel                    http      1.9  ok       PASS
+x-explore            popular                  warm     40.1  ok       PASS
+newsfilecorp         content                  http      0.9  ok       PASS
+crunchbase-cf        managed-challenge        http      0.2  ok       PASS
+google-search        popular                  real      4.8  ok       PASS
+stackoverflow        managed-challenge        real      2.8  ok       PASS
+pixelscan-fp         panel                    http      0.8  ok       PASS
+booking-search       popular                  real      5.1  ok       PASS
+browserleaks         panel                    http      0.3  ok       PASS
+browserleaks-tls     tls                      http      0.4  ok       PASS
+bot-incolumitas      panel                    http      0.7  gated    FAIL no expected text
+medium               managed-challenge        http      0.5  gated    FAIL no expected text
+amazon-product       popular                  real      2.2  ok       PASS
+sannysoft            panel                    http      0.5  ok       PASS
+linkedin-jobs        content                  http      0.7  ok       PASS
+browserscan-bot      panel                    http      0.1  gated    FAIL no expected text
+tls-peet             tls                      http      0.5  ok       PASS
+instagram-post       popular                  real      2.8  ok       PASS
+canadianinsider      turnstile                http      0.5  gated    FAIL no expected text
+creepjs              panel                    http      0.2  ok       PASS
+sedarplus            waf                      http      0.6  gated    FAIL no expected text
+stockwatch           content                  http      0.5  ok       PASS
+reddit               content                  real      3.4  ok       PASS
+tiktok-user          popular                  warm     25.7  ok       PASS
+glassdoor            captcha-delivery.com     real      5.8  ok       PASS
+run 1: 25/31 in 139.7s
+
+== public31 run 2/3 ==
+target               wall                     tier     secs  verdict  result
+tiktok-user          popular                  real      2.5  ok       PASS
+sedarplus            waf                      http      0.4  gated    FAIL no expected text
+medium               managed-challenge        http      0.0  gated    FAIL no expected text
+booking-search       popular                  real      4.8  ok       PASS
+creepjs              panel                    http      0.0  ok       PASS
+devto                content                  http      0.1  ok       PASS
+x-explore            popular                  warm     58.2  ok       PASS
+canadianinsider      turnstile                http      0.5  gated    FAIL no expected text
+glassdoor            captcha-delivery.com     real      3.6  ok       PASS
+stackoverflow        managed-challenge        real      2.2  ok       PASS
+indeed-jobs          managed-challenge        http      1.3  ok       PASS
+newsfilecorp         content                  http      0.7  ok       PASS
+browserscan-bot      panel                    http      0.2  gated    FAIL no expected text
+ceo-ca               content                  real      3.2  ok       PASS
+browserleaks-tls     tls                      http      0.2  ok       PASS
+browserleaks         panel                    http      0.2  ok       PASS
+tls-peet             tls                      http      0.3  ok       PASS
+bot-incolumitas      panel                    http      0.5  gated    FAIL no expected text
+pixelscan-fp         panel                    http      1.3  ok       PASS
+amazon-product       popular                  real      1.9  ok       PASS
+rebrowser-detector   panel                    http      0.2  ok       PASS
+pixelscan-bot        panel                    http      0.8  ok       PASS
+instagram-post       popular                  real      1.9  ok       PASS
+stockwatch           content                  http      0.5  ok       PASS
+crunchbase-cf        managed-challenge        http      0.1  ok       PASS
+google-search        popular                  real      2.6  ok       PASS
+reddit               content                  real      2.5  ok       PASS
+linkedin-jobs        content                  http      0.6  ok       PASS
+github-explore       content                  http      1.6  ok       PASS
+nowsecure-cf         turnstile                real      1.7  ok       PASS
+sannysoft            panel                    http      0.5  ok       PASS
+run 2: 26/31 in 95.2s
+
+== public31 run 3/3 ==
+target               wall                     tier     secs  verdict  result
+browserleaks-tls     tls                      http      0.2  ok       PASS
+pixelscan-fp         panel                    http      0.8  ok       PASS
+amazon-product       popular                  real      1.5  ok       PASS
+linkedin-jobs        content                  http      0.5  ok       PASS
+medium               managed-challenge        http      0.1  gated    FAIL no expected text
+nowsecure-cf         turnstile                real      1.7  ok       PASS
+tls-peet             tls                      http      0.3  ok       PASS
+devto                content                  http      0.1  ok       PASS
+browserscan-bot      panel                    http      0.1  gated    FAIL no expected text
+bot-incolumitas      panel                    http      0.2  gated    FAIL no expected text
+indeed-jobs          managed-challenge        http      1.3  ok       PASS
+creepjs              panel                    http      0.0  ok       PASS
+sannysoft            panel                    http      0.1  ok       PASS
+browserleaks         panel                    http      0.2  ok       PASS
+ceo-ca               content                  real      2.3  ok       PASS
+booking-search       popular                  real      3.6  ok       PASS
+crunchbase-cf        managed-challenge        http      0.1  ok       PASS
+reddit               content                  real      2.9  ok       PASS
+rebrowser-detector   panel                    http      0.1  ok       PASS
+instagram-post       popular                  real      1.9  ok       PASS
+stackoverflow        managed-challenge        real      2.2  ok       PASS
+canadianinsider      turnstile                http      0.4  gated    FAIL no expected text
+stockwatch           content                  http      0.2  ok       PASS
+github-explore       content                  http      0.1  ok       PASS
+sedarplus            waf                      http      0.6  gated    FAIL no expected text
+newsfilecorp         content                  http      0.2  ok       PASS
+google-search        popular                  real      2.4  ok       PASS
+tiktok-user          popular                  real      2.0  ok       PASS
+pixelscan-bot        panel                    http      0.8  ok       PASS
+glassdoor            captcha-delivery.com     real      3.7  ok       PASS
+x-explore            popular                  warm     84.9  ok       PASS
+run 3: 26/31 in 115.4s
+
+public31 — median 26/31 (range 25..26 over 3 runs) — resolved by tier: {"http": 44, "real": 29, "warm": 4}
+cost — median 115.4s per run of 31, 3.7s per page; every cell by tier: {"http": 59, "real": 29, "warm": 5}
+note: public31 is scored by the public benchmark's verdict rule; hard12 by expected text. The two numbers are not interchangeable.
+
+evasion finished in 350.5s

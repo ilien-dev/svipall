@@ -1,0 +1,7 @@
+target
+t
+.git
+bench/baseline/*.json
+logo
+*.md
+!README.md

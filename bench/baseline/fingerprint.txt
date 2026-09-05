@@ -1,0 +1,21 @@
+    Finished `release` profile [optimized] target(s) in 0.37s
+     Running `C:\Users\jesus\Documents\Projects\hlid\target\release\svipall-bench.exe fingerprint`
+ok   coherence chrome/Windows               coherent
+ok   coherence firefox/Windows              coherent
+ok   coherence chrome/MacOs                 coherent
+ok   coherence firefox/MacOs                coherent
+ok   coherence chrome/Linux                 coherent
+ok   coherence firefox/Linux                coherent
+ok   coherence chrome/phone                 coherent
+ok   coherence sweep (1500 drawn machines)  coherent
+== http tier (tls.peet.ws) ==
+ok   engine                                 wreq
+ok   negotiated h2                          "h2"
+ok   JA4 carries the h2 marker              t13d1516h2_8daaf6152771_d8a2da3f94cd
+ok   cipher count is Chrome-shaped          15 (rustls sends 20)
+ok   extension count is Chrome-shaped       16 (rustls sends 11)
+ok   GREASE values present                  true
+ok   User-Agent matches the emulation       Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36
+ok   X25519MLKEM768 offered with a key share group=true share=true (Chrome 131+ sends both)
+
+fingerprint finished in 0.3s

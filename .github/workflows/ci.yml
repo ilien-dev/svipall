@@ -1,0 +1,108 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+env:
+  CARGO_TERM_COLOR: always
+  # BoringSSL (via wreq) generates deeply nested build paths. On Windows the default target dir
+  # blows past MAX_PATH and cmake fails with MSB4184, so keep the target directory short.
+  CARGO_TARGET_DIR: ${{ github.workspace }}/t
+
+jobs:
+  qc:
+    name: qc (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+
+      - uses: Swatinem/rust-cache@v2
+
+      - name: BoringSSL build dependencies (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential cmake perl pkg-config libclang-dev
+
+      - name: BoringSSL build dependencies (Windows)
+        if: runner.os == 'Windows'
+        run: choco install cmake strawberryperl pkgconfiglite llvm nasm -y
+        shell: cmd
+
+      - name: BoringSSL build dependencies (macOS)
+        if: runner.os == 'macOS'
+        run: brew install cmake pkg-config llvm
+
+      - name: Short target dir (Windows)
+        if: runner.os == 'Windows'
+        run: echo "CARGO_TARGET_DIR=C:\t" >> $env:GITHUB_ENV
+
+      - name: fmt
+        run: cargo fmt --all --check
+
+      - name: clippy
+        run: cargo clippy --workspace --all-targets -- -D warnings
+
+      - name: clippy (onnx features)
+        run: |
+          cargo clippy -p svipall-mcp --all-targets --features onnx-ocr -- -D warnings
+          cargo clippy -p svipall-mcp --all-targets --features onnx-grid -- -D warnings
+          cargo clippy -p svipall-mcp --all-targets --features onnx-audio -- -D warnings
+          cargo clippy -p svipall-mcp --all-targets --features onnx-detect -- -D warnings
+          cargo clippy -p svipall-mcp --all-targets --features onnx-segment -- -D warnings
+          cargo clippy -p svipall-mcp --all-targets --features onnx-zeroshot -- -D warnings
+
+      - name: clippy (http3)
+        run: cargo clippy -p svipall-mcp --all-targets --features http3 -- -D warnings
+
+      - name: clippy (no impersonation fallback)
+        run: cargo clippy --workspace --all-targets --no-default-features -- -D warnings
+
+      - name: tests
+        run: cargo test --workspace
+
+      # The QUIC handshake shape and the h3 fallback, both offline.
+      - name: tests (http3)
+        run: cargo test -p svipall-http --features http3 --test h3
+
+      # A real ONNX Runtime session over the fixture graphs in tests/fixtures/models. Without
+      # this step the inference modules were lint-checked and executed by nobody.
+      - name: tests (onnx models)
+        run: cargo test -p svipall-mcp --features onnx-grid,onnx-segment,onnx-detect --test models
+
+      # CPU budgets and the exact structural counts: one DOM parse per page, no disk reads on a
+      # cache lookup, pruning that removes the navigation and keeps the article. No network, and
+      # until now it ran only on a developer's machine.
+      - name: perf budgets
+        run: cargo run -p svipall-bench --release -- micro --assert
+
+      # Offline identity-coherence pass: Chrome, Firefox and phone identities checked against
+      # themselves. No network. Fails the build on a cross-layer contradiction.
+      - name: identity coherence
+        run: cargo run -p svipall-bench --release -- fingerprint --engine chrome
+
+      - name: unused dependencies
+        run: |
+          cargo install cargo-machete --locked
+          cargo machete
+
+      - name: CLAUDE.md size guard
+        if: runner.os == 'Linux'
+        run: bash scripts/check-claude-md.sh
+
+      # The image is built, never pushed, here: a Dockerfile that only works on release day is
+      # a Dockerfile nobody tested.
+      - name: container image builds
+        if: runner.os == 'Linux'
+        run: docker build -t svipall:ci .

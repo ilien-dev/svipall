@@ -1,0 +1,50 @@
+# public31 with http_firefox = true, one run, 2026-09-04.
+#
+# 1018 lines of `svipall_cdp` WS deserialisation errors are stripped from this copy: the vendored
+# CDP client cannot deserialise some events Chrome 152 sends, logs each one, and carries on. They
+# are noise from a pinned protocol definition, not a measurement, and they appear on the default
+# arm too. The JSON copy beside this file is unfiltered.
+#
+    Finished `release` profile [optimized] target(s) in 0.39s
+     Running `target\release\svipall-bench.exe evasion --set public31 --runs 1`
+
+== public31 run 1/1 ==
+target               wall                     tier     secs  verdict  result
+pixelscan-fp         panel                    http      1.9  ok       PASS
+reddit               content                  real      2.8  ok       PASS
+ceo-ca               content                  real      2.7  ok       PASS
+glassdoor            captcha-delivery.com     real      4.3  ok       PASS
+browserleaks-tls     tls                      http      0.4  ok       PASS
+creepjs              panel                    http      0.1  ok       PASS
+medium               managed-challenge        http      0.4  gated    FAIL no expected text
+rebrowser-detector   panel                    http      0.2  ok       PASS
+stockwatch           content                  http      0.5  ok       PASS
+indeed-jobs          managed-challenge        warm     26.7  gated    FAIL cloudflare wall (just a moment)
+sedarplus            waf                      http      0.7  gated    FAIL no expected text
+newsfilecorp         content                  http      0.6  ok       PASS
+canadianinsider      turnstile                http      0.7  gated    FAIL no expected text
+instagram-post       popular                  real      2.5  ok       PASS
+google-search        popular                  real      3.1  ok       PASS
+bot-incolumitas      panel                    http      0.7  gated    FAIL no expected text
+amazon-product       popular                  real      1.9  ok       PASS
+pixelscan-bot        panel                    http      0.8  ok       PASS
+x-explore            popular                  warm     37.7  ok       PASS
+browserleaks         panel                    http      0.3  ok       PASS
+booking-search       popular                  real      6.8  ok       PASS
+tiktok-user          popular                  real      6.3  ok       PASS
+sannysoft            panel                    http      0.3  ok       PASS
+browserscan-bot      panel                    http      0.1  gated    FAIL no expected text
+tls-peet             tls                      http      0.5  ok       PASS
+stackoverflow        managed-challenge        real      2.4  ok       PASS
+github-explore       content                  http      0.6  ok       PASS
+nowsecure-cf         turnstile                real      2.4  ok       PASS
+devto                content                  http      0.1  ok       PASS
+crunchbase-cf        managed-challenge        http      0.1  ok       PASS
+linkedin-jobs        content                  http      0.8  ok       PASS
+run 1: 25/31 in 109.4s
+
+public31 — median 25/31 (range 25..25 over 1 run) — resolved by tier: {"http": 14, "real": 10, "warm": 1}
+cost — median 109.4s per run of 31, 3.5s per page; every cell by tier: {"http": 19, "real": 10, "warm": 2}
+note: public31 is scored by the public benchmark's verdict rule; hard12 by expected text. The two numbers are not interchangeable.
+
+evasion finished in 109.5s

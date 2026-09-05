@@ -1,0 +1,56 @@
+[workspace]
+members = [
+    "crates/svipall-cdp",
+    "crates/svipall-core",
+    "crates/svipall-http",
+    "crates/svipall-solver",
+    "crates/svipall-dashboard",
+    "crates/svipall-mcp",
+    "crates/svipall-models",
+    "crates/svipall-quic",
+    "bench",
+]
+resolver = "2"
+
+# Portable release artifacts. The local `release` profile inherits `target-cpu=native` from
+# .cargo/config.toml, which produces a binary that can die with an illegal instruction on someone
+# else's CPU; CI builds `dist` with an explicit baseline instead (see .github/workflows/release.yml).
+# Deliberately no `panic = "abort"`: PDF extraction relies on catch_unwind to survive malformed
+# documents, and aborting would turn a bad PDF into a dead server.
+# What `cargo build --release` produces is what the CLI and the benchmarks run. Thin LTO is a
+# measurable gain at a build-time cost BoringSSL already dwarfs.
+[profile.release]
+lto = "thin"
+
+[profile.dist]
+inherits = "release"
+lto = "fat"
+codegen-units = 1
+strip = true
+panic = "unwind"
+
+[workspace.dependencies]
+tokio = { version = "1.53", features = ["full"] }
+axum = { version = "0.8", features = ["ws", "json", "macros"] }
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+anyhow = "1.0"
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+reqwest = { version = "0.12", features = ["json", "rustls-tls", "cookies"] }
+# The CDP client is vendored: see crates/svipall-cdp/PATCHES.md for what was changed and why.
+svipall-cdp = { path = "crates/svipall-cdp" }
+rusqlite = { version = "0.32", features = ["bundled"] }
+chrono = { version = "0.4", features = ["serde"] }
+uuid = { version = "1.0", features = ["v4", "serde"] }
+base64 = "0.22"
+regex = "1.11"
+once_cell = "1.20"
+dirs = "5.0"
+url = "2.5"
+async-trait = "0.1"
+urlencoding = "2.1"
+scraper = "0.21"
+tower = { version = "0.5", features = ["util"] }
+toml = "0.8"
+futures = "0.3"

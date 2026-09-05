@@ -1,0 +1,64 @@
+# A vendored quiche. See UPSTREAM.md for the version and PATCHES.md for every deviation.
+#
+# The package is renamed so nothing mistakes it for the published crate, but the library keeps the
+# name `quiche` so the upstream source, which is `use crate::` throughout, needs no rewriting.
+[package]
+name = "svipall-quic"
+version = "1.0.0"
+edition = "2021"
+license = "BSD-2-Clause"
+description = "QUIC and HTTP/3 for svipall: quiche, on the BoringSSL the http tier already links"
+
+[lib]
+name = "quiche"
+# Upstream also builds a staticlib and a cdylib. A cdylib is a complete shared object and has to
+# resolve every symbol on its own, which it cannot do here: this crate deliberately builds no
+# BoringSSL of its own and borrows the one `btls-sys` already put in the binary.
+crate-type = ["lib"]
+# Upstream's doc examples are written against the published crate and are upstream's tests, not
+# ours. `PATCHES.md` records what we changed; the invariants we care about are in `tests/`.
+doctest = false
+# Upstream keeps `#[cfg(test)]` modules throughout, and they need dev-dependencies this copy
+# does not carry (`rstest`, `mio`). They are upstream tests of upstream behaviour; the invariants
+# this crate is patched to hold are in `tests/`, and those still run.
+test = false
+
+[dependencies]
+# The BoringSSL this crate calls into. Upstream reaches one through `boring` or by building its
+# own; both would put a second copy in a binary that already has btls-sys's, and two copies do not
+# link. Depending on it here is also what makes that requirement visible in the manifest.
+btls-sys = "0.5"
+# The certificate compression Chrome advertises. A client has to be able to decompress what it
+# said it could, so this is a real dependency, not a token one.
+brotli = { version = "8", default-features = false, features = ["std"] }
+
+either = { version = "1.8", default-features = false }
+enum_dispatch = "0.3"
+intrusive-collections = "0.9.5"
+libc = { version = "0.2.76", default-features = false }
+libm = "0.2"
+log = { version = "0.4.20", features = ["std"] }
+octets = { version = "0.3.4", features = ["huffman_hpack"] }
+slab = "0.4"
+smallvec = { version = "1.10", features = ["union"], default-features = false }
+
+[target."cfg(windows)".dependencies.windows-sys]
+version = "0.59"
+features = ["Win32_Networking_WinSock", "Win32_Security_Cryptography"]
+
+
+[lints.clippy]
+# Vendored code, styled by its authors. Rewriting upstream idiom to satisfy this workspace would
+# be dozens of edits to reapply on every refresh, and every one of them a chance to diverge from a
+# QUIC implementation nobody here wants to own. Same call, and same reasoning, as `svipall-cdp`.
+all = { level = "allow", priority = -1 }
+
+[lints.rust]
+# Upstream is feature-rich and we carry none of its optional features, so its
+# `#[cfg(feature = "qlog")]` blocks name features this manifest does not declare. Declaring them
+# would be worse: it would offer a feature whose optional dependency is not vendored.
+unexpected_cfgs = "allow"
+# Upstream test modules were the only callers of a handful of its own helpers, and this copy drops
+# those modules (see PATCHES.md). Deleting the helpers too would be a second, larger divergence
+# from upstream for no gain.
+dead_code = "allow"

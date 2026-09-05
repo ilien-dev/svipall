@@ -1,0 +1,714 @@
+// Copyright (C) 2019, Cloudflare, Inc.
+// All rights reserved.
+//
+// Redistribution and use in source and binary forms, with or without
+// modification, are permitted provided that the following conditions are
+// met:
+//
+//     * Redistributions of source code must retain the above copyright notice,
+//       this list of conditions and the following disclaimer.
+//
+//     * Redistributions in binary form must reproduce the above copyright
+//       notice, this list of conditions and the following disclaimer in the
+//       documentation and/or other materials provided with the distribution.
+//
+// THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS
+// IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO,
+// THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR
+// PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR
+// CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL,
+// EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,
+// PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR
+// PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF
+// LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
+// NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+// SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+use crate::range_buf::BufFactory;
+
+use super::Error;
+use super::Result;
+
+use super::frame;
+
+pub const HTTP3_CONTROL_STREAM_TYPE_ID: u64 = 0x0;
+pub const HTTP3_PUSH_STREAM_TYPE_ID: u64 = 0x1;
+pub const QPACK_ENCODER_STREAM_TYPE_ID: u64 = 0x2;
+pub const QPACK_DECODER_STREAM_TYPE_ID: u64 = 0x3;
+
+const MAX_STATE_BUF_SIZE: usize = (1 << 24) - 1;
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum Type {
+    Control,
+    Request,
+    Push,
+    QpackEncoder,
+    QpackDecoder,
+    Unknown,
+}
+
+impl Type {
+    #[cfg(feature = "qlog")]
+    pub fn to_qlog(self) -> qlog::events::h3::H3StreamType {
+        match self {
+            Type::Control => qlog::events::h3::H3StreamType::Control,
+            Type::Request => qlog::events::h3::H3StreamType::Request,
+            Type::Push => qlog::events::h3::H3StreamType::Push,
+            Type::QpackEncoder => qlog::events::h3::H3StreamType::QpackEncode,
+            Type::QpackDecoder => qlog::events::h3::H3StreamType::QpackDecode,
+            Type::Unknown => qlog::events::h3::H3StreamType::Unknown,
+        }
+    }
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum State {
+    /// Reading the stream's type.
+    StreamType,
+
+    /// Reading the stream's current frame's type.
+    FrameType,
+
+    /// Reading the stream's current frame's payload length.
+    FramePayloadLen,
+
+    /// Reading the stream's current frame's payload.
+    FramePayload,
+
+    /// Reading DATA payload.
+    Data,
+
+    /// Reading the push ID.
+    PushId,
+
+    /// Reading a QPACK instruction.
+    QpackInstruction,
+
+    /// Reading and discarding data.
+    Drain,
+
+    /// All data has been read.
+    Finished,
+}
+
+impl Type {
+    pub fn deserialize(v: u64) -> Result<Type> {
+        match v {
+            HTTP3_CONTROL_STREAM_TYPE_ID => Ok(Type::Control),
+            HTTP3_PUSH_STREAM_TYPE_ID => Ok(Type::Push),
+            QPACK_ENCODER_STREAM_TYPE_ID => Ok(Type::QpackEncoder),
+            QPACK_DECODER_STREAM_TYPE_ID => Ok(Type::QpackDecoder),
+
+            _ => Ok(Type::Unknown),
+        }
+    }
+}
+
+/// An HTTP/3 stream.
+///
+/// This maintains the HTTP/3 state for streams of any type (control, request,
+/// QPACK, ...).
+///
+/// A number of bytes, depending on the current stream's state, is read from the
+/// transport stream into the HTTP/3 stream's "state buffer". This intermediate
+/// buffering is required due to the fact that data read from the transport
+/// might not be complete (e.g. a varint might be split across multiple QUIC
+/// packets).
+///
+/// When enough data to complete the current state has been buffered, it is
+/// consumed from the state buffer and the stream is transitioned to the next
+/// state (see `State` for a list of possible states).
+#[derive(Debug)]
+pub struct Stream {
+    /// The corresponding transport stream's ID.
+    id: u64,
+
+    /// The stream's type (if known).
+    ty: Option<Type>,
+
+    /// The current stream state.
+    state: State,
+
+    /// The buffer holding partial data for the current state.
+    state_buf: Vec<u8>,
+
+    /// The expected amount of bytes required to complete the state.
+    state_len: usize,
+
+    /// The write offset in the state buffer, that is, how many bytes have
+    /// already been read from the transport for the current state. When
+    /// it reaches `stream_len` the state can be completed.
+    state_off: usize,
+
+    /// The type of the frame currently being parsed.
+    frame_type: Option<u64>,
+
+    /// Whether the stream was created locally, or by the peer.
+    is_local: bool,
+
+    /// Whether the stream has been remotely initialized.
+    remote_initialized: bool,
+
+    /// Whether the stream has been locally initialized.
+    local_initialized: bool,
+
+    /// Whether a `Data` event has been triggered for this stream.
+    data_event_triggered: bool,
+
+    /// The last `PRIORITY_UPDATE` frame encoded field value, if any.
+    last_priority_update: Option<Vec<u8>>,
+
+    /// The count of HEADERS frames that have been received.
+    headers_received_count: usize,
+
+    /// Whether a DATA frame has been received.
+    data_received: bool,
+
+    /// Whether a trailing HEADER field has been sent.
+    trailers_sent: bool,
+
+    /// Whether a trailing HEADER field has been received.
+    trailers_received: bool,
+}
+
+impl Stream {
+    /// Creates a new HTTP/3 stream.
+    ///
+    /// The `is_local` parameter indicates whether the stream was created by the
+    /// local endpoint, or by the peer.
+    pub fn new(id: u64, is_local: bool) -> Stream {
+        let (ty, state) = if crate::stream::is_bidi(id) {
+            // All bidirectional streams are "request" streams, so we don't
+            // need to read the stream type.
+            (Some(Type::Request), State::FrameType)
+        } else {
+            // The stream's type is yet to be determined.
+            (None, State::StreamType)
+        };
+
+        Stream {
+            id,
+            ty,
+
+            state,
+
+            // Pre-allocate a buffer to avoid multiple tiny early allocations.
+            state_buf: vec![0; 16],
+
+            // Expect one byte for the initial state, to parse the initial
+            // varint length.
+            state_len: 1,
+            state_off: 0,
+
+            frame_type: None,
+
+            is_local,
+            remote_initialized: false,
+            local_initialized: false,
+
+            data_event_triggered: false,
+
+            last_priority_update: None,
+
+            headers_received_count: 0,
+
+            data_received: false,
+
+            trailers_sent: false,
+            trailers_received: false,
+        }
+    }
+
+    pub fn ty(&self) -> Option<Type> {
+        self.ty
+    }
+
+    pub fn state(&self) -> State {
+        self.state
+    }
+
+    /// Sets the stream's type and transitions to the next state.
+    pub fn set_ty(&mut self, ty: Type) -> Result<()> {
+        assert_eq!(self.state, State::StreamType);
+
+        self.ty = Some(ty);
+
+        let state = match ty {
+            Type::Control | Type::Request => State::FrameType,
+
+            Type::Push => State::PushId,
+
+            Type::QpackEncoder | Type::QpackDecoder => {
+                self.remote_initialized = true;
+
+                State::QpackInstruction
+            }
+
+            Type::Unknown => State::Drain,
+        };
+
+        self.state_transition(state, 1, true)?;
+
+        Ok(())
+    }
+
+    /// Sets the push ID and transitions to the next state.
+    pub fn set_push_id(&mut self, _id: u64) -> Result<()> {
+        assert_eq!(self.state, State::PushId);
+
+        // TODO: implement push ID.
+
+        self.state_transition(State::FrameType, 1, true)?;
+
+        Ok(())
+    }
+
+    /// Sets the frame type and transitions to the next state.
+    pub fn set_frame_type(&mut self, ty: u64) -> Result<()> {
+        assert_eq!(self.state, State::FrameType);
+
+        // Only expect frames on Control, Request and Push streams.
+        match self.ty {
+            Some(Type::Control) => {
+                // Control stream starts uninitialized and only SETTINGS is
+                // accepted in that state. Other frames cause an error. Once
+                // initialized, no more SETTINGS are permitted.
+                match (ty, self.remote_initialized) {
+                    // Initialize control stream.
+                    (frame::SETTINGS_FRAME_TYPE_ID, false) => self.remote_initialized = true,
+
+                    // Non-SETTINGS frames not allowed on control stream
+                    // before initialization.
+                    (_, false) => return Err(Error::MissingSettings),
+
+                    // Additional SETTINGS frame.
+                    (frame::SETTINGS_FRAME_TYPE_ID, true) => return Err(Error::FrameUnexpected),
+
+                    // Frames that can't be received on control stream
+                    // after initialization.
+                    (frame::DATA_FRAME_TYPE_ID, true) => return Err(Error::FrameUnexpected),
+
+                    (frame::HEADERS_FRAME_TYPE_ID, true) => return Err(Error::FrameUnexpected),
+
+                    (frame::PUSH_PROMISE_FRAME_TYPE_ID, true) => {
+                        return Err(Error::FrameUnexpected)
+                    }
+
+                    // All other frames are ignored after initialization.
+                    (_, true) => (),
+                }
+            }
+
+            Some(Type::Request) => {
+                // Request stream starts uninitialized and only HEADERS is
+                // accepted. After initialization, DATA and HEADERS frames may
+                // be acceptable, depending on the role and HTTP message phase.
+                //
+                // Receiving some other types of known frames on the request
+                // stream is always an error.
+                if !self.is_local {
+                    match (ty, self.remote_initialized) {
+                        (frame::HEADERS_FRAME_TYPE_ID, false) => {
+                            self.remote_initialized = true;
+                        }
+
+                        (frame::DATA_FRAME_TYPE_ID, false) => return Err(Error::FrameUnexpected),
+
+                        (frame::HEADERS_FRAME_TYPE_ID, true) => {
+                            if self.trailers_received {
+                                return Err(Error::FrameUnexpected);
+                            }
+
+                            if self.data_received {
+                                self.trailers_received = true;
+                            }
+                        }
+
+                        (frame::DATA_FRAME_TYPE_ID, true) => {
+                            if self.trailers_received {
+                                return Err(Error::FrameUnexpected);
+                            }
+
+                            self.data_received = true;
+                        }
+
+                        (frame::CANCEL_PUSH_FRAME_TYPE_ID, _) => {
+                            return Err(Error::FrameUnexpected)
+                        }
+
+                        (frame::SETTINGS_FRAME_TYPE_ID, _) => return Err(Error::FrameUnexpected),
+
+                        (frame::GOAWAY_FRAME_TYPE_ID, _) => return Err(Error::FrameUnexpected),
+
+                        (frame::MAX_PUSH_FRAME_TYPE_ID, _) => return Err(Error::FrameUnexpected),
+
+                        (frame::PRIORITY_UPDATE_FRAME_REQUEST_TYPE_ID, _) => {
+                            return Err(Error::FrameUnexpected)
+                        }
+
+                        (frame::PRIORITY_UPDATE_FRAME_PUSH_TYPE_ID, _) => {
+                            return Err(Error::FrameUnexpected)
+                        }
+
+                        // All other frames can be ignored regardless of stream
+                        // state.
+                        _ => (),
+                    }
+                }
+            }
+
+            Some(Type::Push) => {
+                match ty {
+                    // Frames that can never be received on request streams.
+                    frame::CANCEL_PUSH_FRAME_TYPE_ID => return Err(Error::FrameUnexpected),
+
+                    frame::SETTINGS_FRAME_TYPE_ID => return Err(Error::FrameUnexpected),
+
+                    frame::PUSH_PROMISE_FRAME_TYPE_ID => return Err(Error::FrameUnexpected),
+
+                    frame::GOAWAY_FRAME_TYPE_ID => return Err(Error::FrameUnexpected),
+
+                    frame::MAX_PUSH_FRAME_TYPE_ID => return Err(Error::FrameUnexpected),
+
+                    _ => (),
+                }
+            }
+
+            _ => return Err(Error::FrameUnexpected),
+        }
+
+        self.frame_type = Some(ty);
+
+        self.state_transition(State::FramePayloadLen, 1, true)?;
+
+        Ok(())
+    }
+
+    // Returns the stream's current frame type, if any
+    pub fn frame_type(&self) -> Option<u64> {
+        self.frame_type
+    }
+
+    /// Sets the frame's payload length and transitions to the next state.
+    pub fn set_frame_payload_len(&mut self, len: u64) -> Result<()> {
+        assert_eq!(self.state, State::FramePayloadLen);
+
+        // Only expect frames on Control, Request and Push streams.
+        if matches!(self.ty, Some(Type::Control | Type::Request | Type::Push)) {
+            let (state, resize) = match self.frame_type {
+                Some(frame::DATA_FRAME_TYPE_ID) => (State::Data, false),
+
+                // These frame types can never have 0 payload length because
+                // they always have fields that must be populated.
+                Some(
+                    frame::GOAWAY_FRAME_TYPE_ID
+                    | frame::PUSH_PROMISE_FRAME_TYPE_ID
+                    | frame::CANCEL_PUSH_FRAME_TYPE_ID
+                    | frame::MAX_PUSH_FRAME_TYPE_ID,
+                ) => {
+                    if len == 0 {
+                        return Err(Error::FrameError);
+                    }
+
+                    (State::FramePayload, true)
+                }
+
+                _ => (State::FramePayload, true),
+            };
+
+            self.state_transition(state, len as usize, resize)?;
+
+            return Ok(());
+        }
+
+        Err(Error::InternalError)
+    }
+
+    /// Tries to fill the state buffer by reading data from the corresponding
+    /// transport stream.
+    ///
+    /// When not enough data can be read to complete the state, this returns
+    /// `Error::Done`.
+    pub fn try_fill_buffer<F: BufFactory>(
+        &mut self,
+        conn: &mut crate::Connection<F>,
+    ) -> Result<()> {
+        // If no bytes are required to be read, return early.
+        if self.state_buffer_complete() {
+            return Ok(());
+        }
+
+        let buf = &mut self.state_buf[self.state_off..self.state_len];
+
+        let read = match conn.stream_recv(self.id, buf) {
+            Ok((len, fin)) => {
+                // Check whether one of the critical stream was closed.
+                if fin
+                    && matches!(
+                        self.ty,
+                        Some(Type::Control) | Some(Type::QpackEncoder) | Some(Type::QpackDecoder)
+                    )
+                {
+                    super::close_conn_critical_stream(conn)?;
+                }
+
+                len
+            }
+
+            Err(e @ crate::Error::StreamReset(_)) => {
+                // Check whether one of the critical stream was closed.
+                if matches!(
+                    self.ty,
+                    Some(Type::Control) | Some(Type::QpackEncoder) | Some(Type::QpackDecoder)
+                ) {
+                    super::close_conn_critical_stream(conn)?;
+                }
+
+                return Err(e.into());
+            }
+
+            Err(e) => {
+                // The stream is not readable anymore, so re-arm the Data event.
+                if e == crate::Error::Done {
+                    self.reset_data_event();
+                }
+
+                return Err(e.into());
+            }
+        };
+
+        trace!(
+            "{} read {} bytes on stream {}",
+            conn.trace_id(),
+            read,
+            self.id,
+        );
+
+        self.state_off += read;
+
+        if !self.state_buffer_complete() {
+            self.reset_data_event();
+
+            return Err(Error::Done);
+        }
+
+        Ok(())
+    }
+
+    /// Initialize the local part of the stream.
+    pub fn initialize_local(&mut self) {
+        self.local_initialized = true
+    }
+
+    /// Whether the stream has been locally initialized.
+    pub fn local_initialized(&self) -> bool {
+        self.local_initialized
+    }
+
+    pub fn increment_headers_received(&mut self) {
+        self.headers_received_count = self.headers_received_count.saturating_add(1);
+    }
+
+    pub fn headers_received_count(&self) -> usize {
+        self.headers_received_count
+    }
+
+    pub fn mark_trailers_sent(&mut self) {
+        self.trailers_sent = true;
+    }
+
+    pub fn trailers_sent(&self) -> bool {
+        self.trailers_sent
+    }
+
+    /// Tries to fill the state buffer by reading data from the given cursor.
+    ///
+    /// This is intended to replace `try_fill_buffer()` in tests, in order to
+    /// avoid having to setup a transport connection.
+    #[cfg(test)]
+    fn try_fill_buffer_for_tests(&mut self, stream: &mut std::io::Cursor<Vec<u8>>) -> Result<()> {
+        // If no bytes are required to be read, return early
+        if self.state_buffer_complete() {
+            return Ok(());
+        }
+
+        let buf = &mut self.state_buf[self.state_off..self.state_len];
+
+        let read = std::io::Read::read(stream, buf).unwrap();
+
+        self.state_off += read;
+
+        if !self.state_buffer_complete() {
+            return Err(Error::Done);
+        }
+
+        Ok(())
+    }
+
+    /// Tries to parse a varint (including length) from the state buffer.
+    pub fn try_consume_varint(&mut self) -> Result<u64> {
+        if self.state_off == 1 {
+            self.state_len = octets::varint_parse_len(self.state_buf[0]);
+            self.state_buf.resize(self.state_len, 0);
+        }
+
+        // Return early if we don't have enough data in the state buffer to
+        // parse the whole varint.
+        if !self.state_buffer_complete() {
+            return Err(Error::Done);
+        }
+
+        let varint = octets::Octets::with_slice(&self.state_buf).get_varint()?;
+
+        Ok(varint)
+    }
+
+    /// Tries to parse a frame from the state buffer.
+    ///
+    /// If successful, returns the `frame::Frame` and the payload length.
+    pub fn try_consume_frame(&mut self) -> Result<(frame::Frame, u64)> {
+        // Processing a frame other than DATA, so re-arm the Data event.
+        self.reset_data_event();
+
+        let payload_len = self.state_len as u64;
+
+        // TODO: properly propagate frame parsing errors.
+        let frame =
+            frame::Frame::from_bytes(self.frame_type.unwrap(), payload_len, &self.state_buf)?;
+
+        self.state_transition(State::FrameType, 1, true)?;
+
+        Ok((frame, payload_len))
+    }
+
+    /// Tries to read DATA payload from the transport stream.
+    pub fn try_consume_data<F: BufFactory>(
+        &mut self,
+        conn: &mut crate::Connection<F>,
+        out: &mut [u8],
+    ) -> Result<(usize, bool)> {
+        let left = std::cmp::min(out.len(), self.state_len - self.state_off);
+
+        let (len, fin) = match conn.stream_recv(self.id, &mut out[..left]) {
+            Ok(v) => v,
+
+            Err(e) => {
+                // The stream is not readable anymore, so re-arm the Data event.
+                if e == crate::Error::Done {
+                    self.reset_data_event();
+                }
+
+                return Err(e.into());
+            }
+        };
+
+        self.state_off += len;
+
+        // The stream is not readable anymore, so re-arm the Data event.
+        if !conn.stream_readable(self.id) {
+            self.reset_data_event();
+        }
+
+        if self.state_buffer_complete() {
+            self.state_transition(State::FrameType, 1, true)?;
+        }
+
+        Ok((len, fin))
+    }
+
+    /// Marks the stream as finished.
+    pub fn finished(&mut self) {
+        let _ = self.state_transition(State::Finished, 0, false);
+    }
+
+    /// Tries to read DATA payload from the given cursor.
+    ///
+    /// This is intended to replace `try_consume_data()` in tests, in order to
+    /// avoid having to setup a transport connection.
+    #[cfg(test)]
+    fn try_consume_data_for_tests(
+        &mut self,
+        stream: &mut std::io::Cursor<Vec<u8>>,
+        out: &mut [u8],
+    ) -> Result<usize> {
+        let left = std::cmp::min(out.len(), self.state_len - self.state_off);
+
+        let len = std::io::Read::read(stream, &mut out[..left]).unwrap();
+
+        self.state_off += len;
+
+        if self.state_buffer_complete() {
+            self.state_transition(State::FrameType, 1, true)?;
+        }
+
+        Ok(len)
+    }
+
+    /// Tries to update the data triggered state for the stream.
+    ///
+    /// This returns `true` if a Data event was not already triggered before
+    /// the last reset, and updates the state. Returns `false` otherwise.
+    pub fn try_trigger_data_event(&mut self) -> bool {
+        if self.data_event_triggered {
+            return false;
+        }
+
+        self.data_event_triggered = true;
+
+        true
+    }
+
+    /// Resets the data triggered state.
+    fn reset_data_event(&mut self) {
+        self.data_event_triggered = false;
+    }
+
+    /// Set the last priority update for the stream.
+    pub fn set_last_priority_update(&mut self, priority_update: Option<Vec<u8>>) {
+        self.last_priority_update = priority_update;
+    }
+
+    /// Take the last priority update and leave `None` in its place.
+    pub fn take_last_priority_update(&mut self) -> Option<Vec<u8>> {
+        self.last_priority_update.take()
+    }
+
+    /// Returns `true` if there is a priority update.
+    pub fn has_last_priority_update(&self) -> bool {
+        self.last_priority_update.is_some()
+    }
+
+    /// Returns true if the state buffer has enough data to complete the state.
+    fn state_buffer_complete(&self) -> bool {
+        self.state_off == self.state_len
+    }
+
+    /// Transitions the stream to a new state, and optionally resets the state
+    /// buffer.
+    fn state_transition(
+        &mut self,
+        new_state: State,
+        expected_len: usize,
+        resize: bool,
+    ) -> Result<()> {
+        // Some states don't need the state buffer, so don't resize it if not
+        // necessary.
+        if resize {
+            // A peer can influence the size of the state buffer (e.g. with the
+            // payload size of a GREASE frame), so we need to limit the maximum
+            // size to avoid DoS.
+            if expected_len > MAX_STATE_BUF_SIZE {
+                return Err(Error::ExcessiveLoad);
+            }
+
+            self.state_buf.resize(expected_len, 0);
+        }
+
+        self.state = new_state;
+        self.state_off = 0;
+        self.state_len = expected_len;
+
+        Ok(())
+    }
+}

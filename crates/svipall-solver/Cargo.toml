@@ -1,0 +1,23 @@
+[package]
+name = "svipall-solver"
+version = "1.0.0"
+edition = "2021"
+license = "AGPL-3.0-only"
+description = "Captcha job store and HTTP API for svipall (in.php/res.php + createTask/getTaskResult)"
+
+[dependencies]
+svipall-core = { path = "../svipall-core" }
+tokio = { workspace = true }
+axum = { workspace = true }
+serde = { workspace = true }
+base64 = { workspace = true }
+serde_json = { workspace = true }
+anyhow = { workspace = true }
+rusqlite = { workspace = true }
+tracing = { workspace = true }
+chrono = { workspace = true }
+uuid = { workspace = true }
+
+[dev-dependencies]
+tower = { workspace = true }
+rusqlite = { workspace = true }

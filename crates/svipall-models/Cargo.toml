@@ -1,0 +1,21 @@
+[package]
+name = "svipall-models"
+version = "1.0.0"
+edition = "2021"
+license = "AGPL-3.0-only"
+description = "Models compiled into the svipall binary, with their sidecars"
+build = "build.rs"
+
+[dependencies]
+
+[lints.rust]
+# The build script turns each model file that is present into a cfg; the compiler must be told
+# they are expected names rather than typos.
+unexpected_cfgs = { level = "warn", check-cfg = [
+    'cfg(embedded_grid)',
+    'cfg(embedded_detect)',
+    'cfg(embedded_segment)',
+    'cfg(embedded_ocr)',
+    'cfg(embedded_audio)',
+    'cfg(embedded_substance)',
+] }

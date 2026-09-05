@@ -1,0 +1,52 @@
+
+== hard12 run 1/3 ==
+target               wall                     tier     secs  verdict  result
+newegg               bot-manager           browser      6.9  ok       PASS
+wikipedia            none                     http      0.3  ok       PASS
+idealista            captcha-delivery.com     warm     25.0  ok       FAIL near-empty body (unrendered SPA, interstitial or silent wall)
+nowsecure            turnstile             browser      1.6  gated    PASS
+g2                   captcha-delivery.com     warm     24.5  ok       FAIL near-empty body (unrendered SPA, interstitial or silent wall)
+amazon               popular               browser      2.9  ok       PASS
+stackoverflow        managed-challenge        warm      2.6  ok       PASS
+hackernews           none                  browser      1.6  ok       PASS
+crunchbase           managed-challenge        warm     22.5  gated    FAIL cloudflare wall (attention required! | cloudflare)
+example              none                     http      0.2  gated    PASS
+indeed               managed-challenge        warm     27.4  gated    FAIL cloudflare wall (just a moment)
+zillow               press-and-hold           warm      4.8  gated    PASS
+run 1: 8/12
+
+== hard12 run 2/3 ==
+target               wall                     tier     secs  verdict  result
+amazon               popular               browser      3.1  ok       PASS
+hackernews           none                  browser      1.5  ok       PASS
+newegg               bot-manager           browser     11.6  ok       PASS
+indeed               managed-challenge        warm     32.4  gated    FAIL cloudflare wall (just a moment)
+wikipedia            none                     http      0.3  ok       PASS
+g2                   captcha-delivery.com     warm     32.0  ok       FAIL near-empty body (unrendered SPA, interstitial or silent wall)
+nowsecure            turnstile             browser      2.1  gated    PASS
+example              none                     http      0.2  gated    PASS
+idealista            captcha-delivery.com     warm     31.8  ok       FAIL near-empty body (unrendered SPA, interstitial or silent wall)
+stackoverflow        managed-challenge        warm      3.0  ok       PASS
+zillow               press-and-hold           warm     60.9  gated    FAIL human-verification challenge (press & hold)
+crunchbase           managed-challenge        warm     22.3  gated    FAIL cloudflare wall (attention required! | cloudflare)
+run 2: 7/12
+
+== hard12 run 3/3 ==
+target               wall                     tier     secs  verdict  result
+indeed               managed-challenge        warm     32.5  gated    FAIL cloudflare wall (just a moment)
+amazon               popular               browser      3.3  ok       PASS
+idealista            captcha-delivery.com     warm     32.4  ok       FAIL near-empty body (unrendered SPA, interstitial or silent wall)
+nowsecure            turnstile             browser      1.5  gated    PASS
+stackoverflow        managed-challenge        warm      2.0  ok       PASS
+example              none                     http      0.2  gated    PASS
+wikipedia            none                     http      0.3  ok       PASS
+crunchbase           managed-challenge        warm     22.1  gated    FAIL cloudflare wall (attention required! | cloudflare)
+g2                   captcha-delivery.com     warm     32.4  ok       FAIL near-empty body (unrendered SPA, interstitial or silent wall)
+hackernews           none                  browser      1.7  ok       PASS
+zillow               press-and-hold           warm     57.0  gated    FAIL human-verification challenge (press & hold)
+newegg               bot-manager           browser      7.9  ok       PASS
+run 3: 7/12
+
+hard12 — median 7/12 (range 7..8 over 3 runs) — resolved by tier: {"browser": 12, "http": 6, "warm": 4}
+
+evasion finished in 514.7s
