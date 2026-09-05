@@ -234,8 +234,13 @@ jobs:
           cargo install cargo-generate-rpm --locked
           mkdir -p packaging/staging
           tar -xzf "artifacts/svipall-$VERSION-x86_64-unknown-linux-gnu.tar.gz" -C packaging/staging
-          cargo deb -p svipall-mcp --no-build --no-strip --output packaging/dist/
-          cargo generate-rpm -p crates/svipall-mcp --output packaging/dist/
+          # Neither format takes a semver pre-release as it is written. RPM rejects the hyphen
+          # outright; dpkg accepts it and then sorts 1.0.0-rc *above* 1.0.0, so a user on the
+          # candidate would never be offered the release. `~` is the character both use for
+          # "sorts before", which is what a pre-release is.
+          PKGVER="${VERSION//-/\~}"
+          cargo deb -p svipall-mcp --no-build --no-strip --deb-version "$PKGVER" --output packaging/dist/
+          cargo generate-rpm -p crates/svipall-mcp --output packaging/dist/ -s "version = \"$PKGVER\""
 
       - name: Bundle the manifests
         run: cd packaging && tar -czf ../packaging-manifests.tar.gz dist
