@@ -691,6 +691,19 @@ These are set out in [`NOTICE`](NOTICE) and
 Contributions are taken under the DCO — no CLA, no copyright assignment. See
 [`CONTRIBUTING.md`](CONTRIBUTING.md).
 
+## Trademark
+
+The name **svipall** and the svipall logo are trademarks of the author. They are **not**
+licensed under the AGPL, and nothing in this repository grants a licence to them.
+
+The licence gives you the code. It does not give you the name. Run it, study it, modify
+it, fork it and redistribute it freely under the AGPL — but distribute a modified version
+under a **different name and without the logo**, so that nobody who downloads it is
+misled about who produced it or what is in it.
+
+Nominative use needs no permission and never did: saying that your project uses svipall,
+works with svipall, or is a fork of svipall is fine.
+
 ## Disclaimer
 
 svipall is provided **as is, with no warranty and no liability**, and it grants you
