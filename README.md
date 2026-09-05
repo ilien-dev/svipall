@@ -66,7 +66,7 @@ Where another tool is the better choice, [the comparison table](#how-svipall-com
 <summary><b>Table of contents</b></summary>
 
 - [**Why Svipall**](#why-svipall)
-- [60-second start](#60-second-start) — [from a shell](#or-drive-it-from-a-shell) · [what comes back](#what-comes-back) · [in a container](#or-run-it-in-a-container) · [full install guide](docs/install.md) · [never done this before](GET-STARTED.md)
+- [60-second start](#60-second-start) — [ask your agent](#ask-the-agent-you-already-have) · [**Claude Code plugin**](#claude-code-install-the-plugin) · [install it yourself](#install-it-yourself) · [from a shell](#or-drive-it-from-a-shell) · [what comes back](#what-comes-back) · [in a container](#or-run-it-in-a-container) · [full install guide](docs/install.md) · [never done this before](GET-STARTED.md)
 - [What you can actually do with it](#what-you-can-actually-do-with-it) · [who it is for](#who-it-is-for)
 - [**Proof**: every number, with the command that reproduces it](#proof-every-number-with-the-command-that-reproduces-it)
   - [Extraction quality vs. readability, trafilatura and resiliparse](#extraction-quality--measured-against-public-corpora-including-where-it-loses)
@@ -90,23 +90,42 @@ Where another tool is the better choice, [the comparison table](#how-svipall-com
 
 ## 60-second start
 
-**1. Install it.** One line, no toolchain, nothing to compile.
+Three ways in. The first two install Svipall **and** wire it into your assistant in one step; the
+third is for everyone else.
 
-```bash
-curl -fsSL https://raw.githubusercontent.com/ilien-dev/svipall/main/install.sh | sh   # macOS, Linux
-irm https://raw.githubusercontent.com/ilien-dev/svipall/main/install.ps1 | iex        # Windows
-```
+### Ask the agent you already have
 
-**Or let the agent you already have do it.** Paste this into Claude Code, Cursor, Codex, opencode or
-anything else that can run a command:
+Paste this into Claude Code, Cursor, Codex, opencode, or anything else that can run a command:
 
 ```
 Install and configure Svipall by following the instructions here:
 https://raw.githubusercontent.com/ilien-dev/svipall/main/docs/install.md
 ```
 
-That page is written to be executed: it works out the platform, picks a channel, verifies the
-download and registers the MCP server, asking before each step.
+That page is written to be executed rather than read: it works out the platform, picks a channel,
+verifies the download and registers the MCP server, asking you before each step.
+
+### Claude Code: install the plugin
+
+```
+/plugin marketplace add ilien-dev/svipall
+/plugin install svipall@svipall
+/svipall:setup
+```
+
+`/svipall:setup` installs the binary if it is missing, checks the server answers, and offers to make
+Svipall the way Claude reaches the web in every project. It asks before each of those.
+`/svipall:doctor` reports what this installation can actually do, and `/svipall:uninstall` reverses
+everything setup touched.
+
+### Install it yourself
+
+One line, no toolchain, nothing to compile:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/ilien-dev/svipall/main/install.sh | sh   # macOS, Linux
+irm https://raw.githubusercontent.com/ilien-dev/svipall/main/install.ps1 | iex        # Windows
+```
 
 <details>
 <summary>Or a package manager, or a container</summary>
@@ -126,33 +145,20 @@ else, including [building from source](docs/install.md#3-building-from-source-in
 [docs/install.md](docs/install.md).
 </details>
 
-Then ask it what it can actually do on this machine, and what to run for anything it cannot:
+Then ask it what it can do on this machine, and what to run for anything it cannot:
 
 ```bash
 svipall doctor
 ```
 
-**2. Plug it into your assistant**
-
-In Claude Code the plugin does all of it — the MCP server, the skills, and optionally making
-Svipall the way Claude reaches the web in every project:
-
-```
-/plugin marketplace add ilien-dev/svipall
-/plugin install svipall@svipall
-/svipall:setup
-```
-
-`/svipall:setup` installs the binary if it is missing, checks the server answers, and asks before
-each of the optional steps. `/svipall:doctor` reports what this installation can do, and
-`/svipall:uninstall` reverses everything setup touched.
-
-<details>
-<summary>By hand, or in Claude Desktop, Cursor, or any other MCP client</summary>
+Wiring it into a client, when nothing did it for you:
 
 ```bash
 claude mcp add svipall -- svipall-mcp
 ```
+
+<details>
+<summary>Claude Desktop, Cursor, or any other MCP client</summary>
 
 ```json
 {
@@ -168,8 +174,9 @@ Use an absolute path if the client does not inherit your shell's PATH — GUI ap
 do not.
 </details>
 
-**3. Ask for something.** That is the whole setup — no key to paste, no account to create, no
-service to sign up for.
+### Then ask for something
+
+No key to paste, no account to create, no service to sign up for.
 
 > *"Read this page and summarise the pricing."*
 > *"Crawl these docs and write me an `llms.txt`."*
