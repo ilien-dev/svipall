@@ -1,0 +1,147 @@
+name: release
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  build:
+    name: ${{ matrix.target }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-latest
+            target: x86_64-pc-windows-msvc
+            ext: .exe
+          - os: macos-latest
+            target: x86_64-apple-darwin
+            ext: ""
+          - os: macos-latest
+            target: aarch64-apple-darwin
+            ext: ""
+          - os: ubuntu-latest
+            target: x86_64-unknown-linux-gnu
+            ext: ""
+          # Native arm runner: BoringSSL cross-compiles badly and does not need to.
+          - os: ubuntu-24.04-arm
+            target: aarch64-unknown-linux-gnu
+            ext: ""
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+
+      - name: BoringSSL build dependencies (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential cmake perl pkg-config libclang-dev nasm
+
+      - name: BoringSSL build dependencies (Windows)
+        if: runner.os == 'Windows'
+        run: choco install cmake strawberryperl pkgconfiglite llvm nasm -y
+        shell: cmd
+
+      - name: BoringSSL build dependencies (macOS)
+        if: runner.os == 'macOS'
+        run: brew install cmake pkg-config llvm
+
+      # The models the binary carries. torchvision's published weights (BSD-3), exported once
+      # here and compiled in by svipall-models; nothing is fetched at run time. The CPU wheel is
+      # enough: exporting is not training.
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Export embedded models
+        shell: bash
+        run: |
+          python -m pip install --quiet torch torchvision --index-url https://download.pytorch.org/whl/cpu
+          python -m pip install --quiet onnx
+          python tools/models/export.py
+          ls -la crates/svipall-models/models
+
+      # A portable baseline, replacing the target-cpu=native in .cargo/config.toml. RUSTFLAGS as an
+      # environment variable replaces that section outright, which is what we want here. The
+      # baseline is an x86 one, so every aarch64 target drops it.
+      - name: Build
+        shell: bash
+        env:
+          RUSTFLAGS: -C target-cpu=x86-64-v2
+          # Keep BoringSSL's nested build paths under Windows MAX_PATH.
+          CARGO_TARGET_DIR: ${{ runner.os == 'Windows' && 'C:\t' || './t' }}
+        run: |
+          case "${{ matrix.target }}" in aarch64-*) unset RUSTFLAGS ;; esac
+          cargo build --profile dist --target ${{ matrix.target }} --bin svipall-mcp --bin svipall \
+            --features onnx-ocr,onnx-grid,onnx-audio,onnx-detect,onnx-segment,onnx-zeroshot
+
+      # Both binaries: the MCP server and the CLI the skill documents. Shipping only the server
+      # left `svipall fetch` a build-from-source feature.
+      - name: Package
+        shell: bash
+        env:
+          CARGO_TARGET_DIR: ${{ runner.os == 'Windows' && 'C:\t' || './t' }}
+        run: |
+          mkdir -p out
+          cp "$CARGO_TARGET_DIR/${{ matrix.target }}/dist/svipall-mcp${{ matrix.ext }}" out/
+          cp "$CARGO_TARGET_DIR/${{ matrix.target }}/dist/svipall${{ matrix.ext }}" out/
+          cp README.md skill/SKILL.md out/
+          cd out && tar -czf "svipall-${{ matrix.target }}.tar.gz" svipall-mcp${{ matrix.ext }} svipall${{ matrix.ext }} README.md SKILL.md
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: svipall-${{ matrix.target }}
+          path: out/svipall-${{ matrix.target }}.tar.gz
+          if-no-files-found: error
+
+  publish:
+    name: publish
+    needs: build
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+          merge-multiple: true
+      - name: Checksums
+        run: cd artifacts && sha256sum *.tar.gz > sha256sums.txt && cat sha256sums.txt
+      - uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            artifacts/*.tar.gz
+            artifacts/sha256sums.txt
+          generate_release_notes: true
+
+  image:
+    name: container image
+    needs: build
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: true
+          tags: |
+            ghcr.io/${{ github.repository }}:${{ github.ref_name }}
+            ghcr.io/${{ github.repository }}:latest

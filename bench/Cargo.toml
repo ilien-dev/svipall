@@ -1,0 +1,40 @@
+[package]
+name = "svipall-bench"
+version = "1.0.0"
+edition = "2021"
+license = "AGPL-3.0-only"
+
+[dependencies]
+svipall-core = { path = "../crates/svipall-core" }
+svipall-http = { path = "../crates/svipall-http" }
+svipall-mcp = { path = "../crates/svipall-mcp" }
+anyhow = { workspace = true }
+tokio = { version = "1.53", features = ["full"] }
+serde_json = "1.0"
+# TECO labels its ground truth as HTML classes on the page itself, so reading it means parsing the
+# page. The same parser the extractor uses, so the two agree about what a node is.
+scraper = { workspace = true }
+regex = { workspace = true }
+async-trait = { workspace = true }
+tracing-subscriber = { workspace = true }
+# WCXB carries its 2,008 pages gzipped, one file each.
+flate2 = { version = "1.0", default-features = false, features = ["rust_backend"] }
+image = { version = "0.25", optional = true }
+# The QUIC stack, so `bench h3-ref` can run a server a real Chrome will handshake with. The same
+# vendored copy the engine uses, so what it measures is what ships.
+svipall-quic = { path = "../crates/svipall-quic", optional = true }
+svipall-models = { path = "../crates/svipall-models", optional = true }
+
+[features]
+# The QUIC engine, so `bench h3` and `bench evasion --http3` can measure it. Off by default, as
+# it is everywhere else.
+http3 = ["svipall-http/http3", "svipall-mcp/http3", "dep:svipall-quic"]
+# The model budgets in `micro` need the inference paths compiled in; the models themselves are
+# whatever `svipall-models` embedded at build time.
+onnx = ["svipall-mcp/onnx-detect", "svipall-mcp/onnx-segment", "dep:image", "dep:svipall-models"]
+
+[package.metadata.cargo-machete]
+# `svipall-quic` is used as `quiche::` — that is the library name its manifest keeps, so the
+# vendored source needs no rewriting. cargo-machete matches on the package name and cannot see it.
+# Same entry, same reason, as `crates/svipall-http/Cargo.toml`.
+ignored = ["svipall-quic"]

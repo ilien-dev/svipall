@@ -1,0 +1,16 @@
+[package]
+name = "svipall-dashboard"
+version = "1.0.0"
+edition = "2021"
+license = "AGPL-3.0-only"
+description = "Human dashboard for manual captcha solving"
+
+[dependencies]
+svipall-solver = { path = "../svipall-solver" }
+tokio = { workspace = true }
+axum = { workspace = true }
+serde_json = { workspace = true }
+svipall-core = { path = "../svipall-core" }
+
+[dev-dependencies]
+tower = { workspace = true }

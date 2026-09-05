@@ -1,0 +1,102 @@
+:root {
+  --bg: #0b0c0e;
+  --card: #15171a;
+  --line: #24272c;
+  --ink: #e9eaec;
+  --dim: #8b9098;
+  --accent: #7dd3a0;
+  --warn: #e0a458;
+  --pick: #7dd3a0;
+}
+
+* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+body {
+  margin: 0;
+  padding: 16px;
+  background: var(--bg);
+  color: var(--ink);
+  font: 15px/1.5 ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+
+header { max-width: 720px; margin: 0 auto 20px; }
+h1 { font-size: 19px; margin: 0; letter-spacing: .02em; }
+.sub { color: var(--dim); font-size: 13px; margin: 4px 0 0; }
+#status { color: var(--warn); }
+#status.live { color: var(--accent); }
+
+main { max-width: 720px; margin: 0 auto; display: flex; flex-direction: column; gap: 14px; }
+.empty { color: var(--dim); text-align: center; padding: 40px 0; }
+
+.card {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 16px;
+}
+.card h3 { margin: 0 0 2px; font-size: 14px; font-weight: 600; }
+.meta { color: var(--dim); font-size: 12px; margin: 0 0 12px; word-break: break-all; }
+.badge {
+  display: inline-block;
+  padding: 2px 9px;
+  border-radius: 20px;
+  background: #22262b;
+  color: var(--dim);
+  font-size: 11px;
+  letter-spacing: .04em;
+  text-transform: uppercase;
+}
+.prompt { font-size: 14px; margin: 0 0 10px; }
+
+/* Every picture is a coordinate space, so it must never be cropped or letterboxed: a fraction of
+   a displayed box only means the same thing as a fraction of the image when the two agree. */
+.canvas { position: relative; display: inline-block; max-width: 100%; touch-action: manipulation; }
+.canvas img { display: block; max-width: 100%; height: auto; border-radius: 8px; border: 1px solid var(--line); }
+.dot {
+  position: absolute;
+  width: 22px; height: 22px;
+  margin: -11px 0 0 -11px;
+  border: 2px solid var(--pick);
+  border-radius: 50%;
+  background: rgba(125, 211, 160, .25);
+  pointer-events: none;
+  font-size: 11px;
+  line-height: 18px;
+  text-align: center;
+  color: var(--ink);
+}
+.tiles { display: grid; gap: 4px; }
+.tiles img { cursor: pointer; border: 2px solid transparent; border-radius: 6px; width: 100%; }
+.tiles img.on { border-color: var(--pick); opacity: .75; }
+
+.row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-top: 12px; }
+input[type=text], input[type=range] { flex: 1 1 180px; min-width: 0; }
+input[type=text] {
+  padding: 9px 12px;
+  border-radius: 8px;
+  border: 1px solid var(--line);
+  background: #101215;
+  color: var(--ink);
+  font-size: 16px; /* under 16px, mobile browsers zoom on focus and the coordinates shift */
+}
+input[type=range] { accent-color: var(--accent); }
+output { color: var(--dim); font-size: 12px; min-width: 52px; font-variant-numeric: tabular-nums; }
+
+button {
+  padding: 9px 16px;
+  border-radius: 8px;
+  border: 1px solid var(--line);
+  background: #1d2126;
+  color: var(--ink);
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+}
+button.go { background: var(--accent); color: #08120c; border-color: transparent; }
+button.hold { flex: 1 1 100%; padding: 18px; touch-action: none; }
+button.hold.on { background: var(--accent); color: #08120c; }
+button.quiet { background: transparent; color: var(--dim); font-weight: 400; }
+button:disabled { opacity: .5; cursor: default; }
+
+.note { color: var(--warn); font-size: 12px; margin: 8px 0 0; min-height: 1em; }
+audio { width: 100%; margin-bottom: 10px; }

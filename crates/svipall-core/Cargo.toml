@@ -1,0 +1,38 @@
+[package]
+name = "svipall-core"
+version = "1.0.0"
+edition = "2021"
+license = "AGPL-3.0-only"
+description = "Core ladder, classification, throttle and profile management for svipall"
+
+[dependencies]
+tokio = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+tracing = { workspace = true }
+regex = { workspace = true }
+dirs = { workspace = true }
+url = { workspace = true }
+scraper = { workspace = true }
+anyhow = { workspace = true }
+rusqlite = { workspace = true }
+ego-tree = "0.9"
+quick-xml = { version = "0.37", default-features = false }
+flate2 = { version = "1.0", default-features = false, features = ["rust_backend"] }
+# Proof-of-work challenges: a hash loop, no model, no person. Already in the tree transitively;
+# declared here because this crate now uses it directly.
+sha2 = "0.10"
+toml = { workspace = true }
+# The REST API's bearer key, generated on first use. v4 is the same recipe the dashboard's per-run
+# token already uses, and it is backed by the platform CSPRNG rather than something hand-rolled.
+uuid = { workspace = true }
+
+pdf-extract = { version = "0.9", optional = true }
+# Office, OpenDocument, RTF, EPUB and CSV to markdown. Pure Rust, no models, no network — the
+# crate is documented never to make a call, which is the condition for it being here at all.
+anydoc = { version = "0.2", optional = true }
+
+[features]
+default = ["pdf", "docs"]
+pdf = ["dep:pdf-extract"]
+docs = ["dep:anydoc"]

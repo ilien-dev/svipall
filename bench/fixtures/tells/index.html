@@ -1,0 +1,480 @@
+<!doctype html>
+<html lang="en">
+<head><meta charset="utf-8"><title>tells</title></head>
+<body>
+<!-- Tall enough that a desktop browser must show a scrollbar: `--hide-scrollbars` is only
+     visible as a tell when there is something to scroll. -->
+<div style="height:3000px">probe</div>
+<span id="rect" style="position:fixed;top:0;left:0;font:16px serif">geometry probe</span>
+<!-- A second realm, same origin. Its intrinsics are its own, which is the whole point: a patch
+     that holds only in the top realm is one `contentWindow` away from being read. -->
+<iframe id="realm" src="about:blank" style="position:fixed;top:-9999px;width:100px;height:100px"></iframe>
+<script>
+// Every probe answers {ok, detail}. `ok` is what the runner asserts; `detail` is what a person
+// reads when it fails. Nothing here talks to the network: the page is served from a listener the
+// benchmark opened on loopback, and the worker is a blob of this same document's making.
+(function () {
+  const T = {};
+  const put = (name, ok, detail) => { T[name] = { ok: !!ok, detail: String(detail) }; };
+
+  // 1. Residue. A driver that leaves a named global on `window` has labelled itself; walking the
+  // own-property list is the cheapest check a detector runs. `__`-prefixed unknowns count too.
+  try {
+    const bad = Object.getOwnPropertyNames(window).filter((k) =>
+      /svipall|chromiumoxide|puppeteer|playwright|selenium|webdriver|nightmare|phantom|cdc_|domAutomation/i.test(k)
+      || (k.startsWith('__') && k !== '__proto__'));
+    put('residue', bad.length === 0, bad.length ? bad.join(', ') : 'no named residue on window');
+  } catch (e) { put('residue', false, e); }
+
+  // 2. Window position. A window parked off-screen to keep it out of the operator's way reports
+  // its coordinates to the page, and no real visitor browses at -32000.
+  try {
+    const x = window.screenX, y = window.screenY;
+    const ok = x === window.screenLeft && y === window.screenTop
+      && x > -window.screen.width && x < window.screen.width * 2
+      && y > -window.screen.height && y < window.screen.height * 2;
+    put('screen_position', ok, 'screenX=' + x + ' screenY=' + y + ' screen=' + screen.width + 'x' + screen.height);
+  } catch (e) { put('screen_position', false, e); }
+
+  // 3. DOMRect coherence. Jittering `x`/`width` without `left`/`right` produces a rectangle whose
+  // own numbers disagree - an internal contradiction no rasteriser produces - and defining the
+  // jittered values as own properties makes the object itself the wrong shape.
+  try {
+    const r = document.getElementById('rect').getBoundingClientRect();
+    const own = Object.getOwnPropertyNames(r);
+    const ok = Math.abs(r.x - r.left) < 1e-9
+      && Math.abs(r.y - r.top) < 1e-9
+      && Math.abs(r.width - (r.right - r.left)) < 1e-9
+      && Math.abs(r.height - (r.bottom - r.top)) < 1e-9
+      && own.length === 0
+      && Object.prototype.toString.call(r) === '[object DOMRect]';
+    put('dom_rect', ok, 'x=' + r.x + ' left=' + r.left + ' w=' + r.width + ' r-l=' + (r.right - r.left) + ' own=[' + own + ']');
+  } catch (e) { put('dom_rect', false, e); }
+
+  // 4. Brand checks. Replacing a host object with an object literal changes what it *is*, which
+  // one `Object.prototype.toString` call reveals.
+  try {
+    const brand = (v) => Object.prototype.toString.call(v);
+    const parts = [];
+    let ok = true;
+    const expect = (label, v, want) => {
+      const got = brand(v);
+      parts.push(label + '=' + got);
+      if (got !== want) ok = false;
+    };
+    expect('plugins', navigator.plugins, '[object PluginArray]');
+    expect('plugin0', navigator.plugins[0], '[object Plugin]');
+    expect('mimeTypes', navigator.mimeTypes, '[object MimeTypeArray]');
+    if (navigator.connection) expect('connection', navigator.connection, '[object NetworkInformation]');
+    if (window.performance && performance.memory) expect('memory', performance.memory, '[object MemoryInfo]');
+    put('host_object_brands', ok, parts.join(' '));
+  } catch (e) { put('host_object_brands', false, e); }
+
+  // 5. `navigator.languages` hands out a fresh array on every read in a real browser. A frozen
+  // constant is identity-stable, and identity is exactly what `===` measures.
+  try {
+    const a = navigator.languages, b = navigator.languages;
+    put('languages_fresh', a !== b && a.join() === b.join(), 'identical=' + (a === b) + ' value=' + a.join());
+  } catch (e) { put('languages_fresh', false, e); }
+
+  // 5b. `navigator.languages` holds language tags. An `Accept-Language` header holds quality
+  // values too, and passing one where the other belongs puts `en;q=0.9` in a list that may only
+  // ever contain `en`.
+  try {
+    const bad = (navigator.languages || []).filter((l) => !/^[A-Za-z]{2,3}(-[A-Za-z0-9]{2,8})*$/.test(l));
+    put('languages_shape', bad.length === 0, bad.length ? bad.join(' ') : (navigator.languages || []).join());
+  } catch (e) { put('languages_shape', false, e); }
+
+  // 5c. A window cannot be wider than the display holding it, and a 2026 desktop is not 800x600.
+  // Headless reports a default screen while the launch flags size the window past it.
+  //
+  // `availHeight` is strictly below `height`, not merely at or below it: a desktop with no taskbar,
+  // dock or menu bar does not exist. `svipall_core::coherence` applies that rule to every identity
+  // offline and `fingerprint` applies it to the live browser, so the gate that runs at every tier
+  // must not be the loosest of the three.
+  try {
+    const ok = screen.width >= window.outerWidth && screen.height >= window.outerHeight
+      && screen.width >= 1024 && screen.availWidth <= screen.width && screen.availHeight < screen.height;
+    put('screen_plausible', ok, 'screen=' + screen.width + 'x' + screen.height
+      + ' avail=' + screen.availWidth + 'x' + screen.availHeight
+      + ' outer=' + window.outerWidth + 'x' + window.outerHeight);
+  } catch (e) { put('screen_plausible', false, e); }
+
+  // 6. An accessor installed by hand is named "get"; the engine names its own "get <prop>".
+  try {
+    const parts = [];
+    let ok = true;
+    for (const prop of ['deviceMemory', 'hardwareConcurrency', 'languages', 'plugins']) {
+      const d = Object.getOwnPropertyDescriptor(Navigator.prototype, prop);
+      if (!d || !d.get) continue;
+      parts.push(prop + ':' + JSON.stringify(d.get.name));
+      if (d.get.name !== 'get ' + prop) ok = false;
+    }
+    put('getter_names', ok, parts.join(' '));
+  } catch (e) { put('getter_names', false, e); }
+
+  // 7. No script reaches a worker through `addScriptToEvaluateOnNewDocument`, so a spoofed value
+  // in the document and the honest one in a worker are a one-line cross-realm contradiction.
+  const workerProbe = new Promise((resolve) => {
+    try {
+      const src = 'self.onmessage=function(){self.postMessage({'
+        + 'deviceMemory:navigator.deviceMemory,'
+        + 'hardwareConcurrency:navigator.hardwareConcurrency,'
+        + 'languages:(navigator.languages||[]).join()})}';
+      const w = new Worker(URL.createObjectURL(new Blob([src], { type: 'text/javascript' })));
+      const give = setTimeout(() => { w.terminate(); resolve(null); }, 3000);
+      w.onmessage = (ev) => { clearTimeout(give); w.terminate(); resolve(ev.data); };
+      w.onerror = () => { clearTimeout(give); w.terminate(); resolve(null); };
+      w.postMessage(0);
+    } catch (e) { resolve(null); }
+  }).then((got) => {
+    if (!got) { put('worker_realm', true, 'no worker available; nothing to contradict'); return; }
+    const mine = {
+      deviceMemory: navigator.deviceMemory,
+      hardwareConcurrency: navigator.hardwareConcurrency,
+      languages: (navigator.languages || []).join(),
+    };
+    const diff = Object.keys(mine).filter((k) => String(mine[k]) !== String(got[k]));
+    put('worker_realm', diff.length === 0,
+      diff.length ? diff.map((k) => k + ': document=' + mine[k] + ' worker=' + got[k]).join('; ')
+                  : 'agree on ' + Object.keys(mine).join(', '));
+  });
+
+  // 7b. Chrome caps the heap at a whole number of mebibytes per platform, so a limit derived from
+  // the host's installed RAM is itself the tell. This also catches a patch that silently did
+  // nothing: `performance.memory` hands out a fresh object on every read, so anything shadowed on
+  // one instance is gone by the next call and the real number comes back.
+  try {
+    if (window.performance && performance.memory) {
+      const a = performance.memory.jsHeapSizeLimit;
+      const b = performance.memory.jsHeapSizeLimit;
+      const ok = a === b && a > 0 && a % (1024 * 1024) === 0;
+      put('heap_limit_is_a_ceiling', ok, a + ' bytes (' + (a / 1048576) + ' MiB), stable=' + (a === b));
+    } else {
+      put('heap_limit_is_a_ceiling', true, 'performance.memory not exposed here');
+    }
+  } catch (e) { put('heap_limit_is_a_ceiling', false, e); }
+
+  // 8. Touch emulation left on for a desktop identity puts `ontouchstart` on a machine that
+  // declares no touch screen.
+  try {
+    const n = navigator.maxTouchPoints;
+    const on = 'ontouchstart' in window;
+    put('touch_matches_identity', n === 0 && !on, 'maxTouchPoints=' + n + ' ontouchstart=' + on);
+  } catch (e) { put('touch_matches_identity', false, e); }
+
+  // 9. `--hide-scrollbars` makes the viewport and the layout box the same width on a page that
+  // must scroll. On a real desktop Chrome they differ by the scrollbar.
+  try {
+    const gap = window.innerWidth - document.documentElement.clientWidth;
+    put('scrollbar_present', gap > 0, 'innerWidth-clientWidth=' + gap);
+  } catch (e) { put('scrollbar_present', false, e); }
+
+  // 10. An injected script names itself in any stack trace that crosses it. Throwing through a
+  // patched builtin is how a page gets one for free.
+  try {
+    let stack = '';
+    try { Function.prototype.toString.call({}); } catch (err) { stack = String(err.stack || ''); }
+    const foreign = stack.split('\n')
+      .map((l) => (l.match(/(https?:|blob:|data:|file:|__[A-Za-z0-9_]+)\S*/) || [])[0])
+      .filter(Boolean)
+      .filter((u) => u.indexOf(location.origin) !== 0);
+    put('stack_has_no_injected_url', foreign.length === 0,
+      foreign.length ? foreign.join(' ') : (stack.split('\n')[0] || 'no stack'));
+  } catch (e) { put('stack_has_no_injected_url', false, e); }
+
+  // 11. The watchdog. Chrome closed this path in 2025; PATCHES.md keeps `Runtime.enable` on the
+  // strength of that. If a future Chrome reopens it, this is where the build finds out.
+  try {
+    let hit = false;
+    for (const method of ['debug', 'log']) {
+      const e = new Error();
+      Object.defineProperty(e, 'stack', { get() { hit = true; return ''; } });
+      console[method](e);
+    }
+    put('runtime_domain_unobservable', !hit, hit ? 'the protocol announces itself to the page' : 'not observable');
+  } catch (e) { put('runtime_domain_unobservable', false, e); }
+
+  // 12. `navigator.webdriver` must be present and `false`, not missing. Every Chrome since 89
+  // carries the property, so removing it is as much a contradiction as answering `true` — and
+  // prototype completeness is one `getOwnPropertyNames` away. The accessor's name is checked too:
+  // an accessor redefined by hand is named `get`, the engine names its own `get webdriver`.
+  try {
+    const d = Object.getOwnPropertyDescriptor(Navigator.prototype, 'webdriver');
+    const ok = navigator.webdriver === false && 'webdriver' in navigator
+      && !!d && typeof d.get === 'function' && d.get.name === 'get webdriver';
+    put('navigator_webdriver', ok, 'value=' + navigator.webdriver
+      + ' in navigator=' + ('webdriver' in navigator)
+      + ' descriptor=' + (d ? JSON.stringify(d.get.name) : 'absent'));
+  } catch (e) { put('navigator_webdriver', false, e); }
+
+  // 13. Defining a property on the instance leaves the prototype accessor in place, so a
+  // fingerprinter walking the chain sees the same name twice. No real navigator does.
+  try {
+    const seen = {};
+    for (let o = navigator; o; o = Object.getPrototypeOf(o)) {
+      for (const k of Object.getOwnPropertyNames(o)) seen[k] = (seen[k] || 0) + 1;
+    }
+    const dup = Object.keys(seen).filter((k) => seen[k] > 1);
+    put('no_duplicate_navigator_getters', dup.length === 0,
+      dup.length ? dup.map((k) => k + ' x' + seen[k]).join(' ') : 'no name appears twice in the chain');
+  } catch (e) { put('no_duplicate_navigator_getters', false, e); }
+
+  // 14. A patched function that stringifies to its own source hands over the whole surface in one
+  // call. Every builtin this tree wraps is listed, not just the one that was checked first.
+  try {
+    const targets = [
+      ['WebGLRenderingContext.getParameter', window.WebGLRenderingContext && WebGLRenderingContext.prototype.getParameter],
+      ['HTMLCanvasElement.toDataURL', HTMLCanvasElement.prototype.toDataURL],
+      ['CanvasRenderingContext2D.getImageData', CanvasRenderingContext2D.prototype.getImageData],
+      ['AudioBuffer.getChannelData', window.AudioBuffer && AudioBuffer.prototype.getChannelData],
+      ['Element.getBoundingClientRect', Element.prototype.getBoundingClientRect],
+      ['Element.getClientRects', Element.prototype.getClientRects],
+      ['MediaDevices.enumerateDevices', window.MediaDevices && MediaDevices.prototype.enumerateDevices],
+      ['StorageManager.estimate', window.StorageManager && StorageManager.prototype.estimate],
+      ['Permissions.query', window.Permissions && Permissions.prototype.query],
+      ['Function.prototype.toString', Function.prototype.toString],
+    ];
+    const live = targets.filter((t) => typeof t[1] === 'function');
+    const leaking = live
+      .filter((t) => !Function.prototype.toString.call(t[1]).includes('[native code]'))
+      .map((t) => t[0]);
+    put('patched_functions_are_native', leaking.length === 0,
+      leaking.length ? leaking.join(' ') : 'all ' + live.length + ' stringify as native');
+  } catch (e) { put('patched_functions_are_native', false, e); }
+
+  // 15. Brave announces itself through `navigator.brave` while the User-Agent claims Chrome. The
+  // contradiction is worse than anything it hides.
+  try {
+    put('brave_absent', typeof navigator.brave === 'undefined', 'typeof navigator.brave=' + typeof navigator.brave);
+  } catch (e) { put('brave_absent', false, e); }
+
+  // 16. A desktop Chrome always carries the PDF viewer entries. No plugins at all is a headless
+  // signature on its own.
+  try {
+    const n = navigator.plugins.length;
+    put('plugins_present', n > 0, n + ' plugins, first=' + (n ? navigator.plugins[0].name : '-'));
+  } catch (e) { put('plugins_present', false, e); }
+
+  // 17. `navigator.userAgentData` is what fills the Sec-CH-UA headers. Absent, or disagreeing with
+  // the User-Agent it sits beside, is the same contradiction read from two directions.
+  try {
+    const d = navigator.userAgentData;
+    const ua = navigator.userAgent;
+    const major = (ua.match(/Chrome\/(\d+)/) || [])[1];
+    const brand = d && d.brands.find((b) => b.brand === 'Google Chrome' || b.brand === 'Chromium');
+    const ok = !!d && d.brands.length > 0 && !!brand && brand.version === major
+      && typeof d.mobile === 'boolean' && d.mobile === (navigator.maxTouchPoints > 0);
+    put('user_agent_data_present', ok, d
+      ? 'brands=' + d.brands.map((b) => b.brand + ':' + b.version).join(',') + ' platform=' + d.platform
+        + ' mobile=' + d.mobile + ' ua major=' + major
+      : 'navigator.userAgentData is absent');
+  } catch (e) { put('user_agent_data_present', false, e); }
+
+  // 18. Real Chrome puts 85-120px of tab strip and address bar above the viewport. Zero is a
+  // viewport override with no window around it; one pixel was this tree's own earlier defect.
+  try {
+    const chrome = window.outerHeight - window.innerHeight;
+    put('window_chrome_height', chrome >= 60 && chrome <= 200,
+      'outerHeight-innerHeight=' + chrome + ' (outer=' + window.outerHeight + ' inner=' + window.innerHeight + ')');
+  } catch (e) { put('window_chrome_height', false, e); }
+
+  // 19. `devicePixelRatio` is read by CSS as well as by script, and the two come from different
+  // code paths in the engine. A ratio announced to one and not the other is a contradiction.
+  try {
+    const dpr = window.devicePixelRatio;
+    const css = matchMedia('(resolution: ' + dpr + 'dppx)').matches;
+    const ok = dpr > 0 && css && Number.isInteger(dpr * 4) && Number.isInteger(screen.width * dpr);
+    put('device_pixel_ratio', ok, 'devicePixelRatio=' + dpr + ' matchMedia agrees=' + css);
+  } catch (e) { put('device_pixel_ratio', false, e); }
+
+  // 20. Text geometry has to be noisy *and* stable. Rasterising the same string twice is
+  // deterministic in every real browser, so noise reseeded per call is louder than no noise at all.
+  try {
+    const el = document.getElementById('rect');
+    const a = el.getBoundingClientRect().width;
+    const b = el.getBoundingClientRect().width;
+    put('text_geometry_stable', a > 0 && Math.abs(a - b) < 1e-9, a + ' then ' + b);
+  } catch (e) { put('text_geometry_stable', false, e); }
+
+  // 21. `navigator.connection` reports a class, and Chrome rounds what it reports: `rtt` to a
+  // multiple of 25 ms and `downlink` to a multiple of 0.025 Mbit/s. An invented value that skips
+  // the rounding is a value no browser would have produced.
+  try {
+    const c = navigator.connection;
+    if (!c) {
+      put('connection_coherent', true, 'navigator.connection not exposed here');
+    } else {
+      const ok = ['slow-2g', '2g', '3g', '4g'].indexOf(c.effectiveType) >= 0
+        && c.rtt % 25 === 0 && Math.abs(Math.round(c.downlink / 0.025) * 0.025 - c.downlink) < 1e-9;
+      put('connection_coherent', ok,
+        'effectiveType=' + c.effectiveType + ' rtt=' + c.rtt + ' downlink=' + c.downlink);
+    }
+  } catch (e) { put('connection_coherent', false, e); }
+
+  // 22. Canvas noise has to be stable within a session. A fingerprint that changes between two
+  // reads of the same drawing is a louder signal than no noise at all, and a third read taken
+  // after an intervening `getImageData` catches a counter that advances per call rather than a
+  // seed that does not move.
+  try {
+    const draw = () => {
+      const c = document.createElement('canvas');
+      c.width = 60; c.height = 20;
+      const ctx = c.getContext('2d');
+      ctx.textBaseline = 'top';
+      ctx.font = '14px Arial';
+      ctx.fillText('svipall', 2, 2);
+      return { url: c.toDataURL(), ctx: ctx };
+    };
+    const a = draw();
+    const b = draw();
+    a.ctx.getImageData(0, 0, 60, 20);
+    const c = draw();
+    const ok = a.url.length > 100 && a.url === b.url && b.url === c.url;
+    put('canvas_noise_stable', ok, ok
+      ? 'three draws agree, ' + a.url.length + ' chars'
+      : 'draws differ: 1==2 is ' + (a.url === b.url) + ', 2==3 is ' + (b.url === c.url));
+  } catch (e) { put('canvas_noise_stable', false, e); }
+
+  // 23. The accessors this session installs on `Navigator.prototype` must stringify as native code.
+  // `getter_names` already checks what the engine would have *called* them; this checks what they
+  // look like when read. An arrow function handed to `defineProperty` gives up the whole surface,
+  // and its value with it, in one `toString`.
+  try {
+    const leaking = [];
+    for (const prop of ['deviceMemory', 'hardwareConcurrency', 'languages', 'language', 'plugins', 'mimeTypes', 'webdriver']) {
+      const d = Object.getOwnPropertyDescriptor(Navigator.prototype, prop);
+      if (!d || typeof d.get !== 'function') continue;
+      const src = Function.prototype.toString.call(d.get);
+      if (!src.includes('[native code]')) leaking.push(prop + '=' + src.replace(/\s+/g, ' ').slice(0, 40));
+    }
+    put('navigator_getters_are_native', leaking.length === 0,
+      leaking.length ? leaking.join(' | ') : 'every accessor stringifies as native');
+  } catch (e) { put('navigator_getters_are_native', false, e); }
+
+  // 24. A same-origin `about:blank` iframe is a second realm with its own intrinsics. A patch that
+  // masks `toString` through a per-realm registry is not there when the page reaches for the
+  // *iframe's* pristine `Function.prototype.toString` and calls it on the top realm's accessor.
+  // That is one line for a detector and it is the category a C++ patch removes outright.
+  try {
+    const f = document.getElementById('realm');
+    const w = f.contentWindow;
+    const alien = w.Function.prototype.toString;
+    const leaking = [];
+    for (const prop of ['deviceMemory', 'hardwareConcurrency', 'languages', 'plugins']) {
+      const d = Object.getOwnPropertyDescriptor(Navigator.prototype, prop);
+      if (!d || typeof d.get !== 'function') continue;
+      const src = alien.call(d.get);
+      if (!src.includes('[native code]')) leaking.push(prop + '=' + src.replace(/\s+/g, ' ').slice(0, 40));
+    }
+    put('cross_realm_tostring', leaking.length === 0,
+      leaking.length ? leaking.join(' | ') : 'the iframe realm reads the same accessors as native');
+  } catch (e) { put('cross_realm_tostring', false, e); }
+
+  // 25. The worker realm's sibling. Whatever the document claims about the machine, a same-origin
+  // iframe has to claim it too — and `outerWidth`/`outerHeight` are the root window's in every
+  // frame of a real page, so a value derived from *this* realm's inner size disagrees with itself.
+  try {
+    const w = document.getElementById('realm').contentWindow;
+    const mine = {
+      deviceMemory: navigator.deviceMemory,
+      hardwareConcurrency: navigator.hardwareConcurrency,
+      languages: (navigator.languages || []).join(),
+      webdriver: navigator.webdriver,
+      plugins: navigator.plugins.length,
+      outerWidth: window.outerWidth,
+      outerHeight: window.outerHeight,
+      screenW: screen.width,
+      screenH: screen.height,
+      availH: screen.availHeight,
+      dpr: window.devicePixelRatio,
+    };
+    const theirs = {
+      deviceMemory: w.navigator.deviceMemory,
+      hardwareConcurrency: w.navigator.hardwareConcurrency,
+      languages: (w.navigator.languages || []).join(),
+      webdriver: w.navigator.webdriver,
+      plugins: w.navigator.plugins.length,
+      outerWidth: w.outerWidth,
+      outerHeight: w.outerHeight,
+      screenW: w.screen.width,
+      screenH: w.screen.height,
+      availH: w.screen.availHeight,
+      dpr: w.devicePixelRatio,
+    };
+    const diff = Object.keys(mine).filter((k) => String(mine[k]) !== String(theirs[k]));
+    put('iframe_realm_agrees', diff.length === 0,
+      diff.length ? diff.map((k) => k + ': top=' + mine[k] + ' iframe=' + theirs[k]).join('; ')
+                  : 'agree on ' + Object.keys(mine).length + ' values');
+  } catch (e) { put('iframe_realm_agrees', false, e); }
+
+  // 26. A window parked off-screen so it stays out of the operator's way is never the foreground
+  // window, so its page reports `hasFocus() === false` for the life of the session and a challenge
+  // waiting for interaction waits forever. The focus emulation that fixes it is applied at every
+  // tier and asserted nowhere; this is the watchdog.
+  try {
+    const ok = document.hasFocus() === true && document.visibilityState === 'visible'
+      && document.hidden === false;
+    put('focus_and_visibility', ok, 'hasFocus=' + document.hasFocus()
+      + ' visibilityState=' + document.visibilityState + ' hidden=' + document.hidden);
+  } catch (e) { put('focus_and_visibility', false, e); }
+
+  // 27. CSS answers the input question through a different code path in the engine than
+  // `maxTouchPoints` does. A desktop identity that claims no touch screen to script and a coarse
+  // pointer to CSS has contradicted itself across two engines' worth of surface.
+  try {
+    const fine = matchMedia('(pointer: fine)').matches;
+    const hover = matchMedia('(hover: hover)').matches;
+    const coarse = matchMedia('(any-pointer: coarse)').matches;
+    const touch = navigator.maxTouchPoints > 0;
+    const ok = fine && hover && coarse === touch;
+    put('input_modality', ok, 'pointer:fine=' + fine + ' hover:hover=' + hover
+      + ' any-pointer:coarse=' + coarse + ' maxTouchPoints=' + navigator.maxTouchPoints);
+  } catch (e) { put('input_modality', false, e); }
+
+  // 28. The User-Agent string has to agree with every other thing that describes the same browser.
+  // This tree already shipped a version in the UA and a different one in the client hints once.
+  try {
+    const ua = navigator.userAgent;
+    const parts = [];
+    let ok = true;
+    const want = (label, cond, detail) => { parts.push(label + '=' + detail); if (!cond) ok = false; };
+    want('appVersion', navigator.appVersion === ua.slice('Mozilla/'.length), navigator.appVersion === ua.slice('Mozilla/'.length));
+    want('vendor', navigator.vendor === 'Google Inc.', JSON.stringify(navigator.vendor));
+    want('appName', navigator.appName === 'Netscape', JSON.stringify(navigator.appName));
+    want('product', navigator.product === 'Gecko', JSON.stringify(navigator.product));
+    // Gecko-only surfaces on a Chrome UA would be a straight contradiction.
+    want('oscpu', navigator.oscpu === undefined, String(navigator.oscpu));
+    want('buildID', navigator.buildID === undefined, String(navigator.buildID));
+    const win = ua.includes('Windows NT');
+    want('platform', win ? navigator.platform === 'Win32' : true, JSON.stringify(navigator.platform));
+    put('ua_string_self_agreement', ok, parts.join(' '));
+  } catch (e) { put('ua_string_self_agreement', false, e); }
+
+  // 29. `navigator.permissions.query` answers with a `PermissionStatus` whose `state` is one of
+  // `granted`, `denied` or `prompt`. `Notification.permission` uses a different vocabulary, whose
+  // third value is `default`; passing one through as the other answers with a state that is not a
+  // `PermissionState` at all. Asynchronous, so the page waits for it before reporting.
+  const permissionProbe = (async () => {
+    try {
+      if (!navigator.permissions || !navigator.permissions.query) {
+        put('permission_state_is_valid', true, 'navigator.permissions not exposed here');
+        return;
+      }
+      const s = await navigator.permissions.query({ name: 'notifications' });
+      const brand = Object.prototype.toString.call(s);
+      const ok = brand === '[object PermissionStatus]'
+        && ['granted', 'denied', 'prompt'].indexOf(s.state) >= 0
+        && (typeof Notification === 'undefined'
+            || s.state === (Notification.permission === 'default' ? 'prompt' : Notification.permission));
+      put('permission_state_is_valid', ok, 'brand=' + brand + ' state=' + JSON.stringify(s.state)
+        + ' Notification.permission=' + (typeof Notification === 'undefined' ? '-' : Notification.permission));
+    } catch (e) { put('permission_state_is_valid', false, e); }
+  })();
+
+  window.__TELLS__ = T;
+  Promise.all([workerProbe, permissionProbe]).then(() => { window.__TELLS__ = T; window.__TELLS_DONE__ = true; });
+})();
+</script>
+</body>
+</html>

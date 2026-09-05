@@ -1,0 +1,11 @@
+/target/
+# Cargo.lock is committed: this workspace ships a binary, so builds must be reproducible.
+.env
+*.db
+*.log
+.idea/
+.vscode/
+.DS_Store
+# Embedded models are reproduced by tools/models/export.py, not carried in the tree.
+crates/svipall-models/models/*.onnx
+crates/svipall-models/models/*.json
