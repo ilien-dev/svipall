@@ -44,87 +44,28 @@ looking in. Svipall looks, behaves and waits like a real visitor, so the shutter
 and when they do not, it says so plainly instead of handing your agent an error page dressed as an
 article.
 
-## The four things that go wrong, and what Svipall does about them
+## Why Svipall
 
-Anyone who has pointed an agent at the open web has hit these. Every answer below links to the
-section that demonstrates it — none of it asks you to take the project's word.
+| ⚠️ What goes wrong | ✅ Svipall |
+|---|---|
+| 🥷 Your agent reads a **"checking your browser" screen** and summarises it as the article. It was a `200`, so nothing flagged it | **Twelve wall kinds, each naming the move it implies.** A block is never reported as a success [→](#judging-what-came-back) |
+| 🗑️ You crawl **5,000 pages** and can't tell which are worth keeping | **Every page labelled on arrival** — integrity, substance, provenance, near-duplicates — **and never removed** [→](#judging-what-came-back) |
+| 💸 One page = **300,000 tokens** of raw HTML. The fixes are four manual jobs you now own | **All four are defaults:** clean Markdown, tables as rows, `out_file` to disk, the site's own JSON API [→](#reading) |
+| 🤖 Beating a captcha means **paying a service** — quotas, per-solve fees, your pages sent away | **Nine strategies, vision models inside the binary**, a phone dashboard for the rest [→](#captcha-solving-fully-local) |
 
-### 1. Your agent reads a block page and summarises it as if it were the article
+🔬 **It shows its work.** Three benchmark lists, raw logs committed — including four sites it *cannot*
+beat, a round where the score dropped, and two finished features shipped **off** because the
+measurement said so. [→](#proof-every-number-with-the-command-that-reproduces-it)
 
-This is the failure that costs you an answer rather than a retry, and it is silent: the request
-returned `200`, the pipeline recorded a success, and the model confidently describes a
-"checking your browser" screen. The usual advice is to treat every block the same way and retry —
-which is exactly wrong, because a Turnstile widget, a WAF rule, a consent gate and a soft 404 each
-need a different move.
+⚙️ Rust · MCP + CLI + REST · no Node, no Python, no API key · **nothing leaves your machine**
+→ **[Install in 60 seconds ↓](#60-second-start)**
 
-**Svipall classifies what came back into twelve kinds and names the move each one implies.** A
-`gate` stops the ladder because no tier dismisses a cookie banner; a `paywall` says a proxy will not
-help and a signed-in profile will; a `200` carrying a "page not found" stub is caught, and so is the
-206-character error template one vendor serves in place of a page. **A block is never reported as a
-success.** → [What a `200` is not](#judging-what-came-back)
-
-### 2. You cannot tell which of the 5,000 pages you crawled are worth anything
-
-RAG corpora are curated *after* ingestion — chunking, re-ranking, index hygiene — because the fetch
-layer hands over text with no opinion about it. Boilerplate filters help inside a page, but they
-answer "which part of this page is content", not "is this document worth keeping at all".
-
-**Svipall labels every page as it arrives, and never removes one.** An integrity verdict (`full` /
-`partial` / `thin`) with the reason; how engineered the page is (`affiliate_heavy`,
-`headings_echo_the_body`, `link_dense`); a four-level substance score from a hashed-bigram model you
-train on your own corpus; provenance; near-duplicate detection; and a percentile that **refuses to
-answer below thirty observations** instead of inventing precision.
-
-Labelling rather than filtering is the finding, not timidity: DCLM's 416 controlled experiments
-found the quality filter that agreed *best* with human judgement performed *worst* as a filter. So
-the score travels with the page and you decide. → [Judging what came back](#judging-what-came-back)
-
-### 3. The token bill
-
-A single product page can be hundreds of thousands of tokens of raw HTML, and the standard advice —
-filter the markup, hardcode selectors, batch the requests, only fetch what changed — is four manual
-jobs you now own.
-
-**Svipall does all four as defaults.** Main content as Markdown with the boilerplate gone; `tables`
-as typed rows and `schema: "auto"` as records, so a 200-row listing costs a fraction of its prose;
-`out_file` to write thousands of rows to disk instead of your context; `web_snapshot` to hand the
-agent roles and refs rather than markup; `web_capture` to return the JSON the page fetched, which is
-usually the site's real API; `--since-last` to re-fetch only what moved; `mobile=true` for the
-lighter layout; a cache that revalidates into a `304`; and a `max_tokens`/`cursor` continuation that
-names the heading path it resumes under (`Guide > Install > Windows`) so a page read in parts is
-never picked up cold. → [Reading](#reading)
-
-### 4. Getting past a challenge means paying somebody
-
-**Nine strategies, and the vision models are compiled into the binary** — a detector and a segmenter
-on the CPU, so an image grid is answered out of the box with nothing to install and nothing fetched
-at run time. Proof-of-work, press-and-hold, slider and rotation are arithmetic and geometry, so
-eight of the fifteen widget families need no model at all. What no model can read is parked and
-handed to a person on a phone-friendly dashboard, and the answer is replayed on the live page. A
-model you train from your own solved-captcha corpus wins over the embedded one, without a restart.
-No vendor, no quota, no per-solve fee. → [Captcha solving](#captcha-solving-fully-local)
-
-### And the reason to believe any of it
-
-Svipall **publishes its own anti-bot benchmark with the failures inside it** — three target lists,
-raw run logs committed to the repo, four sites it cannot get past named and explained, a round where
-the number went *down* published anyway, and one measurement it declined to claim at all because two
-of its own records disagreed. Two gates run **offline and fail the build**: 160/160 automation probes
-across five browser passes, and every identity checked against itself over a 1,500-machine sweep.
-Two finished features ship **switched off** because measurement said so — cross-page boilerplate
-removal cost one word of human-labelled content on one site, and a page-type router lost to a
-cheaper signal and was retired.
-
-All of it runs as two Rust binaries with three front ends over one brain — MCP, a CLI that prints one
-JSON object per command, and a local REST API — with no Node, no Python and no runtime to install.
 Where another tool is the better choice, [the comparison table](#how-svipall-compares) says so.
-
-Where other tools are the better choice, [the comparison table](#how-svipall-compares) says so.
 
 <details>
 <summary><b>Table of contents</b></summary>
 
-- [**The four things that go wrong, and what Svipall does about them**](#the-four-things-that-go-wrong-and-what-svipall-does-about-them) — [block read as content](#1-your-agent-reads-a-block-page-and-summarises-it-as-if-it-were-the-article) · [which pages are worth keeping](#2-you-cannot-tell-which-of-the-5000-pages-you-crawled-are-worth-anything) · [the token bill](#3-the-token-bill) · [paying for captchas](#4-getting-past-a-challenge-means-paying-somebody)
+- [**Why Svipall**](#why-svipall)
 - [60-second start](#60-second-start) — [from a shell](#or-drive-it-from-a-shell) · [what comes back](#what-comes-back) · [in a container](#or-run-it-in-a-container)
 - [What you can actually do with it](#what-you-can-actually-do-with-it) · [who it is for](#who-it-is-for)
 - [**Proof**: every number, with the command that reproduces it](#proof-every-number-with-the-command-that-reproduces-it)
