@@ -60,13 +60,21 @@ flags; `--uninstall` reverses it.
 
 | Platform | Build | Browser tiers | Local captcha models |
 |---|---|---|---|
-| Linux x86-64 | yes | yes | yes |
-| Linux arm64 | yes | **no** — Chrome for Testing publishes no linux-arm64 build. Point `browser_path` at your own Chromium, or accept the http tier | yes |
+| Linux x86-64 | yes | yes | **no** — see below. The container image has them |
+| Linux arm64 | yes | **no** — Chrome for Testing publishes no linux-arm64 build. Point `browser_path` at your own Chromium, or accept the http tier | **no** — see below |
 | macOS Intel | yes | yes | **no** — ONNX Runtime publishes no x86-64 macOS build, so image challenges go to the human dashboard |
 | macOS Apple silicon | yes | yes | yes |
 | Windows x86-64 | yes | yes (Edge already counts) | yes |
 | Windows arm64 | no | run the x64 build under emulation, or use the container | — |
 | anything else | no | build from source, or use the container | — |
+
+**Why the Linux binaries carry no models.** The ONNX Runtime builds that `ort` downloads reference
+glibc 2.38 and GCC 13's libstdc++, so a binary using them starts only on a distribution as new as
+Ubuntu 24.04 — not on Debian 12, Ubuntu 22.04, RHEL 9 or Amazon Linux 2023. Given the choice
+between a binary that starts everywhere and one that answers image captchas on the newest
+distributions only, the release ships the first. Image challenges go to the human dashboard
+instead, and `svipall doctor` says `no_models`. The **container image keeps the models**, because a
+container carries its own glibc and none of this constrains the host.
 
 ---
 

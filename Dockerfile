@@ -36,7 +36,11 @@
 ARG FLAVOR=full
 
 # ---------------------------------------------------------------------------------------------
-FROM rust:1-bookworm AS build
+# Trixie, not bookworm: the ONNX Runtime binaries `ort` downloads reference glibc 2.38 symbols
+# (`__isoc23_strtoll`) and GCC 13's libstdc++, so they will not link against Debian 12's 2.36.
+# A container carries its own glibc, so nothing about the host constrains this choice — which is
+# exactly why the models live here and not in the portable Linux binary.
+FROM rust:1-trixie AS build
 ARG FLAVOR
 RUN apt-get update && apt-get install -y --no-install-recommends \
         build-essential cmake perl pkg-config libclang-dev nasm \
@@ -71,7 +75,7 @@ RUN case "$(uname -m)" in aarch64) export RUSTFLAGS="" ;; esac; \
     && mkdir -p /out && cp target/dist/svipall-mcp target/dist/svipall /out/
 
 # ---------------------------------------------------------------------------------------------
-FROM debian:bookworm-slim AS runtime-base
+FROM debian:trixie-slim AS runtime-base
 RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates \
     && rm -rf /var/lib/apt/lists/*
 COPY --from=build /out/svipall-mcp /out/svipall /usr/local/bin/
