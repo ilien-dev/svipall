@@ -44,9 +44,42 @@ looking in. Svipall looks, behaves and waits like a real visitor, so the shutter
 and when they do not, it says so plainly instead of handing your agent an error page dressed as an
 article.
 
+## What you can check before you trust any of this
+
+Every line here links to the thing that proves it. None of it asks you to take the project's word.
+
+- **🔓 Captchas answered on your own machine, models included.** Nine strategies, a detector and a
+  segmenter compiled into the binary, and a phone-friendly dashboard for what no model can read.
+  No vendor, no quota, no per-solve fee, nothing to sign up for.
+  → [Captcha solving](#captcha-solving-fully-local)
+- **📊 It publishes its own anti-bot benchmark — with the failures in it.** Three target lists, raw
+  run logs committed to the repo, four sites it *cannot* get past named and explained, and a round
+  where the number went down that was published anyway. One measurement it declined to claim at all
+  because two of its own records disagreed. → [Proof](#proof-every-number-with-the-command-that-reproduces-it)
+- **🚫 A block is never reported as a success.** Twelve wall kinds, each naming the move it implies;
+  a `200` carrying a "page not found" stub is caught, and so is a 206-character error template a
+  vendor served in place of a page. → [What a `200` is not](#judging-what-came-back)
+- **🏷️ Every page comes back labelled, and never withheld.** Integrity, how engineered the page is,
+  a substance score you train yourself, provenance, and a percentile that **refuses to answer**
+  below thirty observations rather than inventing precision. → [Judging what came back](#judging-what-came-back)
+- **🔬 Two gates that cannot be satisfied by argument.** 160/160 automation probes across five
+  browser passes, and every identity checked against itself over a 1,500-machine sweep — both
+  offline, both failing the build. → [Automation tells](#automation-tells--160-of-160-offline-and-it-fails-the-build)
+- **🧾 Features that were built, measured, and shipped switched off.** Cross-page boilerplate
+  removal cost one word of human-labelled content on one site, so it is `false` by default and the
+  README says why. A page-type router was tried and retired because a cheaper signal beat it.
+  → [Reading](#reading)
+- **⚙️ Three front ends, one brain.** MCP for your agent, a CLI that prints one JSON object per
+  command, and a local REST API for every other language — the last two sharing one browser pool,
+  one page cache and one set of learned tiers with the first. Two Rust binaries, no Node, no
+  Python, no runtime to install. → [The REST API](#the-rest-api)
+
+Where other tools are the better choice, [the comparison table](#how-svipall-compares) says so.
+
 <details>
 <summary><b>Table of contents</b></summary>
 
+- [**What you can check before you trust any of this**](#what-you-can-check-before-you-trust-any-of-this)
 - [60-second start](#60-second-start) — [from a shell](#or-drive-it-from-a-shell) · [what comes back](#what-comes-back) · [in a container](#or-run-it-in-a-container)
 - [What you can actually do with it](#what-you-can-actually-do-with-it) · [who it is for](#who-it-is-for)
 - [**Proof**: every number, with the command that reproduces it](#proof-every-number-with-the-command-that-reproduces-it)
