@@ -356,7 +356,7 @@ pub fn render(t: &Table, out: &mut String) {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::extraction::{extract_markdown_opts, ExtractOpts};
+    use crate::{extract_markdown_opts, ExtractOpts};
 
     fn md(html: &str) -> String {
         extract_markdown_opts(html, &ExtractOpts::default())

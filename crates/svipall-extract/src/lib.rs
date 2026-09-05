@@ -1376,7 +1376,7 @@ mod tests {
                 &html,
                 &ExtractOpts {
                     main_content_only: true,
-                    prune: Some(crate::extraction::prune::PruneOpts {
+                    prune: Some(crate::prune::PruneOpts {
                         max_link_density: d,
                         ..Default::default()
                     }),

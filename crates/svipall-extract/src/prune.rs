@@ -265,7 +265,7 @@ pub fn analyze(root: NodeRef<'_, Node>, opts: &PruneOpts) -> PruneReport {
 
 #[cfg(test)]
 mod tests {
-    use crate::extraction::{extract_markdown_opts, ExtractOpts};
+    use crate::{extract_markdown_opts, ExtractOpts};
 
     fn md_pruned(html: &str) -> String {
         extract_markdown_opts(
