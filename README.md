@@ -38,9 +38,9 @@
 
 **No cloud. No API keys. No paid captcha services. No telemetry. Nothing leaves your computer.**
 
-An LLM on its own is a very well-read person locked in a room with no window. svipall is the window
+An LLM on its own is a very well-read person locked in a room with no window. Svipall is the window
 — and a good one, because a large part of the web slams the shutters the moment it notices a robot
-looking in. svipall looks, behaves and waits like a real visitor, so the shutters mostly stay open;
+looking in. Svipall looks, behaves and waits like a real visitor, so the shutters mostly stay open;
 and when they do not, it says so plainly instead of handing your agent an error page dressed as an
 article.
 
@@ -52,7 +52,7 @@ article.
 - [**Proof**: every number, with the command that reproduces it](#proof-every-number-with-the-command-that-reproduces-it)
   - [Extraction quality vs. readability, trafilatura and resiliparse](#extraction-quality--measured-against-public-corpora-including-where-it-loses)
   - [`public31` — the independent list](#anti-bot-public31-the-independent-list-scored-by-its-own-rule) · [`hard12`](#anti-bot-hard12-our-own-list-chosen-because-it-has-walls) · [`vendors8`](#anti-bot-vendors8-four-vendors-named-two-targets-each)
-  - [**What svipall does not get past, and why**](#what-svipall-does-not-get-past-and-why)
+  - [**What Svipall does not get past, and why**](#what-svipall-does-not-get-past-and-why)
   - [Automation tells](#automation-tells--160-of-160-offline-and-it-fails-the-build) · [identity coherence](#identity-coherence--asserted-offline-in-ci) · [CPU budgets](#cpu-budgets--measured-not-recalled)
 - [Features](#features) — [reading](#reading) · [judging what came back](#judging-what-came-back) · [getting in](#getting-in) · [acting](#acting) · [crawling](#crawling) · [remembering](#remembering-and-staying-safe)
 - [How it works, in plain words](#how-it-works-in-plain-words)
@@ -61,7 +61,7 @@ article.
 - [The REST API](#the-rest-api)
 - [Privacy and safety](#privacy-and-safety) · [limits, stated on purpose](#limits-stated-on-purpose)
 - [Configuration](#configuration)
-- [How svipall compares](#how-svipall-compares) — Firecrawl, Crawl4AI, Scrapling, Playwright MCP
+- [How Svipall compares](#how-svipall-compares) — Firecrawl, Crawl4AI, Scrapling, Playwright MCP
 - [Architecture](#architecture) · [documentation](#documentation) · [development](#development)
 - [FAQ](#faq) · [about the name](#about-the-name) · [licence](#license) · [trademark](#trademark) · [disclaimer](#disclaimer)
 
@@ -200,7 +200,7 @@ for **Windows x86-64, macOS Intel, macOS Apple silicon, Linux x86-64 and Linux a
 
 ### Who it is for
 
-| You are… | svipall gives you… |
+| You are… | Svipall gives you… |
 |---|---|
 | **A Claude Code / Claude Desktop / Cursor user** | One line of setup and tools your assistant picks by itself. Research, documentation, price comparison, monitoring |
 | **A developer building AI agents** | A local, deterministic, token-cheap web layer with structured output, file export and resumable crawls |
@@ -209,7 +209,7 @@ for **Windows x86-64, macOS Intel, macOS Apple silicon, Linux x86-64 and Linux a
 | **A privacy-conscious operator** | No scraping API, no captcha farm, no geolocation lookup, no update check, no telemetry. The only things it ever fetches other than your pages are the browser you asked it to install and the blocklists you enabled |
 | **A security or QA engineer** testing your own site | A reproducible benchmark whose raw run logs are committed in this repository, and a request log that names which tier answered and which wall appeared |
 
-svipall is **not** a hosted scraping API and does not try to be one. If you want a URL you can `curl`
+Svipall is **not** a hosted scraping API and does not try to be one. If you want a URL you can `curl`
 from a serverless function, use a cloud service. If you want the web inside your own agent, on your
 own hardware, with nothing phoning home, this is that.
 
@@ -254,10 +254,10 @@ ROUGE-LSum F1, median over the 3,975 gradable pages of the **SIGIR-23 gold stand
 | readability | **0.963** | 0.861 | 0.881 – 0.987 |
 | trafilatura | **0.958** | 0.877 | 0.870 – 0.986 |
 | resiliparse | **0.936** | 0.826 | 0.810 – 0.980 |
-| **svipall** | **0.920** | 0.831 | 0.773 – 0.976 |
-| svipall, boilerplate removal off | 0.732 | 0.696 | 0.551 – 0.887 |
+| **Svipall** | **0.920** | 0.831 | 0.773 – 0.976 |
+| Svipall, boilerplate removal off | 0.732 | 0.696 | 0.551 – 0.887 |
 
-**Three published extractors are above svipall on median and the table says so.** Boilerplate
+**Three published extractors are above Svipall on median and the table says so.** Boilerplate
 removal is worth **+0.19 F1** over the same Markdown with it switched off, which is the number that
 actually matters to a token bill.
 
@@ -297,7 +297,7 @@ cannot see. **WCXB** ships those phrases, written by the corpus author:
 | WCXB held-out, 505 pages | **93.3%** | 11.3% | 0.870 |
 | WCXB dev, 1,476 pages | **86.3%** | 13.1% | 0.806 |
 
-0.870 on the held-out set places svipall **third of fourteen** on that benchmark's published
+0.870 on the held-out set places Svipall **third of fourteen** on that benchmark's published
 leaderboard. Five languages on DAnIEL, the remaining losses traced phrase by phrase, and the three
 experiments that were tried against them and *rejected* are all in
 [`docs/extraction.md`](docs/extraction.md) — with the reason each one stayed out.
@@ -341,7 +341,7 @@ error`) ported verbatim into `bench/src/targets.rs`, so a cell here means what a
 
 | | runs | median | range | `blocked` verdicts |
 |---|---|---|---|---|
-| **svipall** | 25, 26, 26 | **26 / 31** | 25..26 | **0** |
+| **Svipall** | 25, 26, 26 | **26 / 31** | 25..26 | **0** |
 
 **Zero `blocked` is the number worth reading.** 77 `ok` and 16 `gated` across 93 cells, and not one
 cell where a site made a decision about *this address* rather than about a request. The benchmark
@@ -357,14 +357,14 @@ them reached zero:
 | Camoufox | 25 | 3 | 3 |
 | Playwright (vanilla) | 24 | 2 | 5 |
 | rebrowser-playwright | 24 | 2 | 5 |
-| **svipall** | **26** | 5 | **0** |
+| **Svipall** | **26** | 5 | **0** |
 
-**Read that table as a citation, not as a measurement.** The seven rows above svipall are the figures
+**Read that table as a citation, not as a measurement.** The seven rows above Svipall are the figures
 that benchmark published; this project did not run those tools and cannot vouch for them. Different
 machine, different address, months apart — **the OK counts are not comparable cell for cell and are
 not offered as if they were.** What *is* checkable here is the porting: the target list and the
 four-way rule live in [`bench/src/targets.rs`](bench/src/targets.rs), so you can read exactly what
-svipall's own row was scored under and re-run it yourself.
+Svipall's own row was scored under and re-run it yourself.
 
 The `blocked` column is the one that survives the comparison, because it is the failure that costs
 something: a gate is a retry, a hard block is an address the site has decided about.
@@ -384,7 +384,7 @@ run of 31, or 3.7 s per page.**
 | `medium.com`, `canadianinsider.com` | **Not walls.** Both answer `200` with their own titles and 45–50 KB of their own content. The ported rule counts `cdn-cgi/challenge-platform` in the body as a gate, and every Cloudflare customer page carries that script whether or not a challenge was served |
 
 That last row is the ported rule being over-broad, measured directly rather than argued about.
-svipall's own classifier is right and the imported one is wrong — and **the cells are still reported
+Svipall's own classifier is right and the imported one is wrong — and **the cells are still reported
 as failures**, because moving a target or bending a scoring function to win two cells is how a
 benchmark stops meaning anything. What is *not* done is escalating those pages to a browser to
 satisfy the rule: opening a browser on a page already in hand would make the tool worse in exchange
@@ -446,7 +446,7 @@ What the list actually says, beyond the score:
 - **Akamai: the `homedepot` target answers `200` with its own error template** — *"Oops!!
   Something went wrong. Please refresh page"*, 206 characters — after a day of benchmark runs
   against this address, and `403` with the same page over plain HTTP. That is a soft block wearing a
-  success code. svipall was returning those 206 characters *as the page*; it now treats a short
+  success code. Svipall was returning those 206 characters *as the page*; it now treats a short
   "something went wrong, please refresh" as the stand-in it is.
 - **The two published records of the previous round disagree with each other**, and rather than pick
   the flattering one, [`bench/baseline/README.md`](bench/baseline/README.md) says so and declines to
@@ -457,23 +457,23 @@ What the list actually says, beyond the score:
   "the page did not render". Fixing it renames a block; it cannot make a page arrive — and the
   baseline says exactly that.
 
-### What svipall does **not** get past, and why
+### What Svipall does **not** get past, and why
 
 These are honest failures. Each was investigated by hand rather than retried, and each is decided on
 the server's side by something the tool cannot change from a single home connection.
 
-| Site | What actually happens | Why svipall cannot fix it |
+| Site | What actually happens | Why Svipall cannot fix it |
 |---|---|---|
 | **g2.com**, **idealista.com** | The interstitial carries the verdict `'t':'bv'` — *blocked visitor* — in the top document. That is a hard block, not a challenge; no slider is ever offered | The verdict is **IP reputation**. It persisted with a clean Chrome for Testing, a fresh profile and a rotated machine identity, and both of these sites name this IP on the page. The same address gets a *solvable* challenge (`'t':'fe'`) only over bare HTTP, which cannot run the widget. Only another exit address changes the answer |
-| **crunchbase.com** | Passed at six seconds early in the day; refuses the same code, on a fresh profile wearing a different machine, after fifteen visits within the hour | The decision is **per visit and per address**, taken server-side from traffic history. svipall behaves correctly on the page and the outcome still depends on how the address has been scored that hour |
+| **crunchbase.com** | Passed at six seconds early in the day; refuses the same code, on a fresh profile wearing a different machine, after fifteen visits within the hour | The decision is **per visit and per address**, taken server-side from traffic history. Svipall behaves correctly on the page and the outcome still depends on how the address has been scored that hour |
 | **indeed.com** | Not a fixed answer at all: 0 of 3 on `hard12` (2026-09-04), 2 of 3 on `public31` the next day, and 1 of 3 in an earlier round | Same shape as crunchbase. `indeed`, `crunchbase` and `zillow` have swapped places across four measurement rounds: this is the noise band of a list run from one address, not a code change, which is why it is listed here rather than counted as a pass |
 
-> **Stated plainly:** svipall's answer to all of these is `web_route` — send the domain through a
+> **Stated plainly:** Svipall's answer to all of these is `web_route` — send the domain through a
 > residential proxy *you* supply — and that is the one thing a local-only tool cannot provide for
 > itself. It will never bundle proxies, never call a captcha farm, and never report a block as a
 > success.
 >
-> `evasion --exit URL` runs the same targets through an exit you supply, so *"svipall cannot"* can be
+> `evasion --exit URL` runs the same targets through an exit you supply, so *"Svipall cannot"* can be
 > separated from *"this address cannot"*. **No committed baseline has ever used it** — every one
 > reads `"exit": null` — so that qualifier applies to every number on this page.
 
@@ -521,7 +521,7 @@ between spoofed values*. The quotation and what it implies are in
 cargo run -p svipall-bench --release -- fingerprint --engine chrome
 ```
 
-checks all seven identities svipall can wear (Chrome, Firefox and phone, across three operating
+checks all seven identities Svipall can wear (Chrome, Firefox and phone, across three operating
 systems) plus a **sweep of 1,500 freshly drawn machines**, against themselves: engine ↔ user agent,
 client hints ↔ engine, screen ↔ availHeight ↔ viewport, form factor ↔ platform, timezone ↔ language,
 renderer ↔ engine, and the macOS OS-token spelling that differs between the two engines. No network,
@@ -606,7 +606,7 @@ headroom for exactly that reason; the structural checks are exact and cannot fla
   revalidates with `If-None-Match`, so a repeat visit costs a `304`.
 - **Cross-page boilerplate removal — built, measured, and shipped *off*.** This is the one thing a
   local tool can do that a stateless extractor cannot: trafilatura sees one page and must guess what
-  its navigation is, while svipall has a cache of what you actually fetched from that domain, so a
+  its navigation is, while Svipall has a cache of what you actually fetched from that domain, so a
   block on most of a site's pages is *the site*, not the page. Templates are 40–50% of the data on
   the web (Alarte & Silva), and SIGIR-23 says no public benchmark can score cross-page methods
   because none ships the sibling pages. TeCo does, so it was scored there: at the shipping threshold
@@ -619,7 +619,7 @@ headroom for exactly that reason; the structural checks are exact and cannot fla
 
 ### Judging what came back
 
-Most tools tell you a request succeeded. svipall tells you what *arrived* — and **never withholds a
+Most tools tell you a request succeeded. Svipall tells you what *arrived* — and **never withholds a
 page over it.** Nothing in this section removes a document, stops the ladder or subtracts from a
 verdict. It labels; the caller decides.
 
@@ -813,7 +813,7 @@ Twenty-nine tools, all local.
 | `web_capture` | The JSON/XHR responses the page fetched while loading: the site's real API |
 | `browser_open` / `browser_do` / `browser_close` | Persistent session with cookies and page state across calls |
 | `web_screenshot` | PNG of the rendered page |
-| `web_diff` | What changed on a page since svipall last saw it |
+| `web_diff` | What changed on a page since Svipall last saw it |
 | `web_watch` | Monitor a page, or one `css_selector` region of it, on a schedule and report changes; the region survives a redesign |
 | `web_notes` | Key-value memory that outlives the session |
 | `web_log` | Which tier answered, which wall appeared, how long it took, per domain |
@@ -949,7 +949,7 @@ browser pool, one page cache and one set of learned tiers with the MCP tools.
 installation (`500`) is not a `2xx`. A client that read a wall as a `5xx` would retry forever against
 something that is never going to move.
 
-**Every route needs the key, including on loopback.** A local port is not a boundary: svipall carries
+**Every route needs the key, including on loopback.** A local port is not a boundary: Svipall carries
 logged-in profiles, cookies and your exit address, so an open one is a proxy wearing your identity.
 Two more checks sit in front of the key, because binding to `127.0.0.1` does not stop a page in your
 own browser being served a DNS answer of `127.0.0.1` and posting to it: any request carrying an
@@ -992,12 +992,12 @@ which is the scarcest thing a local-only tool has. Full contract in [`docs/rest.
   installation where an agent chooses its own URLs.
 - **robots.txt** is reported by default and can be made binding with `robots=obey`.
 - **No telemetry, no update checks, no background network.** Nothing is sent anywhere and nothing is
-  fetched on a timer. Besides the pages you asked for, svipall makes exactly two other kinds of
+  fetched on a timer. Besides the pages you asked for, Svipall makes exactly two other kinds of
   outbound request, both only when you ask for them: `browser install` / `browser_setup` downloads
   Chrome for Testing from Google's public build server, and setting `block_ads = true` fetches the
   two lists `blocklist_sources` ships with — StevenBlack/hosts and EasyPrivacy — once, and caches
   them. `block_ads` is `false` by default, so on a stock install that request never happens.
-- **No breaking of access controls.** svipall evades bot detection on public pages. It does not crack
+- **No breaking of access controls.** Svipall evades bot detection on public pages. It does not crack
   passwords, bypass paywalls, or forge authentication. A login wall is passed by *you*, once, in a
   visible window, and the cookies are kept.
 
@@ -1007,7 +1007,7 @@ which is the scarcest thing a local-only tool has. Full contract in [`docs/rest.
 
 Most of these are permanent and deliberate; one is a build you have to ask for, and it says so.
 
-- **No proxies, no IP rotation service.** You bring your own exit; svipall keeps timezone, locale and
+- **No proxies, no IP rotation service.** You bring your own exit; Svipall keeps timezone, locale and
   languages consistent with it and closes the WebRTC and DNS leaks. It does not detect the proxy's
   country (that would require a geolocation service), so you declare it.
 - **No paid or remote captcha solving.** Solving quality is bounded by the models and your hands,
@@ -1044,11 +1044,11 @@ Most of these are permanent and deliberate; one is a build you have to ask for, 
 - **A host with no usable GPU is a fingerprint problem no spoof can fix.** Without acceleration the
   WebGL renderer reads `SwiftShader` or `llvmpipe`, which is the signature of a server or a VM.
   Claiming a GPU the machine does not have is caught by the rendered-image hash, which a spoof cannot
-  reproduce without owning that hardware. svipall detects the case and says so in `web_status` rather
+  reproduce without owning that hardware. Svipall detects the case and says so in `web_status` rather
   than pretending otherwise. Everything else — the models included — runs fine on CPU.
 - **A local security product that injects into pages is visible to every site.** On one measurement
   round, an antivirus was injecting a stylesheet and a script into every page, and on a vendor's
-  silent device-check page the only traffic the page made went to that product. svipall names this in
+  silent device-check page the only traffic the page made went to that product. Svipall names this in
   the note of a blocked result and says what to exclude; it cannot remove it for you.
 
 ---
@@ -1056,7 +1056,7 @@ Most of these are permanent and deliberate; one is a build you have to ask for, 
 ## Configuration
 
 `~/.svipall/config.toml` (or `$SVIPALL_HOME/config.toml`). Every field has a default, so a missing or
-partial file is fine. Everything svipall remembers lives in that one directory, and deleting any of
+partial file is fine. Everything Svipall remembers lives in that one directory, and deleting any of
 it costs memory rather than function:
 
 | | |
@@ -1151,13 +1151,13 @@ max_jobs = 2                 # long jobs at once — not `parallelism`, which bo
 
 ---
 
-## How svipall compares
+## How Svipall compares
 
 Read from each project's own README on **2026-09-05**. Feature sets in this space move fast, so check
 theirs before relying on a row. A dash means *the project does not advertise it* — absence of a claim
 is not proof of absence, and no row here is a measurement of somebody else's code.
 
-| | svipall | [Firecrawl](https://github.com/firecrawl/firecrawl) | [Crawl4AI](https://github.com/unclecode/crawl4ai) | [Scrapling](https://github.com/D4Vinci/Scrapling) | [Playwright MCP](https://github.com/microsoft/playwright-mcp) |
+| | Svipall | [Firecrawl](https://github.com/firecrawl/firecrawl) | [Crawl4AI](https://github.com/unclecode/crawl4ai) | [Scrapling](https://github.com/D4Vinci/Scrapling) | [Playwright MCP](https://github.com/microsoft/playwright-mcp) |
 |---|---|---|---|---|---|
 | Language / runtime | Rust, single binary | TypeScript (Node) | Python | Python | TypeScript (Node) |
 | Usable with no account or API key | ✅ | self-host only; the hosted API and its MCP server take a key | ✅ | ✅ | ✅ |
@@ -1175,7 +1175,7 @@ is not proof of absence, and no row here is a measurement of somebody else's cod
 | Training corpus from every captcha solved | ✅ | — | — | — | — |
 | Publishes its own anti-bot benchmark — three lists, failures and raw logs in-repo | ✅ | — | — | — | — |
 
-**Where the overlap is real.** Scrapling is the closest project to this one and has plenty svipall
+**Where the overlap is real.** Scrapling is the closest project to this one and has plenty Svipall
 does not: remote browsers over CDP, Scrapy-style spiders with streaming and ready-made templates, a
 much larger ecosystem and far more users. Firecrawl and Crawl4AI are the better fit if you want a
 managed or containerised service with an HTTP API in front of it. Playwright MCP is the right choice
@@ -1334,7 +1334,7 @@ to this question is not measuring.
 Sometimes, and the [comparison table](#how-svipall-compares) is honest about where it is not.
 Firecrawl and Crawl4AI are the better fit for a managed or containerised service. Scrapling has a
 larger ecosystem, remote browsers over CDP and Scrapy-style spiders. Playwright MCP is the right
-choice when you have no anti-bot problem at all. svipall's case is: local-only, no keys, a labelled
+choice when you have no anti-bot problem at all. Svipall's case is: local-only, no keys, a labelled
 page instead of a raw one, captchas answered without paying anyone, and published numbers.
 </details>
 
@@ -1342,7 +1342,7 @@ page instead of a raw one, captchas answered without paying anyone, and publishe
 <summary><b>Is scraping legal?</b></summary>
 
 That depends on the site, the data and where you are, and it is your call rather than this project's.
-svipall grants you **no authorisation with respect to any system you point it at** — read
+Svipall grants you **no authorisation with respect to any system you point it at** — read
 [`DISCLAIMER.md`](DISCLAIMER.md) before you run it against something that is not yours. It evades bot
 detection on public pages; it does not crack passwords, bypass paywalls or forge authentication.
 </details>
@@ -1389,7 +1389,7 @@ pinned down, and it looks at the whole web from wherever you run it.
 
 **AGPL-3.0-only.** Free to run, study, modify and share, for any purpose including commercial use.
 Two obligations come with it: a fork stays under the same licence with its source published, and
-anyone who offers svipall to others **over a network** must publish the complete source of what they
+anyone who offers Svipall to others **over a network** must publish the complete source of what they
 run (section 13). See [`LICENSE`](LICENSE).
 
 `crates/svipall-extract`, the extraction engine, is deliberately **MIT OR Apache-2.0** so that
@@ -1401,7 +1401,7 @@ exception. These are set out in [`NOTICE`](NOTICE) and
 
 ## Trademark
 
-The name **svipall** and the svipall logo are trademarks of the author. They are **not** licensed
+The name **Svipall** and the Svipall logo are trademarks of the author. They are **not** licensed
 under the AGPL, and nothing in this repository grants a licence to them.
 
 The licence gives you the code. It does not give you the name. Run it, study it, modify it, fork it
@@ -1409,12 +1409,12 @@ and redistribute it freely under the AGPL — but distribute a modified version 
 name and without the logo**, so that nobody who downloads it is misled about who produced it or what
 is in it.
 
-Nominative use needs no permission and never did: saying that your project uses svipall, works with
-svipall, or is a fork of svipall is fine.
+Nominative use needs no permission and never did: saying that your project uses Svipall, works with
+Svipall, or is a fork of Svipall is fine.
 
 ## Disclaimer
 
-svipall is provided **as is, with no warranty and no liability**, and it grants you **no
+Svipall is provided **as is, with no warranty and no liability**, and it grants you **no
 authorisation with respect to any system you point it at**. Complying with the law, with
 data-protection rules and with a site's terms is the operator's responsibility, not the author's.
 Capability is not permission — read [`DISCLAIMER.md`](DISCLAIMER.md) before you run it against

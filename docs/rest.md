@@ -42,7 +42,7 @@ both protocols.
 
 ## The key, and why loopback is not a boundary
 
-Every route needs `Authorization: Bearer <key>`, including on loopback. svipall carries logged-in
+Every route needs `Authorization: Bearer <key>`, including on loopback. Svipall carries logged-in
 browser profiles, cookies and your exit address, so an unauthenticated port is a proxy wearing your
 identity, reachable by every process on the machine.
 
@@ -159,7 +159,7 @@ queued ──claimed──> running ──┬── finished     the frontier dr
 per batch and *nothing ever clears it*, so there was no way to tell a crawl that died from one that
 finished. The job row is that missing fact. It is detected by two things together: the row is owned
 by another run, **and** its heartbeat has gone quiet for five minutes. Both halves are needed,
-because two svipall processes can share one database, and because `crawl.updated_at` is written per
+because two Svipall processes can share one database, and because `crawl.updated_at` is written per
 batch — a level of two hundred pages can be half an hour between writes. The heartbeat is written
 per page.
 

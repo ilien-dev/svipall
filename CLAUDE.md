@@ -1,4 +1,4 @@
-# svipall
+# Svipall
 
 Local-first web scraping + captcha MCP server in Rust. Defeat anti-bot walls **by evading them**,
 never by breaking access controls. Everything runs on this machine.

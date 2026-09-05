@@ -11,7 +11,7 @@ cargo run -p svipall-bench --release -- evasion --set public31 --runs 3 > baseli
 
 ## Two lists, two rules, never one number
 
-`hard12` is svipall's own list: twelve sites chosen because they have walls, scored by whether the
+`hard12` is Svipall's own list: twelve sites chosen because they have walls, scored by whether the
 expected text came back with no wall reported. `public31` is the list an independent benchmark
 published in May 2026 (seven stealth tools, 31 targets, three sweeps, 651 verdicts), scored with
 that benchmark's own four-way rule (`ok | gated | blocked | error`), ported verbatim into
@@ -42,7 +42,7 @@ engine.
 
 ## Evasion — 5/12 (three runs: 6, 5, 5)
 
-The first time this was ever measured. It is the number the competition publishes and svipall did not.
+The first time this was ever measured. It is the number the competition publishes and Svipall did not.
 
 | outcome | targets |
 |---|---|
@@ -58,7 +58,7 @@ challenge pages; the classifier is right that no wall is present. What is missin
 product listings that only exist after JavaScript runs. The ladder sees a healthy page and stops at
 the `http` tier, so it never escalates to a tier that would render them.
 
-svipall cannot currently tell "I got the chrome but not the article". The existing shell-page rule
+Svipall cannot currently tell "I got the chrome but not the article". The existing shell-page rule
 (`classify.rs:253`) needs `body < 3_000` chars and a text/HTML ratio under 2%, and a navigation
 shell of 13k characters clears both. Closing that is the cheapest available gain and belongs in the
 classifier work, not in stealth.
@@ -290,7 +290,7 @@ read rather than retried. What came out was not about the tool.
 
 **The browser was the tell.** The machine's default browser is one that ships its own
 anti-fingerprinting, and the pool had been warning about it on every start: under automation it
-contradicted the Chrome identity svipall advertises, and the vendor answered every browser tier with a
+contradicted the Chrome identity Svipall advertises, and the vendor answered every browser tier with a
 hard block (`'t':'bv'`) while answering the bare http tier with a solvable challenge (`'t':'fe'`).
 `svipall browser install` now fetches Chrome for Testing from the shell, and the pool prefers it once
 it is there.
@@ -298,15 +298,15 @@ it is there.
 **The antivirus was in the page.** With that browser, every page carried a stylesheet and a
 script injected by a local security product, and on the vendor's silent device-check page the
 only network traffic the page ever made went to that product — the vendor's own check never left
-the machine. Any site's script sees an injection like that. svipall now names it in the note of a
-blocked result and tells the operator what to exclude. With the browser and svipall excluded from the
+the machine. Any site's script sees an injection like that. Svipall now names it in the note of a
+blocked result and tells the operator what to exclude. With the browser and Svipall excluded from the
 product's web protection, the injection was gone in the next measurement.
 
 **The version was wrong.** The managed browser's version sits in an ancestor directory and
 `--version` prints nothing on Windows, so the identity fell back to a default major and the user
 agent named a Chrome five versions older than the engine running. Fixed, with a test.
 
-**And three bugs of svipall's own, found on the way.** A fetch could hang after printing its answer,
+**And three bugs of Svipall's own, found on the way.** A fetch could hang after printing its answer,
 because the CLI never shut the browser pool down. A blocked page ignored `out_file`, so the one
 document an operator most wants to read was the one they could not get whole. `web_snapshot` died
 entirely when one node on a verification wall threw inside its walk. All three fixed and tested.
@@ -372,7 +372,7 @@ the first packet, on every site that looks — and the sites that offer h3 are e
 behind CDNs that look.
 
 So h3 stays off, and this time the file says why in terms that can be re-checked: when a Rust
-TLS binding exposes ALPS and ECH GREASE for QUIC, the gate opens. Until then svipall records
+TLS binding exposes ALPS and ECH GREASE for QUIC, the gate opens. Until then Svipall records
 which domains offer h3 (`Alt-Svc`, `core::altsvc`, shown by `web_status`) so that the day an
 engine exists there is a list to measure it against.
 
@@ -400,7 +400,7 @@ do not pass are all `gated` (an interstitial or a panel that scored us), never `
 published matrix that is the profile only one of seven tools had — the one that drives Chrome over
 CDP with no automation shim — and the count sits with the Playwright forks. Two of the seven
 gates are a `Just a moment…` the `http` tier was scored on before the ladder climbed; the public
-rule takes the final response of one attempt, and svipall's own rule would have escalated. That is
+rule takes the final response of one attempt, and Svipall's own rule would have escalated. That is
 a real difference between the two rules, recorded here rather than adjusted away.
 
 Both numbers are the numbers they are. Neither is the other.
@@ -464,14 +464,14 @@ Nothing here is new information about them; that is why they are in a separate l
 ### `vendors8`: two targets each, four vendors, named
 
 `hard12` and `public31` are frozen — their numbers only mean anything against their own lists, so
-a new target goes in a new list. `vendors8` answers a different question: how does svipall do
+a new target goes in a new list. `vendors8` answers a different question: how does Svipall do
 against each *vendor*, with the vendor named, two targets each so a single site cannot carry the
 row. It is expected to score worse than `hard12`, which is the point of publishing it.
 
 The vendor that had never been measured is the proof-of-work one. It is the only wall that is not
 a page: no challenge, no widget, nothing to answer. Its script burns CPU to earn a token that lives
 60–180 seconds, and **passing it once is not passing it** — the token has to be re-earned for the
-life of the session. A stateless HTTP client cannot hold it at all. svipall's warm tier holds a live
+life of the session. A stateless HTTP client cannot hold it at all. Svipall's warm tier holds a live
 browser, so it can, and now does: `classify::warm_needs_reissue` re-navigates at 40 seconds, below
 the observed floor with room to spare, rather than waiting out the budget and collecting a 403.
 
@@ -489,14 +489,14 @@ naming as such.
 `evasion --exit URL` runs the same targets through an operator-supplied exit. Every number in this
 file above was measured from **one residential address with no proxy**, which this README has named
 as its own ceiling for four rounds without ever measuring past it. Now it can be: publish both
-columns, and "svipall cannot do this" is separated from "this address cannot".
+columns, and "Svipall cannot do this" is separated from "this address cannot".
 
 The un-proxied column stays the headline, because it is the one anybody can reproduce without
 buying anything.
 
 ### Identity coherence, offline and asserted
 
-`fingerprint --engine chrome` checks every identity svipall would wear against itself — engine ↔
+`fingerprint --engine chrome` checks every identity Svipall would wear against itself — engine ↔
 user agent, client hints ↔ engine, screen ↔ availHeight ↔ viewport, form factor ↔ platform,
 timezone ↔ language, renderer ↔ engine, and the macOS OS-token spelling that differs between the
 two engines. Seven identities, no network, and it **fails the build** on a contradiction. It runs
@@ -627,7 +627,7 @@ Two things follow, and only one of them is a number.
 be ways of not reporting what was measured. A re-measure after the address has rested is the way to
 find out whether the cell returns; it is not a reason to hold the current figure back.
 
-**The classifier was wrong about it, and that is fixed.** svipall was returning those 206 characters
+**The classifier was wrong about it, and that is fixed.** Svipall was returning those 206 characters
 as the page with a `thin` quality label. A short `200` whose whole message is "something went wrong,
 please refresh" is a stand-in, not content, and it now escalates like every other stand-in — behind
 the same short-page gate that keeps an article *about* an outage from being caught by it. So the
@@ -1346,7 +1346,7 @@ target.** Neither is expected to move a cell; that expectation is not a measurem
 
 `evasion --exit URL` has existed for two rounds. Every committed baseline still reads
 `"exit": null`. It is not a code gap and never was: it needs an exit address the operator supplies,
-and this project will not bundle one. Until somebody runs it, *"svipall cannot do this"* and
+and this project will not bundle one. Until somebody runs it, *"Svipall cannot do this"* and
 *"this address cannot do this"* stay the same sentence in every number here — which is the single
 largest qualifier on everything above.
 

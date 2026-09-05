@@ -1,11 +1,11 @@
-# Contributing to svipall
+# Contributing to Svipall
 
 Contributions are welcome. There is no CLA and no copyright assignment: you keep the
 copyright in what you write.
 
 ## Licence of contributions
 
-svipall is licensed under **AGPL-3.0-only**. By opening a pull request you agree that
+Svipall is licensed under **AGPL-3.0-only**. By opening a pull request you agree that
 your contribution is licensed under the same terms, and you certify its origin with the
 [Developer Certificate of Origin](https://developercertificate.org/) by signing off
 each commit:
@@ -56,13 +56,13 @@ A failing test is worth more than a paragraph.
 
 ## Security
 
-Do not open a public issue for a vulnerability. Mail <contact@ilien.dev> instead, with
+Do not open a public issue for a vulnerability. Mail <code@ilien.dev> instead, with
 enough detail to reproduce it, and give the maintainer reasonable time to ship a fix
 before disclosing.
 
 ## Scope
 
-svipall evades anti-bot walls; it does not break access controls that protect someone
+Svipall evades anti-bot walls; it does not break access controls that protect someone
 else's private data. Contributions aimed at unauthorised access, credential attacks,
 denial of service or defeating protections on systems the operator has no right to
 reach will be declined. See [`DISCLAIMER.md`](DISCLAIMER.md).

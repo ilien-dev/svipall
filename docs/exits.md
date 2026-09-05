@@ -1,6 +1,6 @@
 # Exits
 
-An exit is a proxy the operator supplies. svipall never ships one, never buys one, and never
+An exit is a proxy the operator supplies. Svipall never ships one, never buys one, and never
 resolves your address to a country — a country is *declared*, not detected, and an exit whose
 country nobody declared simply has none.
 
@@ -141,7 +141,7 @@ recording it as one would lose the page for that crawl id forever.
 
 ## What is not here
 
-There is no exit svipall can create for itself: no Tor control port, no VPN interface binding, no
+There is no exit Svipall can create for itself: no Tor control port, no VPN interface binding, no
 device on the LAN. A `socks5h://127.0.0.1:PORT` from an `ssh -D` tunnel or a local Tor daemon works
 today as an ordinary proxy URL, but nothing supervises that tunnel, and `Health` cannot yet tell
 "the tunnel died" from "the site blocked me" — both arrive as a failure and cost the exit 35 points.

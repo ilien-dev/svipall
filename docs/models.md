@@ -1,6 +1,6 @@
-# Local models: what svipall runs, where they come from, and how to bring your own
+# Local models: what Svipall runs, where they come from, and how to bring your own
 
-Every model svipall runs is a file: either one compiled into the binary, or one you put in
+Every model Svipall runs is a file: either one compiled into the binary, or one you put in
 `~/.svipall/models/`. **Your file wins.** Nothing is downloaded at run time, nothing is called,
 and a model that is in neither place means that kind of challenge goes to the human dashboard
 instead. Each model is described by a JSON sidecar; the sidecar is the contract.
@@ -74,7 +74,7 @@ is why the 4×4 kind is segmented rather than classified.
 ```
 
 Every image model takes pixels in `0..1` (`normalize: true`) with any mean/std the network wants
-folded into the graph, so svipall builds one kind of tensor for all of them.
+folded into the graph, so Svipall builds one kind of tensor for all of them.
 
 Rules the code enforces, so a model cannot be misread:
 
@@ -88,7 +88,7 @@ Rules the code enforces, so a model cannot be misread:
 - A model file on disk without its sidecar is ignored, and the embedded copy is used. Half a
   model is no model.
 
-## Swapping a model while svipall runs
+## Swapping a model while Svipall runs
 
 Drop the new `.onnx` (and its `.json`) into `~/.svipall/models/`. The session is rebuilt on the
 next solve: the loader compares the file's modification time and length with the one it has, and
@@ -97,7 +97,7 @@ embedded — answered.
 
 ## The corpus: training data from what this machine has seen
 
-Every challenge svipall answers — by a model, by zero-shot, or by a person at the dashboard — is
+Every challenge Svipall answers — by a model, by zero-shot, or by a person at the dashboard — is
 kept for `corpus_keep_days` (default 30, `0` disables) in `~/.svipall/jobs.db`: the tiles or
 picture, the prompt, the answer as given, who gave it, whether the page accepted it, and now which
 strategy answered and how long it took.
