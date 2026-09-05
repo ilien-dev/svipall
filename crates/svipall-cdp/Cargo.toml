@@ -1,0 +1,56 @@
+[package]
+name = "svipall-cdp"
+version = "1.0.0"
+edition = "2021"
+rust-version = "1.70"
+description = "Vendored CDP client for svipall: chromiumoxide 0.7.0 with the automation residue patched out"
+license = "MIT OR Apache-2.0"
+publish = false
+
+[lib]
+path = "src/lib.rs"
+
+[dependencies]
+async-tungstenite = "0.27.0"
+base64 = "0.22"
+cfg-if = "1"
+chromiumoxide_cdp = "0.7"
+chromiumoxide_types = "0.7"
+dunce = "1"
+fnv = "1"
+futures = "0.3"
+futures-timer = "3"
+pin-project-lite = "0.2"
+reqwest = { version = "0.12", default-features = false }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+thiserror = "1"
+tokio = { version = "1", features = ["rt", "rt-multi-thread", "time", "fs", "macros", "process"] }
+tracing = "0.1"
+url = "2"
+which = "6"
+
+[target."cfg(windows)".dependencies]
+winreg = "0.52"
+
+[features]
+# Only the runtime svipall actually uses. Upstream defaults to async-std, which dragged an entire
+# second async runtime into the binary for nothing.
+default = ["tokio-runtime"]
+tokio-runtime = ["async-tungstenite/tokio-runtime"]
+
+# Used through macros or behind cfg(windows), which the unused-dependency check cannot see.
+[package.metadata.cargo-machete]
+ignored = ["cfg-if", "pin-project-lite", "futures-timer", "winreg", "fnv", "dunce"]
+
+# Vendored upstream code is not ours to lint: its verdict changes with every toolchain bump and
+# rewriting it would break fidelity with the copy for cosmetics. Our own patches opt back in — see
+# the `warn` attribute at the top of `src/world.rs`.
+[lints.clippy]
+all = { level = "allow", priority = -1 }
+
+[lints.rust]
+# The `cfg_if!` arms for the runtime and features that were removed are still in the copy. They
+# compile away, and rewriting ten nested conditionals would risk fidelity with upstream for
+# cosmetics — so the unknown-feature warning is silenced here rather than by editing the code.
+unexpected_cfgs = "allow"

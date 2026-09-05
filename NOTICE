@@ -1,0 +1,45 @@
+svipall
+Copyright (C) 2026 ilien <contact@ilien.dev>
+
+This program is free software: you can redistribute it and/or modify it under the
+terms of the GNU Affero General Public License as published by the Free Software
+Foundation, version 3.
+
+This program is distributed in the hope that it will be useful, but WITHOUT ANY
+WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A
+PARTICULAR PURPOSE. See the GNU Affero General Public License for more details.
+
+You should have received a copy of the GNU Affero General Public License along with
+this program, in the file LICENSE. If not, see <https://www.gnu.org/licenses/>.
+
+Use of this software is subject to DISCLAIMER.md: it is provided with no warranty, it
+grants no authorisation with respect to any third-party system, and responsibility for
+how it is used sits with the operator.
+
+
+ADDITIONAL PERMISSION UNDER AGPL-3.0 SECTION 7 (OpenSSL-API linking exception)
+
+The `impersonate` feature, which is on by default, links against BoringSSL. BoringSSL
+is distributed under the Apache License 2.0, which combines cleanly with this program's
+licence, so no permission beyond the AGPL is needed for the build this project ships.
+
+Older BoringSSL revisions, and other libraries implementing the same API, carry the
+OpenSSL and SSLeay licenses, whose terms are widely read as incompatible with the GNU
+(A)GPL. So that nobody has to research which revision they linked, and as an additional
+permission under section 7 of the GNU Affero General Public License
+version 3, the copyright holder gives permission to link this program, or a work based
+on it, with BoringSSL, OpenSSL, LibreSSL, or any other library that implements the
+OpenSSL API and is distributed under the OpenSSL license, the SSLeay license, the
+Apache License 2.0 or the ISC license, and to convey the resulting work. You must
+comply with the GNU Affero General Public License in all respects for all of this
+program's code other than the code of that library.
+
+If you modify this program, you may extend this exception to your version, but you are
+not obliged to do so. To remove it, delete this paragraph from your version.
+
+
+THIRD-PARTY MATERIAL
+
+This distribution includes material from third parties under their own licenses. See
+THIRD-PARTY-NOTICES.md and the LICENSE files kept beside that material — in particular
+crates/svipall-cdp/LICENSE-MIT and crates/svipall-cdp/LICENSE-APACHE.

@@ -1,0 +1,46 @@
+[package]
+name = "svipall-http"
+version = "1.0.0"
+edition = "2021"
+license = "AGPL-3.0-only"
+description = "HTTP engine for svipall's http tier, with optional browser-grade TLS/HTTP2 emulation"
+
+[dependencies]
+svipall-core = { path = "../svipall-core" }
+tokio = { workspace = true }
+anyhow = { workspace = true }
+async-trait = { workspace = true }
+reqwest = { workspace = true }
+wreq = { version = "0.16", optional = true, features = ["cookies", "gzip", "brotli", "zstd"] }
+wreq-util = { version = "0.2", optional = true, features = ["emulation"] }
+
+# HTTP/3. All optional, and all off unless `http3` is on: a QUIC stack is a real amount of code to
+# carry for a transport most sites still do not offer, and the TCP engine is what a first visit
+# uses whatever happens. The decompressors are ours to run here because quiche returns a body
+# exactly as the server sent it.
+svipall-quic = { path = "../svipall-quic", optional = true }
+url = { workspace = true, optional = true }
+tracing = { workspace = true, optional = true }
+flate2 = { version = "1.0", optional = true, default-features = false, features = ["rust_backend"] }
+brotli = { version = "8", optional = true, default-features = false, features = ["std"] }
+zstd = { version = "0.13", optional = true }
+
+[features]
+# On by default: a Chrome user-agent over a rustls handshake is a contradiction any anti-bot vendor
+# can see in the first packet, so the emulating engine is what ships. Building BoringSSL needs
+# cmake, perl, llvm and nasm; `--no-default-features` falls back to reqwest and says so at runtime.
+default = ["impersonate"]
+impersonate = ["dep:wreq", "dep:wreq-util"]
+# Off by default. `Alt-Svc` is recorded either way, so turning this on later costs nothing and
+# nobody who does not want a QUIC stack in their binary has to build one.
+http3 = ["dep:svipall-quic", "dep:url", "dep:tracing", "dep:flate2", "dep:brotli", "dep:zstd"]
+
+[dev-dependencies]
+serde_json = { workspace = true }
+tokio = { workspace = true }
+async-trait = { workspace = true }
+
+[package.metadata.cargo-machete]
+# `svipall-quic` is used as `quiche::`, because that is the library name its manifest keeps so the
+# vendored source needs no rewriting. cargo-machete matches on the package name and cannot see it.
+ignored = ["svipall-quic"]

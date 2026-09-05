@@ -1,0 +1,9 @@
+# Local development only. `target-cpu=native` produces a binary tuned for this machine, which can
+# die with an illegal instruction on another CPU — never ship what this profile builds.
+#
+# Release artifacts are built by .github/workflows/release.yml with `--profile dist` and an explicit
+# RUSTFLAGS baseline. Note that RUSTFLAGS as an environment variable REPLACES this whole section
+# rather than adding to it, which is exactly what CI wants and what a local shell must not do by
+# accident.
+[build]
+rustflags = ["-C", "target-cpu=native"]

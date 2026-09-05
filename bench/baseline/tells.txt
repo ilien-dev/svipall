@@ -1,0 +1,286 @@
+    Finished `release` profile [optimized] target(s) in 0.36s
+     Running `C:\Users\jesus\Documents\Projects\hlid\target\release\svipall-bench.exe tells`
+
+== Browser ==
+[2m2026-09-05T05:23:07.071263Z[0m [31mERROR[0m [2msvipall_cdp::conn[0m[2m:[0m Failed to deserialize WS response data did not match any variant of untagged enum Message
+[2m2026-09-05T05:23:07.071301Z[0m [31mERROR[0m [2msvipall_cdp::handler[0m[2m:[0m WS Connection error: Serde(Error("data did not match any variant of untagged enum Message", line: 0, column: 0))
+[2m2026-09-05T05:23:07.090054Z[0m [31mERROR[0m [2msvipall_cdp::conn[0m[2m:[0m Failed to deserialize WS response data did not match any variant of untagged enum Message
+[2m2026-09-05T05:23:07.090083Z[0m [31mERROR[0m [2msvipall_cdp::handler[0m[2m:[0m WS Connection error: Serde(Error("data did not match any variant of untagged enum Message", line: 0, column: 0))
+[2m2026-09-05T05:23:07.100789Z[0m [31mERROR[0m [2msvipall_cdp::conn[0m[2m:[0m Failed to deserialize WS response data did not match any variant of untagged enum Message
+[2m2026-09-05T05:23:07.100811Z[0m [31mERROR[0m [2msvipall_cdp::handler[0m[2m:[0m WS Connection error: Serde(Error("data did not match any variant of untagged enum Message", line: 0, column: 0))
+[2m2026-09-05T05:23:07.102585Z[0m [31mERROR[0m [2msvipall_cdp::conn[0m[2m:[0m Failed to deserialize WS response data did not match any variant of untagged enum Message
+[2m2026-09-05T05:23:07.102605Z[0m [31mERROR[0m [2msvipall_cdp::handler[0m[2m:[0m WS Connection error: Serde(Error("data did not match any variant of untagged enum Message", line: 0, column: 0))
+[2m2026-09-05T05:23:07.120200Z[0m [31mERROR[0m [2msvipall_cdp::conn[0m[2m:[0m Failed to deserialize WS response data did not match any variant of untagged enum Message
+[2m2026-09-05T05:23:07.120227Z[0m [31mERROR[0m [2msvipall_cdp::handler[0m[2m:[0m WS Connection error: Serde(Error("data did not match any variant of untagged enum Message", line: 0, column: 0))
+[2m2026-09-05T05:23:07.124749Z[0m [31mERROR[0m [2msvipall_cdp::conn[0m[2m:[0m Failed to deserialize WS response data did not match any variant of untagged enum Message
+[2m2026-09-05T05:23:07.124774Z[0m [31mERROR[0m [2msvipall_cdp::handler[0m[2m:[0m WS Connection error: Serde(Error("data did not match any variant of untagged enum Message", line: 0, column: 0))
+[2m2026-09-05T05:23:07.136575Z[0m [31mERROR[0m [2msvipall_cdp::conn[0m[2m:[0m Failed to deserialize WS response data did not match any variant of untagged enum Message
+[2m2026-09-05T05:23:07.136601Z[0m [31mERROR[0m [2msvipall_cdp::handler[0m[2m:[0m WS Connection error: Serde(Error("data did not match any variant of untagged enum Message", line: 0, column: 0))
+[2m2026-09-05T05:23:07.631964Z[0m [31mERROR[0m [2msvipall_cdp::conn[0m[2m:[0m Failed to deserialize WS response data did not match any variant of untagged enum Message
+[2m2026-09-05T05:23:07.631993Z[0m [31mERROR[0m [2msvipall_cdp::handler[0m[2m:[0m WS Connection error: Serde(Error("data did not match any variant of untagged enum Message", line: 0, column: 0))
+ok   brave_absent                 typeof navigator.brave=undefined
+ok   canvas_noise_stable          three draws agree, 858 chars
+ok   connection_coherent          effectiveType=4g rtt=100 downlink=1.7
+ok   cross_realm_tostring         the iframe realm reads the same accessors as native
+ok   device_pixel_ratio           devicePixelRatio=1 matchMedia agrees=true
+ok   dom_rect                     x=0 left=0 w=100.859375 r-l=100.859375 own=[]
+ok   focus_and_visibility         hasFocus=true visibilityState=visible hidden=false
+ok   getter_names                 deviceMemory:"get deviceMemory" hardwareConcurrency:"get hardwareConcurrency" languages:"get languages" plugins:"get plugins"
+ok   heap_limit_is_a_ceiling      4395630592 bytes (4192 MiB), stable=true
+ok   host_object_brands           plugins=[object PluginArray] plugin0=[object Plugin] mimeTypes=[object MimeTypeArray] connection=[object NetworkInformation] memory=[object MemoryInfo]
+ok   iframe_realm_agrees          agree on 11 values
+ok   input_modality               pointer:fine=true hover:hover=true any-pointer:coarse=false maxTouchPoints=0
+ok   languages_fresh              identical=false value=en-US,en
+ok   languages_shape              en-US,en
+ok   navigator_getters_are_native every accessor stringifies as native
+ok   navigator_webdriver          value=false in navigator=true descriptor="get webdriver"
+ok   no_duplicate_navigator_getters no name appears twice in the chain
+ok   patched_functions_are_native all 10 stringify as native
+ok   permission_state_is_valid    brand=[object PermissionStatus] state="prompt" Notification.permission=default
+ok   plugins_present              5 plugins, first=PDF Viewer
+ok   residue                      no named residue on window
+ok   runtime_domain_unobservable  not observable
+ok   screen_plausible             screen=1920x1080 avail=1920x1032 outer=1366x874
+ok   screen_position              screenX=60 screenY=40 screen=1920x1080
+ok   scrollbar_present            innerWidth-clientWidth=15
+ok   stack_has_no_injected_url    TypeError: Function.prototype.toString requires that 'this' be a Function
+ok   text_geometry_stable         100.859375 then 100.859375
+ok   touch_matches_identity       maxTouchPoints=0 ontouchstart=false
+ok   ua_string_self_agreement     appVersion=true vendor="Google Inc." appName="Netscape" product="Gecko" oscpu=undefined buildID=undefined platform="Win32"
+ok   user_agent_data_present      brands=Google Chrome:149,Not.A/Brand:8,Chromium:149 platform=Windows mobile=false ua major=149
+ok   window_chrome_height         outerHeight-innerHeight=106 (outer=874 inner=768)
+ok   worker_realm                 agree on deviceMemory, hardwareConcurrency, languages
+
+== Stealth ==
+[2m2026-09-05T05:23:08.565034Z[0m [31mERROR[0m [2msvipall_cdp::conn[0m[2m:[0m Failed to deserialize WS response data did not match any variant of untagged enum Message
+[2m2026-09-05T05:23:08.565071Z[0m [31mERROR[0m [2msvipall_cdp::handler[0m[2m:[0m WS Connection error: Serde(Error("data did not match any variant of untagged enum Message", line: 0, column: 0))
+[2m2026-09-05T05:23:08.600697Z[0m [31mERROR[0m [2msvipall_cdp::conn[0m[2m:[0m Failed to deserialize WS response data did not match any variant of untagged enum Message
+[2m2026-09-05T05:23:08.600722Z[0m [31mERROR[0m [2msvipall_cdp::handler[0m[2m:[0m WS Connection error: Serde(Error("data did not match any variant of untagged enum Message", line: 0, column: 0))
+[2m2026-09-05T05:23:08.620047Z[0m [31mERROR[0m [2msvipall_cdp::conn[0m[2m:[0m Failed to deserialize WS response data did not match any variant of untagged enum Message
+[2m2026-09-05T05:23:08.620073Z[0m [31mERROR[0m [2msvipall_cdp::handler[0m[2m:[0m WS Connection error: Serde(Error("data did not match any variant of untagged enum Message", line: 0, column: 0))
+[2m2026-09-05T05:23:08.620541Z[0m [31mERROR[0m [2msvipall_cdp::conn[0m[2m:[0m Failed to deserialize WS response data did not match any variant of untagged enum Message
+[2m2026-09-05T05:23:08.620564Z[0m [31mERROR[0m [2msvipall_cdp::handler[0m[2m:[0m WS Connection error: Serde(Error("data did not match any variant of untagged enum Message", line: 0, column: 0))
+[2m2026-09-05T05:23:08.630989Z[0m [31mERROR[0m [2msvipall_cdp::conn[0m[2m:[0m Failed to deserialize WS response data did not match any variant of untagged enum Message
+[2m2026-09-05T05:23:08.631010Z[0m [31mERROR[0m [2msvipall_cdp::handler[0m[2m:[0m WS Connection error: Serde(Error("data did not match any variant of untagged enum Message", line: 0, column: 0))
+[2m2026-09-05T05:23:08.631936Z[0m [31mERROR[0m [2msvipall_cdp::conn[0m[2m:[0m Failed to deserialize WS response data did not match any variant of untagged enum Message
+[2m2026-09-05T05:23:08.631960Z[0m [31mERROR[0m [2msvipall_cdp::handler[0m[2m:[0m WS Connection error: Serde(Error("data did not match any variant of untagged enum Message", line: 0, column: 0))
+[2m2026-09-05T05:23:08.653395Z[0m [31mERROR[0m [2msvipall_cdp::conn[0m[2m:[0m Failed to deserialize WS response data did not match any variant of untagged enum Message
+[2m2026-09-05T05:23:08.653434Z[0m [31mERROR[0m [2msvipall_cdp::handler[0m[2m:[0m WS Connection error: Serde(Error("data did not match any variant of untagged enum Message", line: 0, column: 0))
+[2m2026-09-05T05:23:08.658330Z[0m [31mERROR[0m [2msvipall_cdp::conn[0m[2m:[0m Failed to deserialize WS response data did not match any variant of untagged enum Message
+[2m2026-09-05T05:23:08.658360Z[0m [31mERROR[0m [2msvipall_cdp::handler[0m[2m:[0m WS Connection error: Serde(Error("data did not match any variant of untagged enum Message", line: 0, column: 0))
+[2m2026-09-05T05:23:08.670365Z[0m [31mERROR[0m [2msvipall_cdp::conn[0m[2m:[0m Failed to deserialize WS response data did not match any variant of untagged enum Message
+[2m2026-09-05T05:23:08.670392Z[0m [31mERROR[0m [2msvipall_cdp::handler[0m[2m:[0m WS Connection error: Serde(Error("data did not match any variant of untagged enum Message", line: 0, column: 0))
+[2m2026-09-05T05:23:09.133850Z[0m [31mERROR[0m [2msvipall_cdp::conn[0m[2m:[0m Failed to deserialize WS response data did not match any variant of untagged enum Message
+[2m2026-09-05T05:23:09.133878Z[0m [31mERROR[0m [2msvipall_cdp::handler[0m[2m:[0m WS Connection error: Serde(Error("data did not match any variant of untagged enum Message", line: 0, column: 0))
+[2m2026-09-05T05:23:09.170245Z[0m [31mERROR[0m [2msvipall_cdp::conn[0m[2m:[0m Failed to deserialize WS response data did not match any variant of untagged enum Message
+[2m2026-09-05T05:23:09.170268Z[0m [31mERROR[0m [2msvipall_cdp::handler[0m[2m:[0m WS Connection error: Serde(Error("data did not match any variant of untagged enum Message", line: 0, column: 0))
+ok   brave_absent                 typeof navigator.brave=undefined
+ok   canvas_noise_stable          three draws agree, 858 chars
+ok   connection_coherent          effectiveType=4g rtt=50 downlink=10
+ok   cross_realm_tostring         the iframe realm reads the same accessors as native
+ok   device_pixel_ratio           devicePixelRatio=1 matchMedia agrees=true
+ok   dom_rect                     x=0 left=0 w=100.86245413793341 r-l=100.86245413793341 own=[]
+ok   focus_and_visibility         hasFocus=true visibilityState=visible hidden=false
+ok   getter_names                 deviceMemory:"get deviceMemory" hardwareConcurrency:"get hardwareConcurrency" languages:"get languages" plugins:"get plugins"
+ok   heap_limit_is_a_ceiling      4294967296 bytes (4096 MiB), stable=true
+ok   host_object_brands           plugins=[object PluginArray] plugin0=[object Plugin] mimeTypes=[object MimeTypeArray] connection=[object NetworkInformation] memory=[object MemoryInfo]
+ok   iframe_realm_agrees          agree on 11 values
+ok   input_modality               pointer:fine=true hover:hover=true any-pointer:coarse=false maxTouchPoints=0
+ok   languages_fresh              identical=false value=en-US,en
+ok   languages_shape              en-US,en
+ok   navigator_getters_are_native every accessor stringifies as native
+ok   navigator_webdriver          value=false in navigator=true descriptor="get webdriver"
+ok   no_duplicate_navigator_getters no name appears twice in the chain
+ok   patched_functions_are_native all 10 stringify as native
+ok   permission_state_is_valid    brand=[object PermissionStatus] state="prompt" Notification.permission=default
+ok   plugins_present              5 plugins, first=PDF Viewer
+ok   residue                      no named residue on window
+ok   runtime_domain_unobservable  not observable
+ok   screen_plausible             screen=1920x1080 avail=1920x1032 outer=1366x874
+ok   screen_position              screenX=60 screenY=40 screen=1920x1080
+ok   scrollbar_present            innerWidth-clientWidth=15
+ok   stack_has_no_injected_url    TypeError: Function.prototype.toString requires that 'this' be a Function
+ok   text_geometry_stable         100.86245413793341 then 100.86245413793341
+ok   touch_matches_identity       maxTouchPoints=0 ontouchstart=false
+ok   ua_string_self_agreement     appVersion=true vendor="Google Inc." appName="Netscape" product="Gecko" oscpu=undefined buildID=undefined platform="Win32"
+ok   user_agent_data_present      brands=Google Chrome:149,Not.A/Brand:8,Chromium:149 platform=Windows mobile=false ua major=149
+ok   window_chrome_height         outerHeight-innerHeight=106 (outer=874 inner=768)
+ok   worker_realm                 agree on deviceMemory, hardwareConcurrency, languages
+
+== Real ==
+[2m2026-09-05T05:23:10.122826Z[0m [31mERROR[0m [2msvipall_cdp::conn[0m[2m:[0m Failed to deserialize WS response data did not match any variant of untagged enum Message
+[2m2026-09-05T05:23:10.122869Z[0m [31mERROR[0m [2msvipall_cdp::handler[0m[2m:[0m WS Connection error: Serde(Error("data did not match any variant of untagged enum Message", line: 0, column: 0))
+[2m2026-09-05T05:23:10.154073Z[0m [31mERROR[0m [2msvipall_cdp::conn[0m[2m:[0m Failed to deserialize WS response data did not match any variant of untagged enum Message
+[2m2026-09-05T05:23:10.154097Z[0m [31mERROR[0m [2msvipall_cdp::handler[0m[2m:[0m WS Connection error: Serde(Error("data did not match any variant of untagged enum Message", line: 0, column: 0))
+[2m2026-09-05T05:23:10.170809Z[0m [31mERROR[0m [2msvipall_cdp::conn[0m[2m:[0m Failed to deserialize WS response data did not match any variant of untagged enum Message
+[2m2026-09-05T05:23:10.170852Z[0m [31mERROR[0m [2msvipall_cdp::handler[0m[2m:[0m WS Connection error: Serde(Error("data did not match any variant of untagged enum Message", line: 0, column: 0))
+[2m2026-09-05T05:23:10.181154Z[0m [31mERROR[0m [2msvipall_cdp::conn[0m[2m:[0m Failed to deserialize WS response data did not match any variant of untagged enum Message
+[2m2026-09-05T05:23:10.181186Z[0m [31mERROR[0m [2msvipall_cdp::handler[0m[2m:[0m WS Connection error: Serde(Error("data did not match any variant of untagged enum Message", line: 0, column: 0))
+[2m2026-09-05T05:23:10.182093Z[0m [31mERROR[0m [2msvipall_cdp::conn[0m[2m:[0m Failed to deserialize WS response data did not match any variant of untagged enum Message
+[2m2026-09-05T05:23:10.182110Z[0m [31mERROR[0m [2msvipall_cdp::handler[0m[2m:[0m WS Connection error: Serde(Error("data did not match any variant of untagged enum Message", line: 0, column: 0))
+[2m2026-09-05T05:23:10.184579Z[0m [31mERROR[0m [2msvipall_cdp::conn[0m[2m:[0m Failed to deserialize WS response data did not match any variant of untagged enum Message
+[2m2026-09-05T05:23:10.184602Z[0m [31mERROR[0m [2msvipall_cdp::handler[0m[2m:[0m WS Connection error: Serde(Error("data did not match any variant of untagged enum Message", line: 0, column: 0))
+[2m2026-09-05T05:23:10.204899Z[0m [31mERROR[0m [2msvipall_cdp::conn[0m[2m:[0m Failed to deserialize WS response data did not match any variant of untagged enum Message
+[2m2026-09-05T05:23:10.204928Z[0m [31mERROR[0m [2msvipall_cdp::handler[0m[2m:[0m WS Connection error: Serde(Error("data did not match any variant of untagged enum Message", line: 0, column: 0))
+[2m2026-09-05T05:23:10.210061Z[0m [31mERROR[0m [2msvipall_cdp::conn[0m[2m:[0m Failed to deserialize WS response data did not match any variant of untagged enum Message
+[2m2026-09-05T05:23:10.210091Z[0m [31mERROR[0m [2msvipall_cdp::handler[0m[2m:[0m WS Connection error: Serde(Error("data did not match any variant of untagged enum Message", line: 0, column: 0))
+[2m2026-09-05T05:23:10.212394Z[0m [31mERROR[0m [2msvipall_cdp::conn[0m[2m:[0m Failed to deserialize WS response data did not match any variant of untagged enum Message
+[2m2026-09-05T05:23:10.212414Z[0m [31mERROR[0m [2msvipall_cdp::handler[0m[2m:[0m WS Connection error: Serde(Error("data did not match any variant of untagged enum Message", line: 0, column: 0))
+[2m2026-09-05T05:23:10.717083Z[0m [31mERROR[0m [2msvipall_cdp::conn[0m[2m:[0m Failed to deserialize WS response data did not match any variant of untagged enum Message
+[2m2026-09-05T05:23:10.717109Z[0m [31mERROR[0m [2msvipall_cdp::handler[0m[2m:[0m WS Connection error: Serde(Error("data did not match any variant of untagged enum Message", line: 0, column: 0))
+ok   brave_absent                 typeof navigator.brave=undefined
+ok   canvas_noise_stable          three draws agree, 858 chars
+ok   connection_coherent          effectiveType=4g rtt=50 downlink=10
+ok   cross_realm_tostring         the iframe realm reads the same accessors as native
+ok   device_pixel_ratio           devicePixelRatio=1 matchMedia agrees=true
+ok   dom_rect                     x=0 left=0 w=100.86245413793341 r-l=100.86245413793341 own=[]
+ok   focus_and_visibility         hasFocus=true visibilityState=visible hidden=false
+ok   getter_names                 deviceMemory:"get deviceMemory" hardwareConcurrency:"get hardwareConcurrency" languages:"get languages" plugins:"get plugins"
+ok   heap_limit_is_a_ceiling      4294967296 bytes (4096 MiB), stable=true
+ok   host_object_brands           plugins=[object PluginArray] plugin0=[object Plugin] mimeTypes=[object MimeTypeArray] connection=[object NetworkInformation] memory=[object MemoryInfo]
+ok   iframe_realm_agrees          agree on 11 values
+ok   input_modality               pointer:fine=true hover:hover=true any-pointer:coarse=false maxTouchPoints=0
+ok   languages_fresh              identical=false value=en-US,en
+ok   languages_shape              en-US,en
+ok   navigator_getters_are_native every accessor stringifies as native
+ok   navigator_webdriver          value=false in navigator=true descriptor="get webdriver"
+ok   no_duplicate_navigator_getters no name appears twice in the chain
+ok   patched_functions_are_native all 10 stringify as native
+ok   permission_state_is_valid    brand=[object PermissionStatus] state="prompt" Notification.permission=default
+ok   plugins_present              5 plugins, first=PDF Viewer
+ok   residue                      no named residue on window
+ok   runtime_domain_unobservable  not observable
+ok   screen_plausible             screen=1920x1080 avail=1920x1032 outer=1366x874
+ok   screen_position              screenX=60 screenY=40 screen=1920x1080
+ok   scrollbar_present            innerWidth-clientWidth=15
+ok   stack_has_no_injected_url    TypeError: Function.prototype.toString requires that 'this' be a Function
+ok   text_geometry_stable         100.86245413793341 then 100.86245413793341
+ok   touch_matches_identity       maxTouchPoints=0 ontouchstart=false
+ok   ua_string_self_agreement     appVersion=true vendor="Google Inc." appName="Netscape" product="Gecko" oscpu=undefined buildID=undefined platform="Win32"
+ok   user_agent_data_present      brands=Google Chrome:149,Not.A/Brand:8,Chromium:149 platform=Windows mobile=false ua major=149
+ok   window_chrome_height         outerHeight-innerHeight=106 (outer=874 inner=768)
+ok   worker_realm                 agree on deviceMemory, hardwareConcurrency, languages
+
+== Warm ==
+[2m2026-09-05T05:23:11.673272Z[0m [31mERROR[0m [2msvipall_cdp::conn[0m[2m:[0m Failed to deserialize WS response data did not match any variant of untagged enum Message
+[2m2026-09-05T05:23:11.673315Z[0m [31mERROR[0m [2msvipall_cdp::handler[0m[2m:[0m WS Connection error: Serde(Error("data did not match any variant of untagged enum Message", line: 0, column: 0))
+[2m2026-09-05T05:23:11.702875Z[0m [31mERROR[0m [2msvipall_cdp::conn[0m[2m:[0m Failed to deserialize WS response data did not match any variant of untagged enum Message
+[2m2026-09-05T05:23:11.702907Z[0m [31mERROR[0m [2msvipall_cdp::handler[0m[2m:[0m WS Connection error: Serde(Error("data did not match any variant of untagged enum Message", line: 0, column: 0))
+[2m2026-09-05T05:23:11.719655Z[0m [31mERROR[0m [2msvipall_cdp::conn[0m[2m:[0m Failed to deserialize WS response data did not match any variant of untagged enum Message
+[2m2026-09-05T05:23:11.719694Z[0m [31mERROR[0m [2msvipall_cdp::handler[0m[2m:[0m WS Connection error: Serde(Error("data did not match any variant of untagged enum Message", line: 0, column: 0))
+[2m2026-09-05T05:23:11.731249Z[0m [31mERROR[0m [2msvipall_cdp::conn[0m[2m:[0m Failed to deserialize WS response data did not match any variant of untagged enum Message
+[2m2026-09-05T05:23:11.731278Z[0m [31mERROR[0m [2msvipall_cdp::handler[0m[2m:[0m WS Connection error: Serde(Error("data did not match any variant of untagged enum Message", line: 0, column: 0))
+[2m2026-09-05T05:23:11.732289Z[0m [31mERROR[0m [2msvipall_cdp::conn[0m[2m:[0m Failed to deserialize WS response data did not match any variant of untagged enum Message
+[2m2026-09-05T05:23:11.732313Z[0m [31mERROR[0m [2msvipall_cdp::handler[0m[2m:[0m WS Connection error: Serde(Error("data did not match any variant of untagged enum Message", line: 0, column: 0))
+[2m2026-09-05T05:23:11.739161Z[0m [31mERROR[0m [2msvipall_cdp::conn[0m[2m:[0m Failed to deserialize WS response data did not match any variant of untagged enum Message
+[2m2026-09-05T05:23:11.739191Z[0m [31mERROR[0m [2msvipall_cdp::handler[0m[2m:[0m WS Connection error: Serde(Error("data did not match any variant of untagged enum Message", line: 0, column: 0))
+[2m2026-09-05T05:23:11.758121Z[0m [31mERROR[0m [2msvipall_cdp::conn[0m[2m:[0m Failed to deserialize WS response data did not match any variant of untagged enum Message
+[2m2026-09-05T05:23:11.758156Z[0m [31mERROR[0m [2msvipall_cdp::handler[0m[2m:[0m WS Connection error: Serde(Error("data did not match any variant of untagged enum Message", line: 0, column: 0))
+[2m2026-09-05T05:23:11.763943Z[0m [31mERROR[0m [2msvipall_cdp::conn[0m[2m:[0m Failed to deserialize WS response data did not match any variant of untagged enum Message
+[2m2026-09-05T05:23:11.763977Z[0m [31mERROR[0m [2msvipall_cdp::handler[0m[2m:[0m WS Connection error: Serde(Error("data did not match any variant of untagged enum Message", line: 0, column: 0))
+[2m2026-09-05T05:23:11.765827Z[0m [31mERROR[0m [2msvipall_cdp::conn[0m[2m:[0m Failed to deserialize WS response data did not match any variant of untagged enum Message
+[2m2026-09-05T05:23:11.765850Z[0m [31mERROR[0m [2msvipall_cdp::handler[0m[2m:[0m WS Connection error: Serde(Error("data did not match any variant of untagged enum Message", line: 0, column: 0))
+[2m2026-09-05T05:23:12.267823Z[0m [31mERROR[0m [2msvipall_cdp::conn[0m[2m:[0m Failed to deserialize WS response data did not match any variant of untagged enum Message
+[2m2026-09-05T05:23:12.267849Z[0m [31mERROR[0m [2msvipall_cdp::handler[0m[2m:[0m WS Connection error: Serde(Error("data did not match any variant of untagged enum Message", line: 0, column: 0))
+ok   brave_absent                 typeof navigator.brave=undefined
+ok   canvas_noise_stable          three draws agree, 858 chars
+ok   connection_coherent          effectiveType=4g rtt=50 downlink=10
+ok   cross_realm_tostring         the iframe realm reads the same accessors as native
+ok   device_pixel_ratio           devicePixelRatio=1 matchMedia agrees=true
+ok   dom_rect                     x=0 left=0 w=100.86245413793341 r-l=100.86245413793341 own=[]
+ok   focus_and_visibility         hasFocus=true visibilityState=visible hidden=false
+ok   getter_names                 deviceMemory:"get deviceMemory" hardwareConcurrency:"get hardwareConcurrency" languages:"get languages" plugins:"get plugins"
+ok   heap_limit_is_a_ceiling      4294967296 bytes (4096 MiB), stable=true
+ok   host_object_brands           plugins=[object PluginArray] plugin0=[object Plugin] mimeTypes=[object MimeTypeArray] connection=[object NetworkInformation] memory=[object MemoryInfo]
+ok   iframe_realm_agrees          agree on 11 values
+ok   input_modality               pointer:fine=true hover:hover=true any-pointer:coarse=false maxTouchPoints=0
+ok   languages_fresh              identical=false value=en-US,en
+ok   languages_shape              en-US,en
+ok   navigator_getters_are_native every accessor stringifies as native
+ok   navigator_webdriver          value=false in navigator=true descriptor="get webdriver"
+ok   no_duplicate_navigator_getters no name appears twice in the chain
+ok   patched_functions_are_native all 10 stringify as native
+ok   permission_state_is_valid    brand=[object PermissionStatus] state="prompt" Notification.permission=default
+ok   plugins_present              5 plugins, first=PDF Viewer
+ok   residue                      no named residue on window
+ok   runtime_domain_unobservable  not observable
+ok   screen_plausible             screen=1920x1080 avail=1920x1032 outer=1366x874
+ok   screen_position              screenX=60 screenY=40 screen=1920x1080
+ok   scrollbar_present            innerWidth-clientWidth=15
+ok   stack_has_no_injected_url    TypeError: Function.prototype.toString requires that 'this' be a Function
+ok   text_geometry_stable         100.86245413793341 then 100.86245413793341
+ok   touch_matches_identity       maxTouchPoints=0 ontouchstart=false
+ok   ua_string_self_agreement     appVersion=true vendor="Google Inc." appName="Netscape" product="Gecko" oscpu=undefined buildID=undefined platform="Win32"
+ok   user_agent_data_present      brands=Google Chrome:149,Not.A/Brand:8,Chromium:149 platform=Windows mobile=false ua major=149
+ok   window_chrome_height         outerHeight-innerHeight=106 (outer=874 inner=768)
+ok   worker_realm                 agree on deviceMemory, hardwareConcurrency, languages
+
+== Browser (reused) ==
+[2m2026-09-05T05:23:13.022468Z[0m [31mERROR[0m [2msvipall_cdp::conn[0m[2m:[0m Failed to deserialize WS response data did not match any variant of untagged enum Message
+[2m2026-09-05T05:23:13.022506Z[0m [31mERROR[0m [2msvipall_cdp::handler[0m[2m:[0m WS Connection error: Serde(Error("data did not match any variant of untagged enum Message", line: 0, column: 0))
+[2m2026-09-05T05:23:13.101967Z[0m [31mERROR[0m [2msvipall_cdp::conn[0m[2m:[0m Failed to deserialize WS response data did not match any variant of untagged enum Message
+[2m2026-09-05T05:23:13.102003Z[0m [31mERROR[0m [2msvipall_cdp::handler[0m[2m:[0m WS Connection error: Serde(Error("data did not match any variant of untagged enum Message", line: 0, column: 0))
+[2m2026-09-05T05:23:13.113476Z[0m [31mERROR[0m [2msvipall_cdp::conn[0m[2m:[0m Failed to deserialize WS response data did not match any variant of untagged enum Message
+[2m2026-09-05T05:23:13.113501Z[0m [31mERROR[0m [2msvipall_cdp::handler[0m[2m:[0m WS Connection error: Serde(Error("data did not match any variant of untagged enum Message", line: 0, column: 0))
+[2m2026-09-05T05:23:13.114334Z[0m [31mERROR[0m [2msvipall_cdp::conn[0m[2m:[0m Failed to deserialize WS response data did not match any variant of untagged enum Message
+[2m2026-09-05T05:23:13.114349Z[0m [31mERROR[0m [2msvipall_cdp::handler[0m[2m:[0m WS Connection error: Serde(Error("data did not match any variant of untagged enum Message", line: 0, column: 0))
+[2m2026-09-05T05:23:13.132278Z[0m [31mERROR[0m [2msvipall_cdp::conn[0m[2m:[0m Failed to deserialize WS response data did not match any variant of untagged enum Message
+[2m2026-09-05T05:23:13.132313Z[0m [31mERROR[0m [2msvipall_cdp::handler[0m[2m:[0m WS Connection error: Serde(Error("data did not match any variant of untagged enum Message", line: 0, column: 0))
+[2m2026-09-05T05:23:13.137098Z[0m [31mERROR[0m [2msvipall_cdp::conn[0m[2m:[0m Failed to deserialize WS response data did not match any variant of untagged enum Message
+[2m2026-09-05T05:23:13.137131Z[0m [31mERROR[0m [2msvipall_cdp::handler[0m[2m:[0m WS Connection error: Serde(Error("data did not match any variant of untagged enum Message", line: 0, column: 0))
+[2m2026-09-05T05:23:13.139127Z[0m [31mERROR[0m [2msvipall_cdp::conn[0m[2m:[0m Failed to deserialize WS response data did not match any variant of untagged enum Message
+[2m2026-09-05T05:23:13.139150Z[0m [31mERROR[0m [2msvipall_cdp::handler[0m[2m:[0m WS Connection error: Serde(Error("data did not match any variant of untagged enum Message", line: 0, column: 0))
+[2m2026-09-05T05:23:13.645261Z[0m [31mERROR[0m [2msvipall_cdp::conn[0m[2m:[0m Failed to deserialize WS response data did not match any variant of untagged enum Message
+[2m2026-09-05T05:23:13.645333Z[0m [31mERROR[0m [2msvipall_cdp::handler[0m[2m:[0m WS Connection error: Serde(Error("data did not match any variant of untagged enum Message", line: 0, column: 0))
+[2m2026-09-05T05:23:14.345142Z[0m [31mERROR[0m [2msvipall_cdp::conn[0m[2m:[0m Failed to deserialize WS response data did not match any variant of untagged enum Message
+[2m2026-09-05T05:23:14.345175Z[0m [31mERROR[0m [2msvipall_cdp::handler[0m[2m:[0m WS Connection error: Serde(Error("data did not match any variant of untagged enum Message", line: 0, column: 0))
+[2m2026-09-05T05:23:14.352787Z[0m [31mERROR[0m [2msvipall_cdp::conn[0m[2m:[0m Failed to deserialize WS response data did not match any variant of untagged enum Message
+[2m2026-09-05T05:23:14.352825Z[0m [31mERROR[0m [2msvipall_cdp::handler[0m[2m:[0m WS Connection error: Serde(Error("data did not match any variant of untagged enum Message", line: 0, column: 0))
+[2m2026-09-05T05:23:14.358451Z[0m [31mERROR[0m [2msvipall_cdp::conn[0m[2m:[0m Failed to deserialize WS response data did not match any variant of untagged enum Message
+[2m2026-09-05T05:23:14.358477Z[0m [31mERROR[0m [2msvipall_cdp::handler[0m[2m:[0m WS Connection error: Serde(Error("data did not match any variant of untagged enum Message", line: 0, column: 0))
+[2m2026-09-05T05:23:14.358495Z[0m [31mERROR[0m [2msvipall_cdp::conn[0m[2m:[0m Failed to deserialize WS response data did not match any variant of untagged enum Message
+[2m2026-09-05T05:23:14.358501Z[0m [31mERROR[0m [2msvipall_cdp::handler[0m[2m:[0m WS Connection error: Serde(Error("data did not match any variant of untagged enum Message", line: 0, column: 0))
+[2m2026-09-05T05:23:14.367602Z[0m [31mERROR[0m [2msvipall_cdp::conn[0m[2m:[0m Failed to deserialize WS response data did not match any variant of untagged enum Message
+[2m2026-09-05T05:23:14.367635Z[0m [31mERROR[0m [2msvipall_cdp::handler[0m[2m:[0m WS Connection error: Serde(Error("data did not match any variant of untagged enum Message", line: 0, column: 0))
+[2m2026-09-05T05:23:14.372276Z[0m [31mERROR[0m [2msvipall_cdp::conn[0m[2m:[0m Failed to deserialize WS response data did not match any variant of untagged enum Message
+[2m2026-09-05T05:23:14.372312Z[0m [31mERROR[0m [2msvipall_cdp::handler[0m[2m:[0m WS Connection error: Serde(Error("data did not match any variant of untagged enum Message", line: 0, column: 0))
+[2m2026-09-05T05:23:14.374394Z[0m [31mERROR[0m [2msvipall_cdp::conn[0m[2m:[0m Failed to deserialize WS response data did not match any variant of untagged enum Message
+[2m2026-09-05T05:23:14.374415Z[0m [31mERROR[0m [2msvipall_cdp::handler[0m[2m:[0m WS Connection error: Serde(Error("data did not match any variant of untagged enum Message", line: 0, column: 0))
+[2m2026-09-05T05:23:14.883713Z[0m [31mERROR[0m [2msvipall_cdp::conn[0m[2m:[0m Failed to deserialize WS response data did not match any variant of untagged enum Message
+[2m2026-09-05T05:23:14.883738Z[0m [31mERROR[0m [2msvipall_cdp::handler[0m[2m:[0m WS Connection error: Serde(Error("data did not match any variant of untagged enum Message", line: 0, column: 0))
+ok   brave_absent                 typeof navigator.brave=undefined
+ok   canvas_noise_stable          three draws agree, 858 chars
+ok   connection_coherent          effectiveType=4g rtt=0 downlink=1.6
+ok   cross_realm_tostring         the iframe realm reads the same accessors as native
+ok   device_pixel_ratio           devicePixelRatio=1 matchMedia agrees=true
+ok   dom_rect                     x=0 left=0 w=100.859375 r-l=100.859375 own=[]
+ok   focus_and_visibility         hasFocus=true visibilityState=visible hidden=false
+ok   getter_names                 deviceMemory:"get deviceMemory" hardwareConcurrency:"get hardwareConcurrency" languages:"get languages" plugins:"get plugins"
+ok   heap_limit_is_a_ceiling      4395630592 bytes (4192 MiB), stable=true
+ok   host_object_brands           plugins=[object PluginArray] plugin0=[object Plugin] mimeTypes=[object MimeTypeArray] connection=[object NetworkInformation] memory=[object MemoryInfo]
+ok   iframe_realm_agrees          agree on 11 values
+ok   input_modality               pointer:fine=true hover:hover=true any-pointer:coarse=false maxTouchPoints=0
+ok   languages_fresh              identical=false value=en-US,en
+ok   languages_shape              en-US,en
+ok   navigator_getters_are_native every accessor stringifies as native
+ok   navigator_webdriver          value=false in navigator=true descriptor="get webdriver"
+ok   no_duplicate_navigator_getters no name appears twice in the chain
+ok   patched_functions_are_native all 10 stringify as native
+ok   permission_state_is_valid    brand=[object PermissionStatus] state="prompt" Notification.permission=default
+ok   plugins_present              5 plugins, first=PDF Viewer
+ok   residue                      no named residue on window
+ok   runtime_domain_unobservable  not observable
+ok   screen_plausible             screen=1920x1080 avail=1920x1032 outer=1366x874
+ok   screen_position              screenX=60 screenY=40 screen=1920x1080
+ok   scrollbar_present            innerWidth-clientWidth=15
+ok   stack_has_no_injected_url    TypeError: Function.prototype.toString requires that 'this' be a Function
+ok   text_geometry_stable         100.859375 then 100.859375
+ok   touch_matches_identity       maxTouchPoints=0 ontouchstart=false
+ok   ua_string_self_agreement     appVersion=true vendor="Google Inc." appName="Netscape" product="Gecko" oscpu=undefined buildID=undefined platform="Win32"
+ok   user_agent_data_present      brands=Google Chrome:149,Not.A/Brand:8,Chromium:149 platform=Windows mobile=false ua major=149
+ok   window_chrome_height         outerHeight-innerHeight=106 (outer=874 inner=768)
+ok   worker_realm                 agree on deviceMemory, hardwareConcurrency, languages
+
+160/160 probes clean
+
+tells finished in 9.0s
