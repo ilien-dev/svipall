@@ -35,7 +35,8 @@ A JSON object means yes — go to [step 4](#4-check-the-installation). `command 
 
 ## 2. Pick a channel
 
-Prefer a package manager the user already has: it is also what upgrades Svipall later.
+Two ways in, plus a container. The package managers are not published yet; the note under the
+table says which and why.
 
 | Situation | Command |
 |---|---|
@@ -43,7 +44,7 @@ Prefer a package manager the user already has: it is also what upgrades Svipall 
 | Windows | `irm https://raw.githubusercontent.com/ilien-dev/svipall/main/install.ps1 \| iex` |
 | Debian / Ubuntu | download `svipall_<version>_amd64.deb` from the release, then `sudo dpkg -i` it |
 | Fedora / RHEL | download `svipall-<version>.x86_64.rpm` from the release, then `sudo rpm -i` it |
-| Prefers containers | `docker pull ghcr.io/ilien-dev/svipall:latest` |
+| Prefers containers | `docker pull ghcr.io/ilien-dev/svipall:latest`, or the version tag while the newest release is a pre-release |
 
 **Homebrew, Scoop, winget, the AUR and npm are not published yet.** Their manifests exist and are
 rendered from each release by `scripts/render-packaging.sh`, but each needs a one-time step outside
