@@ -23,17 +23,16 @@ svipall --version
 ## 2. Install the binary
 
 Work out the platform (`uname -s`/`uname -m`, or `$env:OS` on Windows), then show the user the
-matching command from this table and ask before running it. Prefer a package manager they already
-have — it is the one that will also upgrade Svipall later.
+matching command from this table and ask before running it.
 
 | Platform | Command |
 |---|---|
-| macOS / Linux, Homebrew present | `brew install ilien-dev/svipall/svipall` |
-| macOS / Linux, otherwise | `curl -fsSL https://raw.githubusercontent.com/ilien-dev/svipall/main/install.sh \| sh` |
-| Windows, Scoop present | `scoop bucket add svipall https://github.com/ilien-dev/scoop-svipall; scoop install svipall` |
-| Windows, winget present | `winget install ilien-dev.svipall` |
-| Windows, otherwise | `irm https://raw.githubusercontent.com/ilien-dev/svipall/main/install.ps1 \| iex` |
+| macOS / Linux | `curl -fsSL https://raw.githubusercontent.com/ilien-dev/svipall/main/install.sh \| sh` |
+| Windows | `irm https://raw.githubusercontent.com/ilien-dev/svipall/main/install.ps1 \| iex` |
 | Any, prefers a container | `docker pull ghcr.io/ilien-dev/svipall:latest` |
+
+Homebrew, Scoop, winget, the AUR and npm are **not published yet**, so never suggest them: the user
+gets `No package found matching input criteria` and concludes the tool is broken.
 
 After a script install, `svipall --version` may still fail in **this** shell because PATH was
 changed for new shells only. Try the absolute path the installer printed (`~/.local/bin/svipall`,
