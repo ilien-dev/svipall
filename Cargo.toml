@@ -38,7 +38,18 @@ serde_json = "1.0"
 anyhow = "1.0"
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
-reqwest = { version = "0.12", features = ["json", "rustls-tls", "cookies"] }
+# `default-features = false` drops `default-tls`, which is `native-tls` -> `openssl-sys`:
+# its `-lssl -lcrypto` resolve to BoringSSL's archives and the link fails on missing
+# OpenSSL 3 symbols (crates/svipall-http/tests/tls_stack.rs). The defaults worth keeping are
+# named back explicitly.
+reqwest = { version = "0.12", default-features = false, features = [
+    "json",
+    "rustls-tls",
+    "cookies",
+    "charset",
+    "http2",
+    "macos-system-configuration",
+] }
 # The CDP client is vendored: see crates/svipall-cdp/PATCHES.md for what was changed and why.
 svipall-cdp = { path = "crates/svipall-cdp" }
 # The extraction engine, split out under MIT OR Apache-2.0 so it can be depended on outside this
