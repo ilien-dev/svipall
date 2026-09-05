@@ -322,11 +322,15 @@ jobs:
           generate_release_notes: true
           prerelease: ${{ needs.version.outputs.prerelease == 'true' }}
 
+  # One architecture per runner, each on its own hardware. The previous shape asked one amd64
+  # runner to build arm64 through QEMU, and a Rust build with BoringSSL and fat LTO under emulation
+  # ran past thirty minutes without finishing while the native amd64 half took eight. Each job here
+  # pushes an untagged image by digest; `image-manifest` below is what turns the digests into a tag.
   image:
-    name: container image (${{ matrix.flavor }})
+    name: image ${{ matrix.flavor }} ${{ matrix.arch }}
     needs: [version, build]
     if: startsWith(github.ref, 'refs/tags/v')
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.os }}
     permissions:
       contents: read
       packages: write
@@ -338,39 +342,87 @@ jobs:
           # linux-arm64 build. An arm64 "full" image would be a full image with no browser in it,
           # so it is not built; arm64 users get `slim`, which is honest about being http-only.
           - flavor: full
-            platforms: linux/amd64
-            suffix: ""
-            moving: latest
+            arch: amd64
+            os: ubuntu-22.04
           - flavor: slim
-            platforms: linux/amd64,linux/arm64
-            suffix: "-slim"
-            moving: slim
+            arch: amd64
+            os: ubuntu-22.04
+          - flavor: slim
+            arch: arm64
+            os: ubuntu-22.04-arm
     steps:
       - uses: actions/checkout@v4
-      # A moving tag is a promise that whoever pulls it gets the release. A pre-release is by
-      # definition not that, so it publishes its own version tag and leaves `latest` and `slim`
-      # pointing wherever they already pointed.
-      - id: tags
-        shell: bash
-        run: |
-          repo="ghcr.io/${{ github.repository }}"
-          tags="$repo:${{ needs.version.outputs.version }}${{ matrix.suffix }}"
-          if [ "${{ needs.version.outputs.prerelease }}" != "true" ]; then
-            tags="$tags,$repo:${{ matrix.moving }}"
-          fi
-          echo "tags=$tags" >> "$GITHUB_OUTPUT"
-          echo "$tags"
-      - uses: docker/setup-qemu-action@v3
       - uses: docker/setup-buildx-action@v3
       - uses: docker/login-action@v3
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
-      - uses: docker/build-push-action@v6
+      - id: build
+        uses: docker/build-push-action@v6
         with:
           context: .
-          push: true
-          platforms: ${{ matrix.platforms }}
+          platforms: linux/${{ matrix.arch }}
           build-args: FLAVOR=${{ matrix.flavor }}
-          tags: ${{ steps.tags.outputs.tags }}
+          outputs: type=image,name=ghcr.io/${{ github.repository }},push-by-digest=true,name-canonical=true,push=true
+      - name: Export digest
+        shell: bash
+        run: |
+          mkdir -p /tmp/digests
+          echo "${{ steps.build.outputs.digest }}" > "/tmp/digests/${{ matrix.arch }}"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: digest-${{ matrix.flavor }}-${{ matrix.arch }}
+          path: /tmp/digests/*
+          if-no-files-found: error
+
+  # The tags, made from whatever architectures that flavour produced.
+  image-manifest:
+    name: image manifest (${{ matrix.flavor }})
+    needs: [version, image]
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - flavor: full
+            suffix: ""
+            moving: latest
+          - flavor: slim
+            suffix: "-slim"
+            moving: slim
+    steps:
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: digest-${{ matrix.flavor }}-*
+          path: /tmp/digests
+          merge-multiple: true
+      # A moving tag is a promise that whoever pulls it gets the release. A pre-release is by
+      # definition not that, so it publishes its own version tag and leaves `latest` and `slim`
+      # pointing wherever they already pointed.
+      - name: Create the manifest
+        shell: bash
+        run: |
+          repo="ghcr.io/${{ github.repository }}"
+          tags="-t $repo:${{ needs.version.outputs.version }}${{ matrix.suffix }}"
+          if [ "${{ needs.version.outputs.prerelease }}" != "true" ]; then
+            tags="$tags -t $repo:${{ matrix.moving }}"
+          fi
+          refs=""
+          for f in /tmp/digests/*; do
+            refs="$refs $repo@$(cat "$f")"
+          done
+          [ -n "$refs" ] || { echo "no digests for ${{ matrix.flavor }}" >&2; exit 1; }
+          echo "creating$tags from$refs"
+          docker buildx imagetools create $tags $refs
+          docker buildx imagetools inspect "$repo:${{ needs.version.outputs.version }}${{ matrix.suffix }}"
