@@ -1,0 +1,28 @@
+# yaml-language-server: $schema=https://aka.ms/winget-manifest.defaultLocale.1.6.0.schema.json
+PackageIdentifier: ilien-dev.svipall
+PackageVersion: "@VERSION@"
+PackageLocale: en-US
+Publisher: ilien
+PublisherUrl: https://github.com/ilien-dev
+PackageName: Svipall
+PackageUrl: https://github.com/ilien-dev/svipall
+License: AGPL-3.0-only
+LicenseUrl: https://github.com/ilien-dev/svipall/blob/main/LICENSE
+ShortDescription: Local-first web scraping and captcha MCP server for AI agents
+Description: |-
+  Svipall turns any web page into LLM-ready Markdown, crawls whole sites, searches without an
+  API key, and answers the captchas it can - all on this machine. No cloud, no API keys, no
+  paid solving service, no telemetry.
+
+  After installing, run `svipall doctor` to see what this installation can do, and
+  `svipall browser install` if it reports that no browser was found.
+Tags:
+  - scraping
+  - crawler
+  - captcha
+  - mcp
+  - ai
+  - agent
+ReleaseNotesUrl: https://github.com/ilien-dev/svipall/releases/tag/v@VERSION@
+ManifestType: defaultLocale
+ManifestVersion: 1.6.0

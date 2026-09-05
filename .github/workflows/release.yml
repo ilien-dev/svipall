@@ -9,8 +9,45 @@ env:
   CARGO_TERM_COLOR: always
 
 jobs:
+  # One version, asserted in one place. Four files claim it — the crate, the plugin manifest, the
+  # npm wrapper and the tag — and each one is a different way to be wrong: Claude Code silently
+  # keeps a cached plugin when `plugin.json` repeats a version it has already seen, and the npm
+  # postinstall builds its download URL from its own version, so a package one behind fetches an
+  # archive that does not exist.
+  version:
+    name: version
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.v.outputs.version }}
+      prerelease: ${{ steps.v.outputs.prerelease }}
+    steps:
+      - uses: actions/checkout@v4
+      - id: v
+        shell: bash
+        run: |
+          crate=$(grep -m1 '^version' crates/svipall-mcp/Cargo.toml | cut -d'"' -f2)
+          plugin=$(python3 -c "import json;print(json.load(open('plugins/svipall/.claude-plugin/plugin.json'))['version'])")
+          npm=$(python3 -c "import json;print(json.load(open('packaging/npm/package.json'))['version'])")
+          for pair in "plugin.json:$plugin" "npm/package.json:$npm"; do
+            if [ "${pair#*:}" != "$crate" ]; then
+              echo "the crate says $crate, ${pair%%:*} says ${pair#*:}" >&2
+              exit 1
+            fi
+          done
+          if [ "${GITHUB_REF_TYPE}" = "tag" ] && [ "${GITHUB_REF_NAME#v}" != "$crate" ]; then
+            echo "tag ${GITHUB_REF_NAME} does not match version $crate" >&2
+            exit 1
+          fi
+          # A semver pre-release is anything with a hyphen. It decides two things: GitHub marks the
+          # release as a pre-release, and the moving container tags stay where they are.
+          case "$crate" in *-*) pre=true ;; *) pre=false ;; esac
+          echo "version=$crate" >> "$GITHUB_OUTPUT"
+          echo "prerelease=$pre" >> "$GITHUB_OUTPUT"
+          echo "version $crate, prerelease $pre"
+
   build:
     name: ${{ matrix.target }}
+    needs: version
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
@@ -84,56 +121,196 @@ jobs:
           cargo build --profile dist --target ${{ matrix.target }} --bin svipall-mcp --bin svipall \
             --features onnx-ocr,onnx-grid,onnx-audio,onnx-detect,onnx-segment,onnx-zeroshot
 
-      # Both binaries: the MCP server and the CLI the skill documents. Shipping only the server
-      # left `svipall fetch` a build-from-source feature.
-      - name: Package
+      # Ad-hoc, because notarisation needs an Apple Developer ID this project does not have. It
+      # stops the "damaged and can't be opened" dialog for a binary copied between machines; a
+      # download through a browser still carries the quarantine flag, which docs/install.md says
+      # how to clear. Claiming more than that would be a lie a user finds out about alone.
+      - name: Ad-hoc codesign (macOS)
+        if: runner.os == 'macOS'
+        shell: bash
+        env:
+          CARGO_TARGET_DIR: ./t
+        run: |
+          codesign --force --sign - "$CARGO_TARGET_DIR/${{ matrix.target }}/dist/svipall"
+          codesign --force --sign - "$CARGO_TARGET_DIR/${{ matrix.target }}/dist/svipall-mcp"
+
+      # The binary that is about to be published, asked what it is. A cross-built artefact cannot
+      # run here, so this is the four native targets telling us the build is not, for instance,
+      # missing its models — which is exactly the failure the container image used to ship.
+      - name: Smoke test
+        if: matrix.target != 'x86_64-apple-darwin'
         shell: bash
         env:
           CARGO_TARGET_DIR: ${{ runner.os == 'Windows' && 'C:\t' || './t' }}
         run: |
+          bin="$CARGO_TARGET_DIR/${{ matrix.target }}/dist/svipall${{ matrix.ext }}"
+          "$bin" --version
+          "$bin" --version | grep -q '"target": "${{ matrix.target }}"'
+          # No browser on a CI runner, so `doctor` reports problems and that is correct. What must
+          # hold is that the models made it in.
+          "$bin" doctor | tee doctor.json
+          grep -q '"detect"' doctor.json
+          grep -q '"segment"' doctor.json
+
+      # Both binaries: the MCP server and the CLI the skill documents. Shipping only the server
+      # left `svipall fetch` a build-from-source feature.
+      #
+      # `.zip` on Windows and `.tar.gz` everywhere else. Not cosmetic: winget will not take a
+      # `.tar.gz`, Scoop will not either, and Windows Explorer opens one only with help.
+      - name: Package
+        shell: bash
+        env:
+          CARGO_TARGET_DIR: ${{ runner.os == 'Windows' && 'C:\t' || './t' }}
+          VERSION: ${{ needs.version.outputs.version }}
+        run: |
           mkdir -p out
           cp "$CARGO_TARGET_DIR/${{ matrix.target }}/dist/svipall-mcp${{ matrix.ext }}" out/
           cp "$CARGO_TARGET_DIR/${{ matrix.target }}/dist/svipall${{ matrix.ext }}" out/
-          cp README.md skill/SKILL.md out/
-          cd out && tar -czf "svipall-${{ matrix.target }}.tar.gz" svipall-mcp${{ matrix.ext }} svipall${{ matrix.ext }} README.md SKILL.md
+          cp README.md LICENSE skill/SKILL.md out/
+          cd out
+          name="svipall-$VERSION-${{ matrix.target }}"
+          files="svipall-mcp${{ matrix.ext }} svipall${{ matrix.ext }} README.md LICENSE SKILL.md"
+          if [ "${{ runner.os }}" = "Windows" ]; then
+            7z a -tzip "$name.zip" $files
+          else
+            tar -czf "$name.tar.gz" $files
+          fi
+          ls -la
 
       - uses: actions/upload-artifact@v4
         with:
           name: svipall-${{ matrix.target }}
-          path: out/svipall-${{ matrix.target }}.tar.gz
+          path: |
+            out/*.tar.gz
+            out/*.zip
+          if-no-files-found: error
+
+  # The manifests and the native Linux packages, from the artefacts the build job just produced.
+  # Nothing is recompiled: a package manager that ships a different build from the tarball is a
+  # second product to support.
+  packages:
+    name: packages
+    needs: [version, build]
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+          merge-multiple: true
+      - name: Checksums
+        working-directory: artifacts
+        run: sha256sum svipall-*.tar.gz svipall-*.zip > sha256sums.txt
+
+      - name: Render package manifests
+        env:
+          VERSION: ${{ needs.version.outputs.version }}
+        run: bash scripts/render-packaging.sh "$VERSION" artifacts/sha256sums.txt packaging/dist
+
+      # amd64 only, and said out loud rather than left to be discovered: arm64 users get the
+      # tarball and install.sh, which is what they were going to use anyway.
+      - name: Build .deb and .rpm (amd64)
+        env:
+          VERSION: ${{ needs.version.outputs.version }}
+        run: |
+          cargo install cargo-deb --locked
+          cargo install cargo-generate-rpm --locked
+          mkdir -p packaging/staging
+          tar -xzf "artifacts/svipall-$VERSION-x86_64-unknown-linux-gnu.tar.gz" -C packaging/staging
+          cargo deb -p svipall-mcp --no-build --no-strip --output packaging/dist/
+          cargo generate-rpm -p crates/svipall-mcp --output packaging/dist/
+
+      - name: Bundle the manifests
+        run: cd packaging && tar -czf ../packaging-manifests.tar.gz dist
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: packages
+          path: |
+            packaging-manifests.tar.gz
+            packaging/dist/*.deb
+            packaging/dist/*.rpm
           if-no-files-found: error
 
   publish:
     name: publish
-    needs: build
+    needs: [version, build, packages]
     if: startsWith(github.ref, 'refs/tags/v')
     runs-on: ubuntu-latest
     permissions:
       contents: write
+      id-token: write
+      attestations: write
     steps:
       - uses: actions/download-artifact@v4
         with:
           path: artifacts
           merge-multiple: true
       - name: Checksums
-        run: cd artifacts && sha256sum *.tar.gz > sha256sums.txt && cat sha256sums.txt
+        run: cd artifacts && sha256sum svipall-*.tar.gz svipall-*.zip > sha256sums.txt && cat sha256sums.txt
+      - uses: actions/download-artifact@v4
+        with:
+          name: packages
+          path: packages
+      # Nothing here is notarised or Authenticode-signed, so this is what a careful user actually
+      # has: a signed statement, verifiable with `gh attestation verify`, that GitHub built these
+      # files from this commit of this repository.
+      - uses: actions/attest-build-provenance@v2
+        with:
+          subject-path: "artifacts/svipall-*"
       - uses: softprops/action-gh-release@v2
         with:
           files: |
-            artifacts/*.tar.gz
+            artifacts/svipall-*.tar.gz
+            artifacts/svipall-*.zip
             artifacts/sha256sums.txt
+            packages/packaging-manifests.tar.gz
+            packages/packaging/dist/*.deb
+            packages/packaging/dist/*.rpm
           generate_release_notes: true
+          prerelease: ${{ needs.version.outputs.prerelease == 'true' }}
 
   image:
-    name: container image
-    needs: build
+    name: container image (${{ matrix.flavor }})
+    needs: [version, build]
     if: startsWith(github.ref, 'refs/tags/v')
     runs-on: ubuntu-latest
     permissions:
       contents: read
       packages: write
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # The browser is what makes the tier ladder work, and Chrome for Testing publishes no
+          # linux-arm64 build. An arm64 "full" image would be a full image with no browser in it,
+          # so it is not built; arm64 users get `slim`, which is honest about being http-only.
+          - flavor: full
+            platforms: linux/amd64
+            suffix: ""
+            moving: latest
+          - flavor: slim
+            platforms: linux/amd64,linux/arm64
+            suffix: "-slim"
+            moving: slim
     steps:
       - uses: actions/checkout@v4
+      # A moving tag is a promise that whoever pulls it gets the release. A pre-release is by
+      # definition not that, so it publishes its own version tag and leaves `latest` and `slim`
+      # pointing wherever they already pointed.
+      - id: tags
+        shell: bash
+        run: |
+          repo="ghcr.io/${{ github.repository }}"
+          tags="$repo:${{ needs.version.outputs.version }}${{ matrix.suffix }}"
+          if [ "${{ needs.version.outputs.prerelease }}" != "true" ]; then
+            tags="$tags,$repo:${{ matrix.moving }}"
+          fi
+          echo "tags=$tags" >> "$GITHUB_OUTPUT"
+          echo "$tags"
+      - uses: docker/setup-qemu-action@v3
       - uses: docker/setup-buildx-action@v3
       - uses: docker/login-action@v3
         with:
@@ -144,6 +321,6 @@ jobs:
         with:
           context: .
           push: true
-          tags: |
-            ghcr.io/${{ github.repository }}:${{ github.ref_name }}
-            ghcr.io/${{ github.repository }}:latest
+          platforms: ${{ matrix.platforms }}
+          build-args: FLAVOR=${{ matrix.flavor }}
+          tags: ${{ steps.tags.outputs.tags }}

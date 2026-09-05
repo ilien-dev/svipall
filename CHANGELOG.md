@@ -1,9 +1,16 @@
 # Changelog
 
-## 1.0.0 — 2026-09-05
+## 1.0.0-rc — 2026-09-05
 
-The first release. Everything below is in the tree and measured; the numbers are the ones the
-benchmark produced, including the ones that are not flattering.
+The first release, and a release candidate on purpose. The code below has been in the tree and
+measured for a while. What has never run even once is the machinery that publishes it: the tag job,
+the package manifests, the `.deb` and `.rpm`, the build attestation, the multi-architecture image
+push. The `-rc` is about that pipeline. If it comes out clean, `1.0.0` is the same tree with a
+different tag.
+
+Two things behave differently while this is a pre-release. The container tags `:latest` and `:slim`
+are not moved, and GitHub's `/releases/latest` does not name a pre-release, so `install.sh` and
+`install.ps1` fall back to the newest release of any kind and say that is what they are installing.
 
 ### What it is
 
@@ -11,6 +18,37 @@ A local-first MCP server and CLI, in Rust, that gives an LLM agent a real window
 **29 MCP tools**, **19 REST routes**, **nine crates** (seven of our own plus two vendored — a
 patched Chrome DevTools Protocol client and a patched QUIC/HTTP-3 stack). No cloud, no API keys, no
 paid captcha service, no telemetry. Nothing leaves the machine it runs on.
+
+### Installing it
+
+Until this tag the only way in was to build from source: a Rust toolchain, BoringSSL's four build
+dependencies, a `MAX_PATH` workaround on Windows, and a `python tools/models/export.py` that no
+page listed as a prerequisite. A release workflow existed and had never run, because nothing had
+ever been tagged. This is what it produces.
+
+- **`install.sh` and `install.ps1`**, one line each, verifying the published sha256 before they
+  unpack anything, writing only into a directory the user owns and that user's own PATH, and
+  saying which file they touched. `--uninstall` reverses it. Both are exercised end to end in CI,
+  on every platform, against the binaries that job just built.
+- **`svipall --version`** and **`svipall doctor`**: what this build is (version, target triple,
+  compiled-in features) and whether it will work here — browser, captcha models, http engine,
+  ports, home directory — with the exact command that fixes anything that is wrong. The judgement
+  is a pure function of collected facts, so it is tested against machines this one is not.
+- **A Claude Code plugin** in `plugins/svipall/`, with a marketplace in this repository:
+  `/plugin marketplace add ilien-dev/svipall`. It registers the MCP server, ships the skill, and
+  adds `/svipall:setup`, `/svipall:doctor` and `/svipall:uninstall`. `setup` installs the binary if
+  it is missing, and offers — asking each time, never assuming — to add a routing block to the
+  user's global `CLAUDE.md` between removable markers. A test keeps the plugin's copy of
+  `SKILL.md` byte-identical to the canonical one.
+- **`svipall hook claude-web`**, a `PreToolUse` answer that declines Claude Code's own `WebFetch`
+  and `WebSearch` in favour of the svipall tool that does the same job. Registered by the plugin
+  from the start and **inert** until `~/.svipall/claude_strict` exists, so installing the plugin
+  changes nothing about how anybody's fetches behave.
+- **Package manager manifests** for Homebrew, Scoop, winget and the AUR, plus `.deb`, `.rpm` and an
+  npm wrapper — all rendered from the release's own `sha256sums.txt` by
+  `scripts/render-packaging.sh`, so no checksum is ever typed twice.
+- **`docs/install.md`**, written to be executed by an agent rather than read, and
+  **`GET-STARTED.md`** for somebody who has never installed anything from a terminal.
 
 ### Getting in
 
@@ -50,7 +88,7 @@ cooldowns cleared, from **one residential address with no proxy**. Raw logs are 
 
 | gate | result | network |
 |---|---|---|
-| `cargo test --workspace` | **1120 passing**, 16 ignored | no |
+| `cargo test --workspace` | **1143 passing**, 16 ignored | no |
 | `bench tells --assert` | **160/160** probes clean, five browser passes | no |
 | `bench fingerprint --engine chrome` | **8/8** identities coherent | no |
 | `bench micro --assert` | 11 CPU budgets + 4 structural checks | no |
@@ -86,6 +124,32 @@ can be separated from *"this address cannot"*. **No committed baseline has ever 
 one reads `"exit": null`. Until somebody does, that qualifier applies to every number above.
 
 ### Closed in this release
+
+- **The container image carried no captcha models.** The `Dockerfile` never ran
+  `tools/models/export.py` and never passed the `onnx-*` features, so any image built from it
+  answered image challenges by sending them to the human dashboard — while the README said
+  "models ship in the release binary". True of the tarballs, false of the image. The `full` image
+  now exports and compiles them in, and the release smoke test checks that they arrived.
+- **`-p 8787:8787` did not reach the dashboard.** `dashboard_bind` defaults to loopback, which
+  inside a container is the container. The entrypoint now writes a `/data/config.toml` binding
+  `0.0.0.0` on first start, and never touches one you wrote.
+- **The image was `linux/amd64` only** while arm64 tarballs were built. `slim` is now built for
+  both. `full` stays amd64, because Chrome for Testing publishes no linux-arm64 build and an arm64
+  image with no browser in it is worse than an honest slim one — now stated rather than discovered.
+- **The Windows artefact was a `.tar.gz`**, which winget will not accept, Scoop will not accept,
+  and Windows Explorer will not open without help. It is a `.zip`.
+- **Nothing about a release would have been verifiable.** macOS builds are now signed ad-hoc and every artefact
+  carries a GitHub build attestation. Notarisation still needs an Apple Developer ID this project
+  does not have, and `docs/install.md` says so rather than implying otherwise.
+- **The image build was not reproducible, and `slim` carried 223 MB it could not use.**
+  `svipall-models` embeds whatever weights are in its directory, and that directory is gitignored
+  but present on any machine that has run the export — so the same `docker build` produced a
+  different image depending on whose tree it ran in, and a `slim` image built on a developer's
+  machine shipped 58 MB of ONNX with no `onnx-*` feature able to read it. The build context now
+  excludes them; `slim` went from 449 MB to 226 MB.
+- **`doctor` separates having weights from being able to read them** (`models_not_readable`).
+  Listing `models.embedded` on a build with no inference feature reads as a capability and is not.
+- Release artefacts are named `svipall-<version>-<target>`, so a manifest can construct the URL.
 
 - **The HTTP/3 SETTINGS frame.** `bench h3-ref` runs a QUIC server on loopback that a real Chrome
   completes a handshake with, so the frame can be read at all. Chrome for Testing 152.0.7977.75,

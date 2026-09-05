@@ -109,8 +109,59 @@ jobs:
         if: runner.os == 'Linux'
         run: bash scripts/check-claude-md.sh
 
+      # The manifests a `/plugin install` reads. Cheap, and the failure they catch — a hooks file
+      # in the wrong shape, a version the tag will not match — is one nobody sees until somebody
+      # tries to install the thing.
+      - name: plugin manifests
+        if: runner.os == 'Linux'
+        shell: bash
+        run: |
+          python3 -c "import json,sys; json.load(open('.claude-plugin/marketplace.json'))"
+          python3 -c "import json,sys; json.load(open('plugins/svipall/.claude-plugin/plugin.json'))"
+          python3 -c "import json,sys; json.load(open('plugins/svipall/hooks/hooks.json'))"
+          python3 -c "import json,sys; json.load(open('plugins/svipall/.mcp.json'))"
+          crate=$(grep -m1 '^version' crates/svipall-mcp/Cargo.toml | cut -d'"' -f2)
+          plugin=$(python3 -c "import json; print(json.load(open('plugins/svipall/.claude-plugin/plugin.json'))['version'])")
+          test "$crate" = "$plugin" || { echo "crate $crate != plugin $plugin"; exit 1; }
+          # Every hook the plugin registers has to be a command this binary answers to.
+          grep -q '"svipall hook claude-web"' plugins/svipall/hooks/hooks.json
+
+      # The installers, run against the binaries this job just built. An installer that is only
+      # ever exercised on release day is an installer nobody tested — the same argument the
+      # container image step below already makes for the Dockerfile.
+      - name: installer smoke (POSIX)
+        if: runner.os != 'Windows'
+        shell: bash
+        run: |
+          sh install.sh --help
+          mkdir -p ci-pkg
+          cp "$CARGO_TARGET_DIR/debug/svipall" "$CARGO_TARGET_DIR/debug/svipall-mcp" ci-pkg/
+          (cd ci-pkg && tar -czf ../svipall-ci.tar.gz svipall svipall-mcp)
+          # --no-browser: the prompt would otherwise offer a 190 MB download on a CI runner.
+          sh install.sh --from-file svipall-ci.tar.gz --prefix "$PWD/ci-prefix" --no-path --no-browser
+          "$PWD/ci-prefix/svipall" --version
+          "$PWD/ci-prefix/svipall" doctor > /dev/null
+          sh install.sh --uninstall --prefix "$PWD/ci-prefix"
+          test ! -e "$PWD/ci-prefix/svipall"
+
+      - name: installer smoke (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path ci-pkg | Out-Null
+          Copy-Item "$env:CARGO_TARGET_DIR\debug\svipall.exe","$env:CARGO_TARGET_DIR\debug\svipall-mcp.exe" ci-pkg          Compress-Archive -Path ci-pkg\* -DestinationPath svipall-ci.zip -Force
+          .\install.ps1 -FromFile svipall-ci.zip -Prefix "$PWD\ci-prefix" -NoPath -NoBrowser
+          & "$PWD\ci-prefix\svipall.exe" --version
+          & "$PWD\ci-prefix\svipall.exe" doctor > $null
+          .\install.ps1 -Uninstall -Prefix "$PWD\ci-prefix"
+          if (Test-Path "$PWD\ci-prefix\svipall.exe") { throw "uninstall left the binary behind" }
+
       # The image is built, never pushed, here: a Dockerfile that only works on release day is
-      # a Dockerfile nobody tested.
+      # a Dockerfile nobody tested. `slim` rather than `full`, because `full` also exports the
+      # models through a torch download and the release workflow already runs that export on
+      # every platform, on every dispatch.
       - name: container image builds
         if: runner.os == 'Linux'
-        run: docker build -t svipall:ci .
+        run: |
+          docker build --build-arg FLAVOR=slim -t svipall:ci .
+          docker run --rm svipall:ci svipall --version

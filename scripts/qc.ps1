@@ -17,6 +17,9 @@ function Step($name, [scriptblock]$body) {
 if ($Fix) {
   Step 'rustfmt (apply)'      { cargo fmt --all }
   Step 'clippy --fix'         { cargo clippy --workspace --all-targets --fix --allow-dirty --allow-staged -- -D warnings }
+  # The plugin's copy of the skill. Mechanical, so it belongs with the other mechanical fixes; the
+  # test that compares them is what makes forgetting this a failure rather than a surprise.
+  Step 'sync plugin skill'    { & (Join-Path $PSScriptRoot 'sync-plugin.ps1') }
 }
 
 # Formatting must be clean.
@@ -49,6 +52,15 @@ if (Get-Command cargo-machete -ErrorAction SilentlyContinue) {
 }
 # CLAUDE.md size guard.
 Step 'CLAUDE.md size'         { & (Join-Path $PSScriptRoot 'check-claude-md.ps1') }
+# The marketplace and the plugin manifests, if the CLI that reads them is here. Skipped rather than
+# failed when it is not: this gate has to pass on a machine that has never installed Claude Code.
+if (Get-Command claude -ErrorAction SilentlyContinue) {
+  Step 'plugin manifests'     { claude plugin validate . }
+  Step 'plugin manifest (svipall)' { claude plugin validate ./plugins/svipall }
+} else {
+  Write-Host "`n=== plugin manifests (skipped) ===" -ForegroundColor Yellow
+  Write-Host "no claude CLI on PATH"
+}
 # CPU budgets and the structural counts (one DOM parse, no disk reads on the hot path).
 # No network, so it belongs in the standard gate.
 Step 'perf budgets'           { cargo run -p svipall-bench --release -- micro --assert }

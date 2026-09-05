@@ -13,6 +13,9 @@ step() { echo; echo "=== $1 ==="; shift; "$@" || { echo "FAIL"; fail=1; }; }
 if [ "${1:-}" = "--fix" ]; then
   step 'rustfmt (apply)' cargo fmt --all
   step 'clippy --fix'    cargo clippy --workspace --all-targets --fix --allow-dirty --allow-staged -- -D warnings
+  # The plugin's copy of the skill. Mechanical, so it belongs with the other mechanical fixes; the
+  # test that compares them is what makes forgetting this a failure rather than a surprise.
+  step 'sync plugin skill' bash "$here/sync-plugin.sh"
 fi
 
 step 'rustfmt --check' cargo fmt --all --check
@@ -37,6 +40,14 @@ else
   echo; echo "=== cargo-machete (skipped) ==="; echo "install with: cargo install cargo-machete"
 fi
 step 'CLAUDE.md size' bash "$here/check-claude-md.sh"
+# The marketplace and the plugin manifests, if the CLI that reads them is here. Skipped rather than
+# failed when it is not: this gate has to pass on a machine that has never installed Claude Code.
+if command -v claude >/dev/null 2>&1; then
+  step 'plugin manifests' claude plugin validate .
+  step 'plugin manifest (svipall)' claude plugin validate ./plugins/svipall
+else
+  echo; echo "=== plugin manifests (skipped) ==="; echo "no claude CLI on PATH"
+fi
 # CPU budgets and the structural counts (one DOM parse, no disk reads on the hot path).
 # No network, so it belongs in the standard gate.
 step 'perf budgets' cargo run -p svipall-bench --release -- micro --assert

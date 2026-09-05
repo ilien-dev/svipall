@@ -757,6 +757,17 @@ impl Brand {
     /// Lower sorts first. Measured reason for the ordering: with Brave selected, sannysoft saw
     /// `navigator.brave` and randomised plugin names next to a User-Agent claiming Chrome — a
     /// contradiction no stealth script can undo, because it is the binary talking.
+    /// What this brand is called, for a report a person reads.
+    pub fn name(self) -> &'static str {
+        match self {
+            Brand::Managed => "managed",
+            Brand::Chrome => "chrome",
+            Brand::Edge => "edge",
+            Brand::Chromium => "chromium",
+            Brand::SelfDefending => "self-defending",
+        }
+    }
+
     fn rank(self) -> u8 {
         match self {
             Brand::Managed => 0,
@@ -766,7 +777,9 @@ impl Brand {
         }
     }
 
-    fn of(path: &std::path::Path) -> Brand {
+    /// Public because `doctor` reports the brand: which browser is selected decides how much of
+    /// the identity survives contact with a page, and an installer that cannot say so is guessing.
+    pub fn of(path: &std::path::Path) -> Brand {
         let p = path.to_string_lossy().to_ascii_lowercase();
         if p.contains(".svipall") {
             Brand::Managed

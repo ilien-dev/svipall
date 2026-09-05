@@ -1,0 +1,20 @@
+{
+  "name": "svipall",
+  "version": "1.0.0-rc",
+  "description": "Local-first web scraping and captcha MCP server for AI agents. Downloads the release build for your platform.",
+  "license": "AGPL-3.0-only",
+  "homepage": "https://github.com/ilien-dev/svipall",
+  "repository": { "type": "git", "url": "git+https://github.com/ilien-dev/svipall.git" },
+  "keywords": ["scraping", "crawler", "captcha", "mcp", "ai", "agent", "browser"],
+  "bin": {
+    "svipall": "bin/svipall.js",
+    "svipall-mcp": "bin/svipall-mcp.js"
+  },
+  "scripts": {
+    "postinstall": "node install.js"
+  },
+  "files": ["bin/", "install.js", "README.md"],
+  "engines": { "node": ">=18" },
+  "os": ["darwin", "linux", "win32"],
+  "cpu": ["x64", "arm64"]
+}

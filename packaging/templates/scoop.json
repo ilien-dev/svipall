@@ -1,0 +1,32 @@
+{
+  "version": "@VERSION@",
+  "description": "Local-first web scraping and captcha MCP server for AI agents",
+  "homepage": "https://github.com/ilien-dev/svipall",
+  "license": "AGPL-3.0-only",
+  "architecture": {
+    "64bit": {
+      "url": "https://github.com/ilien-dev/svipall/releases/download/v@VERSION@/svipall-@VERSION@-x86_64-pc-windows-msvc.zip",
+      "hash": "@SHA_X86_64_PC_WINDOWS_MSVC@"
+    }
+  },
+  "bin": ["svipall.exe", "svipall-mcp.exe"],
+  "notes": [
+    "Browser tiers need a Chromium-based browser. Edge already counts; otherwise run",
+    "`svipall browser install` for a Chrome for Testing of its own (~190 MB).",
+    "Check the installation with `svipall doctor`.",
+    "In Claude Code: claude mcp add svipall -- svipall-mcp"
+  ],
+  "checkver": {
+    "github": "https://github.com/ilien-dev/svipall"
+  },
+  "autoupdate": {
+    "architecture": {
+      "64bit": {
+        "url": "https://github.com/ilien-dev/svipall/releases/download/v$version/svipall-$version-x86_64-pc-windows-msvc.zip"
+      }
+    },
+    "hash": {
+      "url": "https://github.com/ilien-dev/svipall/releases/download/v$version/sha256sums.txt"
+    }
+  }
+}

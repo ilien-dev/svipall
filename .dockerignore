@@ -5,3 +5,9 @@ bench/baseline/*.json
 logo
 *.md
 !README.md
+# The developer's own exported weights. `svipall-models`'s build script embeds whatever is in this
+# directory, so without this line a `slim` image built on a machine that has them ships 58 MB of
+# ONNX it has no `onnx-*` feature to read, and a `full` image is only reproducible on machines that
+# happen to have run the export. The `full` stage runs tools/models/export.py itself.
+crates/svipall-models/models/*.onnx
+crates/svipall-models/models/*.json

@@ -1,0 +1,15 @@
+{
+  "name": "svipall",
+  "owner": { "name": "ilien", "email": "code@ilien.dev" },
+  "description": "Svipall: local-first web scraping, crawling, search and captcha solving for AI agents.",
+  "plugins": [
+    {
+      "name": "svipall",
+      "source": "./plugins/svipall",
+      "description": "Read any page past its anti-bot wall, crawl sites, search without an API key, and answer captchas locally. Installs the binary, wires up the MCP server, and ships the skills.",
+      "category": "web",
+      "license": "AGPL-3.0-only",
+      "homepage": "https://github.com/ilien-dev/svipall"
+    }
+  ]
+}
