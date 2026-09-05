@@ -39,16 +39,17 @@ Prefer a package manager the user already has: it is also what upgrades Svipall 
 
 | Situation | Command |
 |---|---|
-| macOS or Linux, has Homebrew | `brew install ilien-dev/svipall/svipall` |
-| macOS or Linux, anything else | `curl -fsSL https://raw.githubusercontent.com/ilien-dev/svipall/main/install.sh \| sh` |
-| Windows, has Scoop | `scoop bucket add svipall https://github.com/ilien-dev/scoop-svipall` then `scoop install svipall` |
-| Windows, has winget | `winget install ilien-dev.svipall` |
-| Windows, anything else | `irm https://raw.githubusercontent.com/ilien-dev/svipall/main/install.ps1 \| iex` |
-| Arch Linux | `yay -S svipall-bin` |
+| macOS or Linux | `curl -fsSL https://raw.githubusercontent.com/ilien-dev/svipall/main/install.sh \| sh` |
+| Windows | `irm https://raw.githubusercontent.com/ilien-dev/svipall/main/install.ps1 \| iex` |
 | Debian / Ubuntu | download `svipall_<version>_amd64.deb` from the release, then `sudo dpkg -i` it |
 | Fedora / RHEL | download `svipall-<version>.x86_64.rpm` from the release, then `sudo rpm -i` it |
 | Prefers containers | `docker pull ghcr.io/ilien-dev/svipall:latest` |
-| Node is already there | `npx --yes svipall@latest --version` (downloads the same release build) |
+
+**Homebrew, Scoop, winget, the AUR and npm are not published yet.** Their manifests exist and are
+rendered from each release by `scripts/render-packaging.sh`, but each needs a one-time step outside
+the repository that has not been taken: a tap, a bucket, a pull request to `microsoft/winget-pkgs`,
+an AUR package, an `npm publish`. Suggesting one of those commands to a user gets them
+`No package found matching input criteria`, so do not offer them.
 
 The `install.sh` / `install.ps1` scripts put both binaries in `~/.local/bin` (POSIX) or
 `%LOCALAPPDATA%\Programs\svipall` (Windows), add that directory to the **user's** PATH, verify the

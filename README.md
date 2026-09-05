@@ -127,23 +127,30 @@ curl -fsSL https://raw.githubusercontent.com/ilien-dev/svipall/main/install.sh |
 irm https://raw.githubusercontent.com/ilien-dev/svipall/main/install.ps1 | iex        # Windows
 ```
 
-<details>
-<summary>Or a package manager, or a container</summary>
+Or pull the container image:
 
 ```bash
-brew install ilien-dev/svipall/svipall               # macOS, Linux
-scoop bucket add svipall https://github.com/ilien-dev/scoop-svipall && scoop install svipall
-winget install ilien-dev.svipall                     # Windows
-yay -S svipall-bin                                   # Arch
-docker pull ghcr.io/ilien-dev/svipall:latest         # container
-npx --yes svipall@latest --version                   # if node is already there
+docker pull ghcr.io/ilien-dev/svipall:latest
 ```
 
-`.deb` and `.rpm` packages are attached to each release. Never installed anything from a terminal
-before? [**GET-STARTED.md**](GET-STARTED.md) is the same thing with nothing assumed. Everything
-else, including [building from source](docs/install.md#3-building-from-source-instead), is in
-[docs/install.md](docs/install.md).
+<details>
+<summary>Homebrew, Scoop, winget, the AUR and npm: not yet</summary>
+
+Each of those needs a one-time step outside this repository — a tap, a bucket, a pull request to
+`microsoft/winget-pkgs`, an AUR package, an `npm publish` — and none of them has been taken. The
+manifests are written and are rendered from each release's own `sha256sums.txt` by
+`scripts/render-packaging.sh`, so the work left is publishing them rather than writing them;
+[`packaging/README.md`](packaging/README.md) says what each one needs.
+
+Until then, `install.sh`, `install.ps1` and the container image are the ways in, and a command like
+`winget install ilien-dev.svipall` will tell you there is no such package. `.deb` and `.rpm` files
+are attached to each release.
 </details>
+
+Never installed anything from a terminal before? [**GET-STARTED.md**](GET-STARTED.md) is the same
+thing with nothing assumed. Everything else, including
+[building from source](docs/install.md#3-building-from-source-instead), is in
+[docs/install.md](docs/install.md).
 
 Then ask it what it can do on this machine, and what to run for anything it cannot:
 

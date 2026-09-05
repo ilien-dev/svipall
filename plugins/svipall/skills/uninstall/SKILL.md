@@ -36,10 +36,8 @@ Whichever way it went on:
 | Installed with | Removed with |
 |---|---|
 | `install.sh` / `install.ps1` | the same script with `--uninstall` |
-| Homebrew | `brew uninstall svipall` |
-| Scoop | `scoop uninstall svipall` |
-| winget | `winget uninstall ilien-dev.svipall` |
 | Docker | `docker rmi ghcr.io/ilien-dev/svipall:latest` |
+| a package manager | its own uninstall command, once those channels exist |
 
 The installers only ever wrote to a user-owned directory and the user's own PATH, so nothing needs
 elevation to undo.
