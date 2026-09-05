@@ -1,7 +1,7 @@
 # Installing Svipall
 
 This page is written to be executed rather than read. Hand it to any AI coding agent — Claude Code,
-Cursor, Codex, opencode, Windsurf, Copilot — and it has everything it needs:
+Cursor, Codex, opencode, Copilot — and it has everything it needs:
 
 ```
 Install and configure Svipall by following the instructions here:
@@ -58,15 +58,15 @@ flags; `--uninstall` reverses it.
 
 ### Which platforms have builds
 
-| Platform | Build | Browser tiers |
-|---|---|---|
-| Linux x86-64 | yes | yes |
-| Linux arm64 | yes | **no** — Chrome for Testing publishes no linux-arm64 build. Point `browser_path` at your own Chromium, or accept the http tier |
-| macOS Intel | yes | yes |
-| macOS Apple silicon | yes | yes |
-| Windows x86-64 | yes | yes (Edge already counts) |
-| Windows arm64 | no | run the x64 build under emulation, or use the container |
-| anything else | no | build from source, or use the container |
+| Platform | Build | Browser tiers | Local captcha models |
+|---|---|---|---|
+| Linux x86-64 | yes | yes | yes |
+| Linux arm64 | yes | **no** — Chrome for Testing publishes no linux-arm64 build. Point `browser_path` at your own Chromium, or accept the http tier | yes |
+| macOS Intel | yes | yes | **no** — ONNX Runtime publishes no x86-64 macOS build, so image challenges go to the human dashboard |
+| macOS Apple silicon | yes | yes | yes |
+| Windows x86-64 | yes | yes (Edge already counts) | yes |
+| Windows arm64 | no | run the x64 build under emulation, or use the container | — |
+| anything else | no | build from source, or use the container | — |
 
 ---
 
@@ -142,7 +142,7 @@ claude mcp add svipall -- svipall-mcp
 If `svipall-mcp` is not on the PATH of whatever launched Claude Code, use the absolute path:
 `claude mcp add -s user svipall -- /absolute/path/to/svipall-mcp`.
 
-### Claude Desktop, Cursor, Windsurf, and any other MCP client
+### Claude Desktop, Cursor, and any other MCP client
 
 Add to the client's MCP config (`claude_desktop_config.json`, `.cursor/mcp.json`, …):
 
