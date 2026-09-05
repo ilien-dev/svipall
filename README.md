@@ -246,6 +246,7 @@ touches one you wrote yourself.
 Tagged releases attach builds for **Windows x86-64, macOS Intel, macOS Apple silicon, Linux x86-64
 and Linux arm64** with a `sha256sums.txt` and a GitHub build attestation, and push both images to
 `ghcr.io`.
+
 ---
 
 ## What you can actually do with it
