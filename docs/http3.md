@@ -1,6 +1,6 @@
 # HTTP/3
 
-svipall speaks HTTP/3 when it is built and turned on. It was declined twice before that, and this
+Svipall speaks HTTP/3 when it is built and turned on. It was declined twice before that, and this
 page is the whole record: the reasons that were on file, why neither of them held, what a real
 Chrome actually sends, and what the engine does and does not match.
 
@@ -210,7 +210,7 @@ at a TCP fetch with an `Alt-Svc` in hand can see which said no: the binary was b
 `--features http3`, `http3 = true` in the config, and **this domain advertised h3**.
 
 That last one is Chrome's rule — a browser never opens a first connection over QUIC — and it is what
-keeps a first visit indistinguishable from what svipall did before HTTP/3 existed.
+keeps a first visit indistinguishable from what Svipall did before HTTP/3 existed.
 
 But the advertisement alone is not enough, because of how the ladder remembers. `domain_tiers`
 learns that a walled site needs `browser`, so the next fetch starts there and the http tier — the
@@ -283,7 +283,7 @@ patches take it to twelve.
 | the QUIC Initial itself | connection id lengths, padding, version negotiation — unmeasured |
 
 That second row is this project's own doctrine arriving somewhere new. `identity.rs` caps the Chrome
-major svipall claims because *"TLS is the one layer that cannot lie"*; an h3 engine has a ceiling of
+major Svipall claims because *"TLS is the one layer that cannot lie"*; an h3 engine has a ceiling of
 its own, set by the age of the linked BoringSSL rather than by a user agent string. It has to be
 measured, it may be lower than the TCP ceiling, and until it is measured `http3` stays off by
 default and the TCP tier is the one with numbers behind it.

@@ -1,9 +1,9 @@
 ---
-name: svipall
+name: Svipall
 description: Fetch, crawl, search and extract any web page from the shell, getting past anti-bot walls and captchas locally. Use when a page is blocked, when a site needs crawling, when a page has to be read as structure rather than prose, or when a change needs watching over time.
 ---
 
-# svipall
+# Svipall
 
 Local-first web scraping. Every request, every browser and every captcha stays on this machine —
 no API keys, no third-party solving service, nothing sent anywhere.
@@ -16,7 +16,7 @@ Every command prints one JSON object to stdout. Diagnostics go to stderr, so `sv
 svipall fetch https://example.com/article
 ```
 
-`mode=auto` is the default and the right answer: svipall climbs a ladder — plain HTTP, then a browser,
+`mode=auto` is the default and the right answer: Svipall climbs a ladder — plain HTTP, then a browser,
 then a stealth browser, then a real one, then one that waits out a challenge — stopping at the first
 tier that works, and remembering it for that domain. Do not pick a tier by hand.
 

@@ -1,16 +1,16 @@
 # Disclaimer and acceptable use
 
-svipall is a tool. Like any tool that speaks HTTP, it can be pointed at a system whose
+Svipall is a tool. Like any tool that speaks HTTP, it can be pointed at a system whose
 owner did not invite it. What follows is not legal advice, and it is not part of the
 licence — it states the terms on which this software is published, and where
 responsibility sits.
 
-Throughout this page, "the author" means ilien <contact@ilien.dev>, the copyright
+Throughout this page, "the author" means ilien <code@ilien.dev>, the copyright
 holder of svipall.
 
 ## No warranty, no liability
 
-svipall is provided **as is**, without warranty or condition of any kind, express or
+Svipall is provided **as is**, without warranty or condition of any kind, express or
 implied. Sections 15, 16 and 17 of the GNU Affero General Public License version 3
 (see [`LICENSE`](LICENSE)) govern, and nothing on this page enlarges them.
 
@@ -21,7 +21,7 @@ software, whatever its cause and whichever legal theory is invoked.
 
 ## Responsibility sits with the operator
 
-You alone decide which addresses svipall connects to, how often, on whose behalf and
+You alone decide which addresses Svipall connects to, how often, on whose behalf and
 what you do with what comes back. That makes you — not the author, and not any
 contributor — responsible for:
 
@@ -33,7 +33,7 @@ contributor — responsible for:
   minimisation, retention and the rights of data subjects are your obligations, not the
   tool's;
 - the terms of service, acceptable-use policies, API terms, rate limits, contractual
-  terms and access controls of every site and service you direct svipall at;
+  terms and access controls of every site and service you direct Svipall at;
 - the `robots.txt` directives of those sites, whatever weight the law of your
   jurisdiction gives them;
 - obtaining any authorisation, licence, consent or contract required before you access
@@ -45,7 +45,7 @@ contributor — responsible for:
 
 Publishing this software grants you **no right, permission, authorisation or licence
 with respect to any third-party system, network, account, dataset or service**. The
-licence in [`LICENSE`](LICENSE) covers this source code and nothing else. That svipall
+licence in [`LICENSE`](LICENSE) covers this source code and nothing else. That Svipall
 is technically capable of passing a bot-detection wall, solving a challenge, or
 presenting a browser fingerprint is a statement about software, never a statement that
 you are permitted to do so in a given case. Capability is not permission.
@@ -55,7 +55,7 @@ using it there may be unlawful where you are.
 
 ## Intended use
 
-svipall exists for work its operator is entitled to do: retrieving public information,
+Svipall exists for work its operator is entitled to do: retrieving public information,
 accessing your own accounts and systems, research and archiving, testing sites you own
 or are engaged to test, and giving AI agents readable access to the open web under the
 operator's own responsibility.
@@ -68,20 +68,20 @@ private data.
 
 Behaving as a good client is your job: request politely, back off when asked, identify
 yourself where that is expected, cache instead of re-fetching, and stop when a site
-tells you to. svipall gives you throttling, origin policy and robots handling to do
+tells you to. Svipall gives you throttling, origin policy and robots handling to do
 exactly that ([`README.md`](README.md), "Safety and privacy"); using them is your
 choice.
 
 ## Captcha and challenge handling
 
-svipall solves challenges locally, on the operator's own machine or by the operator's
+Svipall solves challenges locally, on the operator's own machine or by the operator's
 own hand, for sessions the operator is entitled to conduct. Bypassing a challenge on a
 system you have no right to access may be a criminal offence in your jurisdiction, may
 breach a contract you accepted, and is your act, not the author's.
 
 ## Indemnity
 
-If your use of svipall leads to a claim against the author — from a site operator, a
+If your use of Svipall leads to a claim against the author — from a site operator, a
 regulator, a data subject or anyone else — you will indemnify and hold the author
 harmless for that claim, its defence and its costs.
 

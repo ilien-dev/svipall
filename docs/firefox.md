@@ -1,6 +1,6 @@
 # The Firefox engine: what ships today, and what the fork adds
 
-svipall has two browser identities. One of them runs today; the other needs a build this repository
+Svipall has two browser identities. One of them runs today; the other needs a build this repository
 describes but does not carry.
 
 | | Engine | Status | What it gets you |
@@ -44,7 +44,7 @@ there is no wrapper to find because the value is native.
 Camoufox proved the approach. Its own documentation also names where it fails, which is the part
 worth learning from: **not the technique, the coherence.** "Anti-bot providers test Camoufox over
 and over to find even 1 unique inconsistency, then immediately update their scripts to test for it."
-svipall already answers that — see *the linter*, below.
+Svipall already answers that — see *the linter*, below.
 
 And the argument runs the other way too, which the enthusiastic version of this section omits: **a
 public patched build has a static signature of its own.** The patch set is public, so the font
@@ -88,7 +88,7 @@ headless/headful parity, WebRTC.
 **A. The GPU tells the truth.** Spoofing the WebGL renderer string is a losing game: it is checked
 against `MAX_TEXTURE_SIZE`, the shader-precision triple, the extension list, and above all the
 **hash of a rendered image**, which no spoof reproduces without owning that GPU. Camoufox spoofs the
-string because its users run in containers. svipall runs on the operator's own desktop, so the
+string because its users run in containers. Svipall runs on the operator's own desktop, so the
 correct move is the opposite one — **report the real GPU and choose the rest of the identity around
 it**. `fleet.rs` gains a host-GPU mode that reads the true renderer once and draws a coherent
 screen, core count and memory to sit beside it. The patch needed is the *inverse* of everyone
@@ -152,7 +152,7 @@ The case for a Gecko browser tier rested on one measured claim: that `google.com
 Firefox passes and Chromium does not. An independent benchmark published exactly that in May 2026 —
 Camoufox passed `google-search` where three Chromium-based tools were hard-blocked.
 
-**That premise no longer holds here.** `google-search` passes 3/3 in svipall's own `public31` runs.
+**That premise no longer holds here.** `google-search` passes 3/3 in Svipall's own `public31` runs.
 It is won at the `stealth` tier, not for free: the tier histogram for that round is
 `browser 21, http 34, real 2, stealth 3, warm 14`, and all three `stealth` cells are this one
 target — it is the single most-escalated passing cell on the list. So the premise is dead but not

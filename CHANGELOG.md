@@ -77,11 +77,11 @@ exact thing that produced a round this project already published as a warning.
 The six `public31` cells and the walls in `vendors8` that do not open are decided by **IP
 reputation**, not by fingerprint: the fingerprinting vendor returns `blocked visitor` for this
 address with a clean browser, a fresh profile and a rotated machine identity.
-svipall's answer is `web_route` — send the domain through an exit you supply — and that is
+Svipall's answer is `web_route` — send the domain through an exit you supply — and that is
 the one thing a local-only tool cannot provide for itself. It will never bundle proxies, never call
 a captcha farm, and never report a block as a success.
 
-`evasion --exit URL` runs the whole set through an operator-supplied exit, so *"svipall cannot"*
+`evasion --exit URL` runs the whole set through an operator-supplied exit, so *"Svipall cannot"*
 can be separated from *"this address cannot"*. **No committed baseline has ever used it**; every
 one reads `"exit": null`. Until somebody does, that qualifier applies to every number above.
 

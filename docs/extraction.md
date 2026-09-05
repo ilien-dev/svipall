@@ -1,6 +1,6 @@
 # Extraction
 
-How svipall turns a fetched page into the text a model reads, how good that is, and how you find
+How Svipall turns a fetched page into the text a model reads, how good that is, and how you find
 out for yourself.
 
 ## The number
@@ -10,10 +10,10 @@ ROUGE-LSum F1, median over the 3,975 gradable pages of the SIGIR-23 gold standar
 
 | | median | mean | IQR |
 |---|---|---|---|
-| **svipall** | **0.920** | 0.831 | 0.773 – 0.976 |
-| svipall, with the vote | 0.919 | 0.846 | 0.804 – 0.976 |
-| svipall, pruning off | 0.732 | 0.696 | 0.551 – 0.887 |
-| svipall, plain-text walker | 0.767 | 0.723 | 0.592 – 0.903 |
+| **Svipall** | **0.920** | 0.831 | 0.773 – 0.976 |
+| Svipall, with the vote | 0.919 | 0.846 | 0.804 – 0.976 |
+| Svipall, pruning off | 0.732 | 0.696 | 0.551 – 0.887 |
+| Svipall, plain-text walker | 0.767 | 0.723 | 0.592 – 0.903 |
 | readability | 0.963 | 0.861 | 0.881 – 0.987 |
 | trafilatura | 0.958 | 0.877 | 0.870 – 0.986 |
 | resiliparse | 0.936 | 0.826 | 0.810 – 0.980 |
@@ -22,7 +22,7 @@ Boilerplate removal is worth **+0.19 F1** over the same markdown with it switche
 are reported because the study's own §4.4 shows the per-page distribution is power-shaped, with the
 mean falling barely inside the interquartile range — a single statistic here misleads either way.
 
-On WCXB, which labels pages by type, svipall scores **0.806** on the development set and **0.870**
+On WCXB, which labels pages by type, Svipall scores **0.806** on the development set and **0.870**
 on the held-out set, which places it third of fourteen on that benchmark's published leaderboard.
 
 On DAnIEL, five languages, ROUGE-LSum mean — with the share of pages the extractor essentially
@@ -165,7 +165,7 @@ tree and returns node ids; nothing re-parses and nothing rewrites markup.
 ### Forum detection -- the one thing that improved the shipping path
 
 A discussion thread is the page type every article extractor destroys, because its posts live in
-containers named `comment` and every article extractor is built to strip those. svipall had the
+containers named `comment` and every article extractor is built to strip those. Svipall had the
 same defect in its own pruner, whose negative list carries `comments?`.
 
 `content::forum` asks one question instead of the router's seven, and answers it from what the page
@@ -265,7 +265,7 @@ shape that is both commonest and safest to be wrong about.
 
 ## What a local tool has that a library does not
 
-Every extractor compared above sees one page and decides from that page alone. svipall has a cache:
+Every extractor compared above sees one page and decides from that page alone. Svipall has a cache:
 the `page` table, indexed by domain, holding what this operator actually fetched, across sessions.
 Alarte and Silva measured that templates are **40–50% of the data on the web**, and SIGIR-23 says
 outright that no public benchmark can evaluate cross-page methods, because none of them ships the
@@ -323,7 +323,7 @@ which is a different gold standard from either of the others:
 |---|---|---|---|
 | shipping extractor vs `TECO_mainContent`, 12 forum sites | 0.727 | 0.747 | 0.676 |
 
-Forums, and forums are the type svipall does worst on — 0.567 on WCXB development. The two corpora
+Forums, and forums are the type Svipall does worst on — 0.567 on WCXB development. The two corpora
 agree about that, which is worth more than either number alone.
 
 ### Near-duplicate lookup across sessions — `Store::find_near`
@@ -399,7 +399,7 @@ DAnIEL is fetched sparsely out of a repository holding several corpora, so the p
 subdirectory its own script prints rather than the clone root. TECO is fetched one category at a
 time and that is not a convenience: its archives are stored uncompressed and `forum` alone is
 5.0 GB, with all five categories north of 20 GB. `forum` is the default because it is the page type
-svipall does worst on and the one the cross-page work was written for.
+Svipall does worst on and the one the cross-page work was written for.
 
 > On Windows, run this from PowerShell. Under Git Bash the process has been observed dying
 > part-way through a long run with no message; the same binary completes with exit 0 from

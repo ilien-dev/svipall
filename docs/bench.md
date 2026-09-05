@@ -22,7 +22,7 @@ cargo run -p svipall-bench --release --features http3 -- h3-ref       # Chrome's
 |---|---|---|
 | `micro` | yes, in `qc` | CPU budgets with 25 % headroom, plus the structural invariants: exactly one DOM parse, zero disk reads on the hot path |
 | `tells` | yes, in `qc` | That nothing of ours is readable from a page — no named global, no shadowed host object, no realm disagreeing with another (worker **and** same-origin iframe), no accessor that stringifies to its own source in any realm, no window at an impossible coordinate. Thirty-two probes at all four browser tiers against a document served on loopback, and the probe list is frozen, so one lost to a syntax error fails the build instead of shrinking the total |
-| `fingerprint --engine chrome` | yes, in `qc` | Every identity svipall can wear, checked against itself offline. A Chrome UA on a Firefox engine, a desktop with no taskbar, a renderer that contradicts the engine — all fail the build |
+| `fingerprint --engine chrome` | yes, in `qc` | Every identity Svipall can wear, checked against itself offline. A Chrome UA on a Firefox engine, a desktop with no taskbar, a renderer that contradicts the engine — all fail the build |
 | `fingerprint` (no flag) | no | The same, plus eight network checks against `tls.peet.ws`. Needs the network. The sixteen it used to run inside a live browser are `tells` probes now: they needed a document, not a network, and there they ran at one tier and asserted nothing |
 | `evasion` | no | Success rate against sites with known walls, per target set. `--http3` primes `Alt-Svc` and speaks QUIC where a site advertised it |
 | `h3` | no | How many targets advertise HTTP/3 at all — the ceiling on anything the transport can do — and whether the QUIC engine gets the same page. `--h3-first` reverses the request order, because these vendors score an address and whichever request goes second is asking a server that has already seen us |
@@ -50,7 +50,7 @@ and fixed rather than quietly corrected.
 
 ## Three lists, and why they are never one number
 
-* **`hard12`** — svipall's own list: twelve sites chosen *because* they have walls, scored by
+* **`hard12`** — Svipall's own list: twelve sites chosen *because* they have walls, scored by
   whether the expected text came back with no wall reported.
 * **`public31`** — the list an independent benchmark published in May 2026 (seven stealth tools,
   31 targets, 651 verdicts), scored with **that benchmark's own four-way rule**
@@ -71,7 +71,7 @@ direction — is reading noise as signal, so all three are published, each besid
 `public31`'s body rule counts `cdn-cgi/challenge-platform` as a gate. Every Cloudflare customer
 page carries that script, challenge or not, so the rule marks fully delivered pages as `gated` —
 measured directly on `medium.com` and `canadianinsider.com`, both answering `200` with their real
-titles and 45–50 KB of their own content. svipall's classifier is right and the ported rule is
+titles and 45–50 KB of their own content. Svipall's classifier is right and the ported rule is
 over-broad. Escalating those cells to win them back would mean opening a browser on a page already
 in hand, so it is not done: the disagreement is published instead.
 
@@ -87,7 +87,7 @@ cargo run -p svipall-bench --release -- evasion --set vendors8 --runs 3 > baseli
 
 stdout is the machine-readable copy, stderr the human one. Both are committed.
 
-`--exit URL` runs any set through an exit you supply, which is the only way to separate "svipall
+`--exit URL` runs any set through an exit you supply, which is the only way to separate "Svipall
 cannot do this" from "this address cannot". The un-proxied column stays the headline, because it is
 the one anybody can reproduce without buying anything.
 
