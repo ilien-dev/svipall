@@ -30,6 +30,7 @@ pub mod secrets;
 /// The 4x4 single-picture grid: one segmentation, every cell the mask touches.
 pub mod segment;
 pub mod server;
+pub mod settings;
 pub mod slider;
 pub mod snapshot;
 pub mod solve_loop;

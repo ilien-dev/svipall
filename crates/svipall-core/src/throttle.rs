@@ -210,12 +210,16 @@ pub fn gap_for(domain: &str, exit: Option<&str>, tier: &str) -> Duration {
 /// Wait until this domain, on this exit, may be hit again. Yields to the runtime instead of
 /// blocking a worker.
 pub async fn throttle(domain: &str, exit: Option<&str>, tier: &str) {
+    throttle_at_least(domain, exit, tier, Duration::ZERO).await;
+}
+
+pub async fn throttle_at_least(domain: &str, exit: Option<&str>, tier: &str, minimum: Duration) {
     let key = pace_key(domain, exit);
     // Charged here, before anything goes out, because this is the one call every rung of the
     // ladder passes through exactly once and it already holds all three of domain, exit and tier.
     // Anywhere else is somewhere a future rung could forget.
     crate::reputation::spend(domain, exit, tier, false);
-    let gap = gap_for(domain, exit, tier);
+    let gap = gap_for(domain, exit, tier).max(minimum);
     // An explicit Retry-After is about the site, not the exit, and outranks anything we would
     // have chosen ourselves.
     let hold = HOLDS.lock().unwrap().get(domain).copied();

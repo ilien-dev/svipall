@@ -565,13 +565,11 @@ const BASE_ARGS: &[&str] = &[
     "--disable-background-timer-throttling",
     "--disable-backgrounding-occluded-windows",
     "--disable-breakpad",
-    "--disable-client-side-phishing-detection",
     "--disable-component-extensions-with-background-pages",
     "--disable-dev-shm-usage",
-    "--disable-features=TranslateUI,IsolateOrigins,site-per-process,AutomationControlled",
+    "--disable-features=TranslateUI,AutomationControlled",
     "--disable-blink-features=AutomationControlled",
     "--disable-hang-monitor",
-    "--disable-ipc-flooding-protection",
     "--disable-prompt-on-repost",
     "--disable-renderer-backgrounding",
     "--disable-sync",
@@ -688,9 +686,9 @@ pub struct PageOpts {
     pub visible: bool,
     /// Wear a different machine from the fleet for this page.
     ///
-    /// `None` is the process identity, which is what every ordinary page wears and must keep
-    /// wearing: a profile whose hardware changes between visits has identified itself. `Some`
-    /// goes with an isolated profile, where nothing is carried in — the machine included.
+    /// `None` preserves a legacy profile's process identity. Normal persistent profiles carry
+    /// Some(seed), stable across visits; isolated profiles carry a fresh seed. The seed is part
+    /// of the browser and kept-page keys, so sharing never mixes identities.
     pub identity_seed: Option<u64>,
 }
 
@@ -708,6 +706,7 @@ pub struct Session {
     /// The machine this session opened as. Kept so closing it can name the same browser the
     /// pool filed it under; the seed is part of that key.
     pub identity_seed: Option<u64>,
+    pub proxy: Option<String>,
 }
 
 /// A cleared page parked for the next fetch of the same domain.
@@ -717,6 +716,14 @@ pub struct Session {
 pub struct KeptPage {
     browser: Arc<Pooled>,
     page: Page,
+}
+
+#[derive(serde::Deserialize)]
+pub struct LiveResponse {
+    pub status: u16,
+    pub html: String,
+    pub url: String,
+    pub headers: Vec<(String, String)>,
 }
 
 pub struct BrowserPool {
@@ -1198,7 +1205,8 @@ impl BrowserPool {
         // A worker is a realm the document's init script never reaches. Handing it the same
         // numbers closes the cheapest cross-realm check there is: eight cores in the document and
         // the host's real thirty-two in a worker is one identity contradicting itself.
-        svipall_cdp::worker::set_init_script(identity_core_js(&identity));
+        // The actual script is scoped to each browser in launch(), including the profile's
+        // stable seed. A process-global script cannot describe two profiles or native mode.
         Self {
             exe,
             browser_major: major,
@@ -1364,7 +1372,52 @@ impl BrowserPool {
                 b = b.arg(flag);
             }
         }
-        let config = b.build().map_err(|e| anyhow!("browser config: {}", e))?;
+        if self.cfg.browser_identity == "native" {
+            // Build a native browser rather than trying to undo individual JS patches later.
+            // Keep networking/profile controls; omit synthetic UA, display and language flags.
+            b = BrowserConfig::builder()
+                .chrome_executable(self.exe.clone().expect("checked above"))
+                .disable_default_args()
+                .args(BASE_ARGS.iter().map(|s| s.to_string()))
+                .args(
+                    webrtc_args(opts.proxy.is_some())
+                        .iter()
+                        .map(|s| s.to_string()),
+                )
+                .viewport(None)
+                .launch_timeout(Duration::from_secs(30))
+                .request_timeout(self.nav_timeout() + Duration::from_secs(5));
+            b = if opts.tier.headless() {
+                b.headless_mode(HeadlessMode::New)
+            } else {
+                b.with_head()
+            };
+            if !opts.tier.headless() && !opts.visible {
+                b = b.arg("--window-position=-32000,-32000");
+            }
+            if let Some(dir) = &opts.profile_dir {
+                b = b.user_data_dir(dir);
+            }
+            if let Some(proxy) = &opts.proxy {
+                b = b.arg(format!("--proxy-server={}", split_proxy_auth(proxy).0));
+            } else if let Some(flags) = doh_args(&self.cfg.dns_over_https) {
+                for flag in flags {
+                    b = b.arg(flag);
+                }
+            }
+            if !self.cfg.locale.trim().is_empty() {
+                b = b.arg(format!(
+                    "--lang={}",
+                    self.cfg.locale.split(',').next().unwrap_or("en-US")
+                ));
+            }
+        }
+        let mut config = b.build().map_err(|e| anyhow!("browser config: {}", e))?;
+        config.worker_init_script = Some(if self.cfg.browser_identity == "native" {
+            String::new()
+        } else {
+            identity_core_js(&id)
+        });
         let (browser, mut handler) = Browser::launch(config).await.context("launching browser")?;
         tokio::spawn(async move {
             // Newer Chromium builds emit CDP events this protocol version cannot decode; those
@@ -1442,6 +1495,31 @@ impl BrowserPool {
         }
         let (pooled, page) = self.page(opts).await?;
         Ok((pooled, page, false))
+    }
+
+    /// Fetch through the page's own fetch implementation so its SDK and in-memory state survive.
+    /// Cross-origin destinations and redirects use normal navigation instead.
+    pub async fn fetch_in_document(&self, page: &Page, url: &str) -> Option<LiveResponse> {
+        let target = serde_json::to_string(url).ok()?;
+        let js = format!(
+            r#"(async () => {{
+            const target = new URL({target}, location.href);
+            if (target.origin !== location.origin) return null;
+            const abort = new AbortController();
+            const timer = setTimeout(() => abort.abort(), 8000);
+            try {{
+                const r = await fetch(target.href, {{credentials:'include',cache:'no-store',
+                    redirect:'error',signal:abort.signal}});
+                if (!r.ok || !r.headers.get('content-type')?.includes('text/html')) return null;
+                return {{status:r.status,html:await r.text(),url:r.url,headers:[...r.headers]}};
+            }} catch (_) {{ return null; }} finally {{ clearTimeout(timer); }}
+        }})()"#
+        );
+        let value = tokio::time::timeout(Duration::from_secs(9), page.evaluate(js))
+            .await
+            .ok()?
+            .ok()?;
+        serde_json::from_value(value.value()?.clone()).ok()
     }
 
     /// Park a cleared page for the next fetch of the same domain, closing whatever that displaces.
@@ -1561,6 +1639,32 @@ impl BrowserPool {
         let id = &owned;
 
         watch_console(page).await;
+
+        if self.cfg.browser_identity == "native" {
+            if let Some((_, Some(creds))) = proxy.map(split_proxy_auth) {
+                page.authenticate(creds)
+                    .await
+                    .context("proxy authentication")?;
+            }
+            if !self.cfg.timezone.trim().is_empty() {
+                page.execute(
+                    SetTimezoneOverrideParams::builder()
+                        .timezone_id(self.cfg.timezone.clone())
+                        .build()
+                        .map_err(|e| anyhow!(e))?,
+                )
+                .await?;
+            }
+            if !self.cfg.locale.trim().is_empty() {
+                page.execute(
+                    SetLocaleOverrideParams::builder()
+                        .locale(id.locale_tag())
+                        .build(),
+                )
+                .await?;
+            }
+            return Ok(());
+        }
 
         // A headful window parked off-screen is never the foreground window, so the page it holds
         // reports `document.hasFocus() === false` and `:focus-within` never matches — for the whole
@@ -2211,6 +2315,7 @@ impl BrowserPool {
             profile_dir,
             created: Instant::now(),
             identity_seed,
+            proxy: opts.proxy.clone(),
         });
         self.sessions.lock().await.insert(id, session.clone());
         Ok(session)
@@ -2514,6 +2619,21 @@ mod tests {
             );
         }
     }
+    #[test]
+    fn launch_preserves_browser_security_defenses() {
+        for arg in BASE_ARGS {
+            for forbidden in [
+                "IsolateOrigins",
+                "site-per-process",
+                "disable-client-side-phishing-detection",
+                "disable-ipc-flooding-protection",
+                "no-sandbox",
+            ] {
+                assert!(!arg.contains(forbidden), "security defense disabled: {arg}");
+            }
+        }
+    }
+
     #[test]
     fn no_launch_flag_announces_automation() {
         for bad in FORBIDDEN_ARGS {

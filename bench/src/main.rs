@@ -16,8 +16,8 @@
 
 use std::time::Instant;
 
-mod daniel;
 mod comparison;
+mod daniel;
 mod evasion;
 mod extraction;
 mod fingerprint;
@@ -25,6 +25,7 @@ mod h3;
 #[cfg(feature = "http3")]
 mod h3ref;
 mod micro;
+mod summary;
 mod targets;
 mod teco;
 mod tells;
@@ -38,6 +39,9 @@ fn usage() -> ! {
          micro        CPU budgets, no network (use --assert in CI)\n\
          tells        automation tells a page can read, probed at every browser tier against a\n\
                       document served on loopback. No network (use --assert in CI)\n\
+         compare      record every first/returning visit through the configured product\n\
+                      --set S --repeat N --seed N --label NAME --timeout MS\n\
+         summarize    aggregate saved comparisons offline: --dir EXPERIMENT_DIRECTORY\n\
          cache        cold vs warm fetch through the ladder\n\
          extract      main-content extraction quality against the SIGIR-23 gold standard, beside\n\
                       the study's own published extractions (ROUGE-LSum), and optionally against\n\
@@ -96,6 +100,9 @@ async fn main() -> anyhow::Result<()> {
     let started = Instant::now();
     let failures = match mode {
         "compare" => comparison::run(&args).await?,
+        "summarize" => summary::run(std::path::Path::new(
+            &flag(&args, "--dir").unwrap_or_else(|| "bench/experiments/local-20260905".into()),
+        ))?,
         "micro" => micro::run(assert),
         "tells" => tells::run(assert).await,
         "cache" => evasion::run_cache().await,

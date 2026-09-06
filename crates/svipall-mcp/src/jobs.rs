@@ -249,7 +249,10 @@ impl JobRunner {
             crawl_id: Some(job.id.clone()),
             ..params
         };
-        let summary = self.server.crawl_json_with(params, Some(&sink)).await;
+        let summary = match self.server.active().await {
+            Ok(active) => active.crawl_json_with(params, Some(&sink)).await,
+            Err(e) => serde_json::json!({"stopped_by":"configuration", "error":e.to_string()}),
+        };
 
         let stopped_by = summary
             .get("stopped_by")

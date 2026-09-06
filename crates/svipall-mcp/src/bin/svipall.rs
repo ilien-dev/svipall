@@ -57,6 +57,10 @@ COMMANDS:
                             ~/.svipall/api_key. Runs until ctrl-c.
     browser [status|install|update|remove]
                             Which browser runs, or download Chrome for Testing (~190 MB).
+    config show             Show effective settings (secrets redacted).
+    config set key=value... Save validated settings; the next command uses them automatically.
+    config preset local|auto|emulated|native
+                            Use local defaults or the experimental real-hardware browser mode.
     doctor                  Whether this installation will work on this machine: which build this
                             is, which browser would run, which models are compiled in, whether the
                             dashboard port is free — and, for anything that is wrong, the command
@@ -138,7 +142,16 @@ async fn main() {
 }
 
 async fn run(args: &[String]) -> anyhow::Result<Value> {
-    let cfg = svipall_core::config::load();
+    if args[0] == "config" {
+        return svipall_mcp::settings::run(&args[1..]);
+    }
+    let mut cfg = svipall_core::config::load_in(&svipall_core::config::home_dir())?;
+    if !matches!(
+        args[0].as_str(),
+        "browser" | "doctor" | "status" | "quality" | "solver"
+    ) {
+        svipall_mcp::provision::ensure_browser(&mut cfg).await?;
+    }
     svipall_core::ensure_dirs();
     // The page cache and the notes; without it everything still works, just without memory.
     let store = svipall_core::cache::Store::open()
@@ -146,7 +159,10 @@ async fn run(args: &[String]) -> anyhow::Result<Value> {
         .map(std::sync::Arc::new);
     // Cloned rather than moved: `serve` still needs `rest_port` and `rest_bind` afterwards, and
     // `main.rs` already builds the server this way for the same reason.
-    let server = SvipallServer::with_store(None, cfg.clone(), None, store);
+    let mut server = SvipallServer::with_store(None, cfg.clone(), None, store);
+    if args[0] == "serve" {
+        server = server.with_live_configuration();
+    }
     let flags = Flags::parse(&args[1..]);
     let positional = flags.positional.clone();
     let first = positional.first().cloned();
@@ -178,6 +194,7 @@ async fn run(args: &[String]) -> anyhow::Result<Value> {
                     isolated: flags.has("isolated").then_some(true),
                     // Debugging only: the ladder knows better, which is why the skill says never.
                     mode: flags.value("mode"),
+                    timeout: flags.number("timeout").map(|n| n as u64),
                     // `--schema auto` for a listing nobody has selectors for, or a JSON object for
                     // one written by hand. A malformed object is reported by the extractor as a
                     // schema error rather than swallowed here, which is where every other bad
@@ -423,7 +440,7 @@ async fn run(args: &[String]) -> anyhow::Result<Value> {
     };
     // A browser the pool still holds keeps the process alive after the answer has been printed:
     // a fetch that finished in four seconds sat there for ten minutes. Measured, then fixed.
-    server.pool().shutdown().await;
+    server.shutdown_configuration().await;
     // A one-shot command has no housekeeping loop, so this is where what it spent is written.
     svipall_core::reputation::flush();
     out

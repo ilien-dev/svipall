@@ -83,6 +83,27 @@ mod tests {
     use super::*;
 
     #[test]
+    fn model_assets_present_in_the_source_tree_are_actually_embedded() {
+        let dir = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("models");
+        for (name, ext, model) in [
+            ("grid", "onnx", grid()),
+            ("detect", "onnx", detect()),
+            ("segment", "onnx", segment()),
+            ("ocr", "onnx", ocr()),
+            ("audio", "onnx", audio()),
+            ("substance", "bin", substance()),
+        ] {
+            let present = dir.join(format!("{name}.{ext}")).is_file()
+                && dir.join(format!("{name}.json")).is_file();
+            assert_eq!(
+                model.is_some(),
+                present,
+                "{name}: a cached build script must not use an old workspace path"
+            );
+        }
+    }
+
+    #[test]
     fn an_embedded_model_always_comes_with_its_contract() {
         for e in [grid(), detect(), segment(), ocr(), audio(), substance()]
             .into_iter()

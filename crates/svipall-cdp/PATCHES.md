@@ -3,6 +3,14 @@
 Every deviation from upstream, why it exists, and the test that would catch its loss. Anchored to
 named functions, not line numbers.
 
+## Worker identity scoped to its browser (2026-09-05)
+
+`BrowserConfig::worker_init_script` is carried through `HandlerConfig` to `TargetConfig`.
+Worker attachment reads that value before the legacy process-wide fallback. An empty script
+explicitly selects native workers. This keeps different persistent profile seeds consistent with
+their own document, and allows a native-hardware pool after an emulated pool in the same process.
+`svipall-mcp/tests/local_sessions.rs` probes document/worker agreement and native WebGL accessors.
+
 ---
 
 ## 1. The isolated world and its script URL are generated, not constants

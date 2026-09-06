@@ -432,6 +432,7 @@ impl Handler {
         let target = Target::new(
             event.target_info,
             TargetConfig {
+                worker_init_script: self.config.worker_init_script.clone(),
                 ignore_https_errors: self.config.ignore_https_errors,
                 request_timeout: self.config.request_timeout,
                 viewport: self.config.viewport.clone(),
@@ -648,6 +649,7 @@ impl Stream for Handler {
 /// How to configure the handler
 #[derive(Debug, Clone)]
 pub struct HandlerConfig {
+    pub worker_init_script: Option<String>,
     /// Whether the `NetworkManager`s should ignore https errors
     pub ignore_https_errors: bool,
     /// Window and device settings
@@ -665,6 +667,7 @@ pub struct HandlerConfig {
 impl Default for HandlerConfig {
     fn default() -> Self {
         Self {
+            worker_init_script: None,
             ignore_https_errors: true,
             viewport: Default::default(),
             context_ids: Vec::new(),

@@ -273,7 +273,8 @@ where
     post(
         move |State(rest): State<Rest>, body: Result<Json<P>, JsonRejection>| async move {
             let Json(p) = body.map_err(RestError::bad_request)?;
-            f(rest.server, p)
+            let active = rest.server.active().await.map_err(RestError::internal)?;
+            f(active.as_ref().clone(), p)
                 .await
                 .map(Json)
                 .map_err(RestError::internal)
@@ -407,6 +408,7 @@ pub fn router(
                 |State(rest): State<Rest>, body: Result<Json<WebStatusParams>, JsonRejection>| async move {
                     let Json(p) = body.map_err(RestError::bad_request)?;
                     rest.server
+                        .active().await.map_err(RestError::internal)?
                         .status_json(p)
                         .await
                         .map(Json)
@@ -434,6 +436,9 @@ async fn health() -> impl IntoResponse {
 /// `GET /v1/status` — read-only by construction: default params carry none of the three clears.
 async fn status_get(State(rest): State<Rest>) -> Result<Json<Value>, RestError> {
     rest.server
+        .active()
+        .await
+        .map_err(RestError::internal)?
         .status_json(WebStatusParams::default())
         .await
         .map(Json)
@@ -462,7 +467,15 @@ async fn crawl(
 ) -> Result<axum::response::Response, RestError> {
     let Json(req) = body.map_err(RestError::bad_request)?;
     if !req.is_async {
-        return Ok(Json(rest.server.crawl_json(req.params).await).into_response());
+        return Ok(Json(
+            rest.server
+                .active()
+                .await
+                .map_err(RestError::internal)?
+                .crawl_json(req.params)
+                .await,
+        )
+        .into_response());
     }
     // The runner mints the id. A client that chose its own would be choosing this server's primary
     // key and a URL path segment, and `resume_or_start` does not validate one — an unknown id
@@ -663,7 +676,14 @@ pub async fn serve(server: SvipallServer, bind: &str, port: u16) -> anyhow::Resu
     // finds out a crawl was killed rather than finished.
     let runner = JobRunner::new(server.clone(), server.config().max_jobs);
     runner.start();
-    let app = router(server, runner, key.as_str(), bind);
+    let reaper = server.clone();
+    let housekeeping = tokio::spawn(async move {
+        loop {
+            tokio::time::sleep(std::time::Duration::from_secs(60)).await;
+            reaper.reap_configuration().await;
+        }
+    });
+    let app = router(server.clone(), runner, key.as_str(), bind);
     let listener = tokio::net::TcpListener::bind(format!("{bind}:{port}"))
         .await
         .map_err(|e| anyhow::anyhow!("cannot listen on {bind}:{port}: {e}"))?;
@@ -698,5 +718,7 @@ pub async fn serve(server: SvipallServer, bind: &str, port: u16) -> anyhow::Resu
             let _ = tokio::signal::ctrl_c().await;
         })
         .await?;
+    housekeeping.abort();
+    server.shutdown_configuration().await;
     Ok(())
 }

@@ -1,7 +1,7 @@
 //! Loader for `~/.svipall/config.toml`. Every field has a default, so a missing or
 //! partial file is fine.
 
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
 
 /// Where svipall keeps everything: the config, the cache, browser profiles and learned state.
@@ -17,7 +17,7 @@ pub fn home_dir() -> PathBuf {
     }
 }
 
-#[derive(Debug, Clone, Deserialize)]
+#[derive(Debug, Clone, Deserialize, Serialize)]
 #[serde(default)]
 pub struct Config {
     /// Port for the embedded captcha API and human dashboard.
@@ -30,6 +30,20 @@ pub struct Config {
     pub log_level: String,
     /// Chromium-based browser executable. Empty = auto-detect (Chrome, Edge, Brave, Chromium).
     pub browser_path: String,
+    /// `auto` learns emulated routes first and allows one native fallback. `emulated` never
+    /// falls back; `native` exposes real browser characteristics from the first browser visit.
+    pub browser_identity: String,
+    /// Allow the last-resort native route in auto. Never used for isolated/mobile/named sessions.
+    pub auto_native_fallback: bool,
+    /// Maximum transport attempts in one automatic fetch, including native fallback.
+    pub auto_max_attempts: usize,
+    /// Maximum top-level visits per domain and exit in a rolling window; subresources excluded.
+    pub request_limit: u32,
+    pub request_window_seconds: u64,
+    pub request_cooldown_seconds: u64,
+    pub request_min_interval_ms: u64,
+    /// Provision the managed browser on startup when no local browser is available.
+    pub browser_auto_install: bool,
     /// Highest tier `mode=auto` may climb to: http | browser | stealth | real | warm.
     pub max_tier: String,
     /// If non-empty, nothing outside these origins is fetched.
@@ -83,6 +97,10 @@ pub struct Config {
     pub browser_timeout_ms: u64,
     /// How long the `warm` tier keeps waiting for a challenge to clear on its own, in ms.
     pub warm_wait_ms: u64,
+    /// Extend only progressing challenges, bounded by this total warm budget and the caller's
+    /// overall request deadline. Proof-of-work gets enough time for at most one renewal.
+    pub warm_adaptive: bool,
+    pub warm_max_wait_ms: u64,
     /// Idle pooled browsers are closed after this many seconds.
     pub browser_idle_secs: u64,
     /// How many cleared pages may be held open between fetches. An offscreen tab with a live
@@ -147,6 +165,14 @@ impl Default for Config {
             solver_workers: 4,
             log_level: "info".into(),
             browser_path: String::new(),
+            browser_identity: "auto".into(),
+            auto_native_fallback: true,
+            auto_max_attempts: 6,
+            request_limit: 12,
+            request_window_seconds: 60,
+            request_cooldown_seconds: 900,
+            request_min_interval_ms: 1000,
+            browser_auto_install: true,
             max_tier: "warm".into(),
             allow_origins: Vec::new(),
             block_origins: Vec::new(),
@@ -164,6 +190,8 @@ impl Default for Config {
             ],
             browser_timeout_ms: 45_000,
             warm_wait_ms: 20_000,
+            warm_adaptive: true,
+            warm_max_wait_ms: 55_000,
             browser_idle_secs: 180,
             warm_keep_max: 2,
             warm_keep_secs: 120,
@@ -259,18 +287,139 @@ pub fn api_key() -> (String, KeySource) {
 }
 
 pub fn load() -> Config {
-    let path = home_dir().join("config.toml");
-    match std::fs::read_to_string(&path) {
-        Ok(s) => toml::from_str(&s).unwrap_or_else(|e| {
-            tracing::warn!("{} is invalid ({}); using defaults", path.display(), e);
-            Config::default()
-        }),
-        Err(_) => Config::default(),
+    load_in(&home_dir()).unwrap_or_else(|e| {
+        tracing::warn!("invalid configuration ({e}); using defaults");
+        Config::default()
+    })
+}
+
+/// The CLI-owned overlay leaves the user's config.toml and its comments intact.
+pub fn load_in(home: &std::path::Path) -> anyhow::Result<Config> {
+    let mut value = serde_json::to_value(Config::default())?;
+    for name in ["config.toml", "settings.toml"] {
+        let path = home.join(name);
+        match std::fs::read_to_string(&path) {
+            Ok(text) => {
+                let table: toml::Table = toml::from_str(&text)?;
+                for (key, v) in table {
+                    anyhow::ensure!(value.get(&key).is_some(), "unknown setting: {key}");
+                    value[&key] = serde_json::to_value(v)?;
+                }
+            }
+            Err(e) if e.kind() == std::io::ErrorKind::NotFound => {}
+            Err(e) => return Err(e.into()),
+        }
     }
+    let cfg: Config = serde_json::from_value(value)?;
+    cfg.validate()?;
+    Ok(cfg)
+}
+
+impl Config {
+    pub fn validate(&self) -> anyhow::Result<()> {
+        anyhow::ensure!(
+            matches!(
+                self.browser_identity.as_str(),
+                "auto" | "emulated" | "native"
+            ),
+            "browser_identity must be auto, emulated or native"
+        );
+        anyhow::ensure!(
+            self.auto_max_attempts > 0 && self.auto_max_attempts <= 6,
+            "auto_max_attempts must be between 1 and 6"
+        );
+        anyhow::ensure!(self.request_limit > 0 && self.request_window_seconds > 0
+            && self.request_window_seconds <= 86400 && self.request_cooldown_seconds > 0
+            && self.request_cooldown_seconds <= 604800 && self.request_min_interval_ms > 0
+            && self.request_min_interval_ms <= 60000,
+            "request limits must be positive; window <= 1 day, cooldown <= 7 days, interval <= 60000ms");
+        anyhow::ensure!(
+            crate::types::TIERS.contains(&self.max_tier.as_str()),
+            "invalid max_tier"
+        );
+        anyhow::ensure!(
+            matches!(
+                self.http_engine.as_str(),
+                "auto" | "reqwest" | "impersonate"
+            ),
+            "invalid http_engine"
+        );
+        anyhow::ensure!(
+            self.parallelism > 0 && self.max_jobs > 0,
+            "concurrency must be positive"
+        );
+        anyhow::ensure!(
+            self.warm_wait_ms > 0 && self.warm_max_wait_ms >= self.warm_wait_ms,
+            "warm_max_wait_ms must be at least warm_wait_ms, both positive"
+        );
+        anyhow::ensure!(
+            self.browser_timeout_ms > 0,
+            "browser_timeout_ms must be positive"
+        );
+        anyhow::ensure!(
+            self.warm_keep_max == 0
+                || (self.warm_keep_secs > 0 && self.warm_keep_secs < self.browser_idle_secs),
+            "held-page lifetime must be positive and shorter than browser_idle_secs"
+        );
+        Ok(())
+    }
+}
+
+pub fn update_in(home: &std::path::Path, patch: serde_json::Value) -> anyhow::Result<Config> {
+    let mut value = serde_json::to_value(load_in(home)?)?;
+    let patch = patch
+        .as_object()
+        .ok_or_else(|| anyhow::anyhow!("settings must be a JSON object"))?;
+    for (key, v) in patch {
+        anyhow::ensure!(value.get(key).is_some(), "unknown setting: {key}");
+        value[key] = v.clone();
+    }
+    let cfg: Config = serde_json::from_value(value)?;
+    cfg.validate()?;
+    let path = home.join("settings.toml");
+    let mut overlay: toml::Table = match std::fs::read_to_string(&path) {
+        Ok(s) => toml::from_str(&s)?,
+        Err(e) if e.kind() == std::io::ErrorKind::NotFound => toml::Table::new(),
+        Err(e) => return Err(e.into()),
+    };
+    for (key, v) in patch {
+        overlay.insert(key.clone(), toml::Value::try_from(v)?);
+    }
+    std::fs::create_dir_all(home)?;
+    let tmp = home.join(format!("settings-{}.tmp", uuid::Uuid::new_v4()));
+    std::fs::write(&tmp, toml::to_string_pretty(&overlay)?)?;
+    std::fs::rename(&tmp, &path)?;
+    Ok(cfg)
 }
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn settings_are_validated_and_do_not_rewrite_user_configuration() {
+        let dir = std::env::temp_dir().join(format!("svipall-settings-{}", uuid::Uuid::new_v4()));
+        std::fs::create_dir_all(&dir).unwrap();
+        let original = "# keep this comment\nparallelism = 2\n";
+        std::fs::write(dir.join("config.toml"), original).unwrap();
+        let cfg = update_in(
+            &dir,
+            serde_json::json!({"browser_identity":"native","warm_keep_max":4}),
+        )
+        .unwrap();
+        assert_eq!(cfg.parallelism, 2);
+        assert_eq!(load_in(&dir).unwrap().browser_identity, "native");
+        assert_eq!(
+            std::fs::read_to_string(dir.join("config.toml")).unwrap(),
+            original
+        );
+        assert!(update_in(&dir, serde_json::json!({"browser_identity":"wrong"})).is_err());
+        assert!(update_in(&dir, serde_json::json!({"paralellism":3})).is_err());
+        assert!(update_in(&dir, serde_json::json!({"warm_max_wait_ms":1})).is_err());
+        assert_eq!(load_in(&dir).unwrap().browser_identity, "native");
+        update_in(&dir, serde_json::json!({"parallelism":3})).unwrap();
+        assert_eq!(load_in(&dir).unwrap().parallelism, 3);
+        std::fs::remove_dir_all(dir).unwrap();
+    }
 
     #[test]
     fn the_kept_page_budget_expires_before_the_browser_that_holds_it() {

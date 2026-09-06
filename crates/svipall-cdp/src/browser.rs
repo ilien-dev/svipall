@@ -209,6 +209,7 @@ impl Browser {
         let (tx, rx) = channel(1);
 
         let handler_config = HandlerConfig {
+            worker_init_script: config.worker_init_script.clone(),
             ignore_https_errors: config.ignore_https_errors,
             viewport: config.viewport.clone(),
             context_ids: Vec::new(),
@@ -603,6 +604,8 @@ pub enum HeadlessMode {
 
 #[derive(Debug, Clone)]
 pub struct BrowserConfig {
+    /// Per-browser worker identity. Some("") deliberately leaves native workers untouched.
+    pub worker_init_script: Option<String>,
     /// Determines whether to run headless version of the browser. Defaults to
     /// true.
     headless: HeadlessMode,
@@ -888,6 +891,7 @@ impl BrowserConfigBuilder {
             launch_timeout: self.launch_timeout,
             ignore_https_errors: self.ignore_https_errors,
             viewport: self.viewport,
+            worker_init_script: None,
             request_timeout: self.request_timeout,
             args: self.args,
             disable_default_args: self.disable_default_args,

@@ -23,6 +23,17 @@
 use crate::session::{Session, Verdict};
 use std::time::{Duration, Instant};
 
+/// A recognised proof-of-work path needs time to reach the one-renewal threshold and receive
+/// the resulting page. Other walls start with the ordinary budget and extend only on progress.
+pub fn wait_budget_ms(base: u64, maximum: u64, adaptive: bool, proof_of_work: bool) -> u64 {
+    if adaptive && proof_of_work {
+        base.max(crate::classify::POW_TOKEN_LIFETIME_SECS * 1000 + 10_000)
+            .min(maximum)
+    } else {
+        base
+    }
+}
+
 struct Slot<T> {
     key: String,
     value: T,
@@ -171,6 +182,14 @@ pub fn should_keep(
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn renewal_has_time_but_never_exceeds_the_configured_budget() {
+        assert_eq!(wait_budget_ms(20_000, 55_000, true, true), 50_000);
+        assert_eq!(wait_budget_ms(20_000, 30_000, true, true), 30_000);
+        assert_eq!(wait_budget_ms(20_000, 55_000, true, false), 20_000);
+        assert_eq!(wait_budget_ms(20_000, 55_000, false, true), 20_000);
+    }
 
     const TTL: Duration = Duration::from_secs(120);
 
