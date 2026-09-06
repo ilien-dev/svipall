@@ -312,7 +312,7 @@ and Linux arm64** with a `sha256sums.txt` and a GitHub build attestation, and pu
 | **A developer building AI agents** | A local, deterministic, token-cheap web layer with structured output, file export and resumable crawls |
 | **A RAG / dataset builder** | Whole-site crawls to clean Markdown, near-duplicate removal, `llms.txt`, and a page-quality label on every document |
 | **A data or research person** | Pages that sit behind "checking your browser" walls — and an honest answer when your address cannot open one |
-| **A privacy-conscious operator** | No scraping API, no captcha farm, no geolocation lookup, no update check, no telemetry. The only things it ever fetches other than your pages are the browser you asked it to install and the blocklists you enabled |
+| **A privacy-conscious operator** | No scraping API, no captcha farm, no geolocation lookup, no update check, no telemetry. Additional downloads are the managed browser when needed (automatic provisioning can be disabled) and the blocklists you enabled |
 | **A security or QA engineer** testing your own site | A reproducible benchmark whose raw run logs are committed in this repository, and a request log that names which tier answered and which wall appeared |
 
 Svipall is **not** a hosted scraping API and does not try to be one. If you want a URL you can `curl`
@@ -441,16 +441,23 @@ and the script says so rather than letting the benchmark score an empty corpus.
 
 `public31` is the list an independent benchmark published in May 2026 — seven stealth tools, 31
 targets, 651 verdicts — scored with **that benchmark's own four-way rule** (`ok | gated | blocked |
-error`) ported verbatim into `bench/src/targets.rs`, so a cell here means what a cell there means.
+error`) implemented in `bench/src/targets.rs`. The historical figures below retain their original
+rule. Current scoring rejects missing or invalid HTTP statuses; the new comparison records both
+rules and content delivery separately in [the local experiment](bench/experiments/local-20260905/README.md).
+
+The completed [local before/after comparison](bench/experiments/local-20260905/findings.md) contains
+918 samples across three configurations. Native mode raises `hard12` delivery from 9/12 first and
+8/12 returning visits to 11/12 on both. The changed default has mixed results, including a Zillow
+delivery regression and longer difficult-set waits. Content limitations, ranges and null results
+are reported alongside the gains; the historical table below remains unchanged.
 
 | | runs | median | range | `blocked` verdicts |
 |---|---|---|---|---|
 | **Svipall** | 25, 26, 26 | **26 / 31** | 25..26 | **0** |
 
-Zero `blocked` is the column that matters: 77 `ok` and 16 `gated` across 93 cells, and not one
-cell where a site made a decision about *this address* rather than about a request. The benchmark
-this list comes from published a `blocked` column for all seven tools it measured, and only one of
-them reached zero:
+Those runs recorded 77 `ok`, 16 `gated` and zero `blocked` labels across 93 cells. These labels
+describe returned pages; they do not reveal whether a remote decision depended on the IP address,
+browser or request. The source benchmark also published a `blocked` column:
 
 | | OK | gated | **blocked** |
 |---|---|---|---|
@@ -470,8 +477,8 @@ not offered as if they were.** What *is* checkable here is the porting: the targ
 four-way rule live in [`bench/src/targets.rs`](bench/src/targets.rs), so you can read exactly what
 Svipall's own row was scored under and re-run it yourself.
 
-The `blocked` column is the one that survives the comparison, because it is the failure that costs
-something: a gate is a retry, a hard block is an address the site has decided about.
+The `blocked` counts are subject to the same differences in machine, address, time and measurement
+conditions as the success counts. They do not establish a ranking between these tools.
 
 Twenty-five of these 31 targets pass for every tool measured there, *including unpatched
 automation*; the signal lives in six cells. Resolved by tier across three runs: `http` 44, `real`
@@ -563,19 +570,17 @@ Beyond the score:
 
 ### What Svipall does **not** get past, and why
 
-These are honest failures. Each was investigated by hand rather than retried, and each is decided on
-the server's side by something the tool cannot change from a single home connection.
+These failures were investigated on one connection. Remote history may contribute, but local
+experiments cannot isolate all server-side signals or prove that an address change is necessary.
 
-| Site | What actually happens | Why Svipall cannot fix it |
+| Site | What actually happens | What the evidence supports |
 |---|---|---|
-| **g2.com**, **idealista.com** | The interstitial carries the verdict `'t':'bv'` — *blocked visitor* — in the top document. That is a hard block, not a challenge; no slider is ever offered | The verdict is **IP reputation**. It persisted with a clean Chrome for Testing, a fresh profile and a rotated machine identity, and both of these sites name this IP on the page. The same address gets a *solvable* challenge (`'t':'fe'`) only over bare HTTP, which cannot run the widget. Only another exit address changes the answer |
-| **crunchbase.com** | Passed at six seconds early in the day; refuses the same code, on a fresh profile wearing a different machine, after fifteen visits within the hour | The decision is **per visit and per address**, taken server-side from traffic history. Svipall behaves correctly on the page and the outcome still depends on how the address has been scored that hour |
+| **g2.com**, **idealista.com** | The interstitial carries the verdict `'t':'bv'` — *blocked visitor* — in the top document; no slider is offered | Refusal persisted with a clean browser, fresh profile and rotated identity. Bare HTTP received a different challenge verdict on the same address. This is compatible with several combined signals and does not establish IP reputation as the sole cause |
+| **crunchbase.com** | Passed at six seconds early in the day; refuses the same code, on a fresh profile wearing a different machine, after fifteen visits within the hour | The outcome changed with time and accumulated visits. That suggests history matters, but the run did not isolate its cause from other server or browser conditions |
 | **indeed.com** | Not a fixed answer at all: 0 of 3 on `hard12` (2026-09-04), 2 of 3 on `public31` the next day, and 1 of 3 in an earlier round | Same shape as crunchbase. `indeed`, `crunchbase` and `zillow` have swapped places across four measurement rounds: this is the noise band of a list run from one address, not a code change, which is why it is listed here rather than counted as a pass |
 
-> Svipall's answer to all of these is `web_route` — send the domain through a
-> residential proxy *you* supply — and that is the one thing a local-only tool cannot provide for
-> itself. It will never bundle proxies, never call a captcha farm, and never report a block as a
-> success.
+> `web_route` can test an alternate exit supplied by the operator, without guaranteeing acceptance.
+> Svipall does not bundle proxies or remote solving services. The local comparison uses neither.
 >
 > `evasion --exit URL` runs the same targets through an exit you supply, so *"Svipall cannot"* can be
 > separated from *"this address cannot"*. **No committed baseline has ever used it** — every one
@@ -863,8 +868,8 @@ a spent session is retired rather than changing its face on every request.*
 - **Crawls that only fetch what moved** — `--since-last` compares sitemap `<lastmod>` against the
   page cache. A URL with no `lastmod` is fetched, because silence is not "unchanged".
 - **Politeness that adapts** — the gap between requests is tuned per domain from the host's own
-  latency and refusals (100 ms–2 s on HTTP, 400 ms–5 s on browser tiers), `Retry-After` is honoured
-  up to two minutes, and beyond that the domain gets a visible cooldown.
+  latency and refusals, with a default one-second minimum. HTTP 429/503 stops escalation;
+  the full `Retry-After` or the configured cooldown, whichever is longer, is persisted.
 - **Concurrency sized to your machine** — browsers cost far more than HTTP requests, and a laptop
   asked to run six of them produces timeouts that look exactly like walls. Parallelism is tightened
   from core count and open browsers; it is never raised above what the config allows.
@@ -1195,10 +1200,57 @@ Most of these are permanent and deliberate; one is a build you have to ask for, 
 ## Configuration
 
 Use `svipall config show`, `svipall config set key=value`, or `svipall config preset local`.
-The experimental `native` preset keeps the browser's actual hardware identity. Connected MCP
+The default identity policy is `auto`: learn useful emulated routes first, with at most one native
+browser attempt as a last resort. Existing explicit `emulated` or `native` settings are preserved;
+use `svipall config preset auto` to migrate an existing installation. Connected MCP
 clients can save browser policy through `web_status` with a `configure` object; running MCP/REST
 servers apply it on the next request. See [local configuration and sessions](docs/local-configuration.md)
 for identity modes, bounded waits, browser provisioning and which settings apply live.
+
+### Automatic routing, privacy and practical limits
+
+No per-site setup is required. Automatic fetches learn locally by domain, route family, exit and
+browser environment. Successful delivery with full content quality and observed latency can
+promote an emulated route after two supporting observations. Repeated failures demote it; evidence
+expires after 24 hours. Routes that repeatedly fail are skipped for 30 minutes; the strongest
+allowed emulated probe remains available, and a repeatedly failing native fallback is also paused.
+This is a heuristic: it cannot prove that the requested information is
+complete or guarantee the best route or a successful fetch. Short pages are returned with quality
+labels and do not, by themselves, trigger a native attempt.
+
+Privacy takes priority over delivery scores: even a successful native route stays last. Automatic
+native fallback is excluded for named profiles, isolated visits, mobile requests, forced tiers and
+non-GET requests. Native and emulated automatic profiles use separate directories and cookie jars.
+Login walls, subscriptions, missing pages and rate limits stop escalation.
+
+**Native mode exposes real browser/device characteristics**, potentially including graphics,
+hardware capabilities, screen, language and timezone. Sites can correlate these across visits and
+cookie profiles. Emulation reduces some exposure but guarantees neither anonymity nor IP hiding.
+The browser uses tool-managed profiles, and its sandbox remains enabled. Launch flags no longer
+request disabling site isolation, client phishing detection or IPC flooding protection. Browser
+updates and host configuration still matter. Results report `identity_used`, `native_fallback`
+and a `privacy_notice` whenever native fallback was attempted, even if it failed. To prevent all automatic native
+fallback, run `svipall config set auto_native_fallback=false`; `browser_identity=emulated` also
+keeps browser requests emulated. Explicit `browser_identity=native` is a separate manual override.
+
+Defaults permit **12 top-level transport attempts per 60 seconds per domain and exit**, a minimum
+**1 second between scheduled attempts**, and **6 attempts per automatic fetch**, within its total
+timeout. Exceeding the visit window starts a **15-minute cooldown**. HTTP 429/503 stops escalation
+and persists a cooldown of at least 15 minutes, or the full `Retry-After` when longer. Rejected calls
+do not prolong that cooldown. The existing decaying address budget can stop work sooner.
+
+The visit ledger is transactional and persists across restarts. Changing identity or forcing a
+tier does not reset it. Successful cache hits do not consume visits. Returned pages are preserved
+when further attempts are refused, with `stopped_reason` and `cooldown_seconds_left`; callers should
+wait instead of repeatedly retrying. The legacy `clear_cooldown` action does not erase this ledger.
+These limits reduce traffic and exposure; they cannot promise that a site will not block an IP.
+
+The accounting unit is a fetch attempt or supported browser-tool navigation, **not every network
+request**: resource loads, redirects, origin warmup, challenge exchanges, scripts and interactive
+actions can generate additional traffic. Local development hosts are exempt. This is not a browser
+firewall or a universal request ceiling. Adjust limits through `svipall config set` or
+`web_status(configure={...})`; `svipall status` reports the effective limits. Learning and admission
+need no third-party solver, service, API key or downloaded learning model.
 
 `~/.svipall/config.toml` (or `$SVIPALL_HOME/config.toml`). Every field has a default, so a missing or
 partial file is fine. Everything Svipall remembers lives in that one directory, and deleting any of
@@ -1210,6 +1262,8 @@ it costs memory rather than function:
 | `settings.toml` | Validated settings saved by CLI/MCP, overriding `config.toml` |
 | `secrets.env` | Credentials referenced by name; the values never enter a tool call |
 | `domain_tiers.json` | Which tier answered for each domain, so the next fetch starts there |
+| `automatic_routes.json` | Local route evidence under hashed context keys, expiring after 24 hours |
+| `traffic.sqlite3` | Transactional visit windows and cooldowns, shared across modes and processes |
 | `pools.json`, `exit_health.json` | Exits per domain, and what each one has done on each |
 | `reputation.json` | What each address has spent with each host, decaying with a half-life |
 | `svipall.db` | Page cache, crawl frontiers, notes, watches, quality histograms and the request log |
@@ -1231,7 +1285,13 @@ browser_path = ""            # wins over everything when set and the file exists
                              # ~/.svipall/browser, then auto-detection
 max_tier = "warm"            # cap for mode=auto
 browser_auto_install = true  # provision a managed browser on startup if none is installed
-browser_identity = "emulated" # native keeps the browser's own hardware identity and JS APIs
+browser_identity = "auto"    # emulated routes first; native only as a last resort
+auto_native_fallback = true # false prohibits automatic real-device exposure
+auto_max_attempts = 6       # per automatic fetch, including native; valid range 1..6
+request_limit = 12          # top-level attempts per domain and exit in the window
+request_window_seconds = 60
+request_cooldown_seconds = 900
+request_min_interval_ms = 1000
 browser_timeout_ms = 45000
 warm_wait_ms = 20000         # how long `warm` waits for a challenge to clear
 warm_adaptive = true         # allow recognized proof-of-work to reach one renewal
@@ -1512,8 +1572,8 @@ drive. MCP is one front end of three, not the product.
 <details>
 <summary><b>Will it get my IP blocked?</b></summary>
 
-It can, and the tool is built around that being the scarce resource. Every request is paced per
-domain from that host's own latency and refusals, `Retry-After` is honoured up to two minutes, a
+It can, and the tool is built around that being the scarce resource. Top-level attempts are paced
+per domain and exit, a persistent visit window limits bursts, full `Retry-After` backoff is kept, a
 hard block puts the domain on a 15-minute cooldown, and a reputation ledger tracks what each address
 has spent with each host and decays it with a six-hour half-life. Two crawls of the same site cannot
 run at once for exactly this reason. None of that makes you invisible — this project's own benchmark
