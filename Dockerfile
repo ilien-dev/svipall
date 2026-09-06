@@ -71,11 +71,11 @@ RUN if [ "$FLAVOR" = "full" ]; then \
 ENV RUSTFLAGS="-C target-cpu=x86-64-v2"
 RUN case "$(uname -m)" in aarch64) export RUSTFLAGS="" ;; esac; \
     if [ "$FLAVOR" = "full" ]; then \
-        features="--features onnx-ocr,onnx-grid,onnx-audio,onnx-detect,onnx-segment,onnx-zeroshot"; \
+        features="--features impersonate,onnx-ocr,onnx-grid,onnx-audio,onnx-detect,onnx-segment,onnx-zeroshot"; \
     else \
-        features=""; \
+        features="--features impersonate"; \
     fi; \
-    cargo build --profile dist --bin svipall-mcp --bin svipall $features \
+    cargo build --no-default-features --profile dist --bin svipall-mcp --bin svipall $features \
     && mkdir -p /out && cp target/dist/svipall-mcp target/dist/svipall /out/
 
 # ---------------------------------------------------------------------------------------------

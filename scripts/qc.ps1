@@ -50,8 +50,9 @@ if (Get-Command cargo-machete -ErrorAction SilentlyContinue) {
   Write-Host "`n=== cargo-machete (skipped) ===" -ForegroundColor Yellow
   Write-Host "install with: cargo install cargo-machete"
 }
-# CLAUDE.md size guard.
+# Agent instruction size guards.
 Step 'CLAUDE.md size'         { & (Join-Path $PSScriptRoot 'check-claude-md.ps1') }
+Step 'AGENTS.md size'         { & (Join-Path $PSScriptRoot 'check-claude-md.ps1') -Path (Join-Path $root 'AGENTS.md') }
 # The marketplace and the plugin manifests, if the CLI that reads them is here. Skipped rather than
 # failed when it is not: this gate has to pass on a machine that has never installed Claude Code.
 if (Get-Command claude -ErrorAction SilentlyContinue) {

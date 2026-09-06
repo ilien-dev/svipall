@@ -4,11 +4,11 @@
 #
 # It downloads a release build, checks it against the published sha256, puts both binaries in a
 # directory this user owns, and tells you what it touched. It never needs an administrator, never
-# writes outside $Prefix and your own user PATH, and never downloads a browser without asking.
+# writes outside $Prefix and your own user PATH. Browser provisioning is managed by svipall.
 #
 # With arguments, run it as a file rather than through `iex`:
 #   .\install.ps1 -Version v1.0.0 -Prefix C:\tools\svipall -Yes
-#   .\install.ps1 -NoBrowser        # never offer the ~190 MB Chrome for Testing download
+#   .\install.ps1 -NoBrowser        # disable automatic browser provisioning
 #   .\install.ps1 -Uninstall
 #
 # Windows PowerShell 5.1 and PowerShell 7 both work.
@@ -34,15 +34,26 @@ $repo = 'ilien-dev/svipall'
 function Say($msg) { Write-Host $msg }
 function Die($msg) { Write-Host "svipall: $msg" -ForegroundColor Red; exit 1 }
 
-function Confirm-Step($question) {
-    if ($Yes) { return $true }
-    if (-not [Environment]::UserInteractive) { return $false }
-    $answer = Read-Host "$question [y/N]"
-    return $answer -match '^(y|yes)$'
+function Runtime-Files($directory) {
+    $manifestPath = Join-Path $directory 'windows-runtime.json'
+    if (!(Test-Path -LiteralPath $manifestPath)) { return @() }
+    $manifest = Get-Content -LiteralPath $manifestPath -Raw | ConvertFrom-Json
+    foreach ($entry in $manifest.files) {
+        if ($entry.name -notmatch '^[A-Za-z0-9_]+\.dll$' -or $entry.sha256 -notmatch '^[A-Fa-f0-9]{64}$') {
+            throw 'Invalid Windows runtime manifest'
+        }
+        $path = Join-Path $directory $entry.name
+        if ((Test-Path -LiteralPath $path) -and (Get-FileHash -LiteralPath $path -Algorithm SHA256).Hash -eq $entry.sha256) {
+            $path
+        } elseif (!$Uninstall) { throw "Runtime file missing or changed: $($entry.name)" }
+    }
 }
 
 if ($Uninstall) {
     $removed = $false
+    foreach ($runtime in (Runtime-Files $Prefix)) { Remove-Item -LiteralPath $runtime -Force }
+    $manifestPath = Join-Path $Prefix 'windows-runtime.json'
+    if (Test-Path -LiteralPath $manifestPath) { Remove-Item -LiteralPath $manifestPath -Force }
     foreach ($b in 'svipall.exe', 'svipall-mcp.exe') {
         $p = Join-Path $Prefix $b
         if (Test-Path -LiteralPath $p) { Remove-Item -LiteralPath $p -Force; Say "removed $p"; $removed = $true }
@@ -130,6 +141,9 @@ try {
     try { Unblock-File -LiteralPath $archive -ErrorAction SilentlyContinue } catch {}
     Expand-Archive -LiteralPath $archive -DestinationPath $unpack -Force
     New-Item -ItemType Directory -Force -Path $Prefix | Out-Null
+    foreach ($runtime in (Runtime-Files $unpack)) { Copy-Item -LiteralPath $runtime -Destination $Prefix -Force }
+    $manifestPath = Join-Path $unpack 'windows-runtime.json'
+    if (Test-Path -LiteralPath $manifestPath) { Copy-Item -LiteralPath $manifestPath -Destination $Prefix -Force }
     foreach ($b in 'svipall.exe', 'svipall-mcp.exe') {
         $src = Join-Path $unpack $b
         if (-not (Test-Path -LiteralPath $src)) { Die "$b is missing from the archive" }
@@ -161,22 +175,23 @@ try {
     & $exe --version
     if ($LASTEXITCODE -ne 0) { Die 'the installed binary does not run' }
     Say ''
-    $report = & $exe doctor 2>$null
+    # Windows PowerShell 5.1 turns redirected native stderr into ErrorRecords. A diagnostic
+    # warning must not abort installation under the script's Stop preference.
+    $savedPreference = $ErrorActionPreference
+    try {
+        $ErrorActionPreference = 'Continue'
+        $report = & $exe doctor 2>$null
+    } finally { $ErrorActionPreference = $savedPreference }
     $report | Write-Host
 
-    if (-not $NoBrowser -and $report -match '"code":\s*"no_browser"') {
-        Say ''
-        Say 'No browser was found. Without one, only the plain http tier works and any page behind'
-        Say 'a challenge stays blocked. Chrome for Testing is about 190 MB.'
-        Say '(Microsoft Edge ships with Windows and svipall will use it, so this may already be'
-        Say 'answered - check the doctor output above.)'
-        # Asked, never assumed. 190 MB is not something to spend on somebody's connection
-        # because they passed -Yes to get past a PATH question.
-        if ($Browser -or (Confirm-Step 'Download Chrome for Testing now?')) {
-            & $exe browser install
-        } else {
-            Say 'Skipped. Run `svipall browser install` whenever you want it.'
-        }
+    if ($NoBrowser) {
+        & $exe config set browser_auto_install=false
+        if ($LASTEXITCODE -ne 0) { Die 'could not disable automatic browser provisioning' }
+    } elseif ($Browser) {
+        & $exe browser install
+        if ($LASTEXITCODE -ne 0) { Die 'browser installation failed' }
+    } elseif ($report -match '"code":\s*"no_browser"') {
+        Say 'svipall will provision a managed browser automatically on first startup.'
     }
 
     Say ''
@@ -191,5 +206,9 @@ try {
     Say "  /plugin marketplace add $repo"
     Say '  /plugin install svipall@svipall'
 } finally {
-    Remove-Item -LiteralPath $tmp -Recurse -Force -ErrorAction SilentlyContinue
+    $resolvedTmp = [IO.Path]::GetFullPath($tmp)
+    $tempRoot = [IO.Path]::GetFullPath([IO.Path]::GetTempPath()).TrimEnd('\') + '\'
+    if (!$resolvedTmp.StartsWith($tempRoot, [StringComparison]::OrdinalIgnoreCase) -or
+        [IO.Path]::GetFileName($resolvedTmp) -notmatch '^svipall-[a-f0-9]{32}$') { throw 'Unexpected installer temporary path' }
+    Remove-Item -LiteralPath $resolvedTmp -Recurse -Force -ErrorAction SilentlyContinue
 }

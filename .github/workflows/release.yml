@@ -144,6 +144,13 @@ jobs:
           fi
           cargo build --no-default-features --profile dist --target ${{ matrix.target }} --bin svipall-mcp --bin svipall $feats
 
+      - name: Stage Windows runtime
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          ./scripts/stage-windows-runtime.ps1 -Directory 'C:/t/${{ matrix.target }}/dist'
+          ./scripts/test-windows-runtime.ps1 -Directory 'C:/t/${{ matrix.target }}/dist'
+
       # Ad-hoc, because notarisation needs an Apple Developer ID this project does not have. It
       # stops the "damaged and can't be opened" dialog for a binary copied between machines; a
       # download through a browser still carries the quarantine flag, which docs/install.md says
@@ -207,11 +214,15 @@ jobs:
           cp "$CARGO_TARGET_DIR/${{ matrix.target }}/dist/svipall-mcp${{ matrix.ext }}" out/
           cp "$CARGO_TARGET_DIR/${{ matrix.target }}/dist/svipall${{ matrix.ext }}" out/
           cp README.md LICENSE skill/SKILL.md out/
+          if [ "${{ runner.os }}" = "Windows" ]; then
+            cp "$CARGO_TARGET_DIR/${{ matrix.target }}/dist/"*.dll out/
+            cp "$CARGO_TARGET_DIR/${{ matrix.target }}/dist/windows-runtime.json" out/
+          fi
           cd out
           name="svipall-$VERSION-${{ matrix.target }}"
           files="svipall-mcp${{ matrix.ext }} svipall${{ matrix.ext }} README.md LICENSE SKILL.md"
           if [ "${{ runner.os }}" = "Windows" ]; then
-            7z a -tzip "$name.zip" $files
+            7z a -tzip "$name.zip" $files *.dll windows-runtime.json
           else
             tar -czf "$name.tar.gz" $files
           fi
