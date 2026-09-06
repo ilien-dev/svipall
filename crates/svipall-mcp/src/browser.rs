@@ -695,6 +695,79 @@ pub struct PageOpts {
 pub struct Pooled {
     browser: Mutex<Browser>,
     last_used: Mutex<Instant>,
+    /// A directory made for this browser alone, when the caller named no profile. Deleted when
+    /// the browser is shut down; a named profile outlives its browser and is never touched here.
+    scratch: Option<PathBuf>,
+}
+
+impl Pooled {
+    /// Close the browser and return only once its process has left.
+    ///
+    /// `Browser.close` is answered before the process exits, and the profile directory stays
+    /// locked until it has: a launch on the same directory in the next instant finds the lock and
+    /// dies with "failed to create a ProcessSingleton". Waiting here is what makes "shut down,
+    /// then open again" a sequence rather than a race. `graceful` sends `Browser.close` first;
+    /// a browser that no longer answers is simply killed.
+    async fn shut(&self, graceful: bool) {
+        {
+            let mut b = self.browser.lock().await;
+            if graceful {
+                let _ = tokio::time::timeout(Duration::from_secs(5), b.close()).await;
+            }
+            match tokio::time::timeout(Duration::from_secs(10), b.wait()).await {
+                Ok(_) => {}
+                Err(_) => {
+                    let _ = b.kill().await;
+                }
+            }
+        }
+        if let Some(dir) = &self.scratch {
+            // The process is gone, so nothing holds the directory any more. Best effort even so:
+            // a leftover costs disk, not a fetch.
+            let _ = std::fs::remove_dir_all(dir);
+        }
+    }
+
+    async fn close(&self) {
+        self.shut(true).await;
+    }
+}
+
+/// Where a browser with no profile of its own keeps its files: a directory nobody else has.
+///
+/// The CDP layer would otherwise send every such browser to one shared temporary directory, and
+/// Chrome refuses to start on a directory another instance holds (exit status 21). Two pools in
+/// one process, two processes on one machine, or one pool opened again before its predecessor
+/// has finished exiting: each was a launch that failed for a reason the caller could not see.
+pub fn scratch_profile() -> PathBuf {
+    sessions_dir().join(format!("scratch-{}", uuid::Uuid::new_v4().simple()))
+}
+
+/// Why a window cannot be opened here, or `None` when it can.
+///
+/// Headful Chrome on Linux needs a display and exits within a second without one, saying so only
+/// on stderr. Asked before the launch, so the attempt line names the actual problem instead of
+/// "browser process exited". `env` is read through a closure so the rule is testable without
+/// touching the process environment.
+pub fn no_display(
+    headless: bool,
+    linux: bool,
+    env: impl Fn(&str) -> Option<String>,
+) -> Option<String> {
+    if headless || !linux {
+        return None;
+    }
+    let set = |k: &str| env(k).is_some_and(|v| !v.trim().is_empty());
+    if set("DISPLAY") || set("WAYLAND_DISPLAY") {
+        return None;
+    }
+    Some(
+        concat!(
+        "this tier opens a window and no display is available ",
+        "(DISPLAY and WAYLAND_DISPLAY are both unset); run under Xvfb or keep max_tier at stealth"
+    )
+        .to_string(),
+    )
 }
 
 pub struct Session {
@@ -1319,6 +1392,15 @@ impl BrowserPool {
         let exe = self.exe.clone().ok_or_else(|| {
             anyhow!("no Chromium-based browser found (set browser_path in ~/.svipall/config.toml)")
         })?;
+        if let Some(why) = no_display(opts.tier.headless(), cfg!(target_os = "linux"), |k| {
+            std::env::var(k).ok()
+        }) {
+            bail!("{why}");
+        }
+        // Every browser gets a directory: the caller's profile, or one of its own that goes when
+        // it does. See `scratch_profile` for what sharing one cost.
+        let scratch = opts.profile_dir.is_none().then(scratch_profile);
+        let profile_dir = opts.profile_dir.clone().or_else(|| scratch.clone());
         // The machine this process will be, decided here because the window and the screen are
         // launch-time facts. `key` carries the seed for exactly that reason.
         let id = self.identity_for(opts.proxy.as_deref(), opts.mobile, opts.identity_seed);
@@ -1355,7 +1437,7 @@ impl BrowserPool {
         if !opts.tier.headless() && !opts.visible {
             b = b.arg("--window-position=-32000,-32000");
         }
-        if let Some(dir) = &opts.profile_dir {
+        if let Some(dir) = &profile_dir {
             let _ = std::fs::create_dir_all(dir);
             b = b.user_data_dir(dir);
         }
@@ -1395,7 +1477,8 @@ impl BrowserPool {
             if !opts.tier.headless() && !opts.visible {
                 b = b.arg("--window-position=-32000,-32000");
             }
-            if let Some(dir) = &opts.profile_dir {
+            if let Some(dir) = &profile_dir {
+                let _ = std::fs::create_dir_all(dir);
                 b = b.user_data_dir(dir);
             }
             if let Some(proxy) = &opts.proxy {
@@ -1418,7 +1501,15 @@ impl BrowserPool {
         } else {
             identity_core_js(&id)
         });
-        let (browser, mut handler) = Browser::launch(config).await.context("launching browser")?;
+        let (browser, mut handler) = match Browser::launch(config).await {
+            Ok(launched) => launched,
+            Err(e) => {
+                if let Some(dir) = &scratch {
+                    let _ = std::fs::remove_dir_all(dir);
+                }
+                return Err(anyhow::Error::new(e).context("launching browser"));
+            }
+        };
         tokio::spawn(async move {
             // Newer Chromium builds emit CDP events this protocol version cannot decode; those
             // arrive as Err items but the connection is intact, so keep driving the handler.
@@ -1432,6 +1523,7 @@ impl BrowserPool {
         Ok(Arc::new(Pooled {
             browser: Mutex::new(browser),
             last_used: Mutex::new(Instant::now()),
+            scratch,
         }))
     }
 
@@ -1454,7 +1546,7 @@ impl BrowserPool {
                 return Ok(p);
             }
             pool.remove(&key);
-            let _ = p.browser.lock().await.kill().await;
+            p.shut(false).await;
         }
         let p = self.launch(opts).await?;
         pool.insert(key, p.clone());
@@ -2341,7 +2433,7 @@ impl BrowserPool {
         });
         let dedicated = self.pool.lock().await.remove(&key);
         if let Some(p) = dedicated {
-            let _ = p.browser.lock().await.close().await;
+            p.close().await;
         }
         if s.profile_dir.starts_with(sessions_dir()) {
             let _ = std::fs::remove_dir_all(&s.profile_dir);
@@ -2399,7 +2491,7 @@ impl BrowserPool {
             }
         }
         if !closed_by_user {
-            let _ = pooled.browser.lock().await.close().await;
+            pooled.close().await;
         }
         Ok(closed_by_user)
     }
@@ -2449,7 +2541,7 @@ impl BrowserPool {
             // browser key, so this is the browser's own pages and nobody else's.
             self.release_kept(|key| key.starts_with(&k)).await;
             if let Some(p) = self.pool.lock().await.remove(&k) {
-                let _ = p.browser.lock().await.close().await;
+                p.close().await;
                 tracing::info!("closed idle browser {}", k);
             }
         }
@@ -2474,7 +2566,7 @@ impl BrowserPool {
             // A page held on a profile the wall remembers is exactly the page not to reuse.
             self.release_kept(|key| key.starts_with(&k)).await;
             if let Some(p) = self.pool.lock().await.remove(&k) {
-                let _ = p.browser.lock().await.close().await;
+                p.close().await;
                 tracing::info!("closed browser on a retired profile {}", k);
             }
         }
@@ -2490,7 +2582,7 @@ impl BrowserPool {
     pub async fn shutdown(&self) {
         self.release_kept(|_| true).await;
         for (_, p) in self.pool.lock().await.drain() {
-            let _ = p.browser.lock().await.close().await;
+            p.close().await;
         }
     }
 }
@@ -2516,6 +2608,49 @@ pub fn save_png(url: &str, png: &[u8]) -> Result<String> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    /// Headful Chrome on Linux exits within a second when there is no display, and says so only
+    /// on stderr. The pool refuses first, in words, and only on Linux, only for a window.
+    #[test]
+    fn a_window_needs_a_display_on_linux_and_nowhere_else() {
+        let none = |_: &str| None;
+        let x11 = |k: &str| (k == "DISPLAY").then(|| ":0".to_string());
+        let wayland = |k: &str| (k == "WAYLAND_DISPLAY").then(|| "wayland-0".to_string());
+        let blank = |k: &str| (k == "DISPLAY").then(String::new);
+        assert!(
+            no_display(false, true, none).is_some(),
+            "headful, linux, nothing set"
+        );
+        assert!(
+            no_display(false, true, blank).is_some(),
+            "an empty DISPLAY is no display"
+        );
+        assert!(no_display(false, true, x11).is_none());
+        assert!(no_display(false, true, wayland).is_none());
+        assert!(
+            no_display(true, true, none).is_none(),
+            "headless needs none"
+        );
+        assert!(
+            no_display(false, false, none).is_none(),
+            "other systems bring their own"
+        );
+        let why = no_display(false, true, none).unwrap();
+        assert!(why.contains("DISPLAY") && why.contains("Xvfb"), "{why}");
+    }
+
+    /// Two browsers with no profile must never be pointed at the same directory.
+    #[test]
+    fn scratch_profiles_are_never_the_same_and_live_with_the_sessions() {
+        let (a, b) = (scratch_profile(), scratch_profile());
+        assert_ne!(a, b);
+        assert!(a.starts_with(sessions_dir()));
+        assert!(a
+            .file_name()
+            .unwrap()
+            .to_string_lossy()
+            .starts_with("scratch-"));
+    }
 
     /// Flags that no browser a person drives would ever carry, and which a page can read.
     ///

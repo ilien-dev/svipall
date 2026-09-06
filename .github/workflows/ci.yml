@@ -33,11 +33,24 @@ jobs:
         if: runner.os == 'Linux'
         run: |
           sudo apt-get update
-          sudo apt-get install -y build-essential cmake perl pkg-config libclang-dev
+          sudo apt-get install -y build-essential cmake perl pkg-config libclang-dev xvfb
 
+      # The warm and real tiers open a window, and a Linux runner has no display to open it on:
+      # headful Chrome exits within a second and the test sees only "launching browser". The
+      # Windows and macOS runners have a desktop session; this gives Linux one too, held for the
+      # rest of the job. `nohup` and the redirect so the runner does not wait on the server.
+      - name: Virtual display (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          nohup Xvfb :99 -screen 0 1920x1080x24 > /dev/null 2>&1 &
+          echo "DISPLAY=:99" >> $GITHUB_ENV
+
+      # No pkg-config: nothing built on Windows asks for it (native-tls is schannel there, and
+      # BoringSSL is cmake), and the package for it downloads over plain HTTP without a checksum,
+      # which Chocolatey now refuses on a bad day.
       - name: BoringSSL build dependencies (Windows)
         if: runner.os == 'Windows'
-        run: choco install cmake strawberryperl pkgconfiglite llvm nasm -y
+        run: choco install cmake strawberryperl llvm nasm -y --no-progress
         shell: cmd
 
       - name: BoringSSL build dependencies (macOS)

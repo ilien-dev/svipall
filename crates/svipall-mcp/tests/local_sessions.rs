@@ -169,3 +169,97 @@ async fn native_mode_keeps_real_apis_and_workers_even_after_an_emulated_pool() {
     }
     assert!(reports[1]["timezone"].is_string());
 }
+
+fn scratch_dirs() -> Vec<String> {
+    std::fs::read_dir(svipall_mcp::browser::sessions_dir())
+        .map(|d| {
+            d.flatten()
+                .map(|e| e.file_name().to_string_lossy().to_string())
+                .filter(|n| n.starts_with("scratch-"))
+                .collect()
+        })
+        .unwrap_or_default()
+}
+
+fn no_profile(seed: u64) -> PageOpts {
+    PageOpts {
+        tier: BrowserTier::Stealth,
+        profile_dir: None,
+        proxy: None,
+        visible: false,
+        mobile: false,
+        identity_seed: Some(seed),
+    }
+}
+
+/// A browser with no profile of its own used to land on one directory shared by every such
+/// browser on the machine, and Chrome refuses to start on a directory another instance holds
+/// (exit status 21). Two pools opened at the same moment must both come up, each on a directory
+/// of its own, and neither directory may outlive its browser.
+#[tokio::test]
+async fn browsers_without_a_profile_get_a_directory_each_and_leave_none_behind() {
+    support::isolate();
+    let a = BrowserPool::new(svipall_core::Config::default());
+    let b = BrowserPool::new(svipall_core::Config::default());
+    if !a.available() {
+        eprintln!("SKIP: no browser");
+        return;
+    }
+    let before = scratch_dirs().len();
+    let opts = no_profile(1);
+    let (pa, pb) = tokio::join!(a.page(&opts), b.page(&opts));
+    let (_, page_a) = pa.expect("first browser");
+    let (_, page_b) = pb.expect("second browser, at the same time");
+    assert_eq!(
+        scratch_dirs().len(),
+        before + 2,
+        "one directory per browser"
+    );
+    // Both really are separate processes on separate directories: a cookie set in one is
+    // invisible to the other.
+    let site = Site::start(vec![("/", article("Two browsers", ""))]).await;
+    a.navigate(&page_a, &site.url("/")).await.unwrap();
+    b.navigate(&page_b, &site.url("/")).await.unwrap();
+    page_a
+        .evaluate("document.cookie = 'shared=no'; document.cookie")
+        .await
+        .unwrap();
+    let seen: String = page_b
+        .evaluate("document.cookie")
+        .await
+        .unwrap()
+        .into_value()
+        .unwrap_or_default();
+    assert_eq!(seen, "");
+    a.shutdown().await;
+    b.shutdown().await;
+    assert_eq!(
+        scratch_dirs().len(),
+        before,
+        "a browser's scratch directory goes with it"
+    );
+}
+
+/// Shutting a pool down returns only once its browser process has left. Until then the profile
+/// directory is still locked, and the next launch on it — the very next line, in every test
+/// that opens one pool after another — fails to create the process singleton.
+#[tokio::test]
+async fn a_profile_is_free_the_moment_its_pool_has_shut_down() {
+    let home = support::isolate();
+    let dir = home.join("profiles").join("relaunch-at-once");
+    for round in 0..3 {
+        let pool = BrowserPool::new(svipall_core::Config::default());
+        if !pool.available() {
+            eprintln!("SKIP: no browser");
+            return;
+        }
+        let opts = PageOpts {
+            profile_dir: Some(dir.clone()),
+            ..no_profile(7)
+        };
+        pool.page(&opts)
+            .await
+            .unwrap_or_else(|e| panic!("round {round}: {e:#}"));
+        pool.shutdown().await;
+    }
+}
