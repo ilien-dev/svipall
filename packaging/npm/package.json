@@ -1,6 +1,6 @@
 {
   "name": "svipall",
-  "version": "1.0.0-rc",
+  "version": "1.0.0-rc.2",
   "description": "Local-first web scraping and captcha MCP server for AI agents. Downloads the release build for your platform.",
   "license": "AGPL-3.0-only",
   "author": "ilien <code@ilien.dev>",

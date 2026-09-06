@@ -1,6 +1,6 @@
 # Changelog
 
-## 1.0.0-rc — 2026-09-05
+## 1.0.0-rc.2 — 2026-09-06
 
 The first release, and a release candidate on purpose. The code below has been in the tree and
 measured for a while. What has never run even once is the machinery that publishes it: the tag job,
@@ -201,6 +201,11 @@ one reads `"exit": null`. Until somebody does, that qualifier applies to every n
 - **The `.deb` and `.rpm` versions.** RPM rejects a hyphen outright, and dpkg takes `1.0.0-rc` and
   then sorts it *above* `1.0.0`, so somebody on the candidate would never be offered the release.
   Both are `1.0.0~rc`.
+- **A browser in a shared `bin` directory read its version off a neighbour.** The arm64 image
+  reported Chromium at major 11, because `/usr/bin/X11` is a directory and the sibling-directory
+  lookup read the first number out of any name it found. It matters past a wrong field in `doctor`:
+  the browser major feeds the identity, and a user agent naming a Chrome the running binary is not
+  is the cross-layer contradiction this project spends the most effort avoiding.
 - **The container images were built through QEMU.** `slim` was still emulating arm64 after
   thirty-two minutes while the native amd64 half finished in eight. Each architecture now builds on
   a runner of that architecture, and the tags are assembled from the digests.
