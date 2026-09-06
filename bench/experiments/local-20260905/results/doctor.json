@@ -1,0 +1,41 @@
+{
+  "browser": {
+    "brand": "managed",
+    "candidates": [
+      "<home>/.svipall/browser/cft/152.0.7977.75/chrome-win64/chrome.exe",
+      "C:\\Program Files\\BraveSoftware\\Brave-Browser\\Application\\brave.exe"
+    ],
+    "in_use": "<home>/.svipall/browser/cft/152.0.7977.75/chrome-win64/chrome.exe",
+    "major": 152,
+    "newest_known_major": 152
+  },
+  "dashboard": {
+    "free": true,
+    "port": 59526
+  },
+  "exe": "<repo>\\bench\\experiments\\local-20260905\\runtime\\svipall.exe",
+  "home": {
+    "config_toml": true,
+    "path": "<repo>\\bench\\experiments\\local-20260905\\state\\mcp-smoke",
+    "secrets_env": false,
+    "writable": true
+  },
+  "http_engine": "auto",
+  "impersonation": true,
+  "models": {
+    "embedded": [
+      "detect",
+      "segment"
+    ],
+    "inference": true,
+    "installed": []
+  },
+  "ok": true,
+  "problems": [],
+  "rest": {
+    "enabled": false,
+    "port": 0
+  },
+  "target": "x86_64-pc-windows-msvc",
+  "version": "1.0.0-rc.2"
+}

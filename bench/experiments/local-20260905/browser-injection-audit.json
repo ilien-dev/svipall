@@ -1,0 +1,38 @@
+﻿[
+    {
+        "label":  "after-public31-1",
+        "cells_with_injected_host":  20
+    },
+    {
+        "label":  "after-public31-2",
+        "cells_with_injected_host":  16
+    },
+    {
+        "label":  "after-public31-3",
+        "cells_with_injected_host":  18
+    },
+    {
+        "label":  "before-public31-1",
+        "cells_with_injected_host":  22
+    },
+    {
+        "label":  "before-public31-2",
+        "cells_with_injected_host":  20
+    },
+    {
+        "label":  "before-public31-3",
+        "cells_with_injected_host":  19
+    },
+    {
+        "label":  "native-public31-1",
+        "cells_with_injected_host":  18
+    },
+    {
+        "label":  "native-public31-2",
+        "cells_with_injected_host":  18
+    },
+    {
+        "label":  "native-public31-3",
+        "cells_with_injected_host":  18
+    }
+]

@@ -1,0 +1,8 @@
+{
+    "run":  "after-public31-1",
+    "actual_pause_seconds":  54,
+    "planned_pause_seconds":  120,
+    "candidate_started_unix":  1788656627,
+    "reason":  "PowerShell controller lost its native process exit handle after the complete reference run; resumed without repeating reference requests",
+    "reference_ended_unix":  1788656573
+}

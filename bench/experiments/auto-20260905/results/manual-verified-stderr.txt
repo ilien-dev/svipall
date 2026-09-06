@@ -1,0 +1,7 @@
+    Blocking waiting for file lock on package cache
+    Blocking waiting for file lock on build directory
+   Compiling svipall-mcp v1.0.0-rc.2 (<repo>\crates\svipall-mcp)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 16.60s
+     Running tests\automatic.rs (C:\t\debug\deps\automatic-20a43693280b2f96.exe)
+     Running tests\automatic_learning.rs (C:\t\debug\deps\automatic_learning-43e403b7cbad688a.exe)
+     Running tests\automatic_timeout.rs (C:\t\debug\deps\automatic_timeout-29b165c143b4f245.exe)

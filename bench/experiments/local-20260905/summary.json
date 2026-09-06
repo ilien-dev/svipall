@@ -1,0 +1,799 @@
+{
+  "run_labels": [
+    "after-hard12-1",
+    "after-hard12-2",
+    "after-hard12-3",
+    "after-public31-1",
+    "after-public31-2",
+    "after-public31-3",
+    "after-vendors8-1",
+    "after-vendors8-2",
+    "after-vendors8-3",
+    "before-hard12-1",
+    "before-hard12-2",
+    "before-hard12-3",
+    "before-public31-1",
+    "before-public31-2",
+    "before-public31-3",
+    "before-vendors8-1",
+    "before-vendors8-2",
+    "before-vendors8-3",
+    "native-hard12-1",
+    "native-hard12-2",
+    "native-hard12-3",
+    "native-public31-1",
+    "native-public31-2",
+    "native-public31-3",
+    "native-vendors8-1",
+    "native-vendors8-2",
+    "native-vendors8-3"
+  ],
+  "summary": [
+    {
+      "arm": "after",
+      "delivered": 24,
+      "document_reused": 0,
+      "historical_ok_per_run": [
+        8,
+        8,
+        8
+      ],
+      "max": 8,
+      "median": 8.0,
+      "median_page_seconds": 11.5430837,
+      "median_run_seconds": 203.6051256,
+      "min": 8,
+      "outcomes": {
+        "delivered": 24,
+        "wall": 12
+      },
+      "p95_page_seconds": 67.8234364,
+      "per_run": [
+        8,
+        8,
+        8
+      ],
+      "position": 1,
+      "reasons": {
+        "browser-fingerprinting wall (captcha-delivery.com, cookie datadome)": 6,
+        "cloudflare wall (just a moment)": 3,
+        "human-verification challenge (press & hold)": 3,
+        "none": 24
+      },
+      "renewals": 0,
+      "runs": 3,
+      "samples": 36,
+      "set": "hard12",
+      "targets": 12,
+      "valid_public_ok_per_run": [
+        8,
+        8,
+        8
+      ]
+    },
+    {
+      "arm": "after",
+      "delivered": 24,
+      "document_reused": 0,
+      "historical_ok_per_run": [
+        9,
+        9,
+        9
+      ],
+      "max": 8,
+      "median": 8.0,
+      "median_page_seconds": 1.1286269,
+      "median_run_seconds": 163.4848705,
+      "min": 8,
+      "outcomes": {
+        "delivered": 24,
+        "error": 9,
+        "wall": 3
+      },
+      "p95_page_seconds": 90.0019267,
+      "per_run": [
+        8,
+        8,
+        8
+      ],
+      "position": 2,
+      "reasons": {
+        "cloudflare wall (just a moment)": 3,
+        "cooldown": 6,
+        "none": 24,
+        "timeout": 3
+      },
+      "renewals": 0,
+      "runs": 3,
+      "samples": 36,
+      "set": "hard12",
+      "targets": 12,
+      "valid_public_ok_per_run": [
+        6,
+        6,
+        6
+      ]
+    },
+    {
+      "arm": "after",
+      "delivered": 81,
+      "document_reused": 0,
+      "historical_ok_per_run": [
+        27,
+        26,
+        26
+      ],
+      "max": 27,
+      "median": 27.0,
+      "median_page_seconds": 0.9784721,
+      "median_run_seconds": 189.6197099,
+      "min": 27,
+      "outcomes": {
+        "delivered": 81,
+        "wall": 12
+      },
+      "p95_page_seconds": 27.8711768,
+      "per_run": [
+        27,
+        27,
+        27
+      ],
+      "position": 1,
+      "reasons": {
+        "bot wall (javascript is disabled)": 3,
+        "bot wall (please wait...)": 3,
+        "cloudflare wall (just a moment)": 3,
+        "http 404 (page does not exist at this URL)": 1,
+        "none": 81,
+        "soft 404: 200 with a not-found page (title: page not found)": 2
+      },
+      "renewals": 0,
+      "runs": 3,
+      "samples": 93,
+      "set": "public31",
+      "targets": 31,
+      "valid_public_ok_per_run": [
+        27,
+        26,
+        26
+      ]
+    },
+    {
+      "arm": "after",
+      "delivered": 81,
+      "document_reused": 0,
+      "historical_ok_per_run": [
+        27,
+        26,
+        26
+      ],
+      "max": 27,
+      "median": 27.0,
+      "median_page_seconds": 0.8059064,
+      "median_run_seconds": 167.18807850000005,
+      "min": 27,
+      "outcomes": {
+        "delivered": 81,
+        "wall": 12
+      },
+      "p95_page_seconds": 62.378985,
+      "per_run": [
+        27,
+        27,
+        27
+      ],
+      "position": 2,
+      "reasons": {
+        "bot wall (javascript is disabled)": 3,
+        "bot wall (please wait...)": 3,
+        "cloudflare wall (just a moment)": 3,
+        "http 404 (page does not exist at this URL)": 1,
+        "none": 81,
+        "soft 404: 200 with a not-found page (title: page not found)": 2
+      },
+      "renewals": 0,
+      "runs": 3,
+      "samples": 93,
+      "set": "public31",
+      "targets": 31,
+      "valid_public_ok_per_run": [
+        27,
+        26,
+        26
+      ]
+    },
+    {
+      "arm": "after",
+      "delivered": 9,
+      "document_reused": 0,
+      "historical_ok_per_run": [
+        6,
+        6,
+        6
+      ],
+      "max": 3,
+      "median": 3.0,
+      "median_page_seconds": 31.3216958,
+      "median_run_seconds": 209.6926403,
+      "min": 3,
+      "outcomes": {
+        "delivered": 9,
+        "wall": 15
+      },
+      "p95_page_seconds": 59.5645064,
+      "per_run": [
+        3,
+        3,
+        3
+      ],
+      "position": 1,
+      "reasons": {
+        "browser-fingerprinting wall (captcha-delivery.com, cookie datadome)": 6,
+        "browser-fingerprinting wall (kpsdk.io, header x-kpsdk-ct)": 3,
+        "cloudflare wall (just a moment)": 3,
+        "none": 9,
+        "the site's own error page instead of the content (something went wrong)": 3
+      },
+      "renewals": 3,
+      "runs": 3,
+      "samples": 24,
+      "set": "vendors8",
+      "targets": 8,
+      "valid_public_ok_per_run": [
+        6,
+        6,
+        6
+      ]
+    },
+    {
+      "arm": "after",
+      "delivered": 9,
+      "document_reused": 0,
+      "historical_ok_per_run": [
+        6,
+        6,
+        6
+      ],
+      "max": 3,
+      "median": 3.0,
+      "median_page_seconds": 0.92018175,
+      "median_run_seconds": 112.18313350000003,
+      "min": 3,
+      "outcomes": {
+        "delivered": 9,
+        "error": 9,
+        "wall": 6
+      },
+      "p95_page_seconds": 62.9339049,
+      "per_run": [
+        3,
+        3,
+        3
+      ],
+      "position": 2,
+      "reasons": {
+        "cloudflare wall (just a moment)": 3,
+        "cooldown": 9,
+        "none": 9,
+        "the site's own error page instead of the content (something went wrong)": 3
+      },
+      "renewals": 0,
+      "runs": 3,
+      "samples": 24,
+      "set": "vendors8",
+      "targets": 8,
+      "valid_public_ok_per_run": [
+        3,
+        3,
+        3
+      ]
+    },
+    {
+      "arm": "before",
+      "delivered": 27,
+      "document_reused": 0,
+      "historical_ok_per_run": [
+        8,
+        8,
+        8
+      ],
+      "max": 9,
+      "median": 9.0,
+      "median_page_seconds": 5.8554624,
+      "median_run_seconds": 114.39800190000001,
+      "min": 9,
+      "outcomes": {
+        "delivered": 27,
+        "wall": 9
+      },
+      "p95_page_seconds": 27.9409778,
+      "per_run": [
+        9,
+        9,
+        9
+      ],
+      "position": 1,
+      "reasons": {
+        "browser-fingerprinting wall (captcha-delivery.com, cookie datadome)": 6,
+        "cloudflare wall (just a moment)": 3,
+        "none": 27
+      },
+      "renewals": 0,
+      "runs": 3,
+      "samples": 36,
+      "set": "hard12",
+      "targets": 12,
+      "valid_public_ok_per_run": [
+        8,
+        8,
+        8
+      ]
+    },
+    {
+      "arm": "before",
+      "delivered": 24,
+      "document_reused": 0,
+      "historical_ok_per_run": [
+        8,
+        8,
+        8
+      ],
+      "max": 8,
+      "median": 8.0,
+      "median_page_seconds": 0.9763848,
+      "median_run_seconds": 133.9000978,
+      "min": 8,
+      "outcomes": {
+        "delivered": 24,
+        "error": 6,
+        "wall": 6
+      },
+      "p95_page_seconds": 62.6539654,
+      "per_run": [
+        8,
+        8,
+        8
+      ],
+      "position": 2,
+      "reasons": {
+        "cloudflare wall (just a moment)": 3,
+        "cooldown": 6,
+        "human-verification challenge (press & hold)": 3,
+        "none": 24
+      },
+      "renewals": 0,
+      "runs": 3,
+      "samples": 36,
+      "set": "hard12",
+      "targets": 12,
+      "valid_public_ok_per_run": [
+        6,
+        6,
+        6
+      ]
+    },
+    {
+      "arm": "before",
+      "delivered": 78,
+      "document_reused": 0,
+      "historical_ok_per_run": [
+        26,
+        25,
+        25
+      ],
+      "max": 26,
+      "median": 26.0,
+      "median_page_seconds": 1.3454617,
+      "median_run_seconds": 174.2898967,
+      "min": 26,
+      "outcomes": {
+        "delivered": 78,
+        "wall": 15
+      },
+      "p95_page_seconds": 30.7551372,
+      "per_run": [
+        26,
+        26,
+        26
+      ],
+      "position": 1,
+      "reasons": {
+        "bot wall (javascript is disabled)": 2,
+        "cloudflare wall (just a moment)": 6,
+        "none": 78,
+        "soft 404: 200 with a not-found page (title: page not found)": 3,
+        "the site's own error page instead of the content (something went wrong)": 4
+      },
+      "renewals": 0,
+      "runs": 3,
+      "samples": 93,
+      "set": "public31",
+      "targets": 31,
+      "valid_public_ok_per_run": [
+        26,
+        25,
+        25
+      ]
+    },
+    {
+      "arm": "before",
+      "delivered": 81,
+      "document_reused": 0,
+      "historical_ok_per_run": [
+        27,
+        26,
+        26
+      ],
+      "max": 27,
+      "median": 27.0,
+      "median_page_seconds": 0.7184873,
+      "median_run_seconds": 232.01155789999999,
+      "min": 27,
+      "outcomes": {
+        "delivered": 81,
+        "wall": 12
+      },
+      "p95_page_seconds": 62.2658908,
+      "per_run": [
+        27,
+        27,
+        27
+      ],
+      "position": 2,
+      "reasons": {
+        "bot wall (javascript is disabled)": 2,
+        "cloudflare wall (just a moment)": 3,
+        "http 404 (page does not exist at this URL)": 1,
+        "none": 81,
+        "soft 404: 200 with a not-found page (title: page not found)": 2,
+        "the site's own error page instead of the content (something went wrong)": 4
+      },
+      "renewals": 0,
+      "runs": 3,
+      "samples": 93,
+      "set": "public31",
+      "targets": 31,
+      "valid_public_ok_per_run": [
+        27,
+        26,
+        26
+      ]
+    },
+    {
+      "arm": "before",
+      "delivered": 9,
+      "document_reused": 0,
+      "historical_ok_per_run": [
+        6,
+        6,
+        6
+      ],
+      "max": 3,
+      "median": 3.0,
+      "median_page_seconds": 25.5130442,
+      "median_run_seconds": 146.2993714,
+      "min": 3,
+      "outcomes": {
+        "delivered": 9,
+        "wall": 15
+      },
+      "p95_page_seconds": 29.0708794,
+      "per_run": [
+        3,
+        3,
+        3
+      ],
+      "position": 1,
+      "reasons": {
+        "browser-fingerprinting wall (captcha-delivery.com, cookie datadome)": 6,
+        "browser-fingerprinting wall (kpsdk.io, header x-kpsdk-ct)": 3,
+        "cloudflare wall (just a moment)": 3,
+        "none": 9,
+        "the site's own error page instead of the content (something went wrong)": 3
+      },
+      "renewals": 0,
+      "runs": 3,
+      "samples": 24,
+      "set": "vendors8",
+      "targets": 8,
+      "valid_public_ok_per_run": [
+        6,
+        6,
+        6
+      ]
+    },
+    {
+      "arm": "before",
+      "delivered": 9,
+      "document_reused": 0,
+      "historical_ok_per_run": [
+        6,
+        6,
+        6
+      ],
+      "max": 3,
+      "median": 3.0,
+      "median_page_seconds": 0.96687405,
+      "median_run_seconds": 112.38678380000002,
+      "min": 3,
+      "outcomes": {
+        "delivered": 9,
+        "error": 9,
+        "wall": 6
+      },
+      "p95_page_seconds": 62.6750868,
+      "per_run": [
+        3,
+        3,
+        3
+      ],
+      "position": 2,
+      "reasons": {
+        "cloudflare wall (just a moment)": 3,
+        "cooldown": 9,
+        "none": 9,
+        "the site's own error page instead of the content (something went wrong)": 3
+      },
+      "renewals": 0,
+      "runs": 3,
+      "samples": 24,
+      "set": "vendors8",
+      "targets": 8,
+      "valid_public_ok_per_run": [
+        3,
+        3,
+        3
+      ]
+    },
+    {
+      "arm": "native",
+      "delivered": 33,
+      "document_reused": 0,
+      "historical_ok_per_run": [
+        9,
+        9,
+        9
+      ],
+      "max": 11,
+      "median": 11.0,
+      "median_page_seconds": 11.29814695,
+      "median_run_seconds": 152.259164,
+      "min": 11,
+      "outcomes": {
+        "delivered": 33,
+        "wall": 3
+      },
+      "p95_page_seconds": 67.2628217,
+      "per_run": [
+        11,
+        11,
+        11
+      ],
+      "position": 1,
+      "reasons": {
+        "human-verification challenge (press & hold)": 3,
+        "none": 33
+      },
+      "renewals": 0,
+      "runs": 3,
+      "samples": 36,
+      "set": "hard12",
+      "targets": 12,
+      "valid_public_ok_per_run": [
+        9,
+        9,
+        9
+      ]
+    },
+    {
+      "arm": "native",
+      "delivered": 33,
+      "document_reused": 0,
+      "historical_ok_per_run": [
+        10,
+        10,
+        10
+      ],
+      "max": 11,
+      "median": 11.0,
+      "median_page_seconds": 1.8717888,
+      "median_run_seconds": 111.29186949999999,
+      "min": 11,
+      "outcomes": {
+        "delivered": 33,
+        "error": 3
+      },
+      "p95_page_seconds": 90.0066522,
+      "per_run": [
+        11,
+        11,
+        11
+      ],
+      "position": 2,
+      "reasons": {
+        "none": 33,
+        "timeout": 3
+      },
+      "renewals": 0,
+      "runs": 3,
+      "samples": 36,
+      "set": "hard12",
+      "targets": 12,
+      "valid_public_ok_per_run": [
+        9,
+        9,
+        9
+      ]
+    },
+    {
+      "arm": "native",
+      "delivered": 82,
+      "document_reused": 0,
+      "historical_ok_per_run": [
+        27,
+        26,
+        26
+      ],
+      "max": 28,
+      "median": 27.0,
+      "median_page_seconds": 0.8692291,
+      "median_run_seconds": 206.12356189999997,
+      "min": 27,
+      "outcomes": {
+        "delivered": 82,
+        "wall": 11
+      },
+      "p95_page_seconds": 29.025789,
+      "per_run": [
+        28,
+        27,
+        27
+      ],
+      "position": 1,
+      "reasons": {
+        "bot wall (javascript is disabled)": 3,
+        "bot wall (please wait...)": 2,
+        "cloudflare wall (just a moment)": 2,
+        "http 404 (page does not exist at this URL)": 1,
+        "none": 82,
+        "soft 404: 200 with a not-found page (title: page not found)": 2,
+        "the site's own error page instead of the content (something went wrong)": 1
+      },
+      "renewals": 0,
+      "runs": 3,
+      "samples": 93,
+      "set": "public31",
+      "targets": 31,
+      "valid_public_ok_per_run": [
+        27,
+        26,
+        26
+      ]
+    },
+    {
+      "arm": "native",
+      "delivered": 82,
+      "document_reused": 0,
+      "historical_ok_per_run": [
+        27,
+        26,
+        26
+      ],
+      "max": 28,
+      "median": 27.0,
+      "median_page_seconds": 0.5092981,
+      "median_run_seconds": 169.9588043,
+      "min": 27,
+      "outcomes": {
+        "delivered": 82,
+        "wall": 11
+      },
+      "p95_page_seconds": 62.6477971,
+      "per_run": [
+        28,
+        27,
+        27
+      ],
+      "position": 2,
+      "reasons": {
+        "bot wall (javascript is disabled)": 3,
+        "bot wall (please wait...)": 2,
+        "cloudflare wall (just a moment)": 2,
+        "http 404 (page does not exist at this URL)": 1,
+        "none": 82,
+        "soft 404: 200 with a not-found page (title: page not found)": 2,
+        "the site's own error page instead of the content (something went wrong)": 1
+      },
+      "renewals": 0,
+      "runs": 3,
+      "samples": 93,
+      "set": "public31",
+      "targets": 31,
+      "valid_public_ok_per_run": [
+        27,
+        26,
+        26
+      ]
+    },
+    {
+      "arm": "native",
+      "delivered": 21,
+      "document_reused": 0,
+      "historical_ok_per_run": [
+        7,
+        7,
+        7
+      ],
+      "max": 7,
+      "median": 7.0,
+      "median_page_seconds": 14.622765999999999,
+      "median_run_seconds": 140.29876249999998,
+      "min": 7,
+      "outcomes": {
+        "delivered": 21,
+        "wall": 3
+      },
+      "p95_page_seconds": 58.8165079,
+      "per_run": [
+        7,
+        7,
+        7
+      ],
+      "position": 1,
+      "reasons": {
+        "browser-fingerprinting wall (kpsdk.io, header x-kpsdk-ct)": 3,
+        "none": 21
+      },
+      "renewals": 3,
+      "runs": 3,
+      "samples": 24,
+      "set": "vendors8",
+      "targets": 8,
+      "valid_public_ok_per_run": [
+        7,
+        7,
+        7
+      ]
+    },
+    {
+      "arm": "native",
+      "delivered": 21,
+      "document_reused": 0,
+      "historical_ok_per_run": [
+        7,
+        7,
+        7
+      ],
+      "max": 7,
+      "median": 7.0,
+      "median_page_seconds": 2.86147705,
+      "median_run_seconds": 19.822082100000003,
+      "min": 7,
+      "outcomes": {
+        "delivered": 21,
+        "error": 3
+      },
+      "p95_page_seconds": 5.2317142,
+      "per_run": [
+        7,
+        7,
+        7
+      ],
+      "position": 2,
+      "reasons": {
+        "cooldown": 3,
+        "none": 21
+      },
+      "renewals": 0,
+      "runs": 3,
+      "samples": 24,
+      "set": "vendors8",
+      "targets": 8,
+      "valid_public_ok_per_run": [
+        6,
+        6,
+        6
+      ]
+    }
+  ]
+}

@@ -1,0 +1,18 @@
+
+running 8 tests
+test a_browser_page_reports_the_documents_response_headers ... ok
+test a_feed_that_loads_on_scroll_is_read_whole_when_asked ... ok
+test a_page_that_renders_from_json_gives_up_its_endpoint ... ok
+test a_page_the_pool_parked_comes_back_to_the_next_fetch_that_wants_it ... ok
+test a_real_page_yields_a_usable_snapshot ... ok
+test an_isolated_fetch_leaves_no_profile_behind ... FAILED
+test canvas_noise_is_deterministic_within_a_page ... ok
+test show_a_snapshot ... ok
+
+failures:
+
+failures:
+    an_isolated_fetch_leaves_no_profile_behind
+
+test result: FAILED. 7 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 64.97s
+

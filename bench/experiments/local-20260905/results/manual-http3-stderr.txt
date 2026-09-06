@@ -1,0 +1,3 @@
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.33s
+     Running tests\h3.rs (target\debug\deps\h3-7af595d30ddfb3a4.exe)
+h3: 200 125959 bytes, content-type text/html

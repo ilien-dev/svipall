@@ -1,0 +1,1403 @@
+
+running 43 tests
+test daniel::tests::a_missing_corpus_is_reported_rather_than_scored_as_zero ... ok
+test extraction::tests::a_line_is_a_sentence_and_a_full_stop_is_not ... ok
+test evasion::tests::a_list_that_starts_over_the_line_is_refused_rather_than_measured ... ok
+test extraction::tests::a_missing_corpus_is_reported_rather_than_scored_as_zero ... ok
+test extraction::tests::a_score_can_never_exceed_one ... ok
+test extraction::tests::an_empty_extraction_of_a_real_page_scores_zero ... ok
+test extraction::tests::an_exact_extraction_scores_one ... ok
+test extraction::tests::dropping_half_the_article_costs_recall ... ok
+test extraction::tests::keeping_the_navigation_costs_precision_and_not_recall ... ok
+test extraction::tests::loss_is_measured_against_what_the_recall_path_reached ... ok
+test extraction::tests::punctuation_and_case_are_not_what_is_being_measured ... ok
+test extraction::tests::reordering_paragraphs_is_not_punished_the_way_a_plain_lcs_would ... ok
+test extraction::tests::the_benchmark_scores_the_path_the_product_runs ... ok
+test extraction::tests::the_disjoint_pair_shortcut_changes_no_score ... ok
+test summary::tests::timeouts_stay_in_denominator_and_repeats_are_separate ... ok
+test targets::tests::a_multibyte_body_does_not_panic_at_the_scan_limit ... ok
+test targets::tests::a_tiny_body_without_script_is_a_gate ... ok
+test targets::tests::a_vendor_signal_deep_in_the_body_still_counts ... ok
+test targets::tests::both_sets_have_unique_names_and_the_sizes_their_names_promise ... ok
+test targets::tests::invalid_transport_status_is_never_success ... ok
+test targets::tests::nothing_captured_at_all_is_an_error ... ok
+test targets::tests::public_body_limit_can_split_a_unicode_character ... ok
+test targets::tests::the_frozen_sets_are_still_frozen ... ok
+test targets::tests::the_public_rule_reads_a_403_as_blocked_whatever_the_body_says ... ok
+test targets::tests::the_public_rule_reads_a_challenge_title_as_gated_not_blocked ... ok
+test targets::tests::the_vendor_set_names_each_vendor_twice_and_only_vendors_the_classifier_knows ... ok
+test tells::tests::a_probe_the_page_never_reported_is_named ... ok
+test tells::tests::the_probe_list_and_the_page_agree ... ok
+test wcxb::tests::a_curly_apostrophe_is_the_same_word_as_a_straight_one ... ok
+test wcxb::tests::a_page_losing_several_phrases_is_one_page ... ok
+test wcxb::tests::a_page_the_corpus_marked_nothing_on_is_neutral ... ok
+test wcxb::tests::a_perfect_extraction_keeps_everything_required_and_leaks_nothing ... ok
+test wcxb::tests::a_phrase_that_was_delivered_counts_even_when_the_rendering_changed_it ... ok
+test wcxb::tests::a_snippet_is_found_across_a_line_break_and_a_capital ... ok
+test wcxb::tests::an_empty_side_scores_zero_rather_than_dividing_by_it ... ok
+test wcxb::tests::scattered_words_are_not_the_phrase ... ok
+test wcxb::tests::the_new_comparison_is_never_stricter_than_the_old_one ... ignored, probe against the corpus; needs SVIPALL_WCXB
+test wcxb::tests::the_reverse_is_the_worst_case_and_reads_that_way ... ok
+test wcxb::tests::what_the_markdown_walk_loses_that_the_text_walk_keeps ... ignored, probe against the corpus; needs SVIPALL_WCXB
+test wcxb::tests::what_the_region_selector_picked_on_the_pages_that_lose_content ... ignored, probe against the corpus; needs SVIPALL_WCXB
+test wcxb::tests::which_rule_drops_the_text_the_walker_never_reaches ... ignored, probe against the corpus; needs SVIPALL_WCXB
+test wcxb::tests::word_overlap_ignores_order_but_not_quantity ... ok
+test extraction::tests::a_page_sized_line_does_not_exhaust_the_scorer ... ok
+
+test result: ok. 39 passed; 0 failed; 4 ignored; 0 measured; 0 filtered out; finished in 4.77s
+
+
+running 13 tests
+test conn::ignorable_tests::a_payload_that_is_not_a_cdp_message_is_never_ignored ... ok
+test conn::ignorable_tests::a_response_to_one_of_our_own_calls_is_never_ignored ... ok
+test conn::ignorable_tests::an_event_this_protocol_definition_does_not_know_is_ignored ... ok
+test listeners::tests::custom_event_stream ... ok
+test listeners::tests::event_listeners ... ok
+test listeners::tests::event_stream ... ok
+test utils::tests::is_js_function ... ok
+test worker::tests::worker_realms_are_named_exactly ... ok
+test world::tests::a_generated_name_is_a_plausible_identifier ... ok
+test world::tests::a_seeded_name_never_spells_out_the_library ... ok
+test world::tests::different_seeds_give_different_names ... ok
+test world::tests::the_same_seed_gives_the_same_pair ... ok
+test world::tests::the_world_and_its_script_url_do_not_share_a_prefix ... ok
+
+test result: ok. 13 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+
+
+running 516 tests
+test altsvc::tests::a_domain_that_answered_over_quic_is_remembered_so_the_next_page_goes_straight_there ... ok
+test altsvc::tests::a_domain_that_did_not_answer_over_quic_is_not_asked_again_every_time ... ok
+test altsvc::tests::a_failure_is_forgotten_after_a_while_because_a_network_is_not_forever ... ok
+test altsvc::tests::an_offer_is_remembered_until_it_expires ... ok
+test altsvc::tests::the_h3_alternative_is_read_with_its_port_and_lifetime ... ok
+test altsvc::tests::one_domain_is_asked_about_directly_rather_than_by_listing_every_offer ... ok
+test answer::tests::a_click_is_a_fraction_of_the_picture_never_a_pixel ... ok
+test answer::tests::a_drag_needs_both_ends_on_the_picture ... ok
+test answer::tests::a_hold_is_a_gesture_not_a_click_and_not_an_afternoon ... ok
+test answer::tests::a_polygon_needs_enough_corners_to_enclose_something ... ok
+test answer::tests::a_slide_is_a_fraction_of_its_track_and_a_turn_is_degrees ... ok
+test answer::tests::an_answer_to_a_different_question_is_refused_at_the_door ... ok
+test answer::tests::an_empty_answer_is_not_an_answer ... ok
+test answer::tests::every_modality_has_an_answer_that_fits_it ... ok
+test answer::tests::saying_you_cannot_read_it_is_valid_for_any_challenge ... ok
+test answer::tests::the_same_fraction_is_the_same_place_on_every_screen ... ok
+test answer::tests::the_wire_format_is_what_a_browser_can_send_without_a_library ... ok
+test blocklist::tests::a_machine_with_no_list_blocks_nothing_and_keeps_working ... ok
+test blocklist::tests::a_pattern_covers_the_name_itself_and_everything_under_it ... ok
+test blocklist::tests::a_suffix_on_its_own_never_takes_the_web_down_with_it ... ok
+test blocklist::tests::a_url_with_a_port_or_credentials_is_still_matched_on_its_host ... ok
+test blocklist::tests::blocking_a_domain_blocks_what_pages_actually_load_from_it ... ok
+test blocklist::tests::both_published_formats_are_read_by_the_same_parser ... ok
+test blocklist::tests::element_rules_never_take_a_whole_host_with_them ... ok
+test blocklist::tests::garbage_in_a_list_is_skipped_rather_than_taken_as_a_rule ... ok
+test blocklist::tests::something_that_is_not_a_url_is_not_blocked_and_does_not_panic ... ok
+test blocklist::tests::the_consent_script_removes_the_overlay_and_gives_the_page_back_its_scrolling ... ok
+test blocklist::tests::the_lines_every_hosts_file_carries_are_not_mistaken_for_rules ... ok
+test blocklist::tests::the_most_general_names_are_kept_when_the_list_is_capped ... ok
+test blocklist::tests::the_patterns_handed_to_a_browser_are_the_same_two_runs_running ... ok
+test blocklist::tests::two_lists_together_cover_what_either_covers ... ok
+test budget::tests::a_budget_never_splits_a_code_fence ... ok
+test budget::tests::a_continuation_names_the_section_it_resumes_under ... ok
+test budget::tests::a_continuation_names_the_whole_heading_path ... ok
+test budget::tests::a_cursor_from_a_different_version_is_reported_and_restarted ... ok
+test budget::tests::a_generous_overlap_still_terminates_and_covers_the_document ... ok
+test budget::tests::a_hash_that_is_not_a_heading_is_not_read_as_one ... ok
+test budget::tests::a_heading_path_keeps_ancestors_and_drops_closed_sections ... ok
+test budget::tests::a_preamble_too_large_for_the_budget_is_dropped_rather_than_starving_the_page ... ok
+test budget::tests::a_resume_inside_a_block_repeats_nothing ... ok
+test budget::tests::a_single_oversized_block_still_makes_progress ... ok
+test budget::tests::an_overlap_never_takes_more_than_a_quarter_of_the_budget ... ok
+test budget::tests::an_overlap_repeats_the_tail_of_the_previous_page_and_marks_it ... ok
+test budget::tests::blocks_keep_code_fences_whole ... ok
+test budget::tests::blocks_keep_gfm_tables_whole ... ok
+test budget::tests::cursor_survives_a_round_trip ... ok
+test budget::tests::everything_fits_when_the_budget_is_generous ... ok
+test budget::tests::paging_with_the_cursor_reassembles_the_whole_document ... ok
+test budget::tests::wide_characters_cost_more_than_ascii ... ok
+test cache::tests::a_cancelled_job_keeps_its_request_where_a_restart_can_still_see_it ... ok
+test cache::tests::a_database_from_before_the_log_gains_it_rather_than_breaking ... ok
+test cache::tests::a_database_from_before_the_job_table_gains_it_rather_than_breaking ... ok
+test cache::tests::a_database_written_before_the_notes_existed_gains_them_rather_than_breaking ... ok
+test cache::tests::a_domains_pages_come_back_newest_first_and_only_that_domains ... ok
+test cache::tests::a_database_from_before_the_verdict_gains_the_column_and_reads_null_for_its_old_rows ... ok
+test cache::tests::a_finished_job_is_forgotten_after_its_keep_and_an_interrupted_one_is_not ... ok
+test cache::tests::a_job_is_findable_the_moment_it_is_created_rather_than_when_it_starts ... ok
+test cache::tests::a_job_left_running_by_a_dead_process_becomes_resumable_rather_than_lost ... ok
+test cache::tests::a_job_reports_the_pages_its_crawl_actually_fetched_rather_than_a_copy ... ok
+test cache::tests::a_key_containing_a_wildcard_character_is_not_a_wildcard ... ok
+test cache::tests::a_miss_is_a_miss ... ok
+test cache::tests::a_key_nobody_wrote_is_absent_rather_than_empty ... ok
+test cache::tests::a_page_about_something_else_is_not_a_duplicate_of_it ... ok
+test cache::tests::a_note_left_by_one_run_is_there_for_the_next_one ... ok
+test cache::tests::a_rewrite_reports_the_change_and_how_similar_it_is ... ok
+test cache::tests::a_page_fetched_last_week_is_recognised_when_it_comes_back_under_another_name ... ok
+test cache::tests::a_search_wider_than_the_index_can_answer_is_refused_rather_than_answered_partly ... ok
+test cache::tests::a_stored_page_comes_back_intact ... ok
+test cache::tests::an_interrupted_crawl_resumes_from_its_frontier ... ok
+test cache::tests::an_unknown_crawl_id_is_none ... ok
+test cache::tests::asking_about_a_domain_that_did_nothing_is_an_empty_answer ... ok
+test cache::tests::cache_modes_parse_and_describe_their_permissions ... ok
+test cache::tests::a_stored_summary_survives_the_round_trip_and_is_not_carried_in_a_listing ... ok
+test cache::tests::compression_round_trips_including_empty_and_unicode ... ok
+test cache::tests::clearing_by_domain_leaves_other_domains_alone ... ok
+test cache::tests::first_seen_is_the_oldest_page_of_the_site_and_nothing_for_a_site_never_visited ... ok
+test cache::tests::housekeeping_removes_expired_pages_and_keeps_current_ones ... ok
+test cache::tests::forgetting_a_note_says_whether_there_was_one ... ok
+test cache::tests::no_store_is_honoured_and_an_absurd_max_age_is_capped ... ok
+test cache::tests::only_crawls_with_work_left_are_listed_as_resumable ... ok
+test cache::tests::listing_by_prefix_returns_only_that_prefix ... ok
+test cache::tests::only_one_runner_can_claim_a_queued_job ... ok
+test cache::tests::saving_the_frontier_again_replaces_it_rather_than_appending ... ok
+test cache::tests::storing_the_same_content_twice_reports_unchanged ... ok
+test cache::tests::pages_stored_before_the_bands_existed_are_findable_after_the_upgrade ... ok
+test cache::tests::the_log_is_bounded_by_time_rather_than_kept_forever ... ok
+test cache::tests::the_summary_names_the_domain_whose_learned_tier_is_wrong ... ok
+test cache::tests::the_tool_can_answer_questions_about_its_own_behaviour ... ok
+test cache::tests::touch_extends_life_without_changing_content ... ok
+test cache::tests::tracking_parameters_do_not_create_separate_entries ... ok
+test cache::tests::two_jobs_for_one_site_are_not_offered_at_the_same_time ... ok
+test cache::tests::version_history_is_capped_per_url ... ok
+test cache::tests::writing_a_key_twice_replaces_it_rather_than_failing ... ok
+test capacity::tests::a_big_machine_still_respects_the_configured_ceiling ... ok
+test capacity::tests::a_small_machine_is_not_asked_to_run_the_configured_number_of_browsers ... ok
+test capacity::tests::browsers_already_open_count_against_the_budget ... ok
+test capacity::tests::http_work_is_allowed_far_more_than_browser_work ... ok
+test capacity::tests::the_limit_is_never_zero ... ok
+test capacity::tests::this_machine_reports_a_plausible_core_count ... ok
+test challenge::tests::a_managed_cloudflare_page_yields_its_inline_sitekey ... ok
+test challenge::tests::a_page_with_no_widget_is_still_none ... ok
+test challenge::tests::a_page_with_no_widget_yields_nothing ... ok
+test challenge::tests::a_proof_of_work_widget_is_recognised_as_computable ... ok
+test challenge::tests::a_turnstile_widget_yields_its_sitekey_action_and_cdata ... ok
+test challenge::tests::a_widget_injected_by_script_is_still_found_through_its_traffic ... ok
+test challenge::tests::an_ordinary_page_yields_no_widgets_at_all ... ok
+test challenge::tests::an_ordinary_widget_is_not_mistaken_for_computable ... ok
+test challenge::tests::an_unrelated_sitekey_field_is_not_a_challenge ... ok
+test challenge::tests::attribute_lookup_stays_inside_its_own_tag ... ok
+test challenge::tests::hcaptcha_is_recognised ... ok
+test challenge::tests::recaptcha_v2_is_recognised ... ok
+test challenge::tests::recaptcha_v3_is_read_from_the_script_url ... ok
+test challenge::tests::the_generic_detector_finds_widgets_the_hand_written_one_never_knew_about ... ok
+test challenge::tests::traffic_detection_does_not_report_the_same_widget_twice ... ok
+test challenge::tests::unquoted_and_single_quoted_attributes_both_parse ... ok
+test classify::tests::a_challenge_that_says_it_passed_is_worth_waiting_for ... ok
+test classify::tests::a_clearance_only_a_live_runtime_can_hold_is_told_apart_from_a_cookie_one ... ok
+test classify::tests::a_cookie_name_is_read_off_a_set_cookie_line_and_its_value_is_left_behind ... ok
+test classify::tests::a_header_value_that_merely_mentions_a_vendor_is_not_read_as_that_header_arriving ... ok
+test classify::tests::a_lapsed_clearance_is_re_earned_when_only_the_wire_says_so ... ok
+test classify::tests::a_page_a_local_product_has_written_into_is_recognised ... ok
+test classify::tests::a_page_that_discusses_404s_at_length_is_not_mistaken_for_one ... ok
+test classify::tests::a_page_that_really_arrived_is_still_delivered_when_the_vendor_is_on_the_wire ... ok
+test classify::tests::a_proof_of_work_clearance_is_re_earned_before_it_lapses_and_never_otherwise ... ok
+test classify::tests::a_real_page_is_not_caught_by_the_empty_document_rule ... ok
+test classify::tests::a_redirect_carrying_only_a_notice_is_not_the_page ... ok
+test classify::tests::a_redirect_that_carries_a_whole_page_is_left_alone ... ok
+test classify::tests::a_redirect_with_no_body_says_it_was_a_redirect ... ok
+test classify::tests::a_response_with_no_document_at_all_is_never_a_delivered_page ... ok
+test classify::tests::a_subscription_stub_is_told_apart_from_the_article_it_is_hiding ... ok
+test classify::tests::a_two_hundred_that_says_the_page_is_gone_is_not_a_delivered_page ... ok
+test classify::tests::a_vendors_hard_block_is_told_apart_from_its_challenge ... ok
+test classify::tests::a_wall_that_names_the_address_is_recognised_as_one ... ok
+test classify::tests::a_wall_whose_only_tell_is_a_cookie_is_named_from_it ... ok
+test classify::tests::a_wall_whose_only_tell_is_a_response_header_is_named_from_it ... ok
+test classify::tests::a_whole_article_with_a_subscribe_box_at_the_bottom_is_still_the_article ... ok
+test classify::tests::an_article_about_things_going_wrong_is_still_an_article ... ok
+test classify::tests::an_interstitial_that_verifies_on_its_own_is_recognised_as_one ... ok
+test classify::tests::clamp_to_boundary_never_splits_a_character ... ok
+test classify::tests::every_vendor_sign_is_declared_once_with_the_channel_it_arrives_on ... ok
+test classify::tests::every_wall_the_benchmark_names_is_one_the_classifier_knows ... ok
+test classify::tests::geo_gate_is_detected ... ok
+test classify::tests::scan_cap_holds_at_a_multibyte_boundary ... ok
+test classify::tests::small_static_page_is_genuine ... ok
+test classify::tests::test_cloudflare ... ok
+test classify::tests::test_hold ... ok
+test classify::tests::test_none ... ok
+test classify::tests::the_managed_challenge_is_told_apart_from_just_a_moment ... ok
+test classify::tests::the_proof_of_work_wall_is_recognised_from_its_sdk_and_not_from_a_challenge_page ... ok
+test classify::tests::the_sites_own_error_template_is_not_the_page ... ok
+test classify::tests::unrendered_spa_shell_is_empty ... ok
+test coherence::tests::a_chrome_ua_on_a_firefox_engine_is_caught ... ok
+test coherence::tests::a_firefox_that_would_emit_client_hints_is_caught ... ok
+test coherence::tests::a_masked_renderer_on_chrome_is_caught_but_fine_on_firefox ... ok
+test coherence::tests::a_renderer_never_belongs_to_another_platform ... ok
+test coherence::tests::a_taskbarless_desktop_and_an_oversized_window_are_caught ... ok
+test coherence::tests::device_memory_is_only_ever_a_value_the_api_reports ... ok
+test coherence::tests::every_machine_the_fleet_draws_is_coherent ... ok
+test coherence::tests::memory_and_cores_belong_to_the_same_class_of_machine ... ok
+test coherence::tests::software_renderers_are_recognised ... ok
+test coherence::tests::the_default_identities_are_coherent ... ok
+test coherence::tests::the_phone_identity_is_coherent ... ok
+test config::tests::a_config_file_that_says_nothing_about_the_rest_api_still_parses ... ok
+test config::tests::a_pinned_key_in_the_config_beats_the_file ... ok
+test config::tests::an_empty_environment_variable_is_not_a_key ... ok
+test config::tests::an_empty_key_in_the_config_is_not_a_key ... ok
+test config::tests::settings_are_validated_and_do_not_rewrite_user_configuration ... ok
+test config::tests::the_environment_beats_the_file_when_both_have_a_key ... ok
+test config::tests::the_kept_page_budget_expires_before_the_browser_that_holds_it ... ok
+test config::tests::the_key_survives_a_restart ... ok
+test config::tests::the_rest_api_is_off_until_it_is_asked_for ... ok
+test dedup::tests::a_small_edit_stays_close_and_unrelated_text_stays_far ... ok
+test dedup::tests::boilerplate_stripping_is_inert_before_enough_pages ... ok
+test dedup::tests::case_and_punctuation_do_not_change_the_hash ... ok
+test dedup::tests::different_pages_are_all_kept ... ok
+test dedup::tests::how_much_of_a_page_is_the_sites_own_furniture_is_a_number_the_caller_can_have ... ok
+test dedup::tests::identical_text_hashes_identically ... ok
+test dedup::tests::shared_boilerplate_is_stripped_and_unique_content_survives ... ok
+test dedup::tests::simhash_is_pinned ... ok
+test dedup::tests::the_index_reports_the_url_a_page_duplicates ... ok
+test dedup::tests::the_share_is_absent_rather_than_zero_before_enough_pages ... ok
+test dedup::tests::two_empty_pages_are_not_treated_as_duplicates ... ok
+test document::tests::a_document_is_recognised_by_type_then_bytes_then_name ... ok
+test document::tests::a_document_that_is_not_one_fails_without_taking_the_process_down ... ok
+test document::tests::an_oversized_document_is_refused_before_it_is_parsed ... ok
+test document::tests::rtf_and_csv_become_markdown ... ok
+test domain::tests::normalize_is_idempotent ... ok
+test domain::tests::normalize_strips_tracking_and_sorts_the_query ... ok
+test domain::tests::same_site_covers_subdomains_both_ways ... ok
+test domain::tests::stable_hash_is_pinned ... ok
+test domain::tests::test_domain ... ok
+test exits::tests::a_retired_exit_is_not_offered_again_for_that_domain_but_another_domain_may_use_it ... ok
+test exits::tests::a_retired_exit_recovers_with_time_and_carries_its_latency ... ok
+test exits::tests::an_over_budget_exit_is_skipped_like_a_retired_one ... ok
+test exits::tests::round_robin_walks_the_pool_in_order ... ok
+test exits::tests::sticky_keeps_the_same_exit_until_it_is_retired ... ok
+test exits::tests::subdomains_inherit_the_pool_and_a_single_route_is_a_pool_of_one ... ok
+test exits::tests::the_identity_wears_the_exit_country_when_one_is_declared ... ok
+test exits::tests::when_every_exit_is_retired_the_healthiest_is_still_used ... ok
+test export::tests::a_column_that_only_some_rows_have_is_still_a_column ... ok
+test export::tests::a_negative_number_is_a_number_and_not_treated_as_a_formula ... ok
+test export::tests::a_nested_value_keeps_its_content_instead_of_becoming_a_type_name ... ok
+test export::tests::a_scraped_cell_can_never_become_a_formula_in_a_spreadsheet ... ok
+test export::tests::commas_quotes_and_newlines_survive_the_round_trip ... ok
+test export::tests::every_row_lands_under_the_right_column ... ok
+test export::tests::json_lines_is_one_row_per_line_and_nothing_else ... ok
+test export::tests::nothing_to_export_is_an_empty_file_rather_than_a_broken_one ... ok
+test export::tests::rows_that_are_not_objects_do_not_take_the_export_down ... ok
+test export::tests::the_format_comes_off_the_name_the_caller_already_chose ... ok
+test export::tests::the_header_order_is_the_order_the_rows_present_their_keys_in ... ok
+test fleet::tests::a_high_dpi_screen_carries_a_high_dpi_ratio ... ok
+test fleet::tests::a_machine_is_internally_coherent ... ok
+test fleet::tests::device_memory_is_only_ever_a_value_the_api_reports ... ok
+test fleet::tests::different_seeds_really_do_spread ... ok
+test fleet::tests::the_common_case_stays_common ... ok
+test fleet::tests::the_gpu_always_belongs_to_the_operating_system ... ok
+test fleet::tests::the_same_seed_is_always_the_same_machine ... ok
+test forms::tests::a_form_pointing_somewhere_that_is_not_the_web_is_refused ... ok
+test forms::tests::a_form_with_no_named_field_produces_nothing ... ok
+test forms::tests::a_post_only_form_is_refused_rather_than_turned_into_a_get ... ok
+test forms::tests::a_relative_action_resolves_against_the_page_it_was_found_on ... ok
+test forms::tests::a_search_box_becomes_a_url_anything_can_fetch ... ok
+test forms::tests::an_empty_action_means_this_page ... ok
+test forms::tests::hidden_fields_are_submitted_because_the_site_is_expecting_them ... ok
+test forms::tests::the_finder_matches_what_a_field_is_for_rather_than_what_it_is_called ... ok
+test forms::tests::the_forms_own_parameters_survive ... ok
+test forms::tests::the_query_field_appears_once_even_if_the_action_already_had_it ... ok
+test forms::tests::the_query_is_escaped_rather_than_pasted_in ... ok
+test frontier::tests::a_breadth_first_crawl_finishes_a_level_before_starting_the_next ... ok
+test frontier::tests::a_depth_first_crawl_follows_one_branch_to_its_end ... ok
+test frontier::tests::a_feed_entry_outranks_a_plain_link_from_the_same_depth ... ok
+test frontier::tests::a_page_already_fetched_is_not_queued_again ... ok
+test frontier::tests::a_restored_candidate_keeps_the_score_it_was_saved_with ... ok
+test frontier::tests::a_snapshot_covers_everything_still_queued ... ok
+test frontier::tests::a_term_that_appears_everywhere_stops_driving_the_ranking ... ok
+test frontier::tests::an_unparseable_url_is_refused_rather_than_queued ... ok
+test frontier::tests::anchor_text_counts_as_much_as_the_path ... ok
+test frontier::tests::faceted_and_archive_urls_sink ... ok
+test frontier::tests::recent_pages_outrank_stale_ones ... ok
+test frontier::tests::shallower_pages_win_all_else_equal ... ok
+test frontier::tests::siblings_at_the_same_depth_still_have_an_order ... ok
+test frontier::tests::the_default_order_is_the_one_that_was_there_before ... ok
+test frontier::tests::the_highest_scoring_candidate_comes_out_first ... ok
+test frontier::tests::tracking_variants_are_recognised_as_the_same_page ... ok
+test geo::tests::a_country_resolves_to_a_consistent_set ... ok
+test geo::tests::an_unknown_country_is_none_rather_than_a_guess ... ok
+test geo::tests::every_row_is_internally_consistent ... ok
+test geo::tests::no_country_appears_twice ... ok
+test geo::tests::the_lookup_does_not_care_about_case_or_padding ... ok
+test geo::tests::the_places_proxies_are_actually_sold_are_covered ... ok
+test growth::tests::a_load_more_button_earns_the_page_another_look_but_only_once ... ok
+test growth::tests::growth_keeps_going_and_two_quiet_rounds_end_it ... ok
+test growth::tests::text_growth_counts_even_when_height_does_not ... ok
+test growth::tests::the_round_cap_is_final ... ok
+test identity::tests::a_firefox_identity_is_gecko_all_the_way_down ... ok
+test identity::tests::a_machine_and_a_country_compose_without_fighting ... ok
+test identity::tests::a_phone_is_a_phone_all_the_way_through ... ok
+test identity::tests::a_seeded_machine_is_coherent_with_the_identity_that_wears_it ... ok
+test identity::tests::advertised_major_is_clamped_to_what_tls_can_emulate ... ok
+test identity::tests::an_older_browser_wins_over_the_cap ... ok
+test identity::tests::an_unknown_country_leaves_the_identity_untouched ... ok
+test identity::tests::available_screen_is_smaller_than_the_screen ... ok
+test identity::tests::chrome_still_sends_client_hints_and_leads_with_them ... ok
+test identity::tests::language_tags_carry_no_quality_values ... ok
+test identity::tests::moving_to_a_country_moves_the_timezone_and_the_languages_together ... ok
+test identity::tests::nav_headers_are_in_chrome_order_and_unique ... ok
+test identity::tests::noise_seed_is_stable_for_the_same_identity ... ok
+test identity::tests::the_firefox_ceiling_is_the_one_the_tls_engine_can_emulate ... ok
+test identity::tests::the_language_list_the_browser_reports_follows_the_country ... ok
+test identity::tests::the_same_seed_gives_the_same_machine_twice ... ok
+test identity::tests::two_seeds_really_are_two_machines ... ok
+test identity::tests::ua_platform_matches_the_declared_os ... ok
+test identity::tests::ua_sec_ch_ua_and_metadata_all_state_the_same_version ... ok
+test identity::tests::window_chrome_is_a_realistic_height ... ok
+test incremental::tests::a_date_nobody_can_parse_says_nothing_rather_than_something_wrong ... ok
+test incremental::tests::a_page_nobody_has_read_yet_is_always_fetched ... ok
+test incremental::tests::a_page_that_has_not_moved_since_we_read_it_is_left_alone ... ok
+test incremental::tests::a_page_the_site_says_changed_is_fetched_again ... ok
+test incremental::tests::a_plan_says_what_it_is_doing_and_why_for_every_url ... ok
+test incremental::tests::a_site_that_publishes_no_dates_is_still_crawled ... ok
+test incremental::tests::both_date_shapes_a_sitemap_can_carry_are_read ... ok
+test incremental::tests::the_epoch_and_a_leap_day_both_land_where_they_should ... ok
+test ladder::tests::a_domain_that_offers_h3_gets_one_cheap_attempt_before_the_tier_it_was_walled_at ... ok
+test ladder::tests::a_forced_mode_is_never_widened_by_the_probe ... ok
+test ladder::tests::ladder_respects_cap ... ok
+test ladder::tests::the_probe_never_duplicates_a_tier_the_ladder_already_starts_at ... ok
+test lan::tests::a_bind_that_is_not_loopback_counts_as_reachable ... ok
+test lan::tests::a_machine_with_no_address_on_the_network_advertises_nothing ... ok
+test lan::tests::a_server_listening_everywhere_advertises_the_address_a_phone_can_reach ... ok
+test lan::tests::a_server_on_loopback_advertises_no_lan_address_at_all ... ok
+test lan::tests::asking_this_machine_for_its_address_never_panics_and_never_returns_loopback ... ok
+test lan::tests::the_token_travels_with_it_because_the_page_is_useless_without_one ... ok
+test llms_txt::tests::a_description_is_used_when_there_is_one ... ok
+test llms_txt::tests::a_long_description_is_cut_on_a_word_boundary ... ok
+test llms_txt::tests::an_untitled_page_falls_back_to_its_url ... ok
+test llms_txt::tests::brackets_in_a_title_do_not_break_the_link ... ok
+test llms_txt::tests::full_output_stops_at_the_token_budget ... ok
+test llms_txt::tests::pages_are_grouped_by_their_first_path_segment ... ok
+test llms_txt::tests::the_largest_section_comes_first_and_the_order_is_stable ... ok
+test llms_txt::tests::the_tagline_becomes_a_blockquote ... ok
+test llms_txt::tests::without_a_description_the_first_real_paragraph_is_used ... ok
+test pagination::tests::a_number_in_a_path_is_not_assumed_to_be_a_page ... ok
+test pagination::tests::a_page_number_in_the_path_is_found_when_it_is_labelled ... ok
+test pagination::tests::a_page_number_in_the_query_is_found_and_advanced ... ok
+test pagination::tests::a_url_with_no_page_number_has_no_next_page ... ok
+test pagination::tests::a_zero_offset_gives_no_stride_to_infer_so_nothing_is_guessed ... ok
+test pagination::tests::an_offset_steps_by_its_own_size_rather_than_by_one ... ok
+test pagination::tests::the_first_page_parameter_wins_when_there_are_two ... ok
+test pagination::tests::the_parameter_name_is_preserved_exactly_as_written ... ok
+test pdf::tests::a_single_page_gets_no_page_markers ... ok
+test pdf::tests::a_truncated_pdf_is_an_error_not_a_crash ... ok
+test pdf::tests::an_oversized_file_is_refused_before_parsing ... ok
+test pdf::tests::content_type_or_magic_bytes_both_identify_a_pdf ... ok
+test pdf::tests::repeated_running_heads_are_dropped_and_hyphens_rejoined ... ok
+test pdf::tests::something_that_is_not_a_pdf_is_refused ... ok
+test pdf::tests::the_page_limit_is_reported ... ok
+test policy::tests::a_host_is_matched_whole_and_never_by_its_ending_as_text ... ok
+test policy::tests::a_local_file_is_refused_unless_a_root_covers_it ... ok
+test policy::tests::a_public_address_that_only_looks_private_is_still_fetched ... ok
+test policy::tests::a_refusal_says_enough_for_the_caller_to_act_on_it ... ok
+test policy::tests::a_rule_written_with_a_star_means_what_the_person_writing_it_meant ... ok
+test policy::tests::a_url_with_credentials_is_matched_on_its_real_host ... ok
+test policy::tests::an_allow_list_is_a_fence_not_a_preference ... ok
+test policy::tests::blocking_wins_over_allowing ... ok
+test policy::tests::only_http_urls_are_fetchable_at_all ... ok
+test policy::tests::raw_html_needs_no_network_and_no_permission ... ok
+test policy::tests::the_address_that_hands_out_cloud_credentials_is_refused ... ok
+test policy::tests::the_guarded_policy_lets_the_web_through_and_keeps_the_machine_out ... ok
+test policy::tests::turning_the_private_guard_off_is_possible_for_someone_who_means_it ... ok
+test pow::tests::a_bit_target_is_solved_and_the_answer_verifies ... ok
+test pow::tests::a_different_salt_needs_a_different_answer ... ok
+test pow::tests::a_difficulty_nobody_could_mean_is_refused ... ok
+test pow::tests::a_difficulty_of_zero_is_satisfied_immediately ... ok
+test pow::tests::a_hex_prefix_target_is_solved_too ... ok
+test pow::tests::an_impossible_budget_gives_up_instead_of_spinning ... ok
+test pow::tests::leading_zeroes_are_counted_in_bits_not_bytes ... ok
+test pow::tests::the_same_challenge_always_gives_the_same_answer ... ok
+test pow::tests::the_two_conventions_are_told_apart ... ok
+test profiles::tests::a_fresh_profile_is_minted_and_remembered ... ok
+test profiles::tests::a_named_profile_carries_its_machine_across_sites ... ok
+test profiles::tests::a_profile_directory_that_does_not_exist_yet_is_fresh ... ok
+test profiles::tests::a_profile_that_predates_the_fleet_keeps_its_machine ... ok
+test profiles::tests::a_tier_without_a_profile_still_gets_a_machine ... ok
+test profiles::tests::different_keys_are_different_machines ... ok
+test profiles::tests::the_same_key_is_always_the_same_machine ... ok
+test profiles::tests::two_installations_disagree_about_the_same_domain ... ok
+test profiles::tests::without_a_name_the_machine_follows_the_domain ... ok
+test quality::calibration::tests::a_handful_of_pages_produces_no_percentile_and_says_why ... ok
+test quality::calibration::tests::a_number_out_of_range_or_no_number_at_all_cannot_corrupt_the_history ... ok
+test quality::calibration::tests::classes_do_not_share_a_key ... ok
+test quality::calibration::tests::history_survives_the_round_trip_and_a_row_from_another_build_is_discarded ... ok
+test quality::calibration::tests::once_there_is_history_the_answer_arrives_with_its_width ... ok
+test quality::calibration::tests::the_commonest_value_sits_in_the_middle_rather_than_at_the_top ... ok
+test quality::credibility::tests::a_blank_byline_is_absent_rather_than_present_and_empty ... ok
+test quality::credibility::tests::a_date_is_carried_verbatim_because_normalising_it_would_look_like_verifying_it ... ok
+test quality::credibility::tests::a_hostless_or_bare_address_is_no_host_at_all ... ok
+test quality::credibility::tests::a_link_home_after_a_redirect_is_not_a_citation ... ok
+test quality::credibility::tests::a_page_that_says_nothing_about_itself_produces_nothing_to_report ... ok
+test quality::credibility::tests::citations_are_counted_by_link_and_by_distinct_host ... ok
+test quality::credibility::tests::first_seen_is_carried_through_untouched ... ok
+test quality::diversity::tests::a_short_list_is_left_alone ... ok
+test quality::diversity::tests::agreement_by_chance_costs_nothing_and_only_real_overlap_is_charged_for ... ok
+test quality::diversity::tests::every_result_comes_back_exactly_once ... ok
+test quality::diversity::tests::results_that_are_all_different_keep_the_order_they_arrived_in ... ok
+test quality::diversity::tests::the_callers_first_choice_stays_first ... ok
+test quality::diversity::tests::the_one_different_result_is_promoted_past_the_copies ... ok
+test quality::provenance::tests::genuinely_different_reporting_is_counted_as_different ... ok
+test quality::provenance::tests::nothing_is_ever_removed_only_labelled ... ok
+test quality::provenance::tests::one_wire_story_on_five_sites_is_one_source ... ok
+test quality::provenance::tests::two_empty_pages_are_not_evidence_of_syndication ... ok
+test quality::substance::tests::a_bigram_is_not_the_same_feature_as_its_two_words ... ok
+test quality::substance::tests::a_file_that_does_not_match_its_sidecar_is_refused_rather_than_reshaped ... ok
+test quality::substance::tests::a_model_learns_to_tell_two_kinds_of_page_apart ... ok
+test quality::substance::tests::a_model_survives_a_round_trip_through_its_file ... ok
+test quality::substance::tests::an_untrained_model_is_undecided_rather_than_confident ... ok
+test quality::substance::tests::something_that_is_not_a_model_is_not_read_as_one ... ok
+test quality::substance::tests::word_order_inside_an_ngram_matters ... ok
+test quality::tests::a_blob_of_base64_is_still_not_prose_even_though_it_has_no_spaces_either ... ok
+test quality::tests::a_glossary_is_link_dense_and_that_alone_is_not_held_against_it ... ok
+test quality::tests::a_page_in_a_script_without_spaces_is_a_page_and_not_a_hash ... ok
+test quality::tests::a_page_in_another_language_is_judged_by_shape_and_nothing_else ... ok
+test quality::tests::a_page_of_identifiers_is_not_mistaken_for_running_text ... ok
+test quality::tests::a_page_that_is_almost_all_site_furniture_is_named_as_such_only_when_the_caller_can_know ... ok
+test quality::tests::a_page_with_almost_no_words_is_thin_and_says_which_way ... ok
+test quality::tests::a_page_with_nothing_notable_about_it_says_nothing ... ok
+test quality::tests::a_redirect_that_still_lands_on_something_specific_is_not_reported ... ok
+test quality::tests::a_review_that_earns_a_commission_is_still_a_review ... ok
+test quality::tests::a_row_from_an_older_build_still_reads ... ok
+test quality::tests::a_short_page_is_not_judged_by_a_ratio_that_cannot_mean_anything ... ok
+test quality::tests::a_small_tidy_page_is_not_punished_for_having_no_boilerplate_to_dilute ... ok
+test quality::tests::a_teaser_that_stops_mid_thought_is_partial_rather_than_thin ... ok
+test quality::tests::an_affiliate_listicle_is_named_as_heavily_engineered ... ok
+test quality::tests::an_empty_extraction_is_thin_without_panicking_on_the_arithmetic ... ok
+test quality::tests::an_ordinary_article_has_nothing_said_about_it ... ok
+test quality::tests::asking_for_an_article_and_getting_the_front_page_is_said_out_loud ... ok
+test quality::tests::everything_measured_survives_a_round_trip_through_the_cache ... ok
+test quality::tests::nonsense_beside_a_page_is_no_label_rather_than_a_guessed_one ... ok
+test quality::tests::not_measured_is_not_the_same_as_measured_and_ordinary ... ok
+test quality::tests::one_phrase_repeated_across_the_page_is_named_as_filler ... ok
+test quality::tests::text_that_is_a_sliver_of_its_markup_is_reported_as_frame_not_content ... ok
+test quality::tests::the_markup_ratio_still_reads_the_whole_document ... ok
+test quality::tests::thinness_is_judged_on_what_the_caller_received_not_on_the_whole_page ... ok
+test quality::tests::with_nothing_delivered_the_document_is_what_is_judged ... ok
+test reputation::tests::a_blocked_request_costs_double_a_delivered_one ... ok
+test reputation::tests::a_torn_ledger_does_not_read_as_an_empty_one ... ok
+test reputation::tests::an_exhausted_budget_says_how_long_until_it_is_not ... ok
+test reputation::tests::clearing_a_domain_forgets_every_exit_that_spent_on_it ... ok
+test reputation::tests::every_tier_has_a_cost_and_they_rise_with_the_tier ... ok
+test reputation::tests::one_exit_on_two_domains_does_not_share_a_budget_either ... ok
+test reputation::tests::spend_halves_every_half_life ... ok
+test reputation::tests::the_gap_multiplier_is_one_until_the_soft_line_then_climbs_to_the_cap ... ok
+test reputation::tests::the_home_address_is_budgeted_like_an_exit ... ok
+test reputation::tests::three_runs_of_the_published_protocol_fit_and_eight_spread_over_a_day_do_not ... ok
+test reputation::tests::two_exits_on_one_domain_do_not_share_a_budget ... ok
+test robots::tests::a_longer_allow_overrides_a_shorter_disallow ... ok
+test robots::tests::a_malformed_file_does_not_panic_and_allows_everything ... ok
+test robots::tests::a_named_agent_gets_its_own_group ... ok
+test robots::tests::an_empty_disallow_means_allow_everything ... ok
+test robots::tests::consecutive_user_agent_lines_share_one_group ... ok
+test robots::tests::crawl_delay_is_read_and_capped ... ok
+test robots::tests::directives_are_case_insensitive_and_comments_are_stripped ... ok
+test robots::tests::policies_parse_from_their_words ... ok
+test robots::tests::rfc_pattern_matching ... ok
+test robots::tests::sitemaps_are_global_regardless_of_where_they_appear ... ok
+test robots::tests::the_wildcard_group_applies_to_an_unknown_agent ... ok
+test saturation::tests::a_query_with_no_early_hits_does_not_stop_immediately ... ok
+test saturation::tests::an_empty_page_does_not_crash_or_count_as_novel ... ok
+test saturation::tests::coverage_reaches_one_when_every_term_appears ... ok
+test saturation::tests::genuinely_new_pages_never_saturate ... ok
+test saturation::tests::repeating_the_same_page_saturates ... ok
+test saturation::tests::the_shingle_set_stays_bounded ... ok
+test saturation::tests::without_a_query_coverage_is_not_a_constraint ... ok
+test selectors::tests::a_later_save_updates_only_the_fields_it_saw ... ok
+test selectors::tests::fingerprints_are_scoped_by_domain_and_schema ... ok
+test session::tests::a_deep_request_that_lands_on_the_front_page_is_a_block ... ok
+test session::tests::a_front_page_request_that_returns_the_front_page_is_fine ... ok
+test session::tests::a_named_wall_beats_every_other_signal ... ok
+test session::tests::a_server_error_does_not_burn_the_session ... ok
+test session::tests::a_success_with_no_content_is_a_block ... ok
+test session::tests::a_sudden_collapse_in_speed_is_rate_limiting_not_a_block ... ok
+test session::tests::one_block_does_not_retire_a_session_but_three_do ... ok
+test session::tests::success_heals_but_never_past_full ... ok
+test session::tests::the_statuses_that_really_are_refusals_are_treated_as_such ... ok
+test sitemap::tests::a_feed_with_no_items_is_empty_not_an_error ... ok
+test sitemap::tests::a_namespaced_prefix_does_not_hide_the_tags ... ok
+test sitemap::tests::a_plain_text_sitemap_is_accepted ... ok
+test sitemap::tests::a_truncated_sitemap_recovers_and_a_non_sitemap_errors ... ok
+test sitemap::tests::a_urlset_yields_its_urls_and_dates ... ok
+test sitemap::tests::an_index_yields_child_sitemaps_not_pages ... ok
+test sitemap::tests::atom_entries_take_the_url_from_the_link_attribute ... ok
+test sitemap::tests::gzip_is_detected_by_magic_bytes_not_by_extension ... ok
+test sitemap::tests::rss_items_are_read ... ok
+test sitemap::tests::the_url_cap_is_honoured_without_materialising_everything ... ok
+test store::concurrency_tests::concurrent_inserts_do_not_lose_each_other ... ok
+test store::tests::a_missing_or_corrupt_file_reads_as_empty ... ok
+test store::tests::a_proxy_region_round_trips_and_a_typo_is_refused ... ok
+test store::tests::insert_and_remove_persist_and_report_change ... ok
+test store::tests::lookups_after_the_first_do_not_touch_disk ... ok
+test store::tests::subdomains_inherit_the_parent_route ... ok
+test template::tests::a_page_repeating_its_own_footer_is_still_one_page_of_evidence ... ok
+test template::tests::a_page_that_is_entirely_furniture_comes_back_whole ... ok
+test template::tests::a_passage_that_is_most_of_a_page_is_that_pages_content_however_often_it_repeats ... ok
+test template::tests::a_record_survives_the_round_trip_and_nonsense_starts_again ... ok
+test template::tests::nothing_is_stripped_until_the_site_has_actually_been_seen ... ok
+test template::tests::once_it_is_armed_the_sites_own_furniture_goes_and_the_article_stays ... ok
+test template::tests::one_domains_record_is_not_anothers ... ok
+test throttle::tests::a_domain_near_its_budget_is_paced_more_slowly_than_a_fresh_one ... ok
+test throttle::tests::a_fast_browser_domain_is_not_held_for_three_seconds ... ok
+test throttle::tests::a_fast_domain_earns_a_shorter_gap_than_a_slow_one ... ok
+test throttle::tests::a_pool_does_not_share_one_gap_across_its_exits ... ok
+test throttle::tests::an_extreme_retry_after_is_capped ... ok
+test throttle::tests::blocks_back_off_and_success_recovers ... ok
+test throttle::tests::retry_after_reads_both_seconds_and_an_http_date ... ok
+test throttle::tests::the_gap_stays_inside_the_tier_bounds ... ok
+test throttle::tests::throttle_spaces_requests_and_never_starves ... ok
+test token::tests::a_token_of_the_wrong_length_is_refused_without_comparing_bytes ... ok
+test token::tests::a_token_that_differs_only_in_its_last_byte_is_refused ... ok
+test token::tests::a_token_that_matches_is_accepted ... ok
+test token::tests::an_empty_secret_matches_an_empty_offer_which_is_why_callers_must_refuse_one ... ok
+test token::tests::no_token_at_all_is_not_a_match ... ok
+test warm::tests::a_cap_of_zero_keeps_nothing_at_all ... ok
+test warm::tests::a_cleared_page_behind_a_cookie_borne_wall_is_not_worth_keeping ... ok
+test warm::tests::a_cleared_page_behind_a_runtime_borne_clearance_is_kept ... ok
+test warm::tests::a_kept_page_is_retired_by_the_shared_verdict_rule_and_not_a_new_one ... ok
+test warm::tests::a_page_parked_too_long_ago_is_never_handed_out ... ok
+test warm::tests::a_page_that_never_cleared_is_never_kept ... ok
+test warm::tests::a_page_wearing_a_borrowed_machine_is_never_kept ... ok
+test warm::tests::a_page_whose_browser_was_reaped_is_dropped_not_handed_out ... ok
+test warm::tests::a_parked_page_has_exactly_one_user_at_a_time ... ok
+test warm::tests::an_isolated_fetch_leaves_nothing_behind_not_even_a_kept_page ... ok
+test warm::tests::nothing_is_kept_at_the_http_tier ... ok
+test warm::tests::only_a_verdict_the_shared_rule_calls_bad_retires_a_kept_page ... ok
+test warm::tests::parking_the_same_key_twice_never_holds_two_tabs_for_one_domain ... ok
+test warm::tests::renewal_has_time_but_never_exceeds_the_configured_budget ... ok
+test warm::tests::the_cap_evicts_the_page_that_has_gone_longest_unused ... ok
+test watch::tests::a_check_that_never_happened_is_reported_as_overdue ... ok
+test watch::tests::a_different_page_is_a_change_and_the_same_page_is_not ... ok
+test watch::tests::a_page_that_changes_back_still_counts_both_times ... ok
+test watch::tests::a_watch_checked_a_moment_ago_is_not_due_again ... ok
+test watch::tests::a_watch_survives_being_written_down_and_read_back ... ok
+test watch::tests::a_watch_that_has_never_been_checked_is_due_immediately ... ok
+test watch::tests::a_watch_written_by_an_older_version_still_reads ... ok
+test watch::tests::an_interval_nobody_could_mean_is_raised_to_something_that_can_be_meant ... ok
+test watch::tests::the_first_look_at_a_page_is_never_a_change ... ok
+test watch::tests::the_longest_wait_goes_first ... ok
+test watch::tests::two_watches_on_one_url_are_one_watch ... ok
+test widget::tests::a_lookup_by_id_finds_the_row_and_an_unknown_one_is_none ... ok
+test widget::tests::a_modality_that_needs_a_model_says_so ... ok
+test widget::tests::a_widget_is_recognised_from_its_traffic ... ok
+test widget::tests::attempt_budgets_reflect_what_a_retry_is_worth ... ok
+test widget::tests::every_response_field_belongs_to_a_widget_that_declares_one ... ok
+test widget::tests::every_row_is_complete_and_actionable ... ok
+test widget::tests::no_widget_is_listed_twice ... ok
+test widget::tests::the_url_match_ignores_case ... ok
+test widget::tests::the_widgets_that_need_no_model_are_the_ones_we_can_actually_finish ... ok
+test cache::tests::version_history_accumulates_newest_first ... ok
+
+test result: ok. 516 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 3.52s
+
+
+running 7 tests
+test automatic_identity_is_the_valid_default ... ok
+test learned_routes_never_promote_native_or_cross_contexts ... ok
+test repeated_failures_skip_wasted_routes_but_keep_an_emulated_browser_probe ... ok
+test route_keys_omit_queries_and_separate_exit_and_environment ... ok
+test short_delivered_pages_clear_failures_without_being_promoted_as_full ... ok
+test traffic_limits_survive_reopen_and_do_not_extend_when_refused ... ok
+test concurrent_visits_cannot_overdraw_the_window ... ok
+
+test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.10s
+
+
+running 4 tests
+test a_page_with_nothing_wrong_with_it_costs_nothing_to_say_so ... ok
+test every_label_the_test_knows_has_at_least_one_page_to_stand_for_it ... ok
+test a_husk_is_never_reported_as_a_whole_page ... ok
+test every_page_is_recognised_as_the_thing_it_is ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.06s
+
+
+running 7 tests
+test an_ordinary_page_is_not_mistaken_for_any_of_them ... ok
+test every_modality_in_the_table_is_one_something_can_answer ... ok
+test a_fixture_names_exactly_one_widget ... ok
+test every_widget_in_the_table_has_a_page_to_recognise_it_from ... ok
+test the_endpoint_alone_is_enough_when_the_markup_gives_nothing_away ... ok
+test every_widget_is_found_on_its_own_page ... ok
+test the_key_a_solver_needs_is_read_off_the_page_not_left_to_the_caller ... ok
+
+test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+
+
+running 21 tests
+test tests::a_geometric_answer_travels_back_as_the_fractions_it_arrived_as ... ok
+test tests::a_job_that_never_said_what_it_wanted_still_accepts_an_answer ... ok
+test tests::a_click_sent_in_pixels_is_refused_rather_than_stored ... ok
+test tests::a_normalised_click_is_accepted_and_kept_as_it_was_given ... ok
+test tests::a_payload_with_both_token_and_text_stores_only_the_token ... ok
+test tests::a_solve_without_token_or_text_is_ignored ... ok
+test tests::an_answer_to_a_different_question_is_refused_and_says_why ... ok
+test tests::an_asset_is_behind_the_token_like_every_other_piece_of_data ... ok
+test tests::an_asset_is_served_with_its_own_type_and_never_sniffed ... ok
+test tests::every_modality_the_core_knows_has_something_to_draw_it_with ... ok
+test tests::html_shell_is_served_without_a_token ... ok
+test tests::pending_accepts_the_right_token ... ok
+test tests::pending_rejects_a_wrong_token ... ok
+test tests::query_value_decodes_percent_and_plus ... ok
+test tests::pending_requires_a_token ... ok
+test tests::the_page_is_assembled_from_its_three_files_with_nothing_left_unfilled ... ok
+test tests::the_panel_sends_fractions_and_never_pixels ... ok
+test tests::saying_you_cannot_read_it_marks_the_job_failed_not_solved ... ok
+test tests::websocket_upgrade_passes_the_gate_with_the_right_token ... ok
+test tests::websocket_upgrade_requires_a_token ... ok
+test tests::what_is_pushed_to_the_panel_names_the_assets_and_never_carries_them ... ok
+
+test result: ok. 21 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.03s
+
+
+running 123 tests
+test content::blocks::tests::an_empty_page_condemns_nothing ... ok
+test content::blocks::tests::a_page_with_no_latin_punctuation_is_still_read ... ok
+test content::blocks::tests::navigation_is_boilerplate_and_prose_is_not ... ok
+test content::blocks::tests::the_decision_tree_is_the_published_one ... ok
+test content::candidates::tests::a_page_with_no_prose_at_all_has_no_winner ... ok
+test content::candidates::tests::relaxing_the_flags_lets_a_stripped_page_be_read ... ok
+test content::candidates::tests::a_content_class_beats_a_furniture_class ... ok
+test content::candidates::tests::the_winner_is_a_real_node_of_the_document ... ok
+test content::candidates::tests::the_content_wins_on_its_own_merits_not_on_its_tag_name ... ok
+test content::forum::tests::a_declared_posting_is_believed ... ok
+test content::forum::tests::a_question_and_answer_page_is_not_evidence_of_a_forum ... ok
+test content::forum::tests::a_run_of_bylines_is_not_a_thread ... ok
+test content::forum::tests::an_article_is_not_a_thread ... ok
+test content::forum::tests::an_empty_page_is_not_a_thread ... ok
+test content::forum::tests::an_undeclared_thread_is_found_by_its_shape ... ok
+test content::forum::tests::repeated_posts_under_an_ordinary_container_are_a_thread ... ok
+test content::profile::tests::every_type_has_a_profile_and_none_of_them_silences_everyone ... ok
+test content::profile::tests::no_profile_lowers_the_bar_for_removing_content ... ok
+test content::profile::tests::the_default_is_the_article_profile_because_that_is_the_safe_guess ... ok
+test content::profile::tests::the_types_that_hold_content_in_several_places_do_not_pick_one ... ok
+test content::stats::tests::a_subtree_carries_its_descendants_numbers ... ok
+test content::stats::tests::an_empty_document_has_no_text_to_judge ... ok
+test content::stats::tests::code_and_tables_are_flagged_all_the_way_up ... ok
+test content::vote::tests::a_page_with_nothing_in_it_is_left_alone ... ok
+test content::vote::tests::a_forum_thread_keeps_its_posts ... ok
+test content::vote::tests::a_single_dissenting_voter_is_enough_to_keep_a_block ... ok
+test content::vote::tests::what_every_voter_condemns_is_dropped_and_the_article_is_not ... ok
+test content::vote::tests::agreement_is_high_on_an_obvious_page_and_lower_on_an_ambiguous_one ... ok
+test heal::tests::a_fingerprint_round_trips_through_json_and_tolerates_missing_fields ... ok
+test heal::tests::a_position_is_added_only_when_classes_cannot_tell_siblings_apart ... ok
+test heal::tests::an_element_survives_a_class_rename ... ok
+test heal::tests::an_element_survives_being_moved_one_level_deeper ... ok
+test heal::tests::something_unrelated_never_clears_the_bar ... ok
+test heal::tests::the_generated_selector_finds_exactly_that_element_and_its_siblings_for_a_base ... ok
+test heal::tests::two_equally_similar_candidates_are_a_miss_not_a_guess ... ok
+test induce::tests::a_field_missing_from_a_quarter_of_the_records_is_dropped ... ok
+test induce::tests::a_generated_class_is_never_the_selector ... ok
+test induce::tests::a_listing_names_its_own_records_and_columns ... ok
+test induce::tests::a_menu_of_one_word_links_is_not_a_listing ... ok
+test induce::tests::a_page_with_nothing_repeated_is_refused ... ok
+test induce::tests::the_link_that_carries_the_text_takes_the_name ... ok
+test induce::tests::the_navigation_is_not_the_listing ... ok
+test meta::tests::a_graph_wrapper_is_flattened_and_broken_json_is_skipped ... ok
+test meta::tests::an_author_object_yields_its_name ... ok
+test meta::tests::an_empty_document_produces_no_spurious_fields ... ok
+test meta::tests::canonical_and_image_are_absolute ... ok
+test meta::tests::dates_prefer_json_ld_over_the_meta_tag ... ok
+test meta::tests::json_ld_wins_over_opengraph_which_wins_over_the_title_tag ... ok
+test meta::tests::language_feeds_keywords_and_robots_are_captured ... ok
+test meta::tests::links_are_split_internal_versus_external_with_subdomains_counted_as_internal ... ok
+test prune::tests::a_clean_article_is_left_alone ... ok
+test prune::tests::a_container_inside_a_dropped_one_is_not_charged_twice ... ok
+test prune::tests::a_link_rail_is_dropped_and_the_article_survives ... ok
+test prune::tests::an_index_page_is_not_emptied ... ok
+test prune::tests::chrome_inside_chrome_is_counted_once ... ok
+test prune::tests::code_blocks_are_never_pruned ... ok
+test prune::tests::data_tables_are_never_pruned ... ok
+test sanitize::tests::a_normal_space_is_not_invisible ... ok
+test sanitize::tests::a_property_name_is_not_matched_inside_another_one ... ok
+test sanitize::tests::a_small_negative_offset_is_ordinary_layout ... ok
+test sanitize::tests::ordinary_text_survives_untouched ... ok
+test sanitize::tests::the_ways_text_is_actually_hidden_are_caught ... ok
+test sanitize::tests::visible_text_is_never_dropped ... ok
+test sanitize::tests::zero_width_characters_are_stripped ... ok
+test schema::heal_tests::a_base_selector_that_broke_is_relocated_before_any_field_is_read ... ok
+test schema::heal_tests::a_field_whose_selector_broke_is_relocated_and_reported ... ok
+test schema::heal_tests::a_memory_that_matches_nothing_similar_is_an_error_not_a_guess ... ok
+test schema::heal_tests::a_selector_that_still_matches_is_never_second_guessed ... ok
+test schema::heal_tests::without_a_memory_a_broken_selector_is_still_just_null ... ok
+test schema::tests::a_base_selector_matching_nothing_yields_an_empty_result ... ok
+test prune::tests::a_deep_dom_does_not_overflow_the_scoring_pass ... ok
+test schema::tests::a_list_field_collects_every_match ... ok
+test schema::tests::a_missing_field_is_null_or_its_default ... ok
+test schema::tests::a_regex_narrows_the_captured_text ... ok
+test schema::tests::a_product_grid_yields_one_object_per_card ... ok
+test schema::tests::an_invalid_base_selector_is_an_error ... ok
+test schema::tests::an_invalid_selector_is_a_reported_error_not_a_panic ... ok
+test schema::tests::attributes_can_be_resolved_against_the_page_url ... ok
+test schema::tests::european_and_anglo_number_formats_both_parse ... ok
+test schema::tests::exists_reports_a_boolean_per_item ... ok
+test schema::tests::nested_fields_build_objects ... ok
+test schema::tests::extraction_costs_a_single_parse ... ok
+test schema::tests::numbers_survive_currency_symbols_and_separators ... ok
+test signals::tests::a_page_is_counted_by_what_it_is_made_of ... ok
+test signals::tests::a_referral_is_recognised_on_a_shortener_and_on_the_retailers_own_host ... ok
+test signals::tests::an_ordinary_link_is_not_called_a_referral ... ok
+test signals::tests::headings_that_only_repeat_the_body_are_measured_as_such ... ok
+test signals::tests::the_measure_says_the_same_thing_in_another_language ... ok
+test table::tests::a_caption_is_kept_above_the_table ... ok
+test table::tests::a_layout_table_is_not_rendered_as_a_table ... ok
+test table::tests::a_newline_in_a_cell_becomes_a_space ... ok
+test table::tests::a_pipe_in_a_cell_is_escaped ... ok
+test table::tests::a_single_column_table_is_layout ... ok
+test table::tests::a_table_without_a_header_names_columns_by_position_and_carries_its_index ... ok
+test table::tests::a_table_without_th_still_renders_with_an_empty_header ... ok
+test table::tests::alignment_attributes_become_gfm_alignment ... ok
+test table::tests::colspan_repeats_the_value_across_the_columns_it_covered ... ok
+test table::tests::nested_table_rows_do_not_leak_into_the_outer_one ... ok
+test table::tests::plain_cells_keep_pipes_and_newlines_are_flattened ... ok
+test table::tests::rows_become_objects_named_by_the_header ... ok
+test table::tests::rowspan_carries_the_cell_into_following_rows ... ok
+test table::tests::thead_produces_valid_gfm ... ok
+test table_wants_tests::an_induced_schema_returns_its_rows_from_the_same_parse ... ok
+test table_wants_tests::tables_are_collected_from_the_same_parse_and_layout_tables_are_not_tables ... ok
+test tests::a_forum_profile_keeps_a_thread_an_article_profile_would_strip ... ok
+test tests::a_declared_thread_keeps_its_posts_through_the_pruner ... ok
+test tests::a_fragment_of_a_small_page_is_replaced_by_the_whole_of_it ... ok
+test tests::a_page_with_no_text_at_all_still_extracts_to_nothing ... ok
+test tests::a_short_main_region_on_a_large_page_is_still_the_main_region ... ok
+test tests::bm25_keeps_the_relevant_blocks_and_drops_the_rest ... ok
+test tests::bm25_returns_everything_when_the_query_has_no_word_characters ... ok
+test tests::css_selector_and_links ... ok
+test tests::markdown_structure ... ok
+test tests::parse_page_does_exactly_one_dom_parse ... ok
+test tests::parse_page_matches_the_free_functions ... ok
+test tests::parse_page_skips_work_that_was_not_asked_for ... ok
+test tests::a_page_the_heuristics_empty_out_comes_back_whole_rather_than_not_at_all ... ok
+test tests::text_hidden_by_an_inline_style_never_reaches_the_output ... ok
+test tests::text_strips_script_and_style ... ok
+test tests::the_fallback_does_not_fire_when_the_heuristics_worked ... ok
+test tests::the_density_thresholds_can_be_varied_from_outside ... ok
+test tests::zero_width_characters_do_not_reach_the_output ... ok
+test tests::unclosed_nested_anchors_do_not_bring_the_fetch_down ... ok
+
+test result: ok. 123 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.12s
+
+
+running 9 tests
+test tests::a_pdf_body_is_recognised_without_a_content_type ... ok
+test tests::a_drawn_machine_never_changes_what_goes_on_the_wire ... ok
+test tests::engine_resolves_from_config_words ... ok
+test tests::set_header_replaces_in_place_and_is_case_insensitive ... ok
+test wreq_engine::tests::a_firefox_identity_selects_a_firefox_profile_that_does_not_overstate_it ... ok
+test wreq_engine::tests::every_major_the_identity_can_advertise_has_a_profile_that_does_not_overstate_it ... ok
+test wreq_engine::tests::platform_follows_the_identity ... ok
+test wreq_engine::tests::profile_never_overstates_the_advertised_major ... ok
+test tests::asking_for_impersonation_without_the_feature_is_an_error_not_a_downgrade ... ok
+
+test result: ok. 9 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+
+
+running 4 tests
+test both_engines_follow_a_redirect ... ignored, network
+test http_tier_is_shaped_like_chrome ... ignored, network
+test the_fallback_engine_is_measurably_worse ... ignored, network
+test user_agent_agrees_with_the_emulation ... ignored, network
+
+test result: ok. 0 passed; 0 failed; 4 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+
+running 2 tests
+test no_native_tls_in_the_linked_graph ... ok
+test reqwest_is_declared_without_default_tls ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+
+running 209 tests
+test audio::tests::a_clip_shorter_than_one_window_yields_nothing_rather_than_a_wrong_answer ... ok
+test audio::tests::a_machine_without_the_model_says_so_instead_of_guessing ... ok
+test audio::tests::a_pure_tone_lands_in_the_bin_it_belongs_in ... ok
+test audio::tests::both_channels_are_heard_not_just_the_left_one ... ok
+test audio::tests::characters_already_recognised_as_characters_pass_straight_through ... ok
+test audio::tests::resampling_changes_the_length_by_the_ratio_and_keeps_the_shape ... ok
+test audio::tests::a_spectrogram_has_one_row_of_bands_per_window_of_the_clip ... ok
+test audio::tests::spoken_numbers_come_back_as_the_digits_a_form_expects ... ok
+test audio::tests::the_mel_filters_cover_the_spectrum_without_gaps_or_overhang ... ok
+test audio::tests::the_transform_of_silence_is_silence ... ok
+test audio::tests::the_window_tapers_to_nothing_at_both_ends ... ok
+test behavior::tests::a_click_never_lands_on_the_exact_centre ... ok
+test behavior::tests::a_long_page_is_read_for_longer_than_a_short_one ... ok
+test behavior::tests::a_move_of_no_distance_is_a_single_step ... ok
+test behavior::tests::a_path_ends_exactly_on_its_target ... ok
+test behavior::tests::a_path_is_not_the_straight_line_between_its_endpoints ... ok
+test behavior::tests::a_path_stays_in_a_sane_corridor ... ok
+test behavior::tests::a_press_is_held_for_a_plausible_time ... ok
+test behavior::tests::a_scroll_arrives_in_notches_that_add_up_to_the_distance ... ok
+test behavior::tests::a_scroll_ramps_up_and_eases_off ... ok
+test behavior::tests::nobody_reads_a_page_in_forty_milliseconds_or_takes_a_minute ... ok
+test behavior::tests::one_identity_draws_the_same_path_twice ... ok
+test behavior::tests::punctuation_and_capitals_cost_more_than_plain_letters ... ok
+test behavior::tests::sample_count_follows_the_distance ... ok
+test behavior::tests::scrolling_nowhere_does_nothing ... ok
+test behavior::tests::scrolling_upward_keeps_its_direction ... ok
+test behavior::tests::the_same_pair_of_letters_always_costs_the_same ... ok
+test behavior::tests::travel_time_is_human ... ok
+test behavior::tests::two_identities_do_not_draw_the_same_path ... ok
+test behavior::tests::two_identities_do_not_type_at_the_same_speed ... ok
+test behavior::tests::typing_is_never_instant_and_never_glacial ... ok
+test behavior::tests::typing_nothing_produces_nothing ... ok
+test blocklists::tests::a_source_url_becomes_a_file_name_a_person_can_recognise ... ok
+test blocklists::tests::a_url_that_ends_in_a_slash_still_gets_a_name ... ok
+test blocklists::tests::the_browser_never_gets_more_patterns_than_it_can_afford ... ok
+test browser::tests::a_browser_newer_than_anything_known_is_not_reported ... ok
+test browser::tests::a_browser_two_majors_behind_is_reported ... ok
+test browser::tests::a_current_browser_is_left_alone ... ok
+test browser::tests::a_machine_with_no_browser_has_nothing_to_advise ... ok
+test browser::tests::a_self_defending_browser_is_named_in_the_advice ... ok
+test browser::tests::a_self_defending_browser_never_outranks_chrome ... ok
+test browser::tests::a_sibling_that_merely_contains_digits_is_not_a_version ... ok
+test browser::tests::a_template_that_is_not_https_is_refused_rather_than_passed_through ... ok
+test browser::tests::an_unknown_version_cannot_be_called_stale ... ok
+test browser::tests::brand_is_recognised_from_the_path ... ok
+test browser::tests::brands_are_ranked_by_how_faithfully_they_carry_our_identity ... ok
+test browser::tests::init_scripts_carry_language_tags_not_a_header ... ok
+test browser::tests::launch_preserves_browser_security_defenses ... ok
+test browser::tests::major_of_handles_the_shapes_chrome_reports ... ok
+test browser::tests::no_init_script_leaves_a_named_global_behind ... ok
+test browser::tests::no_launch_flag_announces_automation ... ok
+test browser::tests::no_template_means_the_browser_is_left_alone ... ok
+test browser::tests::one_major_behind_is_an_ordinary_rollout_and_stays_quiet ... ok
+test browser::tests::proxy_credentials_are_split_off_for_cdp_and_never_reach_the_command_line ... ok
+test browser::tests::resolving_over_https_is_all_or_nothing ... ok
+test browser::tests::the_managed_browser_reports_the_version_it_actually_is ... ok
+test browser::tests::the_self_defending_problem_outranks_the_stale_one ... ok
+test browser::tests::the_stealth_patches_are_still_present_in_the_base_flags ... ok
+test browser::tests::the_switch_that_makes_web_route_work_is_always_set ... ok
+test browser::tests::the_window_is_the_machine_that_was_drawn ... ok
+test browser::tests::two_machines_never_share_a_browser ... ok
+test browser::tests::version_is_read_from_a_sibling_directory_without_running_anything ... ok
+test capture::tests::an_oversized_body_is_reported_as_truncated_not_passed_off_as_json ... ok
+test capture::tests::endpoints_that_differ_only_by_a_page_number_are_one_endpoint ... ok
+test capture::tests::genuinely_different_endpoints_are_all_reported ... ok
+test capture::tests::no_pattern_means_everything_and_matching_ignores_case ... ok
+test capture::tests::nothing_captured_is_no_endpoints_rather_than_a_panic ... ok
+test capture::tests::the_page_itself_is_not_captured_as_traffic ... ok
+test capture::tests::the_traffic_that_carries_data_is_kept_and_the_rest_is_not ... ok
+test detect::tests::both_output_layouts_decode_to_the_same_fractions ... ok
+test detect::tests::boxes_are_fractions_of_the_picture_never_pixels ... ok
+test detect::tests::nms_keeps_the_strongest_box_and_is_deterministic ... ok
+test detect::tests::without_a_model_detection_is_an_error_and_never_a_guess ... ok
+test grid::tests::a_class_index_past_the_end_scores_zero_rather_than_panicking ... ok
+test grid::tests::a_four_by_four_grid_is_handled_too ... ok
+test grid::tests::a_multilabel_row_is_read_as_is_because_a_softmax_would_flatten_it ... ok
+test grid::tests::a_two_word_class_beats_a_one_word_class_that_is_a_prefix_of_it ... ok
+test grid::tests::an_empty_grid_is_empty_not_a_division_by_zero ... ok
+test grid::tests::an_unknown_subject_is_none_rather_than_a_guess ... ok
+test grid::tests::nothing_over_the_threshold_selects_nothing ... ok
+test grid::tests::only_tiles_over_the_threshold_are_selected_and_the_surest_goes_first ... ok
+test grid::tests::plurals_ending_in_es_are_stemmed_without_eating_the_word ... ok
+test grid::tests::probabilities_are_passed_through_and_logits_are_softmaxed ... ok
+test grid::tests::the_config_needs_classes_to_be_usable_and_defaults_to_the_measured_threshold ... ok
+test grid::tests::the_plural_in_the_prompt_still_finds_the_singular_class ... ok
+test grid::tests::the_sidecar_can_say_its_rows_are_independent_probabilities ... ok
+test grid::tests::the_words_have_to_be_adjacent ... ok
+test grid::tests::tiles_are_laid_out_row_major_and_cover_the_whole_grid ... ok
+test grid::tests::without_a_model_classification_is_an_error_and_never_a_guess ... ok
+test handoff::tests::a_token_wins_and_text_is_read_as_json_when_it_is_json ... ok
+test handoff::tests::every_modality_a_person_can_answer_has_a_scene_or_is_named_as_not_handed_over ... ok
+test handoff::tests::fractions_land_inside_the_rectangle_they_describe ... ok
+test model_source::tests::a_file_on_disk_wins_over_the_embedded_copy ... ok
+test model_source::tests::a_model_file_without_its_sidecar_is_not_a_model ... ok
+test model_source::tests::a_swapped_file_has_a_different_stamp ... ok
+test model_source::tests::argmax_picks_the_first_maximum_and_survives_an_empty_row ... ok
+test model_source::tests::the_tensor_is_channels_first_and_scaled ... ok
+test model_source::tests::without_a_file_the_embedded_copy_is_used_and_without_either_there_is_nothing ... ok
+test ocr::tests::ctc_collapses_repeats_and_blanks ... ok
+test profiles::tests::a_cache_is_not_carried_even_when_it_is_the_biggest_thing_there ... ok
+test profiles::tests::a_profile_survives_a_round_trip ... ok
+test profiles::tests::a_profile_that_is_not_there_is_an_error_rather_than_an_empty_archive ... ok
+test profiles::tests::caches_are_left_behind ... ok
+test profiles::tests::the_wrong_password_does_not_produce_a_profile ... ok
+test profiles::tests::there_is_no_way_to_write_one_without_a_password ... ok
+test progress::tests::a_fan_reports_to_every_sink ... ok
+test progress::tests::an_event_carries_what_answered_and_never_the_page ... ok
+test progress::tests::an_mcp_client_still_sees_the_same_progress_message_it_saw_before ... ok
+test provision::tests::a_normal_entry_extracts ... ok
+test provision::tests::a_zip_entry_cannot_escape_the_destination ... ok
+test provision::tests::an_unavailable_platform_is_a_clear_error_not_a_panic ... ok
+test provision::tests::md5_is_read_out_of_the_google_hash_header ... ok
+test provision::tests::md5_matches_the_known_digest_of_an_empty_input ... ok
+test provision::tests::platform_token_is_known_for_this_host ... ok
+test provision::tests::release_is_picked_for_the_requested_platform_and_artifact ... ok
+test quality_cli::tests::a_model_trained_from_a_file_is_written_where_svipall_looks_for_it ... ok
+test quality_cli::tests::an_export_from_an_empty_history_produces_an_empty_set_and_says_so ... ok
+test quality_cli::tests::the_score_it_reports_is_not_the_data_it_was_fitted_on ... ok
+test quality_cli::tests::too_few_examples_is_refused_rather_than_fitted ... ok
+test search::tests::a_page_two_engines_agree_on_beats_one_engine_s_favourite ... ok
+test search::tests::bing_rows ... ok
+test search::tests::ddg_lite_rows ... ok
+test search::tests::merging_nothing_is_no_results_rather_than_a_panic ... ok
+test search::tests::one_engine_returning_fifty_results_does_not_drown_out_one_returning_five ... ok
+test search::tests::the_merged_order_is_the_same_two_runs_running ... ok
+test search::tests::the_same_page_under_two_spellings_is_one_result ... ok
+test secrets::tests::a_reference_is_replaced_and_the_value_never_appears_in_the_input ... ok
+test secrets::tests::a_value_containing_an_equals_sign_survives ... ok
+test secrets::tests::an_unclosed_reference_is_literal_text ... ok
+test secrets::tests::an_unknown_name_is_left_alone_rather_than_blanked ... ok
+test secrets::tests::one_malformed_line_does_not_take_the_file_down ... ok
+test secrets::tests::ordinary_text_passes_through_untouched ... ok
+test secrets::tests::several_references_in_one_string_all_resolve ... ok
+test secrets::tests::the_file_format_is_the_one_people_already_have ... ok
+test segment::tests::a_class_id_plane_is_read_directly ... ok
+test segment::tests::a_shape_in_the_top_left_quarter_touches_exactly_those_cells ... ok
+test segment::tests::a_shape_that_does_not_fit_the_class_count_is_refused_not_reshaped ... ok
+test segment::tests::a_sliver_in_a_cell_still_counts_because_the_question_is_contains_not_is ... ok
+test segment::tests::an_empty_mask_or_grid_selects_nothing ... ok
+test segment::tests::score_planes_pick_the_class_only_where_it_wins ... ok
+test segment::tests::the_config_defaults_ask_for_containment_not_a_portrait ... ok
+test segment::tests::the_most_covered_cell_comes_first_and_ties_are_stable ... ok
+test segment::tests::without_a_model_segmentation_is_an_error_and_never_a_guess ... ok
+test server::tests::a_browser_problem_is_appended_after_the_wall_guidance ... ok
+test server::tests::a_clean_machine_leaves_the_note_exactly_as_it_was ... ok
+test server::tests::a_stale_channel_reading_survives_a_restart ... ok
+test server::tests::a_version_string_that_is_not_one_teaches_nothing ... ok
+test server::tests::an_injected_page_names_the_product_and_says_what_to_do ... ok
+test server::tests::both_local_causes_appear_together_and_in_order ... ok
+test server::warm_tests::a_wait_the_page_says_is_nearly_done_is_extended_once_and_then_never_again ... ok
+test server::warm_tests::a_warm_wait_stops_for_a_reason_it_can_name ... ok
+test slider::tests::a_blank_page_is_not_a_widget ... ok
+test slider::tests::a_picture_with_no_notch_yields_no_plan ... ok
+test slider::tests::the_drag_goes_from_the_handle_to_the_notch ... ok
+test slider::tests::the_longest_run_is_the_longest_not_the_first ... ok
+test slider::tests::the_picture_and_the_handle_are_found_where_they_were_drawn ... ok
+test snapshot::tests::a_control_with_no_name_is_left_out_but_a_container_is_not ... ok
+test snapshot::tests::a_reference_survives_its_neighbours_being_filtered_out ... ok
+test snapshot::tests::a_reference_turns_back_into_something_clickable ... ok
+test snapshot::tests::accessible_names_are_squeezed_and_capped ... ok
+test snapshot::tests::an_empty_page_renders_to_nothing_rather_than_panicking ... ok
+test snapshot::tests::an_input_shows_what_it_currently_holds ... ok
+test snapshot::tests::an_invented_reference_is_refused_rather_than_repaired ... ok
+test snapshot::tests::depth_and_limit_are_what_make_this_a_token_budget ... ok
+test snapshot::tests::find_locates_by_name_or_role_without_the_whole_page ... ok
+test snapshot::tests::only_interactive_nodes_get_a_reference_in_the_rendering ... ok
+test snapshot::tests::only_things_an_agent_can_use_survive ... ok
+test solve_loop::tests::a_challenge_that_changes_shape_gets_a_fresh_budget ... ok
+test solve_loop::tests::a_cheap_strategy_wins_a_tie_on_success_rate ... ok
+test solve_loop::tests::a_modality_no_strategy_handles_is_reported_at_once ... ok
+test solve_loop::tests::a_page_that_already_carries_an_answer_costs_nothing_at_all ... ok
+test solve_loop::tests::a_strategy_that_claims_success_is_checked_against_the_page ... ok
+test solve_loop::tests::a_strategy_that_declines_now_gets_another_turn_once_the_widget_has_drawn ... ok
+test solve_loop::tests::an_untried_strategy_is_neither_certain_nor_hopeless ... ok
+test solve_loop::tests::declining_is_free_and_the_next_strategy_gets_its_turn ... ok
+test solve_loop::tests::nothing_recognised_before_the_deadline_is_a_timeout_not_a_failure ... ok
+test solve_loop::tests::something_never_tried_still_gets_a_turn_ahead_of_something_that_never_works ... ok
+test solve_loop::tests::the_budget_is_the_modalitys_own_and_running_out_hands_over ... ok
+test solve_loop::tests::the_order_does_not_change_between_two_identical_runs ... ok
+test solve_loop::tests::the_strategy_that_answers_is_the_one_reported ... ok
+test solve_loop::tests::what_worked_here_before_goes_first ... ok
+test solver_engine::tests::every_modality_a_strategy_handles_is_reachable_from_the_probe ... ok
+test solver_engine::tests::no_two_strategies_share_a_name ... ok
+test solver_engine::tests::the_clip_is_fetched_with_the_pages_own_session ... ok
+test solver_engine::tests::the_clip_url_is_quoted_rather_than_pasted_into_the_script ... ok
+test solver_engine::tests::the_probe_reports_only_what_a_strategy_can_answer ... ok
+test substance::tests::no_model_means_no_answer_rather_than_a_bad_one ... ok
+test vision::tests::a_featureless_image_reports_low_confidence ... ok
+test vision::tests::a_flat_image_has_no_notch_to_find ... ok
+test vision::tests::a_template_bigger_than_its_background_is_refused_rather_than_panicking ... ok
+test vision::tests::a_template_is_located_where_it_was_pasted ... ok
+test vision::tests::an_angle_is_always_reported_as_a_turn_back_within_one_revolution ... ok
+test vision::tests::an_image_too_small_to_hold_a_slider_is_refused ... ok
+test vision::tests::an_upright_image_needs_no_rotation ... ok
+test vision::tests::the_notch_is_found_where_it_was_cut ... ok
+test vision::tests::the_piece_on_the_left_is_not_mistaken_for_the_notch ... ok
+test vision::tests::unreadable_bytes_are_none_rather_than_a_panic ... ok
+test wire::tests::a_sub_resource_in_the_main_frame_is_not_the_document ... ok
+test wire::tests::headers_arrive_as_pairs_whatever_json_shape_they_came_in ... ok
+test wire::tests::only_the_main_frames_document_response_is_the_document ... ok
+test zeroshot::cosine_tests::cosine_is_one_for_parallel_vectors_and_zero_for_orthogonal_ones ... ok
+test zeroshot::tests::a_grid_that_does_not_separate_is_declined_not_guessed ... ok
+test zeroshot::tests::a_long_prompt_is_cut_to_the_context_and_still_ends_properly ... ok
+test zeroshot::tests::every_byte_has_a_printable_stand_in ... ok
+test zeroshot::tests::merges_apply_by_rank_and_the_prompt_is_framed_and_padded ... ok
+test zeroshot::tests::probabilities_favour_the_closer_prompt ... ok
+test zeroshot::tests::without_a_model_zero_shot_is_an_error_and_never_a_guess ... ok
+test zeroshot::tests::words_split_the_way_the_reference_pattern_does ... ok
+test blocklists::tests::no_network_and_no_cache_means_no_blocking_and_no_error ... ok
+
+test result: ok. 209 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.07s
+
+
+running 9 tests
+test tests::a_flag_with_a_value_and_a_flag_without_one_are_told_apart ... ok
+test tests::a_number_that_is_not_a_number_is_absent_rather_than_zero ... ok
+test tests::a_switch_never_swallows_the_argument_after_it ... ok
+test tests::every_switch_the_commands_read_is_declared_as_one ... ok
+test tests::several_words_after_a_command_stay_in_order ... ok
+test tests::the_plugin_ships_the_same_skill_the_release_tarball_does ... ok
+test tests::the_published_skill_and_the_binary_agree_on_what_exists ... ok
+test tests::the_two_spellings_of_a_named_flag_mean_the_same_thing ... ok
+test tests::the_usage_text_names_every_command_the_binary_answers_to ... ok
+
+test result: ok. 9 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+
+running 2 tests
+test the_page_the_classifier_calls_junk_still_comes_back_whole ... ok
+test a_set_of_results_keeps_every_member_however_they_score ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.45s
+
+
+running 5 tests
+test attempt_cap_returns_the_page_and_never_opens_native ... ok
+test native_is_last_and_an_opt_out_prevents_its_launch ... ignored, launches a real local browser against a loopback proxy
+test forced_mode_and_identity_changes_cannot_reset_visit_limit ... ok
+test retry_after_stops_escalation_and_survives_a_new_server ... ok
+test short_success_never_triggers_privacy_fallback ... ok
+
+test result: ok. 4 passed; 0 failed; 1 ignored; 0 measured; 0 filtered out; finished in 1.40s
+
+
+running 1 test
+test two_useful_browser_observations_skip_failed_http_on_the_third_visit ... ignored, measures three visits using a real local browser
+
+test result: ok. 0 passed; 0 failed; 1 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+
+running 1 test
+test failed_native_attempt_preserves_the_page_and_reports_exposure ... ignored, opens a local browser; one fixture renderer stalls until the fetch deadline
+
+test result: ok. 0 passed; 0 failed; 1 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+
+running 17 tests
+test a_crawl_finishes_after_the_only_listener_hangs_up ... ok
+test a_crawl_can_write_a_table_instead_of_filling_the_context ... ok
+test a_crawl_follows_links_and_reports_why_it_stopped ... ok
+test a_crawl_obeys_robots_by_default ... ok
+test a_crawl_reports_every_page_rather_than_every_batch ... ok
+test a_file_name_with_no_format_in_it_is_refused_rather_than_guessed ... ok
+test a_paginated_listing_is_followed_past_the_first_page ... ok
+test a_progress_event_names_the_url_and_the_tier_that_answered_without_carrying_the_page ... ok
+test a_single_site_crawl_is_unchanged_by_the_sharing_rule ... ok
+test a_resumed_crawl_does_not_tell_a_listener_it_is_starting_from_zero ... ok
+test a_site_with_no_sitemap_still_crawls_normally ... ok
+test an_incremental_crawl_skips_what_the_site_says_has_not_moved ... ok
+test an_unknown_crawl_id_starts_a_crawl_rather_than_failing ... ok
+test an_interrupted_crawl_resumes_without_refetching_what_it_had ... ok
+test identical_pages_are_reported_as_duplicates_instead_of_repeated ... ok
+test one_crawl_can_cover_several_sites_under_one_budget ... ok
+test resuming_keeps_the_original_parameters ... ok
+
+test result: ok. 17 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 3.13s
+
+
+running 16 tests
+test a_browser_that_defends_itself_contradicts_the_identity_we_advertise ... ok
+test a_browser_two_majors_behind_is_a_problem ... ok
+test a_build_with_neither_weights_nor_inference_reports_the_more_basic_problem_only ... ok
+test a_build_with_no_models_says_so_rather_than_failing_a_captcha_quietly ... ok
+test a_healthy_machine_reports_no_problems ... ok
+test a_home_it_cannot_write_to_is_a_problem ... ok
+test a_model_the_operator_installed_answers_for_the_one_that_is_missing ... ok
+test a_reqwest_only_build_says_it_cannot_emulate_a_browser ... ok
+test a_taken_dashboard_port_is_a_problem_because_the_url_would_point_at_nothing ... ok
+test every_problem_carries_a_fix_a_person_can_run ... ok
+test no_browser_is_a_problem_that_names_the_way_out ... ok
+test the_report_is_one_json_object_an_installer_can_read_without_a_parser_of_its_own ... ok
+test the_version_object_names_the_target_it_was_built_for ... ok
+test the_version_object_names_the_version_the_package_declares ... ok
+test the_version_object_says_whether_this_build_can_emulate_a_browser ... ok
+test weights_with_nothing_to_run_them_are_reported_as_inert ... ok
+
+test result: ok. 16 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+
+
+running 6 tests
+test a_malformed_event_is_a_no_op_rather_than_a_denial ... ok
+test armed_it_declines_webfetch_and_names_the_tool_that_replaces_it ... ok
+test armed_it_declines_websearch_and_names_the_search_tool ... ok
+test it_does_nothing_at_all_until_the_operator_turns_it_on ... ok
+test it_never_denies_a_tool_it_was_not_asked_about ... ok
+test the_url_the_caller_asked_for_survives_into_the_suggestion ... ok
+
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+
+
+running 14 tests
+test a_cancelled_crawl_keeps_its_frontier_so_it_can_be_picked_up_again ... ok
+test a_cancelled_job_stops_fetching ... ok
+test a_late_subscriber_is_told_where_the_job_actually_is_before_it_is_told_anything_else ... ok
+test a_listing_never_carries_the_pages_a_job_produced ... ok
+test a_killed_async_crawl_resumes_rather_than_starting_over ... ok
+test a_synchronous_crawl_over_http_returns_exactly_what_the_tool_returns ... ok
+test an_asynchronous_crawl_answers_202_with_an_id_that_can_be_polled_immediately ... ok
+test deleting_a_job_that_already_finished_is_not_an_error ... ok
+test polling_a_job_that_does_not_exist_is_a_404_rather_than_an_empty_job ... ok
+test streaming_a_job_that_does_not_exist_is_a_404_rather_than_an_empty_stream ... ok
+test submitting_a_crawl_returns_an_id_before_a_single_page_is_fetched ... ok
+test subscribing_to_a_job_that_already_finished_ends_the_stream_instead_of_hanging ... ok
+test the_job_id_is_the_crawl_id_so_there_is_only_one_handle_to_learn ... ok
+test two_crawls_of_one_site_do_not_run_at_the_same_time ... ok
+
+test result: ok. 14 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.60s
+
+
+running 57 tests
+test a_404_is_not_treated_as_a_wall ... ok
+test a_blocked_page_names_the_vendor_it_was_blocked_by ... ok
+test a_cache_hit_carries_everything_the_fetch_measured ... ok
+test a_cached_page_keeps_the_verdict_the_fetch_gave_it ... ok
+test a_calibration_with_no_history_behind_it_says_so ... ok
+test a_deep_request_that_lands_on_the_front_page_is_reported ... ok
+test a_cloudflare_interstitial_is_reported_as_a_wall_and_not_as_content ... ok
+test a_delivered_page_carries_what_arrived_of_it ... ok
+test a_domain_over_its_budget_is_refused_before_anything_goes_out ... ok
+test a_local_file_under_a_root_is_readable_and_one_outside_is_not ... ok
+test a_local_url_is_not_cached_unless_asked ... ok
+test a_login_wall_is_named_as_a_login_wall ... ok
+test a_note_nobody_wrote_is_reported_as_absent_rather_than_empty ... ok
+test a_page_built_for_a_ranking_is_named_as_one_and_delivered_anyway ... ok
+test a_note_survives_the_session_that_wrote_it ... ok
+test a_page_that_arrived_is_still_delivered_whole_when_a_vendor_is_on_the_wire ... ok
+test a_plain_page_is_answered_by_the_http_tier ... ok
+test a_pool_of_exits_is_stored_with_its_countries_and_removed_whole ... ok
+test a_relative_path_cannot_climb_out_of_the_output_directory ... ok
+test a_schema_fetch_honours_out_file_like_a_crawl_does ... ok
+test a_site_is_asked_once_what_its_missing_page_looks_like ... ok
+test a_site_seen_often_enough_has_its_own_furniture_taken_off ... ok
+test a_site_that_answers_404_honestly_is_never_probed_twice ... ok
+test a_site_that_offers_h3_is_remembered_and_not_spoken_to_over_it_by_default ... ok
+test a_soft_404_is_reported_as_one_instead_of_being_delivered_as_the_page ... ok
+test a_subscription_stub_is_reported_as_a_paywall_and_not_as_the_article ... ok
+test a_table_can_be_written_as_csv_instead_of_filling_the_context ... ok
+test a_url_robots_allows_carries_no_warning ... ok
+test a_url_the_policy_refused_is_not_recorded_as_a_request ... ok
+test a_wall_names_every_widget_on_it_not_just_the_one_with_a_solver_tool ... ok
+test a_wall_that_shows_only_in_a_cookie_is_named_as_the_vendors_wall ... ok
+test a_wall_that_shows_only_in_a_response_header_is_named_as_the_vendors_wall ... ok
+test a_watch_on_a_selector_ignores_changes_elsewhere_on_the_page ... ok
+test a_watch_reports_a_change_the_second_time_and_not_the_first ... ok
+test adding_a_page_already_watched_keeps_what_it_has_learned ... ok
+test an_installation_with_no_rules_fetches_exactly_as_before ... ok
+test an_ordinary_article_says_so_rather_than_saying_nothing ... ok
+test an_office_document_comes_back_as_markdown ... ok
+test an_ordinary_page_carries_no_widget_list_at_all ... ok
+test an_ordinary_page_is_not_mistaken_for_a_block ... ok
+test an_origin_the_operator_refused_is_never_requested_at_all ... ok
+test asking_for_a_file_returns_a_path_instead_of_the_page ... ok
+test asking_for_tables_returns_rows_not_prose ... ok
+test cache_bypass_really_goes_back_to_the_site ... ok
+test every_fetch_leaves_a_line_the_operator_can_read_back ... ok
+test fingerprints_persist_between_fetches_of_the_same_domain ... ok
+test raw_html_is_extracted_without_any_request ... ok
+test robots_obey_refuses_before_spending_a_request ... ok
+test robots_warn_fetches_the_page_and_says_so ... ok
+test syndicated_copies_are_counted_once_and_still_all_returned ... ok
+test the_full_breakdown_recognises_a_page_already_in_the_cache_under_another_name ... ok
+test the_second_fetch_of_a_page_costs_no_request ... ok
+test the_site_template_does_nothing_unless_it_is_asked_for ... ok
+test the_test_suite_never_writes_to_the_real_svipall_home ... ok
+test the_status_report_names_the_pages_being_held ... ok
+test web_status_reports_the_budget_and_clear_budget_empties_it ... ok
+test web_status_says_whether_http3_is_built_and_whether_it_is_enabled ... ok
+
+test result: ok. 57 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 9.22s
+
+
+running 3 tests
+test saved_policy_is_applied_without_restarting_or_mutating_inflight_calls ... ok
+test native_mode_keeps_real_apis_and_workers_even_after_an_emulated_pool ... ok
+test stable_profile_warms_once_and_reuses_sdk_without_returning_cached_content ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 15.05s
+
+
+running 4 tests
+test a_swapped_model_file_is_picked_up_without_a_restart ... ok
+test the_embedded_models_when_present_keep_their_sidecars_contract ... ok
+test the_grid_classifier_runs_a_real_session_and_scores_bright_tiles_as_bright ... ok
+test the_segmenter_runs_a_real_session_and_marks_the_cells_the_mask_touches ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.50s
+
+
+running 1 test
+test a_page_the_crawl_never_got_is_not_marked_done_and_the_crawl_says_why ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.54s
+
+
+running 14 tests
+test a_body_that_is_not_this_endpoints_shape_is_refused_before_the_browser_is_touched ... ok
+test a_call_without_a_bearer_token_is_refused_before_anything_runs ... ok
+test a_listener_on_the_network_does_not_enforce_a_loopback_host ... ok
+test a_page_that_answered_with_a_block_is_a_successful_call ... ok
+test a_page_in_a_browser_cannot_reach_the_api_by_pointing_a_name_at_loopback ... ok
+test a_request_the_installation_cannot_carry_out_is_the_only_five_hundred ... ok
+test a_wrong_token_is_refused ... ok
+test an_empty_api_key_locks_the_door_rather_than_opening_it ... ok
+test every_tool_this_server_exposes_is_either_a_route_or_a_named_exclusion ... ok
+test reading_the_status_over_get_cannot_clear_anything ... ok
+test the_health_endpoint_needs_no_key_and_carries_no_data ... ok
+test the_job_routes_are_not_mistaken_for_tools ... ok
+test the_same_fetch_through_http_and_through_the_seam_return_the_same_object ... ok
+test every_route_the_table_declares_answers_something_other_than_not_found ... ok
+
+test result: ok. 14 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 7.80s
+
+
+running 8 tests
+test a_browser_page_reports_the_documents_response_headers ... ignored, needs a real browser
+test a_feed_that_loads_on_scroll_is_read_whole_when_asked ... ignored, network + browser
+test a_page_that_renders_from_json_gives_up_its_endpoint ... ignored, network + browser
+test a_page_the_pool_parked_comes_back_to_the_next_fetch_that_wants_it ... ignored, needs a real browser
+test a_real_page_yields_a_usable_snapshot ... ignored, network + browser
+test an_isolated_fetch_leaves_no_profile_behind ... ignored, needs a real browser
+test canvas_noise_is_deterministic_within_a_page ... ignored, network + browser
+test show_a_snapshot ... ignored, network + browser
+
+test result: ok. 0 passed; 0 failed; 8 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+
+running 3 tests
+test tests::an_embedded_model_always_comes_with_its_contract ... ok
+test tests::compiled_in_names_exactly_what_is_embedded ... ok
+test tests::model_assets_present_in_the_source_tree_are_actually_embedded ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+
+running 6 tests
+test the_cipher_list_and_session_id_are_the_ones_chrome_offers_over_quic ... ok
+test the_extension_order_is_permuted_per_connection_rather_than_fixed ... ok
+test the_handshake_carries_every_extension_the_measured_chrome_sends ... ok
+test the_handshake_carries_the_two_extensions_no_other_rust_quic_stack_emits ... ok
+test the_transport_parameters_are_the_ones_chrome_declares ... ok
+test the_transport_parameters_carry_a_grease_of_their_own ... ok
+
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.14s
+
+
+running 5 tests
+test nothing_is_left_on_disk_afterwards ... ok
+test every_run_is_a_different_key ... ok
+test the_base64_encoder_agrees_with_a_known_vector ... ok
+test the_pin_has_the_shape_chromes_flag_accepts ... ok
+test the_certificate_and_key_are_written_and_quiche_loads_them ... ok
+
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.03s
+
+
+running 3 tests
+test the_draft_datagram_codepoint_upstream_adds_is_not_sent ... ok
+test a_grease_setting_is_sent_last_and_is_fresh_every_connection ... ok
+test the_settings_are_the_ones_chrome_sends_in_the_order_chrome_sends_them ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.05s
+
+
+running 22 tests
+test db::corpus_tests::assets_die_with_their_job_and_orphans_are_swept ... ok
+test db::corpus_tests::a_finished_job_keeps_its_images_until_the_corpus_window_closes ... ok
+test db::corpus_tests::outcomes_are_queryable_by_time_after_the_migration ... ok
+test db::corpus_tests::the_corpus_lists_what_was_asked_who_answered_and_whether_it_worked ... ok
+test db::tests::a_job_nobody_has_classified_reports_no_modality_rather_than_guessing ... ok
+test db::tests::a_job_remembers_what_it_is_asking_for ... ok
+test db::tests::a_machine_that_has_solved_nothing_yet_reports_no_history_rather_than_failing ... ok
+test db::tests::a_question_left_on_the_panel_outlives_the_reaper_that_clears_stuck_challenges ... ok
+test db::tests::a_rejected_solution_is_recorded_rather_than_acknowledged_and_lost ... ok
+test db::tests::a_solved_job_keeps_its_answer_but_loses_the_bitmap ... ok
+test db::tests::a_route_learns_its_own_lesson_once_it_has_enough_of_them ... ok
+test db::tests::an_asset_that_does_not_exist_is_absent_rather_than_an_error ... ok
+test db::tests::attempts_are_counted ... ok
+test db::tests::each_strategy_is_counted_on_its_own ... ok
+test db::tests::expire_stale_parks_old_work_without_deleting_it ... ok
+test db::tests::finished_jobs_past_the_retention_window_are_deleted ... ok
+test db::tests::outcomes_are_grouped_by_challenge_type ... ok
+test db::tests::the_bytes_of_a_challenge_live_beside_the_job_not_inside_it ... ok
+test db::tests::the_in_memory_schema_matches_the_on_disk_one ... ok
+test db::tests::unsolved_jobs_are_never_deleted_by_housekeeping ... ok
+test db::tests::what_a_person_is_asked_to_judge_reaches_the_panel ... ok
+test db::tests::what_a_strategy_did_is_kept_attempt_by_attempt_not_overwritten ... ok
+
+test result: ok. 22 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.03s
+
+
+running 15 tests
+test a_database_from_before_the_new_columns_is_migrated_rather_than_left_behind ... ok
+test a_report_is_recorded_rather_than_acknowledged_and_dropped ... ok
+test an_image_body_becomes_an_image_job_whatever_the_method_says ... ok
+test an_unknown_id_is_an_error_not_a_wait ... ok
+test create_task_returns_a_task_id_in_the_json_dialect ... ok
+test get_task_result_for_an_unknown_id_is_an_error_id_not_a_panic ... ok
+test get_task_result_moves_from_processing_to_ready ... ok
+test health_and_stats_answer_without_a_job_in_sight ... ok
+test in_php_accepts_a_token_job_and_returns_its_id ... ok
+test in_php_action_get_is_the_same_lookup_as_res_php ... ok
+test in_php_speaks_json_when_asked ... ok
+test res_php_hands_back_the_token_once_it_is_solved ... ok
+test migrating_twice_is_not_an_error ... ok
+test res_php_reports_a_failure_rather_than_pretending_to_wait ... ok
+test res_php_says_not_ready_while_the_job_is_pending ... ok
+
+test result: ok. 15 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.03s
+
+
+running 18 tests
+test crates\svipall-cdp\src\element.rs - element::Element::call_js_fn (line 166) - compile ... ok
+test crates\svipall-cdp\src\element.rs - element::Element::call_js_fn (line 178) - compile ... ok
+test crates\svipall-cdp\src\element.rs - element::Element::press_key (line 296) - compile ... ok
+test crates\svipall-cdp\src\element.rs - element::Element::type_str (line 278) - compile ... ok
+test crates\svipall-cdp\src\page.rs - page::Page::click (line 514) - compile ... ok
+test crates\svipall-cdp\src\page.rs - page::Page::click (line 528) - compile ... ok
+test crates\svipall-cdp\src\page.rs - page::Page::evaluate (line 1025) - compile ... ok
+test crates\svipall-cdp\src\page.rs - page::Page::evaluate (line 1000) - compile ... ok
+test crates\svipall-cdp\src\page.rs - page::Page::evaluate_expression (line 955) - compile ... ok
+test crates\svipall-cdp\src\page.rs - page::Page::evaluate_function (line 1065) - compile ... ok
+test crates\svipall-cdp\src\page.rs - page::Page::evaluate_function (line 1076) - compile ... ok
+test crates\svipall-cdp\src\page.rs - page::Page::evaluate_function (line 1087) - compile ... ok
+test crates\svipall-cdp\src\page.rs - page::Page::event_listener (line 222) - compile ... ok
+test crates\svipall-cdp\src\page.rs - page::Page::event_listener (line 238) - compile ... ok
+test crates\svipall-cdp\src\page.rs - page::Page::reload (line 692) - compile ... ok
+test crates\svipall-cdp\src\page.rs - page::Page::save_screenshot (line 581) - compile ... ok
+test crates\svipall-cdp\src\page.rs - page::Page::set_content (line 1161) - compile ... ok
+test crates\svipall-cdp\src\page.rs - page::Page::set_cookie (line 807) - compile ... ok
+
+test result: ok. 18 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.01s
+
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+

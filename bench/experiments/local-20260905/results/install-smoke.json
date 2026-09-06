@@ -1,0 +1,8 @@
+{
+    "installed":  true,
+    "fixture":  "<repo>\\bench\\experiments\\local-20260905\\state\\install-d913c468ff0144559590f660273feb65",
+    "runtime_verified":  true,
+    "unrelated_and_modified_preserved":  true,
+    "uninstalled":  true,
+    "browser_opt_out":  true
+}

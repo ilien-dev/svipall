@@ -1,0 +1,35 @@
+{
+    "automation_probes_passed":  160,
+    "qc_exit_code":  0,
+    "qc_tests_passed":  1177,
+    "cli":  {
+                "ended":  "2026-09-06T06:25:53.1117033Z",
+                "saved_and_reloaded":  true,
+                "default_identity":  "auto"
+            },
+    "ended":  "2026-09-06T06:29:02.8885610Z",
+    "manual_tests_passed":  8,
+    "public_site_benchmark":  "not rerun; no new delivery-rate claim",
+    "source_hashes":  [
+                          {
+                              "Path":  "<repo>\\crates\\svipall-core\\src\\automatic.rs",
+                              "Hash":  "CFE34949EEE47A3F1C109EB79BDD2A42CFAB1EC9B893CEA42E9A699DE98F3399"
+                          },
+                          {
+                              "Path":  "<repo>\\crates\\svipall-core\\src\\traffic.rs",
+                              "Hash":  "40AC745416D6EFC54B88FCC98C4951358185C0BDD0552FC97A81334E9AC6DC2F"
+                          },
+                          {
+                              "Path":  "<repo>\\crates\\svipall-core\\src\\config.rs",
+                              "Hash":  "82A64FC852CD6FDA93F401B41257178E75776CD87549B1B092EA29D14C6D0037"
+                          },
+                          {
+                              "Path":  "<repo>\\crates\\svipall-mcp\\src\\server.rs",
+                              "Hash":  "4DAB184143E491B18989069A5736705C03D51ED8BA0EBAF9DE9AF6B2B54DEA6F"
+                          },
+                          {
+                              "Path":  "<repo>\\crates\\svipall-mcp\\src\\browser.rs",
+                              "Hash":  "4B45282AEC37D829F6C4A1F234E8E769AEC5CEF562B1D3CF81F53036B52AB133"
+                          }
+                      ]
+}

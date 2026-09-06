@@ -1,0 +1,432 @@
+    Blocking waiting for file lock on build directory
+    Checking tokio-btls v0.5.6
+    Checking svipall-core v1.0.0 (<repo>\crates\svipall-core)
+    Checking svipall-models v1.0.0 (<repo>\crates\svipall-models)
+    Checking ort v2.0.0-rc.13
+    Checking svipall-cdp v1.0.0 (<repo>\crates\svipall-cdp)
+    Checking svipall-quic v1.0.0 (<repo>\crates\svipall-quic)
+    Checking wreq v0.16.1
+    Checking wreq-util v0.2.0
+    Checking svipall-solver v1.0.0 (<repo>\crates\svipall-solver)
+    Checking svipall-http v1.0.0 (<repo>\crates\svipall-http)
+    Checking svipall-dashboard v1.0.0 (<repo>\crates\svipall-dashboard)
+    Checking svipall-mcp v1.0.0-rc.2 (<repo>\crates\svipall-mcp)
+    Checking svipall-bench v1.0.0 (<repo>\bench)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 11.99s
+    Checking svipall-core v1.0.0 (<repo>\crates\svipall-core)
+   Compiling svipall-mcp v1.0.0-rc.2 (<repo>\crates\svipall-mcp)
+    Checking svipall-solver v1.0.0 (<repo>\crates\svipall-solver)
+    Checking svipall-http v1.0.0 (<repo>\crates\svipall-http)
+    Checking svipall-dashboard v1.0.0 (<repo>\crates\svipall-dashboard)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 6.70s
+    Checking svipall-mcp v1.0.0-rc.2 (<repo>\crates\svipall-mcp)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 3.73s
+    Checking bitflags v1.3.2
+    Checking extended v0.1.0
+   Compiling svipall-mcp v1.0.0-rc.2 (<repo>\crates\svipall-mcp)
+    Checking symphonia-core v0.5.5
+    Checking symphonia-metadata v0.5.5
+    Checking symphonia-codec-aac v0.5.5
+    Checking symphonia-utils-xiph v0.5.5
+    Checking symphonia-bundle-mp3 v0.5.5
+    Checking symphonia-format-riff v0.5.5
+    Checking symphonia-format-isomp4 v0.5.5
+    Checking symphonia v0.5.5
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 6.74s
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.38s
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.36s
+   Compiling svipall-mcp v1.0.0-rc.2 (<repo>\crates\svipall-mcp)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 5.90s
+   Compiling svipall-mcp v1.0.0-rc.2 (<repo>\crates\svipall-mcp)
+    Checking svipall-http v1.0.0 (<repo>\crates\svipall-http)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 6.24s
+   Compiling svipall-core v1.0.0 (<repo>\crates\svipall-core)
+   Compiling tokio-btls v0.5.6
+   Compiling svipall-cdp v1.0.0 (<repo>\crates\svipall-cdp)
+   Compiling svipall-models v1.0.0 (<repo>\crates\svipall-models)
+   Compiling ort v2.0.0-rc.13
+   Compiling svipall-quic v1.0.0 (<repo>\crates\svipall-quic)
+   Compiling wreq v0.16.1
+   Compiling svipall-solver v1.0.0 (<repo>\crates\svipall-solver)
+   Compiling wreq-util v0.2.0
+   Compiling svipall-dashboard v1.0.0 (<repo>\crates\svipall-dashboard)
+   Compiling svipall-http v1.0.0 (<repo>\crates\svipall-http)
+   Compiling svipall-mcp v1.0.0-rc.2 (<repo>\crates\svipall-mcp)
+   Compiling svipall-bench v1.0.0 (<repo>\bench)
+error[E0786]: found invalid metadata files for crate `svipall_mcp`
+  --> crates\svipall-mcp\tests\reputation.rs:13:5
+   |
+13 | use svipall_mcp::server::SvipallServer;
+   |     ^^^^^^^^^^^
+   |
+   = note: failed to mmap file '\\?\C:\t\debug\deps\libsvipall_mcp-1fceabf1084f7c73.rlib': The paging file is too small for this operation to complete. (os error 1455)
+
+For more information about this error, try `rustc --explain E0786`.
+error: could not compile `svipall-mcp` (test "reputation") due to 1 previous error
+warning: build failed, waiting for other jobs to finish...
+memory allocation of 8650768 bytes failed
+stack backtrace:
+memory allocation of 1205248 bytes failed
+stack backtrace:
+memory allocation of 1048576 bytes failed
+stack backtrace:
+error[E0786]: found invalid metadata files for crate `svipall_mcp`
+ --> crates\svipall-mcp\tests\hooks.rs:8:5
+  |
+8 | use svipall_mcp::hooks;
+  |     ^^^^^^^^^^^
+  |
+  = note: failed to mmap file '\\?\C:\t\debug\deps\libsvipall_mcp-1fceabf1084f7c73.rlib': The paging file is too small for this operation to complete. (os error 1455)
+
+error: could not compile `svipall-mcp` (test "hooks") due to 1 previous error
+error[E0460]: found possibly newer version of crate `zip` which `svipall_mcp` depends on
+  --> crates\svipall-mcp\tests\models.rs:84:13
+   |
+84 |     assert!(svipall_mcp::grid::available());
+   |             ^^^^^^^^^^^
+   |
+   = note: perhaps that crate needs to be recompiled?
+   = note: the following crate versions were found:
+           crate `zip`: C:\t\debug\deps\libzip-207301cbf9977436.rmeta
+           crate `zip`: C:\t\debug\deps\libzip-207301cbf9977436.rlib
+           crate `zip`: C:\t\debug\deps\libzip-d61f25abc70de077.rmeta
+           crate `zip`: C:\t\debug\deps\libzip-d61f25abc70de077.rlib
+           crate `zip`: C:\t\debug\deps\libzip-6453a30365012e13.rmeta
+           crate `zip`: C:\t\debug\deps\libzip-b695e9716ddd4642.rmeta
+           crate `svipall_mcp`: \\?\C:\t\debug\deps\libsvipall_mcp-1fceabf1084f7c73.rlib
+
+error[E0463]: can't find crate for `svipall_mcp`
+  --> crates\svipall-mcp\tests\jobs.rs:18:5
+   |
+18 | use svipall_mcp::jobs::{JobKind, JobRunner};
+   |     ^^^^^^^^^^^ can't find crate
+
+error[E0463]: can't find crate for `svipall_mcp`
+ --> crates\svipall-mcp\tests\automatic.rs:4:5
+  |
+4 | use svipall_mcp::{server::SvipallServer, tools::WebFetchParams};
+  |     ^^^^^^^^^^^ can't find crate
+
+   0:     0x7ff9329b19b9 - std::backtrace_rs::backtrace::win64::trace
+                               at /rustc/88d9e12ae178fab0fb5cc050a94da85685d449ea/library\std\src\..\..\backtrace\src\backtrace\win64.rs:85
+   1:     0x7ff9329b19b9 - std::backtrace_rs::backtrace::trace_unsynchronized
+                               at /rustc/88d9e12ae178fab0fb5cc050a94da85685d449ea/library\std\src\..\..\backtrace\src\backtrace\mod.rs:66
+   2:     0x7ff9329b19b9 - std::sys::backtrace::_print_fmt
+                               at /rustc/88d9e12ae178fab0fb5cc050a94da85685d449ea/library\std\src\sys\backtrace.rs:74
+   3:     0x7ff9329b19b9 - std::sys::backtrace::impl$0::print::impl$0::fmt
+                               at /rustc/88d9e12ae178fab0fb5cc050a94da85685d449ea/library\std\src\sys\backtrace.rs:44
+error[E0463]: can't find crate for `svipall_mcp`
+  --> crates\svipall-mcp\tests\stealth.rs:16:5
+   |
+16 | use svipall_mcp::browser::{BrowserPool, BrowserTier, PageOpts};
+   |     ^^^^^^^^^^^ can't find crate
+
+   0:     0x7ff9329b19b9 - std::backtrace_rs::backtrace::win64::trace
+                               at /rustc/88d9e12ae178fab0fb5cc050a94da85685d449ea/library\std\src\..\..\backtrace\src\backtrace\win64.rs:85
+   1:     0x7ff9329b19b9 - std::backtrace_rs::backtrace::trace_unsynchronized
+                               at /rustc/88d9e12ae178fab0fb5cc050a94da85685d449ea/library\std\src\..\..\backtrace\src\backtrace\mod.rs:66
+   2:     0x7ff9329b19b9 - std::sys::backtrace::_print_fmt
+                               at /rustc/88d9e12ae178fab0fb5cc050a94da85685d449ea/library\std\src\sys\backtrace.rs:74
+   3:     0x7ff9329b19b9 - std::sys::backtrace::impl$0::print::impl$0::fmt
+                               at /rustc/88d9e12ae178fab0fb5cc050a94da85685d449ea/library\std\src\sys\backtrace.rs:44
+   4:     0x7ff9329da9f1 - core::fmt::write
+                               at /rustc/88d9e12ae178fab0fb5cc050a94da85685d449ea/library\core\src\fmt\mod.rs:0
+   5:     0x7ff9329c1874 - std::io::default_write_fmt
+                               at /rustc/88d9e12ae178fab0fb5cc050a94da85685d449ea/library\std\src\io\mod.rs:626
+   6:     0x7ff9329c1874 - std::io::Write::write_fmt<std::sys::stdio::windows::Stderr>
+                               at /rustc/88d9e12ae178fab0fb5cc050a94da85685d449ea/library\std\src\io\mod.rs:1730
+   7:     0x7ff9329a393c - std::sys::backtrace::BacktraceLock::print
+                               at /rustc/88d9e12ae178fab0fb5cc050a94da85685d449ea/library\std\src\sys\backtrace.rs:47
+   8:     0x7ff9329a393c - std::alloc::default_alloc_error_hook
+                               at /rustc/88d9e12ae178fab0fb5cc050a94da85685d449ea/library\std\src\alloc.rs:397
+   9:     0x7ff93298815c - std::alloc::rust_oom::closure$0
+                               at /rustc/88d9e12ae178fab0fb5cc050a94da85685d449ea/library\std\src\alloc.rs:428
+  10:     0x7ff93298578f - std::sys::backtrace::__rust_end_short_backtrace<std::alloc::rust_oom::closure_env$0,never$>
+                               at /rustc/88d9e12ae178fab0fb5cc050a94da85685d449ea/library\std\src\sys\backtrace.rs:182
+  11:     0x7ff9329a39db - std::alloc::rust_oom
+                               at /rustc/88d9e12ae178fab0fb5cc050a94da85685d449ea/library\std\src\alloc.rs:424
+  12:     0x7ff932988f98 - std::alloc::_::__rust_alloc_error_handler
+                               at /rustc/88d9e12ae178fab0fb5cc050a94da85685d449ea/library\std\src\alloc.rs:423
+   0:     0x7ff9329b19b9 - std::backtrace_rs::backtrace::win64::trace
+                               at /rustc/88d9e12ae178fab0fb5cc050a94da85685d449ea/library\std\src\..\..\backtrace\src\backtrace\win64.rs:85
+  13:     0x7ff9329fd9d9 - alloc::alloc::handle_alloc_error::rt_error
+                               at /rustc/88d9e12ae178fab0fb5cc050a94da85685d449ea/library\alloc\src\alloc.rs:551
+  14:     0x7ff9329fd9d9 - alloc::alloc::handle_alloc_error
+                               at /rustc/88d9e12ae178fab0fb5cc050a94da85685d449ea/library\alloc\src\alloc.rs:557
+  15:     0x7ff9329fd9f6 - alloc::raw_vec::handle_error
+                               at /rustc/88d9e12ae178fab0fb5cc050a94da85685d449ea/library\alloc\src\raw_vec\mod.rs:894
+   1:     0x7ff9329b19b9 - std::backtrace_rs::backtrace::trace_unsynchronized
+                               at /rustc/88d9e12ae178fab0fb5cc050a94da85685d449ea/library\std\src\..\..\backtrace\src\backtrace\mod.rs:66
+   2:     0x7ff9329b19b9 - std::sys::backtrace::_print_fmt
+                               at /rustc/88d9e12ae178fab0fb5cc050a94da85685d449ea/library\std\src\sys\backtrace.rs:74
+   3:     0x7ff9329b19b9 - std::sys::backtrace::impl$0::print::impl$0::fmt
+                               at /rustc/88d9e12ae178fab0fb5cc050a94da85685d449ea/library\std\src\sys\backtrace.rs:44
+   4:     0x7ff9329da9f1 - core::fmt::write
+                               at /rustc/88d9e12ae178fab0fb5cc050a94da85685d449ea/library\core\src\fmt\mod.rs:0
+For more information about this error, try `rustc --explain E0463`.
+   5:     0x7ff9329c1874 - std::io::default_write_fmt
+                               at /rustc/88d9e12ae178fab0fb5cc050a94da85685d449ea/library\std\src\io\mod.rs:626
+   6:     0x7ff9329c1874 - std::io::Write::write_fmt<std::sys::stdio::windows::Stderr>
+                               at /rustc/88d9e12ae178fab0fb5cc050a94da85685d449ea/library\std\src\io\mod.rs:1730
+   7:     0x7ff9329a393c - std::sys::backtrace::BacktraceLock::print
+                               at /rustc/88d9e12ae178fab0fb5cc050a94da85685d449ea/library\std\src\sys\backtrace.rs:47
+   8:     0x7ff9329a393c - std::alloc::default_alloc_error_hook
+                               at /rustc/88d9e12ae178fab0fb5cc050a94da85685d449ea/library\std\src\alloc.rs:397
+   4:     0x7ff9329da9f1 - core::fmt::write
+                               at /rustc/88d9e12ae178fab0fb5cc050a94da85685d449ea/library\core\src\fmt\mod.rs:0
+   9:     0x7ff93298815c - std::alloc::rust_oom::closure$0
+                               at /rustc/88d9e12ae178fab0fb5cc050a94da85685d449ea/library\std\src\alloc.rs:428
+  10:     0x7ff93298578f - std::sys::backtrace::__rust_end_short_backtrace<std::alloc::rust_oom::closure_env$0,never$>
+   5:     0x7ff9329c1874 - std::io::default_write_fmt
+                               at /rustc/88d9e12ae178fab0fb5cc050a94da85685d449ea/library\std\src\io\mod.rs:626
+   6:     0x7ff9329c1874 - std::io::Write::write_fmt<std::sys::stdio::windows::Stderr>
+                               at /rustc/88d9e12ae178fab0fb5cc050a94da85685d449ea/library\std\src\io\mod.rs:1730
+   7:     0x7ff9329a393c - std::sys::backtrace::BacktraceLock::print
+                               at /rustc/88d9e12ae178fab0fb5cc050a94da85685d449ea/library\std\src\sys\backtrace.rs:47
+                               at /rustc/88d9e12ae178fab0fb5cc050a94da85685d449ea/library\std\src\sys\backtrace.rs:182
+   8:     0x7ff9329a393c - std::alloc::default_alloc_error_hook
+                               at /rustc/88d9e12ae178fab0fb5cc050a94da85685d449ea/library\std\src\alloc.rs:397
+  11:     0x7ff9329a39db - std::alloc::rust_oom
+                               at /rustc/88d9e12ae178fab0fb5cc050a94da85685d449ea/library\std\src\alloc.rs:424
+  12:     0x7ff932988f98 - std::alloc::_::__rust_alloc_error_handler
+                               at /rustc/88d9e12ae178fab0fb5cc050a94da85685d449ea/library\std\src\alloc.rs:423
+error[E0463]: can't find crate for `tracing_subscriber`
+ --> crates\svipall-mcp\src\main.rs:8:5
+  |
+8 | use tracing_subscriber::EnvFilter;
+  |     ^^^^^^^^^^^^^^^^^^ can't find crate
+
+   9:     0x7ff93298815c - std::alloc::rust_oom::closure$0
+                               at /rustc/88d9e12ae178fab0fb5cc050a94da85685d449ea/library\std\src\alloc.rs:428
+  13:     0x7ff9329fd9d9 - alloc::alloc::handle_alloc_error::rt_error
+  10:     0x7ff93298578f - std::sys::backtrace::__rust_end_short_backtrace<std::alloc::rust_oom::closure_env$0,never$>
+                               at /rustc/88d9e12ae178fab0fb5cc050a94da85685d449ea/library\std\src\sys\backtrace.rs:182
+                               at /rustc/88d9e12ae178fab0fb5cc050a94da85685d449ea/library\alloc\src\alloc.rs:551
+  11:     0x7ff9329a39db - std::alloc::rust_oom
+  14:     0x7ff9329fd9d9 - alloc::alloc::handle_alloc_error
+                               at /rustc/88d9e12ae178fab0fb5cc050a94da85685d449ea/library\std\src\alloc.rs:424
+  12:     0x7ff932988f98 - std::alloc::_::__rust_alloc_error_handler
+                               at /rustc/88d9e12ae178fab0fb5cc050a94da85685d449ea/library\std\src\alloc.rs:423
+                               at /rustc/88d9e12ae178fab0fb5cc050a94da85685d449ea/library\alloc\src\alloc.rs:557
+  13:     0x7ff9329fd9d9 - alloc::alloc::handle_alloc_error::rt_error
+                               at /rustc/88d9e12ae178fab0fb5cc050a94da85685d449ea/library\alloc\src\alloc.rs:551
+  14:     0x7ff9329fd9d9 - alloc::alloc::handle_alloc_error
+                               at /rustc/88d9e12ae178fab0fb5cc050a94da85685d449ea/library\alloc\src\alloc.rs:557
+  15:     0x7ff9329c7cb5 - hashbrown::raw::Fallibility::alloc_err
+                               at /rust/deps\hashbrown-0.17.1/src\raw.rs:45
+  15:     0x7ff9329fd9f6 - alloc::raw_vec::handle_error
+                               at /rustc/88d9e12ae178fab0fb5cc050a94da85685d449ea/library\alloc\src\raw_vec\mod.rs:894
+error: could not compile `svipall-mcp` (test "jobs") due to 1 previous error
+error: could not compile `svipall-mcp` (test "automatic") due to 1 previous error
+error: could not compile `svipall-mcp` (test "stealth") due to 1 previous error
+error: could not compile `svipall-mcp` (bin "svipall-mcp") due to 1 previous error
+  16:     0x7ff82feb83ea - <alloc[8fb160f29d24b0e9]::raw_vec::RawVec<alloc[8fb160f29d24b0e9]::boxed::Box<str>>>::grow_one
+  16:     0x7ff82feb83ea - <alloc[8fb160f29d24b0e9]::raw_vec::RawVec<alloc[8fb160f29d24b0e9]::boxed::Box<str>>>::grow_one
+  16:     0x7ff83409d04b - RINvMs6_NtCs5zImONXtN8M_9hashbrown3rawINtB6_8RawTableTTPuNtNtCsfHAkZsc5ts7_21rustc_data_structures11stable_hash18StableHashControlsENtNtBX_11fingerprint11FingerprintEE14reserve_rehashNCINvNtB8_3map11make_hasherBQ_B26_NtCs3SIhTXdQP39_10rustc_hash13FxBuildHa
+  17:     0x7ff83398ea16 - rustc_query_impl[e594b86676d8fa1]::dep_kind_vtables::make_dep_kind_vtables
+  17:     0x7ff8339122da - RINvMs6_NtCs5zImONXtN8M_9hashbrown3rawINtB6_8RawTableTINtNtCs6pZCxiqm2nA_13rustc_type_ir14predicate_kind13PredicateKindNtNtNtCseQrr7WjyY3Y_12rustc_middle2ty7context6TyCtxtEjEE14reserve_rehashNCINvNtB8_3map11make_hasherBQ_jNtCs3SIhTXdQP39_10rustc_hash13FxBu
+  18:     0x7ff833936c14 - RINvMs6_NtCs5zImONXtN8M_9hashbrown3rawINtB6_8RawTableTINtNtCs6pZCxiqm2nA_13rustc_type_ir14predicate_kind13PredicateKindNtNtNtCseQrr7WjyY3Y_12rustc_middle2ty7context6TyCtxtEjEE14reserve_rehashNCINvNtB8_3map11make_hasherBQ_jNtCs3SIhTXdQP39_10rustc_hash13FxBu
+  17:     0x7ff83424d744 - <rustc_span[be3500ac793c5fd6]::symbol::Symbol>::intern
+  18:     0x7ff832595902 - rustc_query_impl[e594b86676d8fa1]::plumbing::encode_query_values
+  19:     0x7ff8325e1f54 - rustc_query_impl[e594b86676d8fa1]::plumbing::verify_query_key_hashes
+  18:     0x7ff833df1a82 - <rustc_metadata[75ccb2ad021baeef]::rmeta::encoder::EncodeContext as rustc_middle[aceb345677e6f408]::ty::codec::TyEncoder>::encode_alloc_id
+  19:     0x7ff833df27c7 - <rustc_metadata[75ccb2ad021baeef]::rmeta::encoder::EncodeContext as rustc_middle[aceb345677e6f408]::ty::codec::TyEncoder>::encode_alloc_id
+  19:     0x7ff8340d1080 - RINvMs6_NtCs5zImONXtN8M_9hashbrown3rawINtB6_8RawTableTTjNtNtCsfHAkZsc5ts7_21rustc_data_structures11stable_hash18StableHashControlsENtNtBW_11fingerprint11FingerprintEE14reserve_rehashNCINvNtB8_3map11make_hasherBQ_B25_NtCs3SIhTXdQP39_10rustc_hash13FxBuildHas
+  20:     0x7ff83383164c - rustc_ty_utils[4f9fe5041ade7af3]::instance::resolve_instance_raw
+  20:     0x7ff833da35cd - <rustc_metadata[75ccb2ad021baeef]::creader::CStore>::set_used_recursively
+  21:     0x7ff8324b7683 - <<rustc_ty_utils[4f9fe5041ade7af3]::opaque_types::OpaqueTypeCollector>::collect_taits_declared_in_body::TaitInBodyFinder as rustc_hir[87bf1346639112b6]::intravisit::Visitor>::visit_nested_item
+  20:     0x7ff8328b4d12 - <rustc_middle[aceb345677e6f408]::query::on_disk_cache::OnDiskCache>::serialize
+  21:     0x7ff83395e188 - rustc_query_impl[e594b86676d8fa1]::dep_kind_vtables::make_dep_kind_vtables
+  22:     0x7ff83386b6a7 - RINvMs6_NtCs5zImONXtN8M_9hashbrown3rawINtB6_8RawTableTINtNtCs6pZCxiqm2nA_13rustc_type_ir14predicate_kind13PredicateKindNtNtNtCseQrr7WjyY3Y_12rustc_middle2ty7context6TyCtxtEjEE14reserve_rehashNCINvNtB8_3map11make_hasherBQ_jNtCs3SIhTXdQP39_10rustc_hash13FxBu
+  21:     0x7ff832747f6c - <rustc_infer[f8cad61f5d489338]::infer::relate::type_relating::TypeRelating as rustc_type_ir[4ac4e06e272884b0]::relate::TypeRelation<rustc_middle[aceb345677e6f408]::ty::context::TyCtxt>>::consts
+  23:     0x7ff83395de8c - rustc_query_impl[e594b86676d8fa1]::dep_kind_vtables::make_dep_kind_vtables
+  22:     0x7ff8327599d9 - rustc_incremental[d19e15d1452828f9]::persist::save::save_dep_graph
+  24:     0x7ff833b70b70 - <rustc_trait_selection[8034e6b916505d98]::traits::engine::ObligationCtxt<rustc_trait_selection[8034e6b916505d98]::traits::FulfillmentError>>::new_with_diagnostics
+  23:     0x7ff82fe83bf2 - <rustc_interface[b142dc08e14ad4f7]::passes::LintStoreExpandImpl as rustc_expand[d5348f46f2a20e87]::base::LintStoreExpand>::pre_expansion_lint
+  25:     0x7ff833bb8ed8 - <rustc_trait_selection[8034e6b916505d98]::traits::select::SelectionContext>::evaluate_root_obligation
+  24:     0x7ff8328f3501 - <rustc_middle[aceb345677e6f408]::ty::context::TyCtxt>::finish
+  25:     0x7ff82fe40ac2 - std[8a6d8cd86c7d29b2]::sys::backtrace::__rust_begin_short_backtrace::<std[8a6d8cd86c7d29b2]::thread::lifecycle::spawn_unchecked<ctrlc[407c1d2af1355573]::set_handler_inner<rustc_driver_impl[e9fc4ceb08dbf5f6]::install_ctrlc_handler::{closure#0}>::{closure#0}, ()>::{closure#1}::{closure#0}::{closure#0}, ()>
+  26:     0x7ff82fe38a05 - RINvNtNtCsbSQC797JefK_3std3sys9backtrace28___rust_begin_short_backtraceNCNCINvNtCsfdyxicwjCD3_15rustc_interface4util26run_in_thread_with_globalsNCINvB1e_31run_in_thread_pool_with_globalsNCINvNtB1g_9interface12run_compileruNCNvCsk5uYp7PeGd6_17rustc_driver_i
+  27:     0x7ff82fe44a97 - std[8a6d8cd86c7d29b2]::sys::backtrace::__rust_begin_short_backtrace::<std[8a6d8cd86c7d29b2]::thread::lifecycle::spawn_unchecked<ctrlc[407c1d2af1355573]::set_handler_inner<rustc_driver_impl[e9fc4ceb08dbf5f6]::install_ctrlc_handler::{closure#0}>::{closure#0}, ()>::{closure#1}::{closure#0}::{closure#0}, ()>
+  28:     0x7ff9329ae6a3 - std::sys::thread::windows::impl$0::new::thread_start
+                               at /rustc/88d9e12ae178fab0fb5cc050a94da85685d449ea/library\std\src\sys\thread\windows.rs:58
+  26:     0x7ff833b1f099 - RINvNvXsG_CsfBGTTTI5glH_8thin_vecINtB8_8IntoIterpENtNtNtCs9OCfJ4KTcUD_4core3ops4drop4Drop4drop18drop_non_singletonTINtNtCslmjzG61uEWG_11rustc_infer6traits10ObligationNtNtNtCseQrr7WjyY3Y_12rustc_middle2ty9predicate9PredicateEINtNtBS_6option6OptionINtNtCs1qb
+  29:     0x7ff948dbccb7 - BaseThreadInitThunk
+  27:     0x7ff833c3b953 - <rustc_trait_selection[8034e6b916505d98]::traits::fulfill::FulfillProcessor as rustc_data_structures[b6e70f0b6be5d59d]::obligation_forest::ObligationProcessor>::process_obligation
+  28:     0x7ff833ab571c - <rustc_data_structures[b6e70f0b6be5d59d]::obligation_forest::ObligationForest<rustc_trait_selection[8034e6b916505d98]::traits::fulfill::PendingPredicateObligation>>::process_obligations::<rustc_trait_selection[8034e6b916505d98]::traits::fulfill::FulfillProcessor>
+  30:     0x7ff94954ad6c - RtlUserThreadStart
+  29:     0x7ff832c15cbc - rustc_hir_typeck[f40459a9c93852cc]::used_trait_imports
+  22:     0x7ff83607b0f9 - rustc_query_impl[e594b86676d8fa1]::execution::collect_active_query_jobs
+  30:     0x7ff832c153a9 - rustc_hir_typeck[f40459a9c93852cc]::used_trait_imports
+  23:     0x7ff833aa2ba5 - rustc_codegen_ssa[9c0a2e16c95c9956]::back::symbol_export::upstream_monomorphizations_for_provider
+  24:     0x7ff8325beac0 - rustc_query_impl[e594b86676d8fa1]::plumbing::verify_query_key_hashes
+  31:     0x7ff832c45c4e - rustc_hir_typeck[f40459a9c93852cc]::used_trait_imports
+  25:     0x7ff83388a41d - RINvMs6_NtCs5zImONXtN8M_9hashbrown3rawINtB6_8RawTableTINtNtCs6pZCxiqm2nA_13rustc_type_ir14predicate_kind13PredicateKindNtNtNtCseQrr7WjyY3Y_12rustc_middle2ty7context6TyCtxtEjEE14reserve_rehashNCINvNtB8_3map11make_hasherBQ_jNtCs3SIhTXdQP39_10rustc_hash13FxBu
+  32:     0x7ff832c1b60d - rustc_hir_typeck[f40459a9c93852cc]::used_trait_imports
+  26:     0x7ff8325be997 - rustc_query_impl[e594b86676d8fa1]::plumbing::verify_query_key_hashes
+  33:     0x7ff832c460dc - rustc_hir_typeck[f40459a9c93852cc]::used_trait_imports
+  34:     0x7ff832caaf78 - rustc_hir_typeck[f40459a9c93852cc]::used_trait_imports
+  27:     0x7ff8340f333b - <rustc_middle[aceb345677e6f408]::ty::instance::Instance>::upstream_monomorphization
+  35:     0x7ff83217dfb6 - core[725674be3c713151]::slice::sort::unstable::ipnsort::<(rustc_span[be3500ac793c5fd6]::def_id::DefPathHash, usize), <(rustc_span[be3500ac793c5fd6]::def_id::DefPathHash, usize) as core[725674be3c713151]::cmp::PartialOrd>::lt>
+  28:     0x7ff832ef7370 - rustc_monomorphize[58426c41f346e309]::collector::should_codegen_locally
+  36:     0x7ff832c463b5 - rustc_hir_typeck[f40459a9c93852cc]::used_trait_imports
+  29:     0x7ff832ed6ed9 - rustc_monomorphize[58426c41f346e309]::partitioning::collect_and_partition_mono_items
+  37:     0x7ff832caef1b - rustc_hir_typeck[f40459a9c93852cc]::used_trait_imports
+  38:     0x7ff832c45639 - rustc_hir_typeck[f40459a9c93852cc]::used_trait_imports
+  30:     0x7ff832ee8a7d - rustc_monomorphize[58426c41f346e309]::collector::items_of_instance
+  39:     0x7ff832d4e1fd - rustc_hir_typeck[f40459a9c93852cc]::intrinsicck::check_transmutes
+  31:     0x7ff83395f163 - rustc_query_impl[e594b86676d8fa1]::dep_kind_vtables::make_dep_kind_vtables
+  32:     0x7ff833904572 - RINvMs6_NtCs5zImONXtN8M_9hashbrown3rawINtB6_8RawTableTINtNtCs6pZCxiqm2nA_13rustc_type_ir14predicate_kind13PredicateKindNtNtNtCseQrr7WjyY3Y_12rustc_middle2ty7context6TyCtxtEjEE14reserve_rehashNCINvNtB8_3map11make_hasherBQ_jNtCs3SIhTXdQP39_10rustc_hash13FxBu
+  40:     0x7ff832c00a8c - RINvMs6_NtCs5zImONXtN8M_9hashbrown3rawINtB6_8RawTableTNtNtCsgksZwFkEYqU_10rustc_span6symbol5IdentTNtNtCsjTAyLOT2QVz_9rustc_abi6layout8FieldIdxRNtNtCseQrr7WjyY3Y_12rustc_middle2ty8FieldDefEEE14reserve_rehashNCINvNtB8_3map11make_hasherBQ_B1x_NtCs3SIhTXdQP39_
+  33:     0x7ff83395e7fc - rustc_query_impl[e594b86676d8fa1]::dep_kind_vtables::make_dep_kind_vtables
+  34:     0x7ff832ec470e - RINvNtNtNtNtCs9OCfJ4KTcUD_4core5slice4sort6stable9quicksort9quicksortTRNtNtCseQrr7WjyY3Y_12rustc_middle4mono8MonoItemNtNtB1b_2ty10SymbolNameENCINvMNtCsckSb6QcKe7J_5alloc5sliceSB15_11sort_by_keyB1R_NCINvNtCs7zNMXb9WSJF_18rustc_monomorphize12partitioning27as
+  41:     0x7ff832c151c0 - rustc_hir_typeck[f40459a9c93852cc]::typeck_root
+  35:     0x7ff832ee0bed - rustc_monomorphize[58426c41f346e309]::partitioning::collect_and_partition_mono_items
+  42:     0x7ff8339563eb - rustc_query_impl[e594b86676d8fa1]::dep_kind_vtables::make_dep_kind_vtables
+  36:     0x7ff832ee5024 - rustc_monomorphize[58426c41f346e309]::partitioning::collect_and_partition_mono_items
+  43:     0x7ff83385754d - RINvMs6_NtCs5zImONXtN8M_9hashbrown3rawINtB6_8RawTableTINtNtCs6pZCxiqm2nA_13rustc_type_ir14predicate_kind13PredicateKindNtNtNtCseQrr7WjyY3Y_12rustc_middle2ty7context6TyCtxtEjEE14reserve_rehashNCINvNtB8_3map11make_hasherBQ_jNtCs3SIhTXdQP39_10rustc_hash13FxBu
+  37:     0x7ff832ee5024 - rustc_monomorphize[58426c41f346e309]::partitioning::collect_and_partition_mono_items
+  44:     0x7ff833956295 - rustc_query_impl[e594b86676d8fa1]::dep_kind_vtables::make_dep_kind_vtables
+  38:     0x7ff83223b1f0 - core[725674be3c713151]::slice::sort::stable::quicksort::quicksort::<rustc_middle[aceb345677e6f408]::mono::CodegenUnit, <[rustc_middle[aceb345677e6f408]::mono::CodegenUnit]>::sort_by<rustc_monomorphize[58426c41f346e309]::partitioning::merge_codegen_units::{closure#6}>::{closure#0}>
+  45:     0x7ff832db601c - rustc_hir_analysis[b083fea9766b0021]::check_crate
+  39:     0x7ff832ecdfe8 - rustc_monomorphize[58426c41f346e309]::partitioning::collect_and_partition_mono_items
+  40:     0x7ff8325bf4d7 - rustc_query_impl[e594b86676d8fa1]::plumbing::verify_query_key_hashes
+  46:     0x7ff832ab82f0 - rustc_interface[b142dc08e14ad4f7]::passes::analysis
+  47:     0x7ff8325c2fea - rustc_query_impl[e594b86676d8fa1]::plumbing::verify_query_key_hashes
+  48:     0x7ff8324a951c - <<rustc_ty_utils[4f9fe5041ade7af3]::opaque_types::OpaqueTypeCollector>::collect_taits_declared_in_body::TaitInBodyFinder as rustc_hir[87bf1346639112b6]::intravisit::Visitor>::visit_nested_item
+  41:     0x7ff8324ae630 - <<rustc_ty_utils[4f9fe5041ade7af3]::opaque_types::OpaqueTypeCollector>::collect_taits_declared_in_body::TaitInBodyFinder as rustc_hir[87bf1346639112b6]::intravisit::Visitor>::visit_nested_item
+  49:     0x7ff8325c2f3a - rustc_query_impl[e594b86676d8fa1]::plumbing::verify_query_key_hashes
+  50:     0x7ff82fe409e7 - std[8a6d8cd86c7d29b2]::sys::backtrace::__rust_begin_short_backtrace::<std[8a6d8cd86c7d29b2]::thread::lifecycle::spawn_unchecked<ctrlc[407c1d2af1355573]::set_handler_inner<rustc_driver_impl[e9fc4ceb08dbf5f6]::install_ctrlc_handler::{closure#0}>::{closure#0}, ()>::{closure#1}::{closure#0}::{closure#0}, ()>
+  51:     0x7ff82fe38a05 - RINvNtNtCsbSQC797JefK_3std3sys9backtrace28___rust_begin_short_backtraceNCNCINvNtCsfdyxicwjCD3_15rustc_interface4util26run_in_thread_with_globalsNCINvB1e_31run_in_thread_pool_with_globalsNCINvNtB1g_9interface12run_compileruNCNvCsk5uYp7PeGd6_17rustc_driver_i
+  52:     0x7ff82fe44a97 - std[8a6d8cd86c7d29b2]::sys::backtrace::__rust_begin_short_backtrace::<std[8a6d8cd86c7d29b2]::thread::lifecycle::spawn_unchecked<ctrlc[407c1d2af1355573]::set_handler_inner<rustc_driver_impl[e9fc4ceb08dbf5f6]::install_ctrlc_handler::{closure#0}>::{closure#0}, ()>::{closure#1}::{closure#0}::{closure#0}, ()>
+  53:     0x7ff9329ae6a3 - std::sys::thread::windows::impl$0::new::thread_start
+                               at /rustc/88d9e12ae178fab0fb5cc050a94da85685d449ea/library\std\src\sys\thread\windows.rs:58
+  42:     0x7ff83607cd01 - rustc_query_impl[e594b86676d8fa1]::execution::collect_active_query_jobs
+  43:     0x7ff82fe933ef - <rustc_interface[b142dc08e14ad4f7]::passes::LintStoreExpandImpl as rustc_expand[d5348f46f2a20e87]::base::LintStoreExpand>::pre_expansion_lint
+  54:     0x7ff948dbccb7 - BaseThreadInitThunk
+  44:     0x7ff82fefb8a3 - <rustc_codegen_llvm[e8a236efc21bc510]::LlvmCodegenBackend as rustc_codegen_ssa[9c0a2e16c95c9956]::traits::backend::CodegenBackend>::codegen_crate
+  45:     0x7ff82fe6e233 - <rustc_interface[b142dc08e14ad4f7]::queries::Linker>::codegen_and_build_linker
+  46:     0x7ff82fe40a59 - std[8a6d8cd86c7d29b2]::sys::backtrace::__rust_begin_short_backtrace::<std[8a6d8cd86c7d29b2]::thread::lifecycle::spawn_unchecked<ctrlc[407c1d2af1355573]::set_handler_inner<rustc_driver_impl[e9fc4ceb08dbf5f6]::install_ctrlc_handler::{closure#0}>::{closure#0}, ()>::{closure#1}::{closure#0}::{closure#0}, ()>
+  47:     0x7ff82fe38a05 - RINvNtNtCsbSQC797JefK_3std3sys9backtrace28___rust_begin_short_backtraceNCNCINvNtCsfdyxicwjCD3_15rustc_interface4util26run_in_thread_with_globalsNCINvB1e_31run_in_thread_pool_with_globalsNCINvNtB1g_9interface12run_compileruNCNvCsk5uYp7PeGd6_17rustc_driver_i
+  48:     0x7ff82fe44a97 - std[8a6d8cd86c7d29b2]::sys::backtrace::__rust_begin_short_backtrace::<std[8a6d8cd86c7d29b2]::thread::lifecycle::spawn_unchecked<ctrlc[407c1d2af1355573]::set_handler_inner<rustc_driver_impl[e9fc4ceb08dbf5f6]::install_ctrlc_handler::{closure#0}>::{closure#0}, ()>::{closure#1}::{closure#0}::{closure#0}, ()>
+  49:     0x7ff9329ae6a3 - std::sys::thread::windows::impl$0::new::thread_start
+                               at /rustc/88d9e12ae178fab0fb5cc050a94da85685d449ea/library\std\src\sys\thread\windows.rs:58
+  55:     0x7ff94954ad6c - RtlUserThreadStart
+  50:     0x7ff948dbccb7 - BaseThreadInitThunk
+  51:     0x7ff94954ad6c - RtlUserThreadStart
+error: could not compile `svipall-mcp` (bin "svipall" test)
+
+Caused by:
+  process didn't exit successfully: `<home>\.rustup\toolchains\stable-x86_64-pc-windows-msvc\bin\rustc.exe --crate-name svipall --edition=2021 crates\svipall-mcp\src\bin\svipall.rs --error-format=json --json=diagnostic-rendered-ansi,artifacts,future-incompat --emit=dep-info,link -C embed-bitcode=no -C debuginfo=2 --test --cfg "feature=\"default\"" --cfg "feature=\"impersonate\"" --cfg "feature=\"local-models\"" --cfg "feature=\"onnx\"" --cfg "feature=\"onnx-detect\"" --cfg "feature=\"onnx-grid\"" --cfg "feature=\"onnx-segment\"" --check-cfg cfg(docsrs,test) --check-cfg "cfg(feature, values(\"default\", \"http3\", \"impersonate\", \"local-models\", \"onnx\", \"onnx-audio\", \"onnx-detect\", \"onnx-grid\", \"onnx-ocr\", \"onnx-segment\", \"onnx-zeroshot\"))" -C metadata=9cdf75ad8a822f71 -C extra-filename=-a781d2ba61b1173e --out-dir C:\t\debug\deps -C incremental=C:\t\debug\incremental -L dependency=C:\t\debug\deps --extern anyhow=C:\t\debug\deps\libanyhow-d151477471834e5b.rlib --extern axum=C:\t\debug\deps\libaxum-d50fec84f70cd6bb.rlib --extern base64=C:\t\debug\deps\libbase64-0bea6f087ee46c41.rlib --extern chrono=C:\t\debug\deps\libchrono-3f07d0483bf79ab9.rlib --extern futures=C:\t\debug\deps\libfutures-24c04d587d207318.rlib --extern image=C:\t\debug\deps\libimage-0f760f005e160694.rlib --extern md5=C:\t\debug\deps\libmd5-df8fe59eaa4cd1b6.rlib --extern once_cell=C:\t\debug\deps\libonce_cell-7bf7fa086ac14af2.rlib --extern ort=C:\t\debug\deps\libort-5d962a630bd16cf6.rlib --extern rmcp=C:\t\debug\deps\librmcp-993157e4a6c58324.rlib --extern schemars=C:\t\debug\deps\libschemars-6486ec52b8b37f58.rlib --extern scraper=C:\t\debug\deps\libscraper-1547adbe3c52127e.rlib --extern serde=C:\t\debug\deps\libserde-b5695f25347fb680.rlib --extern serde_json=C:\t\debug\deps\libserde_json-b662573bd283bf2d.rlib --extern svipall_cdp=C:\t\debug\deps\libsvipall_cdp-3926d281e9a17b42.rlib --extern svipall_core=C:\t\debug\deps\libsvipall_core-c140fd14a36fa905.rlib --extern svipall_dashboard=C:\t\debug\deps\libsvipall_dashboard-38c492eae13b97d0.rlib --extern svipall_http=C:\t\debug\deps\libsvipall_http-dc89eece86f172f7.rlib --extern svipall_mcp=C:\t\debug\deps\libsvipall_mcp-1fceabf1084f7c73.rlib --extern svipall_models=C:\t\debug\deps\libsvipall_models-ca115b52eb85b2e9.rlib --extern svipall_solver=C:\t\debug\deps\libsvipall_solver-573354e60f2a08c3.rlib --extern tokio=C:\t\debug\deps\libtokio-f1f7785270a9d657.rlib --extern tower=C:\t\debug\deps\libtower-bf7b3abeab3fb107.rlib --extern tracing=C:\t\debug\deps\libtracing-9dc0df1580504a0e.rlib --extern tracing_subscriber=C:\t\debug\deps\libtracing_subscriber-9ed3d46940ba98e7.rlib --extern url=C:\t\debug\deps\liburl-18ea231d46fa8e1c.rlib --extern urlencoding=C:\t\debug\deps\liburlencoding-7de2cdfd3dce99b8.rlib --extern uuid=C:\t\debug\deps\libuuid-552bf4dc92a3748f.rlib --extern zip=C:\t\debug\deps\libzip-d61f25abc70de077.rlib -C target-cpu=native -L native=C:\t\debug\build\ring-a2bc75da5e092f84\out -L native=C:\t\debug\build\zstd-sys-da500f37d4176526\out -L native=C:\t\debug\build\libsqlite3-sys-0aef5aca921d5919\out -L native=C:\t\debug\build\btls-sys-64ec6ede05e32210\out\build\lib -L native=C:\t\debug\build\btls-sys-64ec6ede05e32210\out\build\crypto -L native=C:\t\debug\build\btls-sys-64ec6ede05e32210\out\build\ssl -L native=C:\t\debug\build\btls-sys-64ec6ede05e32210\out\build\Debug -L native=<home>\AppData\Local\ort.pyke.io\dfbin\x86_64-pc-windows-msvc\f7c654b3729cb9e5ad2a36a0c38e5b48e63bf4eed22968931aed33a0ad0b527d -L native=<home>\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\windows_x86_64_msvc-0.48.5\lib` (exit code: 0xc0000409, STATUS_STACK_BUFFER_OVERRUN)
+error: could not compile `svipall-mcp` (test "doctor")
+
+Caused by:
+  process didn't exit successfully: `<home>\.rustup\toolchains\stable-x86_64-pc-windows-msvc\bin\rustc.exe --crate-name doctor --edition=2021 crates\svipall-mcp\tests\doctor.rs --error-format=json --json=diagnostic-rendered-ansi,artifacts,future-incompat --emit=dep-info,link -C embed-bitcode=no -C debuginfo=2 --test --cfg "feature=\"default\"" --cfg "feature=\"impersonate\"" --cfg "feature=\"local-models\"" --cfg "feature=\"onnx\"" --cfg "feature=\"onnx-detect\"" --cfg "feature=\"onnx-grid\"" --cfg "feature=\"onnx-segment\"" --check-cfg cfg(docsrs,test) --check-cfg "cfg(feature, values(\"default\", \"http3\", \"impersonate\", \"local-models\", \"onnx\", \"onnx-audio\", \"onnx-detect\", \"onnx-grid\", \"onnx-ocr\", \"onnx-segment\", \"onnx-zeroshot\"))" -C metadata=bfe0a191b62a8303 -C extra-filename=-09f1bbfd93ecfd8c --out-dir C:\t\debug\deps -C incremental=C:\t\debug\incremental -L dependency=C:\t\debug\deps --extern anyhow=C:\t\debug\deps\libanyhow-d151477471834e5b.rlib --extern axum=C:\t\debug\deps\libaxum-d50fec84f70cd6bb.rlib --extern base64=C:\t\debug\deps\libbase64-0bea6f087ee46c41.rlib --extern chrono=C:\t\debug\deps\libchrono-3f07d0483bf79ab9.rlib --extern futures=C:\t\debug\deps\libfutures-24c04d587d207318.rlib --extern image=C:\t\debug\deps\libimage-0f760f005e160694.rlib --extern md5=C:\t\debug\deps\libmd5-df8fe59eaa4cd1b6.rlib --extern once_cell=C:\t\debug\deps\libonce_cell-7bf7fa086ac14af2.rlib --extern ort=C:\t\debug\deps\libort-5d962a630bd16cf6.rlib --extern rmcp=C:\t\debug\deps\librmcp-993157e4a6c58324.rlib --extern schemars=C:\t\debug\deps\libschemars-6486ec52b8b37f58.rlib --extern scraper=C:\t\debug\deps\libscraper-1547adbe3c52127e.rlib --extern serde=C:\t\debug\deps\libserde-b5695f25347fb680.rlib --extern serde_json=C:\t\debug\deps\libserde_json-b662573bd283bf2d.rlib --extern svipall_cdp=C:\t\debug\deps\libsvipall_cdp-3926d281e9a17b42.rlib --extern svipall_core=C:\t\debug\deps\libsvipall_core-c140fd14a36fa905.rlib --extern svipall_dashboard=C:\t\debug\deps\libsvipall_dashboard-38c492eae13b97d0.rlib --extern svipall_http=C:\t\debug\deps\libsvipall_http-dc89eece86f172f7.rlib --extern svipall_mcp=C:\t\debug\deps\libsvipall_mcp-1fceabf1084f7c73.rlib --extern svipall_models=C:\t\debug\deps\libsvipall_models-ca115b52eb85b2e9.rlib --extern svipall_solver=C:\t\debug\deps\libsvipall_solver-573354e60f2a08c3.rlib --extern tokio=C:\t\debug\deps\libtokio-f1f7785270a9d657.rlib --extern tower=C:\t\debug\deps\libtower-bf7b3abeab3fb107.rlib --extern tracing=C:\t\debug\deps\libtracing-9dc0df1580504a0e.rlib --extern tracing_subscriber=C:\t\debug\deps\libtracing_subscriber-9ed3d46940ba98e7.rlib --extern url=C:\t\debug\deps\liburl-18ea231d46fa8e1c.rlib --extern urlencoding=C:\t\debug\deps\liburlencoding-7de2cdfd3dce99b8.rlib --extern uuid=C:\t\debug\deps\libuuid-552bf4dc92a3748f.rlib --extern zip=C:\t\debug\deps\libzip-d61f25abc70de077.rlib -C target-cpu=native -L native=C:\t\debug\build\ring-a2bc75da5e092f84\out -L native=C:\t\debug\build\zstd-sys-da500f37d4176526\out -L native=C:\t\debug\build\libsqlite3-sys-0aef5aca921d5919\out -L native=C:\t\debug\build\btls-sys-64ec6ede05e32210\out\build\lib -L native=C:\t\debug\build\btls-sys-64ec6ede05e32210\out\build\crypto -L native=C:\t\debug\build\btls-sys-64ec6ede05e32210\out\build\ssl -L native=C:\t\debug\build\btls-sys-64ec6ede05e32210\out\build\Debug -L native=<home>\AppData\Local\ort.pyke.io\dfbin\x86_64-pc-windows-msvc\f7c654b3729cb9e5ad2a36a0c38e5b48e63bf4eed22968931aed33a0ad0b527d -L native=<home>\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\windows_x86_64_msvc-0.48.5\lib` (exit code: 0xc0000409, STATUS_STACK_BUFFER_OVERRUN)
+error: could not compile `svipall-mcp` (lib test)
+
+Caused by:
+  process didn't exit successfully: `<home>\.rustup\toolchains\stable-x86_64-pc-windows-msvc\bin\rustc.exe --crate-name svipall_mcp --edition=2021 crates\svipall-mcp\src\lib.rs --error-format=json --json=diagnostic-rendered-ansi,artifacts,future-incompat --emit=dep-info,link -C embed-bitcode=no -C debuginfo=2 --test --cfg "feature=\"default\"" --cfg "feature=\"impersonate\"" --cfg "feature=\"local-models\"" --cfg "feature=\"onnx\"" --cfg "feature=\"onnx-detect\"" --cfg "feature=\"onnx-grid\"" --cfg "feature=\"onnx-segment\"" --check-cfg cfg(docsrs,test) --check-cfg "cfg(feature, values(\"default\", \"http3\", \"impersonate\", \"local-models\", \"onnx\", \"onnx-audio\", \"onnx-detect\", \"onnx-grid\", \"onnx-ocr\", \"onnx-segment\", \"onnx-zeroshot\"))" -C metadata=0651aacbdc3ead35 -C extra-filename=-eb0acd06397cb2b6 --out-dir C:\t\debug\deps -C incremental=C:\t\debug\incremental -L dependency=C:\t\debug\deps --extern anyhow=C:\t\debug\deps\libanyhow-d151477471834e5b.rlib --extern axum=C:\t\debug\deps\libaxum-d50fec84f70cd6bb.rlib --extern base64=C:\t\debug\deps\libbase64-0bea6f087ee46c41.rlib --extern chrono=C:\t\debug\deps\libchrono-3f07d0483bf79ab9.rlib --extern futures=C:\t\debug\deps\libfutures-24c04d587d207318.rlib --extern image=C:\t\debug\deps\libimage-0f760f005e160694.rlib --extern md5=C:\t\debug\deps\libmd5-df8fe59eaa4cd1b6.rlib --extern once_cell=C:\t\debug\deps\libonce_cell-7bf7fa086ac14af2.rlib --extern ort=C:\t\debug\deps\libort-5d962a630bd16cf6.rlib --extern rmcp=C:\t\debug\deps\librmcp-993157e4a6c58324.rlib --extern schemars=C:\t\debug\deps\libschemars-6486ec52b8b37f58.rlib --extern scraper=C:\t\debug\deps\libscraper-1547adbe3c52127e.rlib --extern serde=C:\t\debug\deps\libserde-b5695f25347fb680.rlib --extern serde_json=C:\t\debug\deps\libserde_json-b662573bd283bf2d.rlib --extern svipall_cdp=C:\t\debug\deps\libsvipall_cdp-3926d281e9a17b42.rlib --extern svipall_core=C:\t\debug\deps\libsvipall_core-c140fd14a36fa905.rlib --extern svipall_dashboard=C:\t\debug\deps\libsvipall_dashboard-38c492eae13b97d0.rlib --extern svipall_http=C:\t\debug\deps\libsvipall_http-dc89eece86f172f7.rlib --extern svipall_models=C:\t\debug\deps\libsvipall_models-ca115b52eb85b2e9.rlib --extern svipall_solver=C:\t\debug\deps\libsvipall_solver-573354e60f2a08c3.rlib --extern tokio=C:\t\debug\deps\libtokio-f1f7785270a9d657.rlib --extern tower=C:\t\debug\deps\libtower-bf7b3abeab3fb107.rlib --extern tracing=C:\t\debug\deps\libtracing-9dc0df1580504a0e.rlib --extern tracing_subscriber=C:\t\debug\deps\libtracing_subscriber-9ed3d46940ba98e7.rlib --extern url=C:\t\debug\deps\liburl-18ea231d46fa8e1c.rlib --extern urlencoding=C:\t\debug\deps\liburlencoding-7de2cdfd3dce99b8.rlib --extern uuid=C:\t\debug\deps\libuuid-552bf4dc92a3748f.rlib --extern zip=C:\t\debug\deps\libzip-d61f25abc70de077.rlib -C target-cpu=native -L native=C:\t\debug\build\ring-a2bc75da5e092f84\out -L native=C:\t\debug\build\zstd-sys-da500f37d4176526\out -L native=C:\t\debug\build\libsqlite3-sys-0aef5aca921d5919\out -L native=C:\t\debug\build\btls-sys-64ec6ede05e32210\out\build\lib -L native=C:\t\debug\build\btls-sys-64ec6ede05e32210\out\build\crypto -L native=C:\t\debug\build\btls-sys-64ec6ede05e32210\out\build\ssl -L native=C:\t\debug\build\btls-sys-64ec6ede05e32210\out\build\Debug -L native=<home>\AppData\Local\ort.pyke.io\dfbin\x86_64-pc-windows-msvc\f7c654b3729cb9e5ad2a36a0c38e5b48e63bf4eed22968931aed33a0ad0b527d -L native=<home>\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\windows_x86_64_msvc-0.48.5\lib` (exit code: 0xc0000409, STATUS_STACK_BUFFER_OVERRUN)
+For more information about this error, try `rustc --explain E0460`.
+error: could not compile `svipall-mcp` (test "models") due to 1 previous error
+error: crate `rmcp` required to be available in rlib format, but was not found in this form
+
+error: could not compile `svipall-mcp` (bin "svipall") due to 1 previous error
+error: crate `svipall_solver` required to be available in rlib format, but was not found in this form
+
+error: could not compile `svipall-mcp` (test "ladder") due to 1 previous error
+   Compiling zeroize v1.9.0
+   Compiling syn v3.0.4
+   Compiling futures-task v0.3.34
+   Compiling itertools v0.13.0
+   Compiling futures-channel v0.3.34
+   Compiling getrandom v0.2.17
+   Compiling cssparser v0.34.0
+   Compiling openssl-macros v0.1.1
+   Compiling compression-codecs v0.4.38
+   Compiling zip v8.6.0
+   Compiling typed-builder-macro v0.23.2
+   Compiling rusqlite v0.32.1
+   Compiling enum_dispatch v0.3.13
+   Compiling ring v0.17.14
+   Compiling futures-util v0.3.34
+   Compiling rustls-pki-types v1.15.1
+   Compiling webpki-roots v1.0.9
+   Compiling webpki-root-certs v1.0.9
+   Compiling selectors v0.26.0
+   Compiling bindgen v0.72.1
+   Compiling typed-builder v0.23.2
+   Compiling rustls-webpki v0.103.15
+   Compiling rustls v0.23.43
+   Compiling zerovec-derive v0.11.6
+   Compiling tokio-macros v2.7.2
+   Compiling displaydoc v0.2.7
+   Compiling serde_derive v1.0.229
+   Compiling thiserror-impl v2.0.20
+   Compiling foreign-types-macros v0.2.4
+   Compiling async-trait v0.1.92
+   Compiling foreign-types v0.5.0
+   Compiling tokio v1.53.1
+   Compiling zerotrie v0.2.5
+   Compiling zerovec v0.11.8
+   Compiling thiserror v2.0.20
+   Compiling lopdf v0.42.0
+   Compiling lopdf v0.36.0
+   Compiling tinystr v0.8.4
+   Compiling potential_utf v0.1.6
+   Compiling icu_collections v2.3.0
+   Compiling icu_locale_core v2.3.0
+   Compiling btls-sys v0.5.6
+   Compiling icu_provider v2.3.1
+   Compiling icu_properties v2.3.0
+   Compiling icu_normalizer v2.3.0
+   Compiling serde v1.0.229
+   Compiling string_cache v0.8.9
+   Compiling serde_spanned v0.6.9
+   Compiling toml_datetime v0.6.11
+   Compiling serde_urlencoded v0.7.1
+   Compiling markup5ever v0.14.1
+   Compiling toml_edit v0.22.27
+   Compiling idna_adapter v1.2.2
+   Compiling idna v1.1.0
+   Compiling pdf-extract v0.9.0
+   Compiling url v2.5.8
+   Compiling publicsuffix v2.3.0
+   Compiling html5ever v0.29.1
+   Compiling cookie_store v0.22.1
+   Compiling tokio-util v0.7.19
+   Compiling tower v0.5.3
+   Compiling async-compression v0.4.43
+   Compiling tokio-rustls v0.26.4
+   Compiling scraper v0.21.0
+   Compiling toml v0.8.23
+   Compiling svipall-extract v1.0.0 (<repo>\crates\svipall-extract)
+   Compiling h2 v0.4.19
+   Compiling http2 v0.5.20
+   Compiling tower-http v0.6.11
+   Compiling wreq-proto v0.2.6
+   Compiling wreq-rt v0.2.2-rc.4
+   Compiling hyper v1.11.1
+   Compiling pdf-inspector v1.17.0
+   Compiling hyper-util v0.1.20
+   Compiling hyper-rustls v0.27.9
+   Compiling reqwest v0.12.28
+   Compiling anydoc v0.2.4
+   Compiling svipall-core v1.0.0 (<repo>\crates\svipall-core)
+   Compiling btls v0.5.6
+   Compiling svipall-quic v1.0.0 (<repo>\crates\svipall-quic)
+   Compiling tokio-btls v0.5.6
+   Compiling wreq v0.16.1
+   Compiling wreq-util v0.2.0
+   Compiling svipall-http v1.0.0 (<repo>\crates\svipall-http)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 1m 51s
+     Running tests\h3.rs (C:\t\debug\deps\h3-7af595d30ddfb3a4.exe)
+   Compiling svipall-mcp v1.0.0-rc.2 (<repo>\crates\svipall-mcp)
+error: could not compile `svipall-mcp` (test "models")
+
+Caused by:
+  process didn't exit successfully: `<home>\.rustup\toolchains\stable-x86_64-pc-windows-msvc\bin\rustc.exe --crate-name models --edition=2021 crates\svipall-mcp\tests\models.rs --error-format=json --json=diagnostic-rendered-ansi,artifacts,future-incompat --emit=dep-info,link -C embed-bitcode=no -C debuginfo=2 --test --cfg "feature=\"default\"" --cfg "feature=\"impersonate\"" --cfg "feature=\"local-models\"" --cfg "feature=\"onnx\"" --cfg "feature=\"onnx-detect\"" --cfg "feature=\"onnx-grid\"" --cfg "feature=\"onnx-segment\"" --check-cfg cfg(docsrs,test) --check-cfg "cfg(feature, values(\"default\", \"http3\", \"impersonate\", \"local-models\", \"onnx\", \"onnx-audio\", \"onnx-detect\", \"onnx-grid\", \"onnx-ocr\", \"onnx-segment\", \"onnx-zeroshot\"))" -C metadata=1773e0d3d90d5f37 -C extra-filename=-e2e93d51da588113 --out-dir C:\t\debug\deps -C incremental=C:\t\debug\incremental -L dependency=C:\t\debug\deps --extern anyhow=C:\t\debug\deps\libanyhow-d151477471834e5b.rlib --extern axum=C:\t\debug\deps\libaxum-d1aa11ba250adb19.rlib --extern base64=C:\t\debug\deps\libbase64-0bea6f087ee46c41.rlib --extern chrono=C:\t\debug\deps\libchrono-3f07d0483bf79ab9.rlib --extern futures=C:\t\debug\deps\libfutures-24c04d587d207318.rlib --extern image=C:\t\debug\deps\libimage-36b076c4dfc6e6c7.rlib --extern md5=C:\t\debug\deps\libmd5-df8fe59eaa4cd1b6.rlib --extern once_cell=C:\t\debug\deps\libonce_cell-7bf7fa086ac14af2.rlib --extern ort=C:\t\debug\deps\libort-5d4775288747a55a.rlib --extern rmcp=C:\t\debug\deps\librmcp-6150b31d094f32f2.rlib --extern schemars=C:\t\debug\deps\libschemars-6486ec52b8b37f58.rlib --extern scraper=C:\t\debug\deps\libscraper-a3dc57dd74ad072e.rlib --extern serde=C:\t\debug\deps\libserde-b5695f25347fb680.rlib --extern serde_json=C:\t\debug\deps\libserde_json-b662573bd283bf2d.rlib --extern svipall_cdp=C:\t\debug\deps\libsvipall_cdp-bfcaa858afb7fac5.rlib --extern svipall_core=C:\t\debug\deps\libsvipall_core-a9eb64b94782ec0e.rlib --extern svipall_dashboard=C:\t\debug\deps\libsvipall_dashboard-3d6c3655754e1003.rlib --extern svipall_http=C:\t\debug\deps\libsvipall_http-8d110fcc24333326.rlib --extern svipall_mcp=C:\t\debug\deps\libsvipall_mcp-ebeee539b7df687b.rlib --extern svipall_models=C:\t\debug\deps\libsvipall_models-ca115b52eb85b2e9.rlib --extern svipall_solver=C:\t\debug\deps\libsvipall_solver-b24563f860308364.rlib --extern tokio=C:\t\debug\deps\libtokio-7a31dce0a0cd2359.rlib --extern tower=C:\t\debug\deps\libtower-b99be552bb76e047.rlib --extern tracing=C:\t\debug\deps\libtracing-9dc0df1580504a0e.rlib --extern tracing_subscriber=C:\t\debug\deps\libtracing_subscriber-d24f957c88a45df4.rlib --extern url=C:\t\debug\deps\liburl-44c5aaa9b8e14932.rlib --extern urlencoding=C:\t\debug\deps\liburlencoding-7de2cdfd3dce99b8.rlib --extern uuid=C:\t\debug\deps\libuuid-552bf4dc92a3748f.rlib --extern zip=C:\t\debug\deps\libzip-d61f25abc70de077.rlib -C target-cpu=native -L native=C:\t\debug\build\ring-a2bc75da5e092f84\out -L native=C:\t\debug\build\zstd-sys-da500f37d4176526\out -L native=C:\t\debug\build\libsqlite3-sys-0aef5aca921d5919\out -L native=C:\t\debug\build\btls-sys-64ec6ede05e32210\out\build\lib -L native=C:\t\debug\build\btls-sys-64ec6ede05e32210\out\build\crypto -L native=C:\t\debug\build\btls-sys-64ec6ede05e32210\out\build\ssl -L native=C:\t\debug\build\btls-sys-64ec6ede05e32210\out\build\Debug -L native=<home>\AppData\Local\ort.pyke.io\dfbin\x86_64-pc-windows-msvc\f7c654b3729cb9e5ad2a36a0c38e5b48e63bf4eed22968931aed33a0ad0b527d -L native=<home>\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\windows_x86_64_msvc-0.48.5\lib` (exit code: 0xffffffff)
+warning: build failed, waiting for other jobs to finish...
+error: could not compile `svipall-mcp` (bin "svipall-mcp")
+
+Caused by:
+  process didn't exit successfully: `<home>\.rustup\toolchains\stable-x86_64-pc-windows-msvc\bin\rustc.exe --crate-name svipall_mcp --edition=2021 crates\svipall-mcp\src\main.rs --error-format=json --json=diagnostic-rendered-ansi,artifacts,future-incompat --crate-type bin --emit=dep-info,link -C embed-bitcode=no -C debuginfo=2 --cfg "feature=\"default\"" --cfg "feature=\"impersonate\"" --cfg "feature=\"local-models\"" --cfg "feature=\"onnx\"" --cfg "feature=\"onnx-detect\"" --cfg "feature=\"onnx-grid\"" --cfg "feature=\"onnx-segment\"" --check-cfg cfg(docsrs,test) --check-cfg "cfg(feature, values(\"default\", \"http3\", \"impersonate\", \"local-models\", \"onnx\", \"onnx-audio\", \"onnx-detect\", \"onnx-grid\", \"onnx-ocr\", \"onnx-segment\", \"onnx-zeroshot\"))" -C metadata=b91fba9d4b6eee3d --out-dir C:\t\debug\deps -C incremental=C:\t\debug\incremental -L dependency=C:\t\debug\deps --extern anyhow=C:\t\debug\deps\libanyhow-d151477471834e5b.rlib --extern axum=C:\t\debug\deps\libaxum-d1aa11ba250adb19.rlib --extern base64=C:\t\debug\deps\libbase64-0bea6f087ee46c41.rlib --extern chrono=C:\t\debug\deps\libchrono-3f07d0483bf79ab9.rlib --extern futures=C:\t\debug\deps\libfutures-24c04d587d207318.rlib --extern image=C:\t\debug\deps\libimage-36b076c4dfc6e6c7.rlib --extern md5=C:\t\debug\deps\libmd5-df8fe59eaa4cd1b6.rlib --extern once_cell=C:\t\debug\deps\libonce_cell-7bf7fa086ac14af2.rlib --extern ort=C:\t\debug\deps\libort-5d4775288747a55a.rlib --extern rmcp=C:\t\debug\deps\librmcp-6150b31d094f32f2.rlib --extern schemars=C:\t\debug\deps\libschemars-6486ec52b8b37f58.rlib --extern scraper=C:\t\debug\deps\libscraper-a3dc57dd74ad072e.rlib --extern serde=C:\t\debug\deps\libserde-b5695f25347fb680.rlib --extern serde_json=C:\t\debug\deps\libserde_json-b662573bd283bf2d.rlib --extern svipall_cdp=C:\t\debug\deps\libsvipall_cdp-bfcaa858afb7fac5.rlib --extern svipall_core=C:\t\debug\deps\libsvipall_core-a9eb64b94782ec0e.rlib --extern svipall_dashboard=C:\t\debug\deps\libsvipall_dashboard-3d6c3655754e1003.rlib --extern svipall_http=C:\t\debug\deps\libsvipall_http-8d110fcc24333326.rlib --extern svipall_mcp=C:\t\debug\deps\libsvipall_mcp-ebeee539b7df687b.rlib --extern svipall_models=C:\t\debug\deps\libsvipall_models-ca115b52eb85b2e9.rlib --extern svipall_solver=C:\t\debug\deps\libsvipall_solver-b24563f860308364.rlib --extern tokio=C:\t\debug\deps\libtokio-7a31dce0a0cd2359.rlib --extern tracing=C:\t\debug\deps\libtracing-9dc0df1580504a0e.rlib --extern tracing_subscriber=C:\t\debug\deps\libtracing_subscriber-d24f957c88a45df4.rlib --extern url=C:\t\debug\deps\liburl-44c5aaa9b8e14932.rlib --extern urlencoding=C:\t\debug\deps\liburlencoding-7de2cdfd3dce99b8.rlib --extern uuid=C:\t\debug\deps\libuuid-552bf4dc92a3748f.rlib --extern zip=C:\t\debug\deps\libzip-d61f25abc70de077.rlib -C target-cpu=native -L native=C:\t\debug\build\ring-a2bc75da5e092f84\out -L native=C:\t\debug\build\zstd-sys-da500f37d4176526\out -L native=C:\t\debug\build\libsqlite3-sys-0aef5aca921d5919\out -L native=C:\t\debug\build\btls-sys-64ec6ede05e32210\out\build\lib -L native=C:\t\debug\build\btls-sys-64ec6ede05e32210\out\build\crypto -L native=C:\t\debug\build\btls-sys-64ec6ede05e32210\out\build\ssl -L native=C:\t\debug\build\btls-sys-64ec6ede05e32210\out\build\Debug -L native=<home>\AppData\Local\ort.pyke.io\dfbin\x86_64-pc-windows-msvc\f7c654b3729cb9e5ad2a36a0c38e5b48e63bf4eed22968931aed33a0ad0b527d -L native=<home>\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\windows_x86_64_msvc-0.48.5\lib` (exit code: 0xffffffff)

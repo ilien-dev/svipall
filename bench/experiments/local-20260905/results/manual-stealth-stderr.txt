@@ -1,0 +1,38 @@
+   Compiling svipall-mcp v1.0.0-rc.2 (<repo>\crates\svipall-mcp)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 5.90s
+     Running tests\stealth.rs (target\debug\deps\stealth-099ec4192bbab2b4.exe)
+captured=4 endpoints=["https://gc.kis.v2.scr.kaspersky-labs.com/7D8B79A2-8974-4D7B-A76A-F4F29624C06BmKHhmZHqBedorNLq7ch_3X4iNk-zqeU5GA9CM0Xbj1-jWcupMI1edBZX6QDE5fJJKWso7WIZq33WvxFivx8gvQ/init?data=eyJ1cmwiOiJodHRwczovL3F1b3Rlcy50b3NjcmFwZS5jb20vc2Nyb2xsIiwicGx1Z2lucyI6IndzbSZ3bnQmYWJuJmFibl9zaGFkb3cmY2EmdnMmcGMmdWEmd3NjJmNiIiwiZGF0YSI6eyJkYXRhIjpbeyJwbHVnaW4iOiJ3c20iLCJwYXJhbWV0ZXJzIjoie1wicmVmZXJyZXJcIjpcIlwiLFwic3R1YklkXCI6XCJcIn0ifSx7InBsdWdpbiI6IndudCIsInBhcmFtZXRlcnMiOiJ7XCJyZWZlcnJlclwiOlwiXCJ9In0seyJwbHVnaW4iOiJhYm4iLCJwYXJhbWV0ZXJzIjoie1wiaXNDc3NVcmxJbmplY3RlZFwiOmZhbHNlfSJ9LHsicGx1Z2luIjoiYWJuX3NoYWRvdyIsInBhcmFtZXRlcnMiOiJ7XCJpc0Nzc1VybEluamVjdGVkXCI6ZmFsc2V9In0seyJwbHVnaW4iOiJ1YSIsInBhcmFtZXRlcnMiOiJ7fSJ9XX0sImlzVG9wTGV2ZWwiOnRydWUsInBhZ2VTdGFydFRpbWUiOjAsIm5hdmlnYXRpb25TdGFydFRpbWUiOjE3ODg2NzA1OTczMDJ9&nocache=1f37d&tm=2026-09-06T04%3A56%3A37.975Z","https://gc.kis.v2.scr.kaspersky-labs.com/C630935E-35EE-47E4-869B-C08A84815619/E657AE23-C760-4BD3-A1B2-E1B8470B8E51/to/wsm.sessionActivated?tm=2026-09-06T04%3A56%3A38.003Z","https://quotes.toscrape.com/api/quotes?page=1","https://gc.kis.v2.scr.kaspersky-labs.com/C630935E-35EE-47E4-869B-C08A84815619/E657AE23-C760-4BD3-A1B2-E1B8470B8E51/to/abn.statInfo?tm=2026-09-06T04%3A56%3A38.524Z"]
+
+thread 'an_isolated_fetch_leaves_no_profile_behind' (41272) panicked at crates\svipall-mcp\tests\stealth.rs:213:5:
+assertion `left == right` failed: an isolated fetch left its profile on disk
+  left: 1
+ right: 0
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+nodes=25 tokens=159
+table
+  table
+      img
+    link "Hacker News" [e4]
+    link "new" [e5]
+    link "past" [e6]
+    link "comments" [e7]
+    link "ask" [e8]
+    link "show" [e9]
+    link "jobs" [e10]
+    link "submit" [e11]
+    link "login" [e12]
+  table
+    link "Cloud in a Bottle: making self-hosting accessible to everyone" [e15]
+    link "cloudinabottle.org" [e16]
+    link "zplizzi" [e17]
+    link "4 hours ago" [e18]
+    link "hide" [e19]
+    link "103 comments" [e20]
+    link "GPT-6 Astra on robot arms" [e22]
+    link "robocurve.org" [e23]
+    link "Anon84" [e24]
+    link "3 hours ago" [e25]
+    link "hide" [e26]
+    link "60 comments" [e27]
+
+error: test failed, to rerun pass `-p svipall-mcp --test stealth`

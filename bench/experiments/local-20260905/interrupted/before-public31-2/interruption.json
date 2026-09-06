@@ -1,0 +1,9 @@
+{
+    "complete":  false,
+    "label":  "before-public31-2",
+    "recovery":  "Preserve partial logs/state and repeat the complete run with fresh local state; use an interactive scheduled task for persistent coordination.",
+    "planned_calls":  62,
+    "observed_at":  "2026-09-06T02:36:30.5152671Z",
+    "recorded_calls":  12,
+    "reason":  "Controller and benchmark processes disappeared at a conversation continuation; OS inspection confirmed they were no longer live."
+}

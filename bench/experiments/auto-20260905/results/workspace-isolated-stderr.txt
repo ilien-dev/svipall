@@ -1,0 +1,45 @@
+   Compiling svipall-mcp v1.0.0-rc.2 (<repo>\crates\svipall-mcp)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 12.38s
+     Running unittests src\main.rs (C:\t\debug\deps\svipall_bench-8c5b2341b3681661.exe)
+     Running unittests src\lib.rs (C:\t\debug\deps\svipall_cdp-658a926faf2a9581.exe)
+     Running unittests src\lib.rs (C:\t\debug\deps\svipall_core-d3e994c6f705da4b.exe)
+     Running tests\automatic.rs (C:\t\debug\deps\automatic-12bf470f57a2468d.exe)
+     Running tests\integrity.rs (C:\t\debug\deps\integrity-ebfab3521455e5de.exe)
+     Running tests\widgets.rs (C:\t\debug\deps\widgets-88da56bac056070f.exe)
+     Running unittests src\lib.rs (C:\t\debug\deps\svipall_dashboard-460dae9f36dae695.exe)
+     Running unittests src\lib.rs (C:\t\debug\deps\svipall_extract-80b7e74b8a7260e9.exe)
+     Running unittests src\lib.rs (C:\t\debug\deps\svipall_http-3beb20c7d853071d.exe)
+     Running tests\fingerprint.rs (C:\t\debug\deps\fingerprint-999a83cfc5652249.exe)
+     Running tests\h3.rs (C:\t\debug\deps\h3-dc27d90334652abf.exe)
+     Running tests\tls_stack.rs (C:\t\debug\deps\tls_stack-e3d8712d16bad3bd.exe)
+     Running unittests src\lib.rs (C:\t\debug\deps\svipall_mcp-eb0acd06397cb2b6.exe)
+     Running unittests src\bin\svipall.rs (C:\t\debug\deps\svipall-a781d2ba61b1173e.exe)
+     Running unittests src\main.rs (C:\t\debug\deps\svipall_mcp-3bb9d9a30292152f.exe)
+     Running tests\anti_discard.rs (C:\t\debug\deps\anti_discard-10fdc09f3ff74302.exe)
+     Running tests\automatic.rs (C:\t\debug\deps\automatic-6650dea4019ab38b.exe)
+     Running tests\automatic_learning.rs (C:\t\debug\deps\automatic_learning-a40554a1839167df.exe)
+     Running tests\automatic_timeout.rs (C:\t\debug\deps\automatic_timeout-c85acd476267e1a6.exe)
+     Running tests\crawl.rs (C:\t\debug\deps\crawl-9f178146c42ebc42.exe)
+     Running tests\doctor.rs (C:\t\debug\deps\doctor-09f1bbfd93ecfd8c.exe)
+     Running tests\hooks.rs (C:\t\debug\deps\hooks-85dfc0950e5a2b42.exe)
+     Running tests\jobs.rs (C:\t\debug\deps\jobs-05df71a5f266f22f.exe)
+     Running tests\ladder.rs (C:\t\debug\deps\ladder-2e7016093ca4e8ce.exe)
+     Running tests\local_sessions.rs (C:\t\debug\deps\local_sessions-0b6e94af8fc417fa.exe)
+     Running tests\models.rs (C:\t\debug\deps\models-2c87fe302a9bf82d.exe)
+     Running tests\reputation.rs (C:\t\debug\deps\reputation-17b83b8307448e2a.exe)
+     Running tests\rest.rs (C:\t\debug\deps\rest-df271fc2332eed5b.exe)
+     Running tests\stealth.rs (C:\t\debug\deps\stealth-e1ff9d98477fea07.exe)
+     Running unittests src\lib.rs (C:\t\debug\deps\svipall_models-3af52aceed84da64.exe)
+     Running tests\handshake.rs (C:\t\debug\deps\handshake-bd1087067ca2142f.exe)
+     Running tests\selfsigned.rs (C:\t\debug\deps\selfsigned-5013cded15bc5ecf.exe)
+     Running tests\settings.rs (C:\t\debug\deps\settings-695f3d91160219ca.exe)
+     Running unittests src\lib.rs (C:\t\debug\deps\svipall_solver-ad4c1b9681cc87e4.exe)
+     Running tests\api.rs (C:\t\debug\deps\api-89661f161f783111.exe)
+   Doc-tests svipall_cdp
+   Doc-tests svipall_core
+   Doc-tests svipall_dashboard
+   Doc-tests svipall_extract
+   Doc-tests svipall_http
+   Doc-tests svipall_mcp
+   Doc-tests svipall_models
+   Doc-tests svipall_solver

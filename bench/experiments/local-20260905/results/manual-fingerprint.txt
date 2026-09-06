@@ -1,0 +1,10 @@
+
+running 4 tests
+test both_engines_follow_a_redirect ... ok
+test http_tier_is_shaped_like_chrome ... ok
+test the_fallback_engine_is_measurably_worse ... reqwest ja4: t13d1011h2_61a7ad8aa9b6_3fcd1a44f3e3  http: "h2"
+ok
+test user_agent_agrees_with_the_emulation ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.23s
+

@@ -1,0 +1,9 @@
+{
+    "recorded_calls":  24,
+    "label":  "before-hard12-2",
+    "additional_calls":  0,
+    "controller_exit_code":  "0xC000013A",
+    "action":  "Restored validated complete output and state; no repetition required",
+    "verified_at":  "2026-09-06T03:12:08.8886046Z",
+    "benchmark_completed":  true
+}

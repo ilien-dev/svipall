@@ -1,0 +1,11 @@
+   Compiling svipall-core v1.0.0 (<repo>\crates\svipall-core)
+   Compiling svipall-solver v1.0.0 (<repo>\crates\svipall-solver)
+   Compiling svipall-http v1.0.0 (<repo>\crates\svipall-http)
+   Compiling svipall-dashboard v1.0.0 (<repo>\crates\svipall-dashboard)
+   Compiling svipall-mcp v1.0.0-rc.2 (<repo>\crates\svipall-mcp)
+   Compiling svipall-bench v1.0.0 (<repo>\bench)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 1m 33s
+     Running unittests src\main.rs (C:\t\debug\deps\svipall_bench-8c5b2341b3681661.exe)
+     Running unittests src\lib.rs (C:\t\debug\deps\svipall_cdp-658a926faf2a9581.exe)
+     Running unittests src\lib.rs (C:\t\debug\deps\svipall_core-d3e994c6f705da4b.exe)
+error: test failed, to rerun pass `-p svipall-core --lib`

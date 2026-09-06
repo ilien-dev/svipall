@@ -1,0 +1,9 @@
+{
+    "complete":  false,
+    "label":  "after-public31-2",
+    "recovery":  "Preserve partial logs and state, repeat the complete run with fresh local state. Remote history cannot be reset.",
+    "planned_calls":  62,
+    "observed_at":  "2026-09-06T02:11:40.8875416Z",
+    "recorded_calls":  52,
+    "reason":  "The process handle disappeared; OS inspection confirmed controller, benchmark and experiment browsers were no longer running. No complete JSON was emitted. Cause unproven."
+}

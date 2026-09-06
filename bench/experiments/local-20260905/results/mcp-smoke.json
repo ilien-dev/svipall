@@ -1,0 +1,25 @@
+{
+    "saved":  true,
+    "runtime_modules":  [
+                            {
+                                "ModuleName":  "MSVCP140.dll",
+                                "FileName":  "<repo>\\bench\\experiments\\local-20260905\\runtime\\MSVCP140.dll"
+                            },
+                            {
+                                "ModuleName":  "MSVCP140_1.dll",
+                                "FileName":  "<repo>\\bench\\experiments\\local-20260905\\runtime\\MSVCP140_1.dll"
+                            },
+                            {
+                                "ModuleName":  "VCRUNTIME140_1.dll",
+                                "FileName":  "<repo>\\bench\\experiments\\local-20260905\\runtime\\VCRUNTIME140_1.dll"
+                            },
+                            {
+                                "ModuleName":  "VCRUNTIME140.dll",
+                                "FileName":  "<repo>\\bench\\experiments\\local-20260905\\runtime\\VCRUNTIME140.dll"
+                            }
+                        ],
+    "previous_warm_wait_ms":  21000,
+    "initialized":  true,
+    "effective_warm_wait_ms":  22000,
+    "tools":  29
+}

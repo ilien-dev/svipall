@@ -1,0 +1,30 @@
+{
+    "browser":  "<home>/.svipall/browser/cft/152.0.7977.75/chrome-win64/chrome.exe",
+    "checks":  [
+                   {
+                       "exit_code":  101,
+                       "name":  "stealth",
+                       "started":  "2026-09-06T04:55:39.1457267Z",
+                       "stderr":  "<repo>\\bench\\experiments\\local-20260905\\results\\manual-stealth-stderr.txt",
+                       "ended":  "2026-09-06T04:56:50.8803488Z",
+                       "stdout":  "<repo>\\bench\\experiments\\local-20260905\\results\\manual-stealth.txt"
+                   },
+                   {
+                       "exit_code":  0,
+                       "name":  "fingerprint",
+                       "started":  "2026-09-06T04:56:50.8803488Z",
+                       "stderr":  "<repo>\\bench\\experiments\\local-20260905\\results\\manual-fingerprint-stderr.txt",
+                       "ended":  "2026-09-06T04:57:00.1073993Z",
+                       "stdout":  "<repo>\\bench\\experiments\\local-20260905\\results\\manual-fingerprint.txt"
+                   },
+                   {
+                       "exit_code":  0,
+                       "name":  "http3",
+                       "started":  "2026-09-06T04:57:00.1084026Z",
+                       "stderr":  "<repo>\\bench\\experiments\\local-20260905\\results\\manual-http3-stderr.txt",
+                       "ended":  "2026-09-06T04:57:00.6274646Z",
+                       "stdout":  "<repo>\\bench\\experiments\\local-20260905\\results\\manual-http3.txt"
+                   }
+               ],
+    "home":  "<repo>\\bench\\experiments\\local-20260905\\state\\manual-network-320d663596de41dfa29022cd6c5d2713"
+}

@@ -1,0 +1,810 @@
+﻿
+File: bench/experiments/local-20260905/bin/svipall.exe
+Format: COFF-x86-64
+Arch: x86_64
+AddressSize: 64bit
+Import {
+  Name: SHELL32.DLL
+  ImportLookupTableRVA: 0x760BA98
+  ImportAddressTableRVA: 0x2E92700
+  Symbol: SHGetKnownFolderPath (0)
+}
+Import {
+  Name: OLE32.DLL
+  ImportLookupTableRVA: 0x760BA88
+  ImportAddressTableRVA: 0x2E926F0
+  Symbol: CoTaskMemFree (0)
+}
+Import {
+  Name: KERNEL32.DLL
+  ImportLookupTableRVA: 0x760B3F0
+  ImportAddressTableRVA: 0x2E92058
+  Symbol: lstrlenW (0)
+}
+Import {
+  Name: kernel32.dll
+  ImportLookupTableRVA: 0x760C1C0
+  ImportAddressTableRVA: 0x2E92E28
+  Symbol: HeapCompact (734)
+  Symbol: HeapDestroy (736)
+  Symbol: SystemTimeToFileTime (1194)
+  Symbol: GetSystemTimeAsFileTime (638)
+  Symbol: GetSystemTime (636)
+  Symbol: GetTickCount (672)
+  Symbol: OutputDebugStringA (911)
+  Symbol: FlushViewOfFile (336)
+  Symbol: HeapSize (742)
+  Symbol: HeapValidate (745)
+  Symbol: SwitchToThread (0)
+  Symbol: SetLastError (0)
+  Symbol: GetFullPathNameW (0)
+  Symbol: IsProcessorFeaturePresent (0)
+  Symbol: SleepEx (0)
+  Symbol: GetCurrentThreadId (0)
+  Symbol: GetStdHandle (0)
+  Symbol: GetCurrentProcess (0)
+  Symbol: DuplicateHandle (0)
+  Symbol: SetHandleInformation (0)
+  Symbol: CreateEventW (0)
+  Symbol: WakeAllConditionVariable (0)
+  Symbol: SetFileTime (0)
+  Symbol: CloseHandle (0)
+  Symbol: HeapCreate (735)
+  Symbol: WaitForSingleObject (0)
+  Symbol: SetFileInformationByHandle (0)
+  Symbol: GetFileInformationByHandle (0)
+  Symbol: GetFileInformationByHandleEx (0)
+  Symbol: CreateProcessW (0)
+  Symbol: TerminateProcess (0)
+  Symbol: GetExitCodeProcess (0)
+  Symbol: LeaveCriticalSection (838)
+  Symbol: WaitForMultipleObjects (0)
+  Symbol: TryEnterCriticalSection (1211)
+  Symbol: CreateDirectoryW (0)
+  Symbol: SetFilePointerEx (0)
+  Symbol: SetThreadStackGuarantee (0)
+  Symbol: SetNamedPipeHandleState (0)
+  Symbol: GetCurrentThread (0)
+  Symbol: GetCurrentProcessId (0)
+  Symbol: MoveFileExW (0)
+  Symbol: FindFirstFileExW (0)
+  Symbol: FindClose (0)
+  Symbol: ExitProcess (0)
+  Symbol: WaitForSingleObjectEx (0)
+  Symbol: CreateMutexA (0)
+  Symbol: ReleaseMutex (0)
+  Symbol: GetFinalPathNameByHandleW (0)
+  Symbol: DeleteFileW (0)
+  Symbol: ReadConsoleW (0)
+  Symbol: WriteConsoleW (0)
+  Symbol: GetConsoleMode (0)
+  Symbol: GetConsoleOutputCP (0)
+  Symbol: GetFileAttributesW (0)
+  Symbol: FlsFree (0)
+  Symbol: FlsAlloc (0)
+  Symbol: FlsSetValue (0)
+  Symbol: IsThreadAFiber (0)
+  Symbol: CreateFileW (0)
+  Symbol: GetLogicalProcessorInformation (509)
+  Symbol: Sleep (0)
+  Symbol: VirtualFree (1239)
+  Symbol: RaiseException (970)
+  Symbol: CancelIo (0)
+  Symbol: FindNextFileW (0)
+  Symbol: RegisterWaitForSingleObject (0)
+  Symbol: UnregisterWaitEx (0)
+  Symbol: GetBinaryTypeW (0)
+  Symbol: GlobalFree (0)
+  Symbol: LocalFree (0)
+  Symbol: InitializeSRWLock (0)
+  Symbol: ReleaseSRWLockExclusive (0)
+  Symbol: ReleaseSRWLockShared (0)
+  Symbol: AcquireSRWLockExclusive (0)
+  Symbol: AcquireSRWLockShared (0)
+  Symbol: InitOnceExecuteOnce (0)
+  Symbol: TlsAlloc (0)
+  Symbol: TlsGetValue (0)
+  Symbol: TlsSetValue (0)
+  Symbol: GetLocaleInfoEx (504)
+  Symbol: InitializeSListHead (761)
+  Symbol: SetUnhandledExceptionFilter (1172)
+  Symbol: UnhandledExceptionFilter (1216)
+  Symbol: HeapAlloc (0)
+  Symbol: CreateDirectoryA (0)
+  Symbol: FindFirstFileW (0)
+  Symbol: GetFileAttributesA (0)
+  Symbol: GetFileSizeEx (0)
+  Symbol: RemoveDirectoryW (0)
+  Symbol: CreateFile2 (0)
+  Symbol: FreeLibrary (0)
+  Symbol: VirtualAlloc (1236)
+  Symbol: ReleaseSemaphore (0)
+  Symbol: OpenSemaphoreW (0)
+  Symbol: CreateMutexExW (0)
+  Symbol: CreateSemaphoreExW (0)
+  Symbol: GetCurrentProcessorNumber (0)
+  Symbol: DeleteCriticalSection (192)
+  Symbol: RtlCaptureStackBackTrace (1025)
+  Symbol: InitializeCriticalSection (756)
+  Symbol: GetProcessMitigationPolicy (0)
+  Symbol: GetMaximumProcessorGroupCount (0)
+  Symbol: GetMaximumProcessorCount (0)
+  Symbol: InitializeConditionVariable (0)
+  Symbol: WakeConditionVariable (0)
+  Symbol: SleepConditionVariableSRW (0)
+  Symbol: WriteFileEx (0)
+  Symbol: GetLastError (0)
+  Symbol: FlushFileBuffers (0)
+  Symbol: GetFileSize (0)
+  Symbol: LockFileEx (0)
+  Symbol: UnlockFile (0)
+  Symbol: DeleteFileA (0)
+  Symbol: CreateFileA (0)
+  Symbol: GetFileAttributesExW (0)
+  Symbol: GetDiskFreeSpaceA (0)
+  Symbol: GetTempPathA (0)
+  Symbol: CreateMutexW (0)
+  Symbol: UnlockFileEx (0)
+  Symbol: SetEndOfFile (0)
+  Symbol: GetFullPathNameA (0)
+  Symbol: SetFilePointer (0)
+  Symbol: LockFile (0)
+  Symbol: GetDiskFreeSpaceW (0)
+  Symbol: AreFileApisANSI (0)
+  Symbol: InitOnceBeginInitialize (0)
+  Symbol: InitOnceComplete (0)
+  Symbol: SetThreadGroupAffinity (1149)
+  Symbol: CreateIoCompletionPort (0)
+  Symbol: SetFileCompletionNotificationModes (0)
+  Symbol: GetModuleHandleA (0)
+  Symbol: GetProcAddress (0)
+  Symbol: GetTempPathW (0)
+  Symbol: EnterCriticalSection (226)
+  Symbol: ReadFileEx (0)
+  Symbol: GetProcessHeap (0)
+  Symbol: HeapReAlloc (740)
+  Symbol: GetSystemTimePreciseAsFileTime (639)
+  Symbol: ReadFile (0)
+  Symbol: HeapFree (0)
+  Symbol: GetOverlappedResult (0)
+  Symbol: GetSystemInfo (631)
+  Symbol: WriteFile (0)
+  Symbol: CompareStringOrdinal (83)
+  Symbol: QueryPerformanceCounter (957)
+  Symbol: RtlCaptureContext (1023)
+  Symbol: RtlLookupFunctionEntry (1029)
+  Symbol: RtlVirtualUnwind (1035)
+  Symbol: GetEnvironmentStringsW (461)
+  Symbol: FreeEnvironmentStringsW (344)
+  Symbol: GetSystemDirectoryW (628)
+  Symbol: GetWindowsDirectoryW (702)
+  Symbol: PostQueuedCompletionStatus (0)
+  Symbol: AddVectoredExceptionHandler (16)
+  Symbol: GetCurrentDirectoryW (425)
+  Symbol: CancelIoEx (0)
+  Symbol: GetCommandLineW (378)
+  Symbol: WideCharToMultiByte (1279)
+  Symbol: LoadLibraryA (841)
+  Symbol: GetEnvironmentVariableW (463)
+  Symbol: GetModuleFileNameW (521)
+  Symbol: MultiByteToWideChar (885)
+  Symbol: FormatMessageW (0)
+  Symbol: SetConsoleCtrlHandler (0)
+  Symbol: GetModuleHandleExW (524)
+  Symbol: CreateThread (0)
+  Symbol: GetQueuedCompletionStatusEx (0)
+  Symbol: GetModuleHandleW (525)
+  Symbol: QueryPerformanceFrequency (958)
+  Symbol: GlobalAlloc (709)
+  Symbol: LoadLibraryW (844)
+  Symbol: FormatMessageA (340)
+  Symbol: VerSetConditionMask (1232)
+  Symbol: VerifyVersionInfoW (1235)
+  Symbol: GetEnvironmentVariableA (462)
+  Symbol: IsDebuggerPresent (778)
+  Symbol: DebugBreak (183)
+  Symbol: OutputDebugStringW (912)
+  Symbol: GetLogicalProcessorInformationEx (510)
+  Symbol: CreateFileMappingW (124)
+  Symbol: MapViewOfFile (868)
+  Symbol: UnmapViewOfFile (1219)
+  Symbol: GetModuleFileNameA (520)
+  Symbol: LoadLibraryExW (843)
+}
+Import {
+  Name: bcryptprimitives.dll
+  ImportLookupTableRVA: 0x760C170
+  ImportAddressTableRVA: 0x2E92DD8
+  Symbol: ProcessPrng (0)
+}
+Import {
+  Name: advapi32.dll
+  ImportLookupTableRVA: 0x760BB48
+  ImportAddressTableRVA: 0x2E927B0
+  Symbol: RegCloseKey (0)
+  Symbol: RegCreateKeyTransactedW (0)
+  Symbol: RegCreateKeyExW (0)
+  Symbol: RegOpenKeyTransactedW (0)
+  Symbol: RegOpenKeyExW (0)
+  Symbol: RegQueryValueExW (0)
+}
+Import {
+  Name: api-ms-win-core-synch-l1-2-0.dll
+  ImportLookupTableRVA: 0x760BB98
+  ImportAddressTableRVA: 0x2E92800
+  Symbol: WakeByAddressAll (0)
+  Symbol: WaitOnAddress (0)
+  Symbol: WakeByAddressSingle (0)
+}
+Import {
+  Name: ws2_32.dll
+  ImportLookupTableRVA: 0x760C808
+  ImportAddressTableRVA: 0x2E93470
+  Symbol: getsockopt (0)
+  Symbol: shutdown (0)
+  Symbol: closesocket (0)
+  Symbol: WSASocketW (0)
+  Symbol: getsockname (0)
+  Symbol: getpeername (0)
+  Symbol: WSASend (0)
+  Symbol: accept (0)
+  Symbol: bind (0)
+  Symbol: WSAStartup (0)
+  Symbol: WSACleanup (0)
+  Symbol: freeaddrinfo (0)
+  Symbol: socket (0)
+  Symbol: send (0)
+  Symbol: recv (0)
+  Symbol: connect (0)
+  Symbol: listen (0)
+  Symbol: WSAGetLastError (0)
+  Symbol: setsockopt (0)
+  Symbol: WSAIoctl (0)
+  Symbol: ioctlsocket (0)
+  Symbol: getaddrinfo (0)
+}
+Import {
+  Name: ntdll.dll
+  ImportLookupTableRVA: 0x760C790
+  ImportAddressTableRVA: 0x2E933F8
+  Symbol: NtCreateNamedPipeFile (300)
+  Symbol: NtOpenFile (0)
+  Symbol: NtWriteFile (0)
+  Symbol: NtReadFile (0)
+  Symbol: NtDeviceIoControlFile (0)
+  Symbol: RtlNtStatusToDosError (0)
+  Symbol: NtCancelIoFileEx (0)
+  Symbol: NtCreateFile (0)
+}
+Import {
+  Name: api-ms-win-core-path-l1-1-0.dll
+  ImportLookupTableRVA: 0x760BB80
+  ImportAddressTableRVA: 0x2E927E8
+  Symbol: PathCchRemoveFileSpec (0)
+  Symbol: PathCchRemoveBackslash (0)
+}
+Import {
+  Name: ADVAPI32.dll
+  ImportLookupTableRVA: 0x760B398
+  ImportAddressTableRVA: 0x2E92000
+  Symbol: CloseServiceHandle (101)
+  Symbol: EventRegister (268)
+  Symbol: OpenSCManagerW (529)
+  Symbol: EnumServicesStatusExW (255)
+  Symbol: SystemFunction036 (797)
+  Symbol: EventWriteTransfer (276)
+  Symbol: EventSetInformation (269)
+  Symbol: EventUnregister (270)
+}
+Import {
+  Name: dxgi.dll
+  ImportLookupTableRVA: 0x760C1B0
+  ImportAddressTableRVA: 0x2E92E18
+  Symbol: CreateDXGIFactory2 (5)
+}
+Import {
+  Name: d3d12.dll
+  ImportLookupTableRVA: 0x760C180
+  ImportAddressTableRVA: 0x2E92DE8
+  Symbol: D3D12SerializeVersionedRootSignature (15)
+  Symbol:  (101)
+}
+Import {
+  Name: DirectML.dll
+  ImportLookupTableRVA: 0x760B3E0
+  ImportAddressTableRVA: 0x2E92048
+  Symbol:  (2)
+}
+Import {
+  Name: bcrypt.dll
+  ImportLookupTableRVA: 0x760C160
+  ImportAddressTableRVA: 0x2E92DC8
+  Symbol: BCryptGenRandom (28)
+}
+Import {
+  Name: dbghelp.dll
+  ImportLookupTableRVA: 0x760C198
+  ImportAddressTableRVA: 0x2E92E00
+  Symbol: ImageDirectoryEntryToData (19)
+  Symbol: SymFromAddr (87)
+}
+Import {
+  Name: setupapi.dll
+  ImportLookupTableRVA: 0x760C7D8
+  ImportAddressTableRVA: 0x2E93440
+  Symbol: SetupDiDestroyDeviceInfoList (67)
+  Symbol: SetupDiEnumDeviceInfo (70)
+  Symbol: SetupDiGetClassDevsA (87)
+  Symbol: SetupDiGetDeviceRegistryPropertyW (120)
+  Symbol: SetupDiOpenDevRegKey (150)
+}
+Import {
+  Name: MSVCP140.dll
+  ImportLookupTableRVA: 0x760B400
+  ImportAddressTableRVA: 0x2E92068
+  Symbol: ?pbackfail@?$basic_streambuf@DU?$char_traits@D@std@@@std@@MEAAHH@Z (1083)
+  Symbol: ?underflow@?$basic_streambuf@DU?$char_traits@D@std@@@std@@MEAAHXZ (1312)
+  Symbol: ?seekoff@?$basic_streambuf@DU?$char_traits@D@std@@@std@@MEAA?AV?$fpos@U_Mbstatet@@@2@_JHH@Z (1188)
+  Symbol: ?seekpos@?$basic_streambuf@DU?$char_traits@D@std@@@std@@MEAA?AV?$fpos@U_Mbstatet@@@2@V32@H@Z (1197)
+  Symbol: ?rdstate@ios_base@std@@QEBAHXZ (1164)
+  Symbol: _Thrd_yield (1464)
+  Symbol: ??6?$basic_ostream@DU?$char_traits@D@std@@@std@@QEAAAEAV01@M@Z (259)
+  Symbol: ?wclog@std@@3V?$basic_ostream@_WU?$char_traits@_W@std@@@1@A (1329)
+  Symbol: ?id@?$collate@D@std@@2V0locale@2@A (972)
+  Symbol: ?id@?$ctype@D@std@@2V0locale@2@A (975)
+  Symbol: ?_Xregex_error@std@@YAXW4error_type@regex_constants@1@@Z (657)
+  Symbol: ?_Getcat@?$ctype@D@std@@SA_KPEAPEBVfacet@locale@2@PEBV42@@Z (438)
+  Symbol: ?tolower@?$ctype@D@std@@QEBAPEBDPEADPEBD@Z (1296)
+  Symbol: ?tolower@?$ctype@D@std@@QEBADD@Z (1295)
+  Symbol: ?_Getcoll@_Locinfo@std@@QEBA?AU_Collvec@@XZ (454)
+  Symbol: _Strxfrm (1449)
+  Symbol: _Strcoll (1448)
+  Symbol: ??_D?$basic_ostream@DU?$char_traits@D@std@@@std@@QEAAXXZ (367)
+  Symbol: ?cout@std@@3V?$basic_ostream@DU?$char_traits@D@std@@@1@A (692)
+  Symbol: ?_Fiopen@std@@YAPEAU_iobuf@@PEBDHH@Z (427)
+  Symbol: _Cnd_signal (1362)
+  Symbol: _Cnd_init_in_situ (1360)
+  Symbol: _Thrd_id (1460)
+  Symbol: ?id@?$time_put@_WV?$ostreambuf_iterator@_WU?$char_traits@_W@std@@@std@@@std@@2V0locale@2@A (1007)
+  Symbol: ?id@?$numpunct@_W@std@@2V0locale@2@A (1001)
+  Symbol: ?imbue@?$basic_ios@_WU?$char_traits@_W@std@@@std@@QEAA?AVlocale@2@AEBV32@@Z (1013)
+  Symbol: ?_Getcat@?$time_put@_WV?$ostreambuf_iterator@_WU?$char_traits@_W@std@@@std@@@std@@SA_KPEAPEBVfacet@locale@2@PEBV42@@Z (452)
+  Symbol: ?put@?$time_put@_WV?$ostreambuf_iterator@_WU?$char_traits@_W@std@@@std@@@std@@QEBA?AV?$ostreambuf_iterator@_WU?$char_traits@_W@std@@@2@V32@AEAVios_base@2@_WPEBUtm@@PEB_W4@Z (1153)
+  Symbol: ?classic@locale@std@@SAAEBV12@XZ (676)
+  Symbol: ??1facet@locale@std@@MEAA@XZ (171)
+  Symbol: ??0facet@locale@std@@IEAA@_K@Z (117)
+  Symbol: ?c_str@?$_Yarn@D@std@@QEBAPEBDXZ (671)
+  Symbol: ?_Gettrue@_Locinfo@std@@QEBAPEBDXZ (481)
+  Symbol: ?_Getfalse@_Locinfo@std@@QEBAPEBDXZ (459)
+  Symbol: ??1_Locinfo@std@@QEAA@XZ (164)
+  Symbol: ??0_Locinfo@std@@QEAA@PEBD@Z (108)
+  Symbol: _Mbrtowc (1405)
+  Symbol: ?cerr@std@@3V?$basic_ostream@DU?$char_traits@D@std@@@1@A (674)
+  Symbol: ?setw@std@@YA?AU?$_Smanip@_J@1@_J@Z (1230)
+  Symbol: ??1?$basic_iostream@_WU?$char_traits@_W@std@@@std@@UEAA@XZ (130)
+  Symbol: ??0?$basic_iostream@_WU?$char_traits@_W@std@@@std@@QEAA@PEAV?$basic_streambuf@_WU?$char_traits@_W@std@@@1@@Z (23)
+  Symbol: ?gcount@?$basic_istream@DU?$char_traits@D@std@@@std@@QEBA_JXZ (878)
+  Symbol: ?read@?$basic_istream@DU?$char_traits@D@std@@@std@@QEAAAEAV12@PEAD_J@Z (1165)
+  Symbol: ?_Ipfx@?$basic_istream@DU?$char_traits@D@std@@@std@@QEAA_N_N@Z (537)
+  Symbol: ??1?$basic_istream@DU?$char_traits@D@std@@@std@@UEAA@XZ (131)
+  Symbol: ??0?$basic_istream@DU?$char_traits@D@std@@@std@@QEAA@PEAV?$basic_streambuf@DU?$char_traits@D@std@@@1@_N@Z (26)
+  Symbol: ??6?$basic_ostream@_WU?$char_traits@_W@std@@@std@@QEAAAEAV01@_J@Z (301)
+  Symbol: ??6?$basic_ostream@_WU?$char_traits@_W@std@@@std@@QEAAAEAV01@I@Z (290)
+  Symbol: ?fill@?$basic_ios@_WU?$char_traits@_W@std@@@std@@QEAA_W_W@Z (868)
+  Symbol: ?fill@?$basic_ios@DU?$char_traits@D@std@@@std@@QEAADD@Z (864)
+  Symbol: ?snextc@?$basic_streambuf@DU?$char_traits@D@std@@@std@@QEAAHXZ (1240)
+  Symbol: ?sgetc@?$basic_streambuf@DU?$char_traits@D@std@@@std@@QEAAHXZ (1231)
+  Symbol: ?sbumpc@?$basic_streambuf@DU?$char_traits@D@std@@@std@@QEAAHXZ (1173)
+  Symbol: ?unsetf@ios_base@std@@QEAAXH@Z (1318)
+  Symbol: ?setf@ios_base@std@@QEAAHH@Z (1208)
+  Symbol: ??Bios_base@std@@QEBA_NXZ (306)
+  Symbol: _Cnd_wait (1365)
+  Symbol: _Query_perf_frequency (1425)
+  Symbol: _Query_perf_counter (1424)
+  Symbol: _Xtime_get_ticks (1484)
+  Symbol: ?eof@ios_base@std@@QEBA_NXZ (856)
+  Symbol: ??6?$basic_ostream@DU?$char_traits@D@std@@@std@@QEAAAEAV01@P6AAEAVios_base@1@AEAV21@@Z@Z (264)
+  Symbol: ?setf@ios_base@std@@QEAAHHH@Z (1209)
+  Symbol: ?id@?$codecvt@DDU_Mbstatet@@@std@@2V0locale@2@A (969)
+  Symbol: ?id@?$codecvt@_WDU_Mbstatet@@@std@@2V0locale@2@A (971)
+  Symbol: ?_Decref@facet@locale@std@@UEAAPEAV_Facet_base@3@XZ (414)
+  Symbol: ?_Incref@facet@locale@std@@UEAAXXZ (498)
+  Symbol: ?_Fiopen@std@@YAPEAU_iobuf@@PEB_WHH@Z (429)
+  Symbol: ?tellp@?$basic_ostream@DU?$char_traits@D@std@@@std@@QEAA?AV?$fpos@U_Mbstatet@@@2@XZ (1286)
+  Symbol: ?clear@?$basic_ios@DU?$char_traits@D@std@@@std@@QEAAXH_N@Z (678)
+  Symbol: ?_Init@?$basic_streambuf@DU?$char_traits@D@std@@@std@@IEAAXPEAPEAD0PEAH001@Z (500)
+  Symbol: ?_Init@?$basic_streambuf@DU?$char_traits@D@std@@@std@@IEAAXXZ (501)
+  Symbol: ??6?$basic_ostream@DU?$char_traits@D@std@@@std@@QEAAAEAV01@PEAV?$basic_streambuf@DU?$char_traits@D@std@@@1@@Z (265)
+  Symbol: ?pbump@?$basic_streambuf@DU?$char_traits@D@std@@@std@@IEAAXH@Z (1089)
+  Symbol: ?in@?$codecvt@_WDU_Mbstatet@@@std@@QEBAHAEAU_Mbstatet@@PEBD1AEAPEBDPEA_W3AEAPEA_W@Z (1022)
+  Symbol: ?_Gninc@?$basic_streambuf@DU?$char_traits@D@std@@@std@@IEAAPEADXZ (488)
+  Symbol: ?_Gndec@?$basic_streambuf@DU?$char_traits@D@std@@@std@@IEAAPEADXZ (485)
+  Symbol: ?getloc@?$basic_streambuf@DU?$char_traits@D@std@@@std@@QEBA?AVlocale@2@XZ (960)
+  Symbol: ?_Getcat@?$codecvt@DDU_Mbstatet@@@std@@SA_KPEAPEBVfacet@locale@2@PEBV42@@Z (433)
+  Symbol: ?unshift@?$codecvt@DDU_Mbstatet@@@std@@QEBAHAEAU_Mbstatet@@PEAD1AEAPEAD@Z (1319)
+  Symbol: ?out@?$codecvt@DDU_Mbstatet@@@std@@QEBAHAEAU_Mbstatet@@PEBD1AEAPEBDPEAD3AEAPEAD@Z (1075)
+  Symbol: ?in@?$codecvt@DDU_Mbstatet@@@std@@QEBAHAEAU_Mbstatet@@PEBD1AEAPEBDPEAD3AEAPEAD@Z (1018)
+  Symbol: ??1?$codecvt@_WDU_Mbstatet@@@std@@MEAA@XZ (144)
+  Symbol: ??0?$codecvt@_WDU_Mbstatet@@@std@@QEAA@_K@Z (65)
+  Symbol: ?out@?$codecvt@_WDU_Mbstatet@@@std@@QEBAHAEAU_Mbstatet@@PEB_W1AEAPEB_WPEAD3AEAPEAD@Z (1079)
+  Symbol: ?always_noconv@codecvt_base@std@@QEBA_NXZ (669)
+  Symbol: ?_Init@locale@std@@CAPEAV_Locimp@12@_N@Z (527)
+  Symbol: ?_Locimp_Addfac@_Locimp@locale@std@@CAXPEAV123@PEAVfacet@23@_K@Z (545)
+  Symbol: ?_New_Locimp@_Locimp@locale@std@@CAPEAV123@AEBV123@@Z (578)
+  Symbol: ??4?$_Yarn@D@std@@QEAAAEAV01@PEBD@Z (177)
+  Symbol: ?write@?$basic_ostream@DU?$char_traits@D@std@@@std@@QEAAAEAV12@PEBD_J@Z (1343)
+  Symbol: ??7ios_base@std@@QEBA_NXZ (304)
+  Symbol: ?id@?$ctype@_W@std@@2V0locale@2@A (977)
+  Symbol: ?_Id_cnt@id@locale@std@@0HA (494)
+  Symbol: ?_Lock@?$basic_streambuf@_WU?$char_traits@_W@std@@@std@@UEAAXXZ (554)
+  Symbol: ?_Unlock@?$basic_streambuf@_WU?$char_traits@_W@std@@@std@@UEAAXXZ (641)
+  Symbol: ?showmanyc@?$basic_streambuf@_WU?$char_traits@_W@std@@@std@@MEAA_JXZ (1239)
+  Symbol: ?uflow@?$basic_streambuf@_WU?$char_traits@_W@std@@@std@@MEAAGXZ (1309)
+  Symbol: ?xsgetn@?$basic_streambuf@_WU?$char_traits@_W@std@@@std@@MEAA_JPEA_W_J@Z (1349)
+  Symbol: ?xsputn@?$basic_streambuf@_WU?$char_traits@_W@std@@@std@@MEAA_JPEB_W_J@Z (1352)
+  Symbol: ?setbuf@?$basic_streambuf@_WU?$char_traits@_W@std@@@std@@MEAAPEAV12@PEA_W_J@Z (1207)
+  Symbol: _Mtx_init_in_situ (1412)
+  Symbol: ?imbue@?$basic_streambuf@_WU?$char_traits@_W@std@@@std@@MEAAXAEBVlocale@2@@Z (1016)
+  Symbol: ?flush@?$basic_ostream@_WU?$char_traits@_W@std@@@std@@QEAAAEAV12@XZ (874)
+  Symbol: ??6?$basic_ostream@_WU?$char_traits@_W@std@@@std@@QEAAAEAV01@K@Z (292)
+  Symbol: ??6?$basic_ostream@_WU?$char_traits@_W@std@@@std@@QEAAAEAV01@H@Z (289)
+  Symbol: ?_Osfx@?$basic_ostream@_WU?$char_traits@_W@std@@@std@@QEAAXXZ (582)
+  Symbol: ??1?$basic_ostream@_WU?$char_traits@_W@std@@@std@@UEAA@XZ (136)
+  Symbol: ??0?$basic_ostream@_WU?$char_traits@_W@std@@@std@@QEAA@PEAV?$basic_streambuf@_WU?$char_traits@_W@std@@@1@_N@Z (43)
+  Symbol: ??6?$basic_ostream@DU?$char_traits@D@std@@@std@@QEAAAEAV01@K@Z (258)
+  Symbol: ??6?$basic_ostream@DU?$char_traits@D@std@@@std@@QEAAAEAV01@G@Z (254)
+  Symbol: ??0?$basic_ios@_WU?$char_traits@_W@std@@@std@@IEAA@XZ (16)
+  Symbol: ?fill@?$basic_ios@_WU?$char_traits@_W@std@@@std@@QEBA_WXZ (869)
+  Symbol: ?rdbuf@?$basic_ios@_WU?$char_traits@_W@std@@@std@@QEBAPEAV?$basic_streambuf@_WU?$char_traits@_W@std@@@2@XZ (1163)
+  Symbol: ?tie@?$basic_ios@_WU?$char_traits@_W@std@@@std@@QEBAPEAV?$basic_ostream@_WU?$char_traits@_W@std@@@2@XZ (1294)
+  Symbol: ?setstate@?$basic_ios@_WU?$char_traits@_W@std@@@std@@QEAAXH_N@Z (1225)
+  Symbol: ??1?$basic_ios@_WU?$char_traits@_W@std@@@std@@UEAA@XZ (127)
+  Symbol: ?_Pninc@?$basic_streambuf@_WU?$char_traits@_W@std@@@std@@IEAAPEA_WXZ (588)
+  Symbol: ?setp@?$basic_streambuf@_WU?$char_traits@_W@std@@@std@@IEAAXPEA_W00@Z (1218)
+  Symbol: ?setp@?$basic_streambuf@_WU?$char_traits@_W@std@@@std@@IEAAXPEA_W0@Z (1219)
+  Symbol: ?epptr@?$basic_streambuf@_WU?$char_traits@_W@std@@@std@@IEBAPEA_WXZ (859)
+  Symbol: ?setg@?$basic_streambuf@_WU?$char_traits@_W@std@@@std@@IEAAXPEA_W00@Z (1212)
+  Symbol: ?gbump@?$basic_streambuf@_WU?$char_traits@_W@std@@@std@@IEAAXH@Z (877)
+  Symbol: ?egptr@?$basic_streambuf@_WU?$char_traits@_W@std@@@std@@IEBAPEA_WXZ (850)
+  Symbol: ?pptr@?$basic_streambuf@_WU?$char_traits@_W@std@@@std@@IEBAPEA_WXZ (1097)
+  Symbol: ?pbase@?$basic_streambuf@_WU?$char_traits@_W@std@@@std@@IEBAPEA_WXZ (1088)
+  Symbol: ?gptr@?$basic_streambuf@_WU?$char_traits@_W@std@@@std@@IEBAPEA_WXZ (968)
+  Symbol: ?eback@?$basic_streambuf@_WU?$char_traits@_W@std@@@std@@IEBAPEA_WXZ (847)
+  Symbol: ?sputn@?$basic_streambuf@_WU?$char_traits@_W@std@@@std@@QEAA_JPEB_W_J@Z (1251)
+  Symbol: ?sputc@?$basic_streambuf@_WU?$char_traits@_W@std@@@std@@QEAAG_W@Z (1248)
+  Symbol: ??1?$basic_streambuf@_WU?$char_traits@_W@std@@@std@@UEAA@XZ (139)
+  Symbol: ??0?$basic_streambuf@_WU?$char_traits@_W@std@@@std@@IEAA@XZ (53)
+  Symbol: ?getloc@ios_base@std@@QEBA?AVlocale@2@XZ (963)
+  Symbol: ?_Getcat@?$ctype@_W@std@@SA_KPEAPEBVfacet@locale@2@PEBV42@@Z (440)
+  Symbol: ?widen@?$ctype@_W@std@@QEBA_WD@Z (1340)
+  Symbol: ?_Getgloballocale@locale@std@@CAPEAV_Locimp@12@XZ (469)
+  Symbol: ?_Winerror_map@std@@YAHH@Z (645)
+  Symbol: ?_Syserror_map@std@@YAPEBDH@Z (627)
+  Symbol: _Thrd_hardware_concurrency (1459)
+  Symbol: ??1_Lockit@std@@QEAA@XZ (165)
+  Symbol: ??0_Lockit@std@@QEAA@H@Z (109)
+  Symbol: ?put@?$basic_ostream@DU?$char_traits@D@std@@@std@@QEAAAEAV12@D@Z (1121)
+  Symbol: ??6?$basic_ostream@DU?$char_traits@D@std@@@std@@QEAAAEAV01@P6AAEAV01@AEAV01@@Z@Z (262)
+  Symbol: ?widen@?$basic_ios@DU?$char_traits@D@std@@@std@@QEBADD@Z (1332)
+  Symbol: ??6?$basic_ostream@DU?$char_traits@D@std@@@std@@QEAAAEAV01@PEBX@Z (266)
+  Symbol: ??6?$basic_ostream@DU?$char_traits@D@std@@@std@@QEAAAEAV01@_N@Z (269)
+  Symbol: ?_Xinvalid_argument@std@@YAXPEBD@Z (653)
+  Symbol: ??1?$basic_iostream@DU?$char_traits@D@std@@@std@@UEAA@XZ (128)
+  Symbol: ??0?$basic_iostream@DU?$char_traits@D@std@@@std@@QEAA@PEAV?$basic_streambuf@DU?$char_traits@D@std@@@1@@Z (19)
+  Symbol: ?_Throw_Cpp_error@std@@YAXH@Z (629)
+  Symbol: ?rdbuf@?$basic_ios@DU?$char_traits@D@std@@@std@@QEAAPEAV?$basic_streambuf@DU?$char_traits@D@std@@@2@PEAV32@@Z (1158)
+  Symbol: ?overflow@?$basic_streambuf@DU?$char_traits@D@std@@@std@@MEAAHH@Z (1080)
+  Symbol: ?uncaught_exceptions@std@@YAHXZ (1311)
+  Symbol: ?_Gnavail@?$basic_streambuf@DU?$char_traits@D@std@@@std@@IEBA_JXZ (482)
+  Symbol: ?_Xlength_error@std@@YAXPEBD@Z (654)
+  Symbol: ?_Xbad_alloc@std@@YAXXZ (651)
+  Symbol: ?_Xbad_function_call@std@@YAXXZ (652)
+  Symbol: ?_Raise_handler@std@@3P6AXAEBVexception@stdext@@@ZEA (604)
+  Symbol: _Mtx_unlock (1417)
+  Symbol: _Mtx_lock (1413)
+  Symbol: ??6?$basic_ostream@DU?$char_traits@D@std@@@std@@QEAAAEAV01@I@Z (256)
+  Symbol: ?_Lock@?$basic_streambuf@DU?$char_traits@D@std@@@std@@UEAAXXZ (552)
+  Symbol: ?_Unlock@?$basic_streambuf@DU?$char_traits@D@std@@@std@@UEAAXXZ (639)
+  Symbol: ?_Pnavail@?$basic_streambuf@DU?$char_traits@D@std@@@std@@IEBA_JXZ (583)
+  Symbol: ?sync@?$basic_streambuf@_WU?$char_traits@_W@std@@@std@@MEAAHXZ (1279)
+  Symbol: ?showmanyc@?$basic_streambuf@DU?$char_traits@D@std@@@std@@MEAA_JXZ (1237)
+  Symbol: ?uflow@?$basic_streambuf@DU?$char_traits@D@std@@@std@@MEAAHXZ (1307)
+  Symbol: ?xsgetn@?$basic_streambuf@DU?$char_traits@D@std@@@std@@MEAA_JPEAD_J@Z (1347)
+  Symbol: ?xsputn@?$basic_streambuf@DU?$char_traits@D@std@@@std@@MEAA_JPEBD_J@Z (1350)
+  Symbol: ?setbuf@?$basic_streambuf@DU?$char_traits@D@std@@@std@@MEAAPEAV12@PEAD_J@Z (1205)
+  Symbol: ?sync@?$basic_streambuf@DU?$char_traits@D@std@@@std@@MEAAHXZ (1277)
+  Symbol: ?imbue@?$basic_streambuf@DU?$char_traits@D@std@@@std@@MEAAXAEBVlocale@2@@Z (1014)
+  Symbol: ?flush@?$basic_ostream@DU?$char_traits@D@std@@@std@@QEAAAEAV12@XZ (872)
+  Symbol: ??6?$basic_ostream@DU?$char_traits@D@std@@@std@@QEAAAEAV01@_K@Z (268)
+  Symbol: ??6?$basic_ostream@DU?$char_traits@D@std@@@std@@QEAAAEAV01@_J@Z (267)
+  Symbol: ??6?$basic_ostream@DU?$char_traits@D@std@@@std@@QEAAAEAV01@H@Z (255)
+  Symbol: ?_Osfx@?$basic_ostream@DU?$char_traits@D@std@@@std@@QEAAXXZ (580)
+  Symbol: ??1?$basic_ostream@DU?$char_traits@D@std@@@std@@UEAA@XZ (134)
+  Symbol: ??0?$basic_ostream@DU?$char_traits@D@std@@@std@@QEAA@PEAV?$basic_streambuf@DU?$char_traits@D@std@@@1@_N@Z (37)
+  Symbol: ??0?$basic_ios@DU?$char_traits@D@std@@@std@@IEAA@XZ (12)
+  Symbol: ?fill@?$basic_ios@DU?$char_traits@D@std@@@std@@QEBADXZ (865)
+  Symbol: ?rdbuf@?$basic_ios@DU?$char_traits@D@std@@@std@@QEBAPEAV?$basic_streambuf@DU?$char_traits@D@std@@@2@XZ (1159)
+  Symbol: ?tie@?$basic_ios@DU?$char_traits@D@std@@@std@@QEBAPEAV?$basic_ostream@DU?$char_traits@D@std@@@2@XZ (1290)
+  Symbol: ?setstate@?$basic_ios@DU?$char_traits@D@std@@@std@@QEAAXH_N@Z (1221)
+  Symbol: ??1?$basic_ios@DU?$char_traits@D@std@@@std@@UEAA@XZ (125)
+  Symbol: ?_Pninc@?$basic_streambuf@DU?$char_traits@D@std@@@std@@IEAAPEADXZ (586)
+  Symbol: ?setp@?$basic_streambuf@DU?$char_traits@D@std@@@std@@IEAAXPEAD00@Z (1214)
+  Symbol: ?setp@?$basic_streambuf@DU?$char_traits@D@std@@@std@@IEAAXPEAD0@Z (1215)
+  Symbol: ?epptr@?$basic_streambuf@DU?$char_traits@D@std@@@std@@IEBAPEADXZ (857)
+  Symbol: ?setg@?$basic_streambuf@DU?$char_traits@D@std@@@std@@IEAAXPEAD00@Z (1210)
+  Symbol: ?gbump@?$basic_streambuf@DU?$char_traits@D@std@@@std@@IEAAXH@Z (875)
+  Symbol: ?egptr@?$basic_streambuf@DU?$char_traits@D@std@@@std@@IEBAPEADXZ (848)
+  Symbol: ?pptr@?$basic_streambuf@DU?$char_traits@D@std@@@std@@IEBAPEADXZ (1095)
+  Symbol: ?pbase@?$basic_streambuf@DU?$char_traits@D@std@@@std@@IEBAPEADXZ (1086)
+  Symbol: ?gptr@?$basic_streambuf@DU?$char_traits@D@std@@@std@@IEBAPEADXZ (966)
+  Symbol: ?eback@?$basic_streambuf@DU?$char_traits@D@std@@@std@@IEBAPEADXZ (845)
+  Symbol: ?sputn@?$basic_streambuf@DU?$char_traits@D@std@@@std@@QEAA_JPEBD_J@Z (1249)
+  Symbol: ?sputc@?$basic_streambuf@DU?$char_traits@D@std@@@std@@QEAAHD@Z (1246)
+  Symbol: ??1?$basic_streambuf@DU?$char_traits@D@std@@@std@@UEAA@XZ (137)
+  Symbol: ??0?$basic_streambuf@DU?$char_traits@D@std@@@std@@IEAA@XZ (47)
+  Symbol: ?width@ios_base@std@@QEAA_J_J@Z (1341)
+  Symbol: ?width@ios_base@std@@QEBA_JXZ (1342)
+  Symbol: ?flags@ios_base@std@@QEBAHXZ (871)
+  Symbol: ?good@ios_base@std@@QEBA_NXZ (965)
+  Symbol: ?_Getcvt@_Locinfo@std@@QEBA?AU_Cvtvec@@XZ (456)
+  Symbol: ?_Xout_of_range@std@@YAXPEBD@Z (655)
+}
+Import {
+  Name: MSVCP140_1.dll
+  ImportLookupTableRVA: 0x760BA78
+  ImportAddressTableRVA: 0x2E926E0
+  Symbol: _Aligned_get_default_resource (0)
+}
+Import {
+  Name: VCRUNTIME140.dll
+  ImportLookupTableRVA: 0x760BAA8
+  ImportAddressTableRVA: 0x2E92710
+  Symbol: memcpy (60)
+  Symbol: __CxxFrameHandler3 (14)
+  Symbol: __current_exception_context (28)
+  Symbol: __current_exception (27)
+  Symbol: __C_specific_handler (8)
+  Symbol: strrchr (65)
+  Symbol: memmove (61)
+  Symbol: __std_type_info_compare (36)
+  Symbol: __std_exception_destroy (34)
+  Symbol: __std_exception_copy (33)
+  Symbol: __std_terminate (35)
+  Symbol: _purecall (54)
+  Symbol: memchr (58)
+  Symbol: strchr (64)
+  Symbol: _CxxThrowException (1)
+  Symbol: memcmp (59)
+  Symbol: memset (62)
+}
+Import {
+  Name: VCRUNTIME140_1.dll
+  ImportLookupTableRVA: 0x760BB38
+  ImportAddressTableRVA: 0x2E927A0
+  Symbol: __CxxFrameHandler4 (0)
+}
+Import {
+  Name: api-ms-win-crt-string-l1-1-0.dll
+  ImportLookupTableRVA: 0x760C078
+  ImportAddressTableRVA: 0x2E92CE0
+  Symbol: strncpy (143)
+  Symbol: toupper (152)
+  Symbol: _towlower_l (70)
+  Symbol: _towupper_l (71)
+  Symbol: isalnum (100)
+  Symbol: isalpha (101)
+  Symbol: strspn (147)
+  Symbol: towlower (154)
+  Symbol: isspace (110)
+  Symbol: isdigit (104)
+  Symbol: tolower (151)
+  Symbol: strnlen (145)
+  Symbol: strncmp (142)
+  Symbol: strcmp (134)
+  Symbol: wcslen (163)
+  Symbol: strlen (139)
+  Symbol: strcspn (138)
+}
+Import {
+  Name: api-ms-win-crt-math-l1-1-0.dll
+  ImportLookupTableRVA: 0x760BCB0
+  ImportAddressTableRVA: 0x2E92918
+  Symbol: log10 (219)
+  Symbol: cos (144)
+  Symbol: nearbyint (242)
+  Symbol: remainderf (257)
+  Symbol: rintf (263)
+  Symbol: rint (262)
+  Symbol: log2 (224)
+  Symbol: roundf (266)
+  Symbol: frexp (203)
+  Symbol: scalbnf (272)
+  Symbol: ilogbf (206)
+  Symbol: scalbn (271)
+  Symbol: ilogb (205)
+  Symbol: tanf (281)
+  Symbol: sinhf (277)
+  Symbol: sin (274)
+  Symbol: fmod (201)
+  Symbol: coshf (147)
+  Symbol: atanf (87)
+  Symbol: asinf (80)
+  Symbol: acosf (75)
+  Symbol: fmax (195)
+  Symbol: asinhf (82)
+  Symbol: acoshf (77)
+  Symbol: tanh (282)
+  Symbol: log1pf (222)
+  Symbol: nearbyintf (243)
+  Symbol: exp2f (180)
+  Symbol: tanhf (283)
+  Symbol: ldexp (208)
+  Symbol: _hypotf (47)
+  Symbol: sinf (275)
+  Symbol: expf (182)
+  Symbol: powf (255)
+  Symbol: sqrtf (279)
+  Symbol: sqrt (278)
+  Symbol: exp (178)
+  Symbol: llroundl (217)
+  Symbol: log2f (225)
+  Symbol: _ldclass (54)
+  Symbol: _fdclass (29)
+  Symbol: _dclass (16)
+  Symbol: log (218)
+  Symbol: pow (254)
+  Symbol: _ldsign (60)
+  Symbol: _dsign (23)
+  Symbol: logf (230)
+  Symbol: cosf (145)
+  Symbol: __setusermatherr (9)
+  Symbol: atanhf (89)
+  Symbol: fmodf (202)
+  Symbol: round (265)
+  Symbol: _fdsign (37)
+}
+Import {
+  Name: api-ms-win-crt-runtime-l1-1-0.dll
+  ImportLookupTableRVA: 0x760BE60
+  ImportAddressTableRVA: 0x2E92AC8
+  Symbol: strerror (100)
+  Symbol: _initterm_e (55)
+  Symbol: _initterm (54)
+  Symbol: _get_initial_narrow_environment (40)
+  Symbol: _beginthreadex (20)
+  Symbol: _set_app_type (66)
+  Symbol: _seh_filter_exe (64)
+  Symbol: _set_doserrno (68)
+  Symbol: __doserrno (1)
+  Symbol: _set_errno (69)
+  Symbol: _cexit (22)
+  Symbol: _crt_atexit (30)
+  Symbol: terminate (103)
+  Symbol: _register_thread_local_exe_atexit_callback (61)
+  Symbol: _invalid_parameter_noinfo (56)
+  Symbol: _c_exit (21)
+  Symbol: __p___argv (5)
+  Symbol: __p___argc (4)
+  Symbol: _register_onexit_function (60)
+  Symbol: _initialize_onexit_table (52)
+  Symbol: _initialize_narrow_environment (51)
+  Symbol: _configure_narrow_argv (24)
+  Symbol: _endthreadex (32)
+  Symbol: _exit (35)
+  Symbol: _wassert (79)
+  Symbol: abort (84)
+  Symbol: _invoke_watson (58)
+  Symbol: _errno (33)
+  Symbol: exit (85)
+  Symbol: strerror_s (101)
+}
+Import {
+  Name: api-ms-win-crt-time-l1-1-0.dll
+  ImportLookupTableRVA: 0x760C108
+  ImportAddressTableRVA: 0x2E92D70
+  Symbol: _mktime64 (40)
+  Symbol: _gmtime64_s (32)
+  Symbol: _difftime64 (17)
+  Symbol: _localtime64_s (36)
+  Symbol: wcsftime (71)
+  Symbol: _ftime64 (20)
+  Symbol: _time64 (48)
+}
+Import {
+  Name: api-ms-win-crt-stdio-l1-1-0.dll
+  ImportLookupTableRVA: 0x760BF58
+  ImportAddressTableRVA: 0x2E92BC0
+  Symbol: __stdio_common_vfprintf (3)
+  Symbol: fflush (119)
+  Symbol: _lseek (69)
+  Symbol: _read (82)
+  Symbol: __stdio_common_vsprintf_s (15)
+  Symbol: _write (107)
+  Symbol: __stdio_common_vsprintf (13)
+  Symbol: fputs (128)
+  Symbol: __acrt_iob_func (0)
+  Symbol: ungetc (157)
+  Symbol: setvbuf (152)
+  Symbol: fclose (116)
+  Symbol: feof (117)
+  Symbol: ferror (118)
+  Symbol: fgets (122)
+  Symbol: _fileno (38)
+  Symbol: fopen (125)
+  Symbol: fread (131)
+  Symbol: _set_fmode (84)
+  Symbol: fseek (135)
+  Symbol: ftell (137)
+  Symbol: fwrite (138)
+  Symbol: _setmode (87)
+  Symbol: _fseeki64 (47)
+  Symbol: fsetpos (136)
+  Symbol: __stdio_common_vsnprintf_s (11)
+  Symbol: __stdio_common_vswprintf (17)
+  Symbol: _wsopen_s (110)
+  Symbol: fputc (127)
+  Symbol: __p__commode (1)
+  Symbol: _sopen_s (90)
+  Symbol: _get_stream_buffer_pointers (57)
+  Symbol: fgetc (120)
+  Symbol: _close (23)
+  Symbol: fgetpos (121)
+}
+Import {
+  Name: api-ms-win-crt-heap-l1-1-0.dll
+  ImportLookupTableRVA: 0x760BC30
+  ImportAddressTableRVA: 0x2E92898
+  Symbol: free (24)
+  Symbol: _msize (17)
+  Symbol: realloc (26)
+  Symbol: _aligned_free (0)
+  Symbol: _set_new_mode (22)
+  Symbol: malloc (25)
+  Symbol: calloc (23)
+  Symbol: _callnewh (8)
+  Symbol: _aligned_malloc (1)
+}
+Import {
+  Name: api-ms-win-crt-utility-l1-1-0.dll
+  ImportLookupTableRVA: 0x760C148
+  ImportAddressTableRVA: 0x2E92DB0
+  Symbol: qsort (25)
+  Symbol: bsearch (16)
+}
+Import {
+  Name: api-ms-win-crt-convert-l1-1-0.dll
+  ImportLookupTableRVA: 0x760BBB8
+  ImportAddressTableRVA: 0x2E92820
+  Symbol: strtod (94)
+  Symbol: strtoll (99)
+  Symbol: strtoull (101)
+  Symbol: wcstoul (115)
+  Symbol: strtol (97)
+  Symbol: strtof (95)
+  Symbol: atoi (80)
+}
+Import {
+  Name: api-ms-win-crt-environment-l1-1-0.dll
+  ImportLookupTableRVA: 0x760BBF8
+  ImportAddressTableRVA: 0x2E92860
+  Symbol: getenv (16)
+}
+Import {
+  Name: api-ms-win-crt-filesystem-l1-1-0.dll
+  ImportLookupTableRVA: 0x760BC08
+  ImportAddressTableRVA: 0x2E92870
+  Symbol: _lock_file (22)
+  Symbol: _fstat64i32 (17)
+  Symbol: remove (63)
+  Symbol: _unlock_file (36)
+}
+Import {
+  Name: api-ms-win-crt-locale-l1-1-0.dll
+  ImportLookupTableRVA: 0x760BC80
+  ImportAddressTableRVA: 0x2E928E8
+  Symbol: _configthreadlocale (8)
+  Symbol: localeconv (18)
+  Symbol: ___lc_codepage_func (0)
+  Symbol: _create_locale (9)
+  Symbol: _free_locale (10)
+}

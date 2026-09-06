@@ -1,0 +1,16 @@
+﻿[
+    {
+        "profile":  "release, local CPU only",
+        "sha256":  "F87BEAEDA89E36384A29254256A111935DC63FCA39F83D11D73DFA8B52AB20E2",
+        "name":  "svipall.exe",
+        "version":  "1.0.0-rc.2",
+        "benchmark_binary":  false
+    },
+    {
+        "profile":  "release, local CPU only",
+        "sha256":  "74545E5676FB08EA8A454FD30F5B77D441A16A2F98BA924AA96EE701DFADBAAA",
+        "name":  "svipall-mcp.exe",
+        "version":  "1.0.0-rc.2",
+        "benchmark_binary":  false
+    }
+]
