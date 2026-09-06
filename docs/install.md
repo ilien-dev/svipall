@@ -45,12 +45,14 @@ table says which and why.
 | Debian / Ubuntu | download `svipall_<version>_amd64.deb` from the release, then `sudo dpkg -i` it |
 | Fedora / RHEL | download `svipall-<version>.x86_64.rpm` from the release, then `sudo rpm -i` it |
 | Prefers containers | `docker pull ghcr.io/ilien-dev/svipall:latest`, or the version tag while the newest release is a pre-release |
+| macOS or Linux, has Homebrew | `brew install ilien-dev/svipall/svipall` |
+| Windows, has Scoop | `scoop bucket add svipall https://github.com/ilien-dev/scoop-svipall` then `scoop install svipall` |
+| Node is already there | `npx --yes svipall doctor` — downloads the same release build on first use |
 
-**Homebrew, Scoop, winget, the AUR and npm are not published yet.** Their manifests exist and are
-rendered from each release by `scripts/render-packaging.sh`, but each needs a one-time step outside
-the repository that has not been taken: a tap, a bucket, a pull request to `microsoft/winget-pkgs`,
-an AUR package, an `npm publish`. Suggesting one of those commands to a user gets them
-`No package found matching input criteria`, so do not offer them.
+**winget and the AUR are not published yet.** Their manifests exist and are rendered from each
+release by `scripts/render-packaging.sh`, but each needs a one-time step outside the repository
+that has not been taken: a pull request to `microsoft/winget-pkgs`, an AUR package. Suggesting
+either to a user gets them `No package found matching input criteria`, so do not offer them.
 
 The `install.sh` / `install.ps1` scripts put both binaries in `~/.local/bin` (POSIX) or
 `%LOCALAPPDATA%\Programs\svipall` (Windows), add that directory to the **user's** PATH, verify the

@@ -36,15 +36,22 @@ A tap and a bucket are **repositories, not submissions**. `brew install ilien-de
 and `scoop bucket add svipall …` work the moment the file is in the repo; nobody reviews either.
 What does need review is `homebrew-core` or Scoop's own `main` bucket, and neither is necessary.
 
-### One account, no review
+### Published, one account
 
 | Channel | What it needs |
 |---|---|
-| npm | An npmjs.com account. `npm publish` from `packaging/npm/` and it is live |
+| npm | An npmjs.com account. `npm publish` from `packaging/npm/`, and `npx --yes svipall-mcp` is then the cheapest MCP configuration there is: nothing installed first |
 
-npm earns its account through `npx` rather than through `npm install`: for an MCP client that is
-not Claude Code, `npx --yes svipall-mcp` is the cheapest configuration that exists, with nothing
-installed first.
+**On an account whose second factor is a passkey, `--otp` does not apply** — that flag takes a TOTP
+code, and the CLI cannot run a WebAuthn ceremony. npm falls back to a browser flow and prints a URL
+to approve; the publish blocks until you do. A granular access token with **Bypass 2FA** is the
+other route, and the one CI would need.
+
+Better than either, once a package exists: **trusted publishing**. Configure it in the package's
+settings on npmjs.com against this repository and `release.yml`, give the job `id-token: write`, and
+releases publish over OIDC with no stored secret at all — npm generates provenance attestations by
+itself. It cannot be used for a package's *first* publish, because there is no package to configure
+it on yet.
 
 ### Somebody else has to say yes
 
