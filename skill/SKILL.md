@@ -20,6 +20,13 @@ svipall fetch https://example.com/article
 then a stealth browser, then a real one, then one that waits out a challenge — stopping at the first
 tier that works, and remembering it for that domain. Do not pick a tier by hand.
 
+Identity defaults to `auto`: learned emulated routes first, at most one native fallback last.
+Native exposes real device characteristics; `config set auto_native_fallback=false` prohibits that
+automatic fallback. Respect `cooldown_seconds_left` and `stopped_reason`; switching modes does not
+reset the persistent visit limit (12 top-level attempts/60s/domain/exit, 15-minute cooldown by
+default). Browser resources and page-triggered requests are additional traffic. No route or mode
+guarantees anonymity or successful delivery. `status` shows the effective policy.
+
 `svipall doctor` answers what this installation can actually do — which browser would run, which
 captcha models are compiled in, whether the dashboard port is free — and names the command that
 fixes anything that is wrong. Run it once before concluding a site is the problem.

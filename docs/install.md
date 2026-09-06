@@ -14,10 +14,11 @@ A person can follow it too. Every command is exact, and none of them needs an ad
 
 ## 0. Rules for whoever is running this
 
-- **Show each command before running it, and get a yes.** Nothing here is urgent.
+- **Explain the selected installation channel.** An installation request authorizes its normal setup.
 - **Never run any of it with `sudo`.** Everything installs into a directory the user owns. A step
   that seems to need root means something went wrong; stop and say so.
-- **The browser download is ~190 MB.** Always ask separately.
+- **The managed browser download is about 190 MB.** The tool provisions it automatically when
+  needed; `--no-browser` / `-NoBrowser` disables automatic provisioning.
 - **If a step fails, stop and report the actual error.** Do not quietly try another channel: the
   user ends up with two installs and no idea which one is on PATH.
 
@@ -58,6 +59,13 @@ The `install.sh` / `install.ps1` scripts put both binaries in `~/.local/bin` (PO
 `%LOCALAPPDATA%\Programs\svipall` (Windows), add that directory to the **user's** PATH, verify the
 download against the published `sha256sums.txt`, and print what they touched. `--help` lists the
 flags; `--uninstall` reverses it.
+
+Windows archives include the release Visual C++ runtime beside the executables. Keep the DLLs
+and `windows-runtime.json` when extracting manually; the installer and npm preserve them. This
+uses [app-local deployment](https://learn.microsoft.com/en-us/cpp/windows/choosing-a-deployment-method?view=msvc-170)
+and needs no separate runtime installer or administrator. Model-enabled Windows builds require
+Windows 10 version 1903 or newer for the operating system's
+[DirectML component](https://learn.microsoft.com/en-us/windows/ai/directml/dml-debug-layer).
 
 ### Which platforms have builds
 
@@ -124,7 +132,7 @@ One JSON object. `ok: true` means it is ready. Otherwise every entry in `problem
 
 | `code` | What it means | What to do |
 |---|---|---|
-| `no_browser` | Only the plain http tier works; any page behind a challenge stays blocked | Offer `svipall browser install` (~190 MB), or install Chrome/Edge |
+| `no_browser` | Browser tiers need a compatible browser | Normal startup provisions one automatically on supported platforms; `svipall browser install` provisions it immediately |
 | `no_models` | Image captchas go to the human dashboard instead of being answered | Use a release build, or see [models.md](models.md) |
 | `models_not_readable` | The build carries model weights but no `onnx-*` feature to read them, so they answer nothing | Use a release build |
 | `no_impersonation` | Built without BoringSSL; the http tier is recognisable in the first packet | Use a release build |
