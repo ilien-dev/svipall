@@ -1,7 +1,7 @@
 <p align="center">
   <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="logo/svipall-lockup-dark.svg">
-    <img src="logo/svipall-lockup.svg" alt="svipall — local-first web scraping and browsing MCP server for AI agents" width="440">
+    <source media="(prefers-color-scheme: dark)" srcset="assets/brand/svipall-lockup-dark.svg">
+    <img src="assets/brand/svipall-lockup.svg" alt="svipall — local-first web scraping and browsing MCP server for AI agents" width="440">
   </picture>
 </p>
 
@@ -127,24 +127,31 @@ curl -fsSL https://raw.githubusercontent.com/ilien-dev/svipall/main/install.sh |
 irm https://raw.githubusercontent.com/ilien-dev/svipall/main/install.ps1 | iex        # Windows
 ```
 
-Or pull the container image:
+Or a package manager, or the container image:
 
 ```bash
-docker pull ghcr.io/ilien-dev/svipall:latest
+brew install ilien-dev/svipall/svipall               # macOS, Linux
+scoop bucket add svipall https://github.com/ilien-dev/scoop-svipall && scoop install svipall
+docker pull ghcr.io/ilien-dev/svipall:latest         # both flavours, amd64 and arm64
 ```
 
+`.deb` and `.rpm` packages are attached to each release. Every one of these installs the same
+release artefacts, checked against the same published `sha256sums.txt`.
+
+**The container is the only one that carries the captcha models on Linux and on an Intel Mac**, and
+on Linux arm64 it is also the only one that brings a browser. The binaries there work and solve
+most challenge kinds; the [platform table](docs/install.md#which-platforms-have-builds) has the
+detail and the [FAQ](#faq) says what the difference costs.
+
 <details>
-<summary>Homebrew, Scoop, winget, the AUR and npm: not yet</summary>
+<summary>winget, the AUR and npm: not yet</summary>
 
-Each of those needs a one-time step outside this repository — a tap, a bucket, a pull request to
-`microsoft/winget-pkgs`, an AUR package, an `npm publish` — and none of them has been taken. The
-manifests are written and are rendered from each release's own `sha256sums.txt` by
-`scripts/render-packaging.sh`, so the work left is publishing them rather than writing them;
-[`packaging/README.md`](packaging/README.md) says what each one needs.
-
-Until then, `install.sh`, `install.ps1` and the container image are the ways in, and a command like
-`winget install ilien-dev.svipall` will tell you there is no such package. `.deb` and `.rpm` files
-are attached to each release.
+Each needs a one-time step outside this repository that has not been taken — a pull request to
+`microsoft/winget-pkgs`, an AUR package, an `npm publish`. The manifests are written and rendered
+from each release's own `sha256sums.txt` by `scripts/render-packaging.sh`, so what is left is
+publishing them rather than writing them; [`packaging/README.md`](packaging/README.md) says what
+each one needs. Until then `winget install ilien-dev.svipall` will tell you there is no such
+package.
 </details>
 
 Never installed anything from a terminal before? [**GET-STARTED.md**](GET-STARTED.md) is the same
@@ -253,7 +260,7 @@ for `linux/amd64` and `linux/arm64`.
 
 **On Linux, the image is the only way to get everything.** The native Linux binaries carry no
 captcha models, and on arm64 they cannot install a browser either — the reasons are
-[in the FAQ](#which-platforms-does-it-run-on). The image has both, and on arm64 its browser is the
+in the [FAQ](#faq). The image has both, and on arm64 its browser is the
 distribution's own Chromium rather than Chrome for Testing, which `svipall doctor` reports as
 `chromium` instead of `managed`: one step down on fingerprint quality, and a real browser.
 
@@ -710,7 +717,7 @@ headroom for exactly that reason; the structural checks are exact and cannot fla
 ### Judging what came back
 
 <p align="center">
-  <img src="docs/assets/readme/classify-what-arrived.png" alt="Three HTTP 200 responses contain an article, a login form and a missing-page message. Svipall distinguishes wall_kind none, login and softnotfound. Delivered content is assessed separately as full, partial or thin; quality labels never discard a page." width="880" loading="lazy">
+  <img src="assets/readme/classify-what-arrived.png" alt="Three HTTP 200 responses contain an article, a login form and a missing-page message. Svipall distinguishes wall_kind none, login and softnotfound. Delivered content is assessed separately as full, partial or thin; quality labels never discard a page." width="880" loading="lazy">
 </p>
 
 Most tools tell you a request succeeded. Svipall tells you what *arrived*, and never withholds a
@@ -783,7 +790,7 @@ fields are on every response, and this is for a caller weighing a source rather 
 ### Getting in
 
 <p align="center">
-  <img src="docs/assets/readme/shapeshifter-identities.png" alt="Svipall takes three forms at docs.example, shop.example and news.example. Each keeps the amber eye and interwoven beard, illustrating a coherent identity across TLS, headers, browser and behavior." width="880" loading="lazy">
+  <img src="assets/readme/shapeshifter-identities.png" alt="Svipall takes three forms at docs.example, shop.example and news.example. Each keeps the amber eye and interwoven beard, illustrating a coherent identity across TLS, headers, browser and behavior." width="880" loading="lazy">
 </p>
 
 *Different domains, different faces. Within a session, cookies and identity stay together;
@@ -877,7 +884,7 @@ a spent session is retired rather than changing its face on every request.*
 ## How it works, in plain words
 
 <p align="center">
-  <img src="docs/assets/readme/request-ladder.png" alt="The automatic ladder offers http, browser, stealth, real and warm. Any tier can return Markdown and metadata. The successful starting tier is remembered per domain; wall classification can jump tiers or stop. Unresolved challenges can use local solving or the human dashboard." width="880" loading="lazy">
+  <img src="assets/readme/request-ladder.png" alt="The automatic ladder offers http, browser, stealth, real and warm. Any tier can return Markdown and metadata. The successful starting tier is remembered per domain; wall classification can jump tiers or stop. Unresolved challenges can use local solving or the human dashboard." width="880" loading="lazy">
 </p>
 
 *The route is conditional: stop as soon as the page arrives. A known domain can start at its
@@ -969,11 +976,25 @@ before (`outcomes`). A strategy that declines costs no attempt, and there is nev
 | Audio | Local acoustic model (`--features onnx-audio`), clip fetched from inside the page, decoded in pure Rust | Dashboard plays the clip |
 | Anything else | Recognised from the widget table — **fifteen widget families, eleven answer modalities** — or by the generic detector when it is a widget the table has never seen, then routed by modality | Dashboard |
 
-**Models ship in the release binary.** A detector (SSDLite320-MobileNetV3, 13.8 MB) and a segmenter
-(DeepLabV3-MobileNetV3, 44.1 MB), torchvision weights under BSD-3, running on the **CPU** — so an
-image grid is answered out of the box with nothing to install and nothing fetched at run time. A
-model you train from your own corpus and drop in `~/.svipall/models/` **wins over the embedded one
-and is picked up without a restart.**
+A detector (SSDLite320-MobileNetV3, 13.8 MB) and a segmenter (DeepLabV3-MobileNetV3, 44.1 MB),
+torchvision weights under BSD-3, running on the CPU. Where they ship, an image grid is answered out
+of the box with nothing to install and nothing fetched at run time. A model you train from your own
+corpus and drop in `~/.svipall/models/` **wins over the embedded one and is picked up without a
+restart.**
+
+**They ship in the Windows and Apple-silicon binaries, and in the container image on both
+architectures. The Linux and Intel-Mac binaries carry none**, for reasons that are somebody else's
+build and not a choice made here: the ONNX Runtime builds needed reference glibc 2.38, which would
+stop a Linux binary starting on Debian 12 or RHEL 9, and none is published for x86-64 macOS at all.
+The [FAQ](#faq) has the table.
+
+**Four of the eleven challenge modalities need a model**
+— image grids, "click on the…", "draw a box around…" and audio. The rest do not, and they include
+every token widget: Turnstile, reCAPTCHA v2/v3 and hCaptcha are answered by loading the page in a
+stealth browser and reading the token when it clears, and proof-of-work, slider, rotation, drag and
+press-and-hold are arithmetic and image geometry. A build without models sends the four to the
+human dashboard rather than failing them, and `svipall doctor` says `no_models` so it is never a
+surprise.
 
 Those two weights are not a binary blob you have to trust: `tools/models/export.py` regenerates them
 from torchvision's published weights — no account, no key, no service — and `docs/models.md` states
@@ -1434,22 +1455,30 @@ arm64**, with a `sha256sums.txt` and a build attestation. Install them with a on
 Homebrew, Scoop, winget or the AUR, from a `.deb` or `.rpm`, through npm, or as a container image on
 `ghcr.io` — [docs/install.md](docs/install.md) has all of it.
 
-**Every platform has at least one way to run everything**, though on Linux and on an Intel Mac that
-way is the container rather than the binary:
+The binary runs on all of them. What differs is whether it also carries the captcha models, and on
+one target whether it can fetch a browser for itself:
 
-| Platform | Everything works via | Why not the binary |
-|---|---|---|
-| Windows x86-64 | the binary | — |
-| macOS Apple silicon | the binary | — |
-| macOS Intel | the container | ONNX Runtime publishes no x86-64 macOS build, so that binary has no captcha models |
-| Linux x86-64 | the container | the models would need glibc 2.38, which would stop the binary starting on Debian 12, Ubuntu 22.04 or RHEL 9 |
-| Linux arm64 | the container | the same, plus Chrome for Testing publishes no linux-arm64 build, so the binary cannot install a browser either |
-| Windows arm64 | the x64 build under emulation, or the container | no native build is published |
+| Platform | Binary | Browser tiers | Captcha models | Everything |
+|---|---|---|---|---|
+| Windows x86-64 | yes | yes, Edge already counts | **yes** | the binary |
+| macOS Apple silicon | yes | yes | **yes** | the binary |
+| macOS Intel | yes | yes | no | the container |
+| Linux x86-64 | yes | yes | no | the container |
+| Linux arm64 | yes | only with a Chromium you point `browser_path` at | no | the container |
+| Windows arm64 | no native build; the x64 one runs under emulation | — | — | the container |
 
-`svipall doctor` reports whichever limitation applies to the machine it is on, so a binary short of
-its models says so rather than sending an image captcha to the dashboard without explanation. On
-Windows, keep `CARGO_TARGET_DIR` short when building from source — BoringSSL's paths run into
-`MAX_PATH`.
+Neither gap is a decision taken here. The ONNX Runtime builds the models need reference glibc 2.38,
+so a Linux binary using them would not start on Debian 12, Ubuntu 22.04 or RHEL 9 — a binary that
+starts everywhere is worth more than one that answers image grids on Ubuntu 24 only. For x86-64
+macOS no ONNX Runtime build is published at all, and for linux-arm64 no Chrome for Testing build is.
+The container image sidesteps both, on both architectures, because it carries its own glibc and can
+install Debian's Chromium; that is the only reason it exists for arm64.
+
+**A binary without models is not a binary without captcha solving.** Turnstile, reCAPTCHA and
+hCaptcha are token widgets and need no model; so do proof-of-work, slider, rotation, drag and
+press-and-hold. The four modalities that do need one go to the human dashboard instead.
+`svipall doctor` reports whichever limitation applies to the machine it is on. On Windows, keep
+`CARGO_TARGET_DIR` short when building from source — BoringSSL's paths run into `MAX_PATH`.
 </details>
 
 <details>
