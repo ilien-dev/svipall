@@ -1,4 +1,10 @@
 /target/
+bench/experiments/*/bin/
+bench/experiments/*/runtime/
+bench/experiments/*/state/
+bench/experiments/*/state-*/
+bench/experiments/*/source-before/
+bench/experiments/*/source-before.zip
 # Cargo.lock is committed: this workspace ships a binary, so builds must be reproducible.
 .env
 *.db

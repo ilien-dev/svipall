@@ -5,7 +5,7 @@
 #
 # It downloads a release build, checks it against the published sha256, puts both binaries in a
 # directory this user owns, and tells you what it touched. It never asks for root, never writes
-# outside $PREFIX and your own shell profile, and never downloads a browser without asking.
+# outside $PREFIX and your own shell profile. Browser provisioning is managed by svipall.
 #
 #   --version vX.Y.Z   a specific release instead of the latest
 #   --prefix DIR       where the binaries go (default ~/.local/bin)
@@ -13,7 +13,7 @@
 #   --no-path          do not touch any shell profile
 #   --yes              answer yes to every prompt
 #   --browser          download Chrome for Testing without asking (~190 MB)
-#   --no-browser       never download it, and do not ask
+#   --no-browser       disable automatic browser provisioning
 #   --uninstall        remove what a previous run installed
 #
 # POSIX sh on purpose: this runs before anything is installed, including bash on some images.
@@ -38,7 +38,7 @@ Install svipall on Linux or macOS.
     --no-path          do not touch any shell profile
     --yes              answer yes to every prompt
     --browser          download Chrome for Testing without asking (~190 MB)
-    --no-browser       never download it, and do not ask
+    --no-browser       disable automatic browser provisioning
     --uninstall        remove what a previous run installed
 USAGE
 }
@@ -247,17 +247,12 @@ say ""
 report="$("$PREFIX/svipall" doctor 2>/dev/null || true)"
 printf '%s\n' "$report"
 
-if [ "$BROWSER" != "no" ] && printf '%s' "$report" | grep -q '"code": *"no_browser"'; then
-    say ""
-    say "No browser was found. Without one, only the plain http tier works and any page behind a"
-    say "challenge stays blocked. Chrome for Testing is about 190 MB."
-    # Asked, never assumed. 190 MB is not something to spend on somebody's connection because
-    # they typed --yes to get past a PATH question.
-    if [ "$BROWSER" = "yes" ] || ask "Download it now?"; then
-        "$PREFIX/svipall" browser install
-    else
-        say "Skipped. Run \`svipall browser install\` whenever you want it."
-    fi
+if [ "$BROWSER" = "no" ]; then
+    "$PREFIX/svipall" config set browser_auto_install=false || die "could not disable automatic browser provisioning"
+elif [ "$BROWSER" = "yes" ]; then
+    "$PREFIX/svipall" browser install || die "browser installation failed"
+elif printf '%s' "$report" | grep -q '"code": *"no_browser"'; then
+    say "svipall will provision a managed browser automatically on first startup."
 fi
 
 say ""

@@ -40,6 +40,7 @@ else
   echo; echo "=== cargo-machete (skipped) ==="; echo "install with: cargo install cargo-machete"
 fi
 step 'CLAUDE.md size' bash "$here/check-claude-md.sh"
+step 'AGENTS.md size' bash "$here/check-claude-md.sh" "$here/../AGENTS.md"
 # The marketplace and the plugin manifests, if the CLI that reads them is here. Skipped rather than
 # failed when it is not: this gate has to pass on a machine that has never installed Claude Code.
 if command -v claude >/dev/null 2>&1; then

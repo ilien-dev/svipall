@@ -2,7 +2,7 @@ target
 t
 .git
 bench/baseline/*.json
-logo
+assets
 *.md
 !README.md
 # The developer's own exported weights. `svipall-models`'s build script embeds whatever is in this

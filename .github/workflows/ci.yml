@@ -105,9 +105,11 @@ jobs:
           cargo install cargo-machete --locked
           cargo machete
 
-      - name: CLAUDE.md size guard
+      - name: Agent instruction size guards
         if: runner.os == 'Linux'
-        run: bash scripts/check-claude-md.sh
+        run: |
+          bash scripts/check-claude-md.sh
+          bash scripts/check-claude-md.sh AGENTS.md
 
       # The manifests a `/plugin install` reads. Cheap, and the failure they catch — a hooks file
       # in the wrong shape, a version the tag will not match — is one nobody sees until somebody
