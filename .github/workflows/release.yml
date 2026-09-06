@@ -138,11 +138,11 @@ jobs:
           # its `target-cpu=native`, which `ring` rejects on aarch64 apple targets.
           case "${{ matrix.target }}" in aarch64-*) RUSTFLAGS= ;; esac
           if [ "${{ matrix.models }}" = "true" ]; then
-            feats="--features onnx-ocr,onnx-grid,onnx-audio,onnx-detect,onnx-segment,onnx-zeroshot"
+            feats="--features impersonate,onnx-ocr,onnx-grid,onnx-audio,onnx-detect,onnx-segment,onnx-zeroshot"
           else
-            feats=""
+            feats="--features impersonate"
           fi
-          cargo build --profile dist --target ${{ matrix.target }} --bin svipall-mcp --bin svipall $feats
+          cargo build --no-default-features --profile dist --target ${{ matrix.target }} --bin svipall-mcp --bin svipall $feats
 
       # Ad-hoc, because notarisation needs an Apple Developer ID this project does not have. It
       # stops the "damaged and can't be opened" dialog for a binary copied between machines; a
@@ -321,6 +321,48 @@ jobs:
             packages/packaging/dist/*.rpm
           generate_release_notes: true
           prerelease: ${{ needs.version.outputs.prerelease == 'true' }}
+
+  # npm, over OIDC and with no stored secret. `id-token: write` is the whole mechanism: npm trades
+  # the token GitHub mints for a short-lived publish credential, having been told on npmjs.com that
+  # this repository and this workflow file may do it. It also generates a provenance attestation by
+  # itself, which is the same guarantee the release assets carry.
+  #
+  # `needs: publish` and not just `build`: the package is five files and a postinstall that fetches
+  # the release archive, so publishing it before the release exists would ship a package that
+  # cannot install.
+  npm:
+    name: npm
+    needs: [version, publish]
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          registry-url: https://registry.npmjs.org
+      # OIDC publishing needs a recent npm; the one bundled with the Node LTS image is older than
+      # the feature.
+      - run: npm install -g npm@latest
+      - name: Publish
+        working-directory: packaging/npm
+        env:
+          VERSION: ${{ needs.version.outputs.version }}
+        run: |
+          # Re-running a tag must not fail the release. A version already on the registry is the
+          # normal outcome of a re-run, not a problem to report.
+          if npm view "svipall@$VERSION" version >/dev/null 2>&1; then
+            echo "svipall@$VERSION is already published; nothing to do"
+            exit 0
+          fi
+          tag=latest
+          if [ "${{ needs.version.outputs.prerelease }}" = "true" ]; then
+            tag=next
+          fi
+          npm publish --tag "$tag" --access public
 
   # One architecture per runner, each on its own hardware. The previous shape asked one amd64
   # runner to build arm64 through QEMU, and a Rust build with BoringSSL and fat LTO under emulation

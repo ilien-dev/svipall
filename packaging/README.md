@@ -47,11 +47,27 @@ code, and the CLI cannot run a WebAuthn ceremony. npm falls back to a browser fl
 to approve; the publish blocks until you do. A granular access token with **Bypass 2FA** is the
 other route, and the one CI would need.
 
-Better than either, once a package exists: **trusted publishing**. Configure it in the package's
-settings on npmjs.com against this repository and `release.yml`, give the job `id-token: write`, and
-releases publish over OIDC with no stored secret at all — npm generates provenance attestations by
-itself. It cannot be used for a package's *first* publish, because there is no package to configure
-it on yet.
+The first publish was manual for a reason that cannot be worked around: **trusted publishing is
+configured in a package's settings, and there is no package until something has been published**.
+
+From the second release on it is the route, and `release.yml` already carries the `npm` job for it:
+`id-token: write`, no stored secret, and npm generates a provenance attestation by itself. What has
+to match exactly, because npm validates none of it when you save the form and only fails at publish
+time:
+
+| Field on npmjs.com | Value |
+|---|---|
+| Provider | GitHub Actions |
+| Organization or user | `ilien-dev` |
+| Repository | `svipall` |
+| Workflow filename | `release.yml` (the filename, not a path, and with the extension) |
+| Environment name | leave empty |
+
+`package.json`'s `repository.url` must also match the repository, which is another thing npm checks
+only at publish time. It does.
+
+Once a release has published through it, delete any granular access token still on the account:
+nothing needs one any more.
 
 ### Somebody else has to say yes
 
