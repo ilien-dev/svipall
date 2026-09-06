@@ -1,0 +1,12 @@
+[
+    {
+        "reference_matches":  true,
+        "sha256":  "49E83AC396C5EC4E91E2DF9F8E6E3B86AB90F64FAA2E10D2AD0459C3E22C25EC",
+        "name":  "detect"
+    },
+    {
+        "reference_matches":  true,
+        "sha256":  "87922C78B3047425624C7F4B323858DB05786A97034E58B72C7F88C187283E34",
+        "name":  "segment"
+    }
+]

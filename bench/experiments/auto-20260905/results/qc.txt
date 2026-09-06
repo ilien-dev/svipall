@@ -1,0 +1,35 @@
+
+=== rustfmt --check ===
+
+=== clippy (default) ===
+
+=== clippy (onnx-ocr) ===
+
+=== clippy (onnx-grid) ===
+
+=== clippy (onnx-audio) ===
+
+=== clippy (onnx-detect) ===
+
+=== clippy (onnx-segment) ===
+
+=== clippy (onnx-zeroshot) ===
+
+=== clippy (http3) ===
+
+=== tests ===
+FAIL: tests
+
+=== tests (http3) ===
+
+running 4 tests
+test a_real_site_answers_over_http3 ... ignored, network
+test an_exit_is_never_bypassed_by_speaking_quic_around_it ... ok
+test a_site_that_does_not_answer_over_quic_still_returns_its_page ... ok
+test a_network_that_swallows_udp_costs_seconds_rather_than_the_whole_budget ... ok
+
+test result: ok. 3 passed; 0 failed; 1 ignored; 0 measured; 0 filtered out; finished in 3.06s
+
+
+=== tests (onnx models) ===
+FAIL: tests (onnx models)

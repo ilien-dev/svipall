@@ -1,0 +1,31 @@
+   Compiling svipall-mcp v1.0.0-rc.2 (<repo>\crates\svipall-mcp)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 18.06s
+     Running tests\stealth.rs (target\debug\deps\stealth-099ec4192bbab2b4.exe)
+captured=4 endpoints=["https://gc.kis.v2.scr.kaspersky-labs.com/7D8B79A2-8974-4D7B-A76A-F4F29624C06BLMShIUYUy1DrVlAgpStw8uOTbujlUBV0Eq0YkZ_AHg-HQ7BCI_Fvm_teABkRoQSnQ4g_0jsnjxAVgpdblOqruQ/init?data=eyJ1cmwiOiJodHRwczovL3F1b3Rlcy50b3NjcmFwZS5jb20vc2Nyb2xsIiwicGx1Z2lucyI6IndzbSZ3bnQmYWJuJmFibl9zaGFkb3cmY2EmdnMmcGMmdWEmd3NjJmNiIiwiZGF0YSI6eyJkYXRhIjpbeyJwbHVnaW4iOiJ3c20iLCJwYXJhbWV0ZXJzIjoie1wicmVmZXJyZXJcIjpcIlwiLFwic3R1YklkXCI6XCJcIn0ifSx7InBsdWdpbiI6IndudCIsInBhcmFtZXRlcnMiOiJ7XCJyZWZlcnJlclwiOlwiXCJ9In0seyJwbHVnaW4iOiJhYm4iLCJwYXJhbWV0ZXJzIjoie1wiaXNDc3NVcmxJbmplY3RlZFwiOmZhbHNlfSJ9LHsicGx1Z2luIjoiYWJuX3NoYWRvdyIsInBhcmFtZXRlcnMiOiJ7XCJpc0Nzc1VybEluamVjdGVkXCI6ZmFsc2V9In0seyJwbHVnaW4iOiJ1YSIsInBhcmFtZXRlcnMiOiJ7fSJ9XX0sImlzVG9wTGV2ZWwiOnRydWUsInBhZ2VTdGFydFRpbWUiOjAsIm5hdmlnYXRpb25TdGFydFRpbWUiOjE3ODg2NzA5NjU1NjR9&nocache=10401&tm=2026-09-06T05%3A02%3A46.251Z","https://gc.kis.v2.scr.kaspersky-labs.com/C630935E-35EE-47E4-869B-C08A84815619/43947005-239E-4053-AA73-49492E0FE0E2/to/wsm.sessionActivated?tm=2026-09-06T05%3A02%3A46.295Z","https://quotes.toscrape.com/api/quotes?page=1","https://gc.kis.v2.scr.kaspersky-labs.com/C630935E-35EE-47E4-869B-C08A84815619/43947005-239E-4053-AA73-49492E0FE0E2/to/abn.statInfo?tm=2026-09-06T05%3A02%3A46.805Z"]
+nodes=25 tokens=159
+table
+  table
+      img
+    link "Hacker News" [e4]
+    link "new" [e5]
+    link "past" [e6]
+    link "comments" [e7]
+    link "ask" [e8]
+    link "show" [e9]
+    link "jobs" [e10]
+    link "submit" [e11]
+    link "login" [e12]
+  table
+    link "Cloud in a Bottle: making self-hosting accessible to everyone" [e15]
+    link "cloudinabottle.org" [e16]
+    link "zplizzi" [e17]
+    link "4 hours ago" [e18]
+    link "hide" [e19]
+    link "103 comments" [e20]
+    link "GPT-6 Astra on robot arms" [e22]
+    link "robocurve.org" [e23]
+    link "Anon84" [e24]
+    link "3 hours ago" [e25]
+    link "hide" [e26]
+    link "61 comments" [e27]
+

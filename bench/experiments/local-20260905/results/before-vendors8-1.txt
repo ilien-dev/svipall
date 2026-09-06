@@ -1,0 +1,18 @@
+datadome-idealista repeat 1: wall 25.81s (warm)
+datadome-idealista repeat 2: error 0.00s (-)
+kasada-twitch repeat 1: delivered 4.01s (browser)
+kasada-twitch repeat 2: delivered 5.89s (browser)
+cloudflare-crunchbase repeat 1: wall 28.69s (warm)
+cloudflare-crunchbase repeat 2: wall 62.68s (warm)
+datadome-g2 repeat 1: wall 25.55s (warm)
+datadome-g2 repeat 2: error 0.00s (-)
+akamai-newegg repeat 1: delivered 1.30s (http)
+akamai-newegg repeat 2: delivered 0.15s (http)
+kasada-hyatt repeat 1: wall 28.82s (warm)
+kasada-hyatt repeat 2: error 0.00s (-)
+cloudflare-indeed repeat 1: delivered 6.46s (real)
+cloudflare-indeed repeat 2: delivered 3.58s (real)
+akamai-homedepot repeat 1: wall 25.66s (warm)
+akamai-homedepot repeat 2: wall 40.09s (warm)
+
+compare finished in 258.9s

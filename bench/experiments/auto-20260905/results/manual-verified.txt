@@ -1,0 +1,24 @@
+
+running 6 tests
+test a_visit_limit_keeps_unrequested_crawl_pages_pending ... ok
+test attempt_cap_returns_the_page_and_never_opens_native ... ok
+test forced_mode_and_identity_changes_cannot_reset_visit_limit ... ok
+test native_is_last_and_an_opt_out_prevents_its_launch ... ok
+test retry_after_stops_escalation_and_survives_a_new_server ... ok
+test short_success_never_triggers_privacy_fallback ... ok
+
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 10.02s
+
+
+running 1 test
+test two_useful_browser_observations_skip_failed_http_on_the_third_visit ... {"measurement":"local route learning; no public-site success claim","visits":[{"attempts":["http: 200 (3ms) -> cloudflare wall (just a moment)","browser: 200 (1633ms) OK"],"elapsed_ms":2489,"visit":1},{"attempts":["http: 200 (1ms) -> cloudflare wall (just a moment)","browser: 200 (1348ms) OK"],"elapsed_ms":2225,"visit":2},{"attempts":["browser: 200 (1332ms) OK"],"elapsed_ms":1383,"visit":3}]}
+ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 6.34s
+
+
+running 1 test
+test failed_native_attempt_preserves_the_page_and_reports_exposure ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 12.17s
+

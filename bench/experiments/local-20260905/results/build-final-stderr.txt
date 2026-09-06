@@ -1,0 +1,2 @@
+   Compiling svipall-mcp v1.0.0-rc.2 (<repo>\crates\svipall-mcp)
+    Finished `release` profile [optimized] target(s) in 2m 05s

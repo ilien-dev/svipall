@@ -1,0 +1,305 @@
+    Blocking waiting for file lock on build directory
+    Checking svipall-mcp v1.0.0-rc.2 (<repo>\crates\svipall-mcp)
+    Checking svipall-bench v1.0.0 (<repo>\bench)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 11.40s
+    Checking svipall-mcp v1.0.0-rc.2 (<repo>\crates\svipall-mcp)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 4.30s
+    Checking svipall-mcp v1.0.0-rc.2 (<repo>\crates\svipall-mcp)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 3.82s
+    Checking svipall-mcp v1.0.0-rc.2 (<repo>\crates\svipall-mcp)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 4.23s
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.41s
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.41s
+    Checking svipall-mcp v1.0.0-rc.2 (<repo>\crates\svipall-mcp)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 4.01s
+    Checking svipall-mcp v1.0.0-rc.2 (<repo>\crates\svipall-mcp)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 4.04s
+   Compiling svipall-mcp v1.0.0-rc.2 (<repo>\crates\svipall-mcp)
+   Compiling svipall-bench v1.0.0 (<repo>\bench)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 29.17s
+     Running unittests src\main.rs (target\debug\deps\svipall_bench-8c5b2341b3681661.exe)
+     Running unittests src\lib.rs (target\debug\deps\svipall_cdp-658a926faf2a9581.exe)
+     Running unittests src\lib.rs (target\debug\deps\svipall_core-d3e994c6f705da4b.exe)
+     Running tests\integrity.rs (target\debug\deps\integrity-ebfab3521455e5de.exe)
+     Running tests\widgets.rs (target\debug\deps\widgets-88da56bac056070f.exe)
+     Running unittests src\lib.rs (target\debug\deps\svipall_dashboard-460dae9f36dae695.exe)
+     Running unittests src\lib.rs (target\debug\deps\svipall_extract-80b7e74b8a7260e9.exe)
+     Running unittests src\lib.rs (target\debug\deps\svipall_http-3beb20c7d853071d.exe)
+     Running tests\fingerprint.rs (target\debug\deps\fingerprint-999a83cfc5652249.exe)
+     Running tests\h3.rs (target\debug\deps\h3-dc27d90334652abf.exe)
+     Running tests\tls_stack.rs (target\debug\deps\tls_stack-e3d8712d16bad3bd.exe)
+     Running unittests src\lib.rs (target\debug\deps\svipall_mcp-eb0acd06397cb2b6.exe)
+     Running unittests src\bin\svipall.rs (target\debug\deps\svipall-a781d2ba61b1173e.exe)
+     Running unittests src\main.rs (target\debug\deps\svipall_mcp-3bb9d9a30292152f.exe)
+     Running tests\anti_discard.rs (target\debug\deps\anti_discard-10fdc09f3ff74302.exe)
+     Running tests\crawl.rs (target\debug\deps\crawl-9f178146c42ebc42.exe)
+     Running tests\doctor.rs (target\debug\deps\doctor-09f1bbfd93ecfd8c.exe)
+     Running tests\hooks.rs (target\debug\deps\hooks-85dfc0950e5a2b42.exe)
+     Running tests\jobs.rs (target\debug\deps\jobs-05df71a5f266f22f.exe)
+     Running tests\ladder.rs (target\debug\deps\ladder-2e7016093ca4e8ce.exe)
+     Running tests\local_sessions.rs (target\debug\deps\local_sessions-0b6e94af8fc417fa.exe)
+     Running tests\models.rs (target\debug\deps\models-2c87fe302a9bf82d.exe)
+     Running tests\reputation.rs (target\debug\deps\reputation-17b83b8307448e2a.exe)
+     Running tests\rest.rs (target\debug\deps\rest-df271fc2332eed5b.exe)
+     Running tests\stealth.rs (target\debug\deps\stealth-e1ff9d98477fea07.exe)
+     Running unittests src\lib.rs (target\debug\deps\svipall_models-3af52aceed84da64.exe)
+     Running tests\handshake.rs (target\debug\deps\handshake-bd1087067ca2142f.exe)
+     Running tests\selfsigned.rs (target\debug\deps\selfsigned-5013cded15bc5ecf.exe)
+     Running tests\settings.rs (target\debug\deps\settings-695f3d91160219ca.exe)
+     Running unittests src\lib.rs (target\debug\deps\svipall_solver-ad4c1b9681cc87e4.exe)
+     Running tests\api.rs (target\debug\deps\api-89661f161f783111.exe)
+   Doc-tests svipall_cdp
+   Doc-tests svipall_core
+   Doc-tests svipall_dashboard
+   Doc-tests svipall_extract
+   Doc-tests svipall_http
+   Doc-tests svipall_mcp
+   Doc-tests svipall_models
+   Doc-tests svipall_solver
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.34s
+     Running tests\h3.rs (target\debug\deps\h3-7af595d30ddfb3a4.exe)
+   Compiling svipall-mcp v1.0.0-rc.2 (<repo>\crates\svipall-mcp)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 6.70s
+     Running tests\models.rs (target\debug\deps\models-e2e93d51da588113.exe)
+Analyzing dependencies of crates in this directory...
+Done!
+   Compiling svipall-mcp v1.0.0-rc.2 (<repo>\crates\svipall-mcp)
+   Compiling svipall-bench v1.0.0 (<repo>\bench)
+    Finished `release` profile [optimized] target(s) in 1m 25s
+     Running `target\release\svipall-bench.exe micro --assert`
+fixture: 195 KB html, 186 KB text, 188 KB markdown
+
+ok   classify / 200KB                   161.616µs  (budget 400µs)
+ok   quality::assess / 200KB             44.624µs  (budget 250µs)
+ok   markdown, voted / 200KB              5.414ms  (budget 8ms)
+ok   template::strip / 200KB            283.744µs  (budget 2ms)
+ok   cache::find_near / 300 pages       672.000ns  (budget 2ms)
+ok   induce / 200KB                       2.439ms  (budget 60ms)
+ok   parse_page text+title / 200KB        2.310ms  (budget 14ms)
+ok   parse_page everything / 200KB        5.940ms  (budget 20ms)
+ok   bm25_filter / full page              1.854ms  (budget 3ms)
+ok   budget::take / full page           258.355µs  (budget 4ms)
+ok   simhash / full page                704.205µs  (budget 5ms)
+
+structural checks (exact, cannot flake):
+ok   DOM parses for text+title+markdown+links+metadata: 1 (expected 1)
+ok   disk reads across 10,000 lookups: 0 (expected 0)
+ok   ledger writes across 10,000 charges: 0 (expected at most 1)
+ok   pruning dropped the nav and the sidebar, kept the article, the code and the table (2% smaller)
+
+micro finished in 0.3s
+   Compiling svipall-mcp v1.0.0-rc.2 (<repo>\crates\svipall-mcp)
+   Compiling svipall-bench v1.0.0 (<repo>\bench)
+    Finished `release` profile [optimized] target(s) in 1m 39s
+     Running `target\onnx\release\svipall-bench.exe micro --assert`
+fixture: 195 KB html, 186 KB text, 188 KB markdown
+
+ok   classify / 200KB                   163.802µs  (budget 400µs)
+ok   quality::assess / 200KB             54.022µs  (budget 250µs)
+ok   markdown, voted / 200KB              5.322ms  (budget 8ms)
+ok   template::strip / 200KB            235.860µs  (budget 2ms)
+ok   cache::find_near / 300 pages         1.598µs  (budget 2ms)
+ok   induce / 200KB                       2.453ms  (budget 60ms)
+ok   parse_page text+title / 200KB        2.347ms  (budget 14ms)
+ok   parse_page everything / 200KB        6.155ms  (budget 20ms)
+ok   bm25_filter / full page              1.856ms  (budget 3ms)
+ok   budget::take / full page           259.505µs  (budget 4ms)
+ok   simhash / full page                701.430µs  (budget 5ms)
+ok   detect / 320px picture (embedded)    9.022ms  (budget 120ms)
+ok   segment / 320px picture (embedded)  29.547ms  (budget 250ms)
+
+structural checks (exact, cannot flake):
+ok   DOM parses for text+title+markdown+links+metadata: 1 (expected 1)
+ok   disk reads across 10,000 lookups: 0 (expected 0)
+ok   ledger writes across 10,000 charges: 0 (expected at most 1)
+ok   pruning dropped the nav and the sidebar, kept the article, the code and the table (2% smaller)
+
+micro finished in 0.7s
+    Finished `release` profile [optimized] target(s) in 0.44s
+     Running `target\release\svipall-bench.exe tells --assert`
+
+== Browser ==
+ok   brave_absent                 typeof navigator.brave=undefined
+ok   canvas_noise_stable          three draws agree, 858 chars
+ok   connection_coherent          effectiveType=4g rtt=50 downlink=1.75
+ok   cross_realm_tostring         the iframe realm reads the same accessors as native
+ok   device_pixel_ratio           devicePixelRatio=1 matchMedia agrees=true
+ok   dom_rect                     x=0 left=0 w=100.859375 r-l=100.859375 own=[]
+ok   focus_and_visibility         hasFocus=true visibilityState=visible hidden=false
+ok   getter_names                 deviceMemory:"get deviceMemory" hardwareConcurrency:"get hardwareConcurrency" languages:"get languages" plugins:"get plugins"
+ok   heap_limit_is_a_ceiling      4395630592 bytes (4192 MiB), stable=true
+ok   host_object_brands           plugins=[object PluginArray] plugin0=[object Plugin] mimeTypes=[object MimeTypeArray] connection=[object NetworkInformation] memory=[object MemoryInfo]
+ok   iframe_realm_agrees          agree on 11 values
+ok   input_modality               pointer:fine=true hover:hover=true any-pointer:coarse=false maxTouchPoints=0
+ok   languages_fresh              identical=false value=en-US,en
+ok   languages_shape              en-US,en
+ok   navigator_getters_are_native every accessor stringifies as native
+ok   navigator_webdriver          value=false in navigator=true descriptor="get webdriver"
+ok   no_duplicate_navigator_getters no name appears twice in the chain
+ok   patched_functions_are_native all 10 stringify as native
+ok   permission_state_is_valid    brand=[object PermissionStatus] state="prompt" Notification.permission=default
+ok   plugins_present              5 plugins, first=PDF Viewer
+ok   residue                      no named residue on window
+ok   runtime_domain_unobservable  not observable
+ok   screen_plausible             screen=1920x1080 avail=1920x1032 outer=1366x874
+ok   screen_position              screenX=60 screenY=40 screen=1920x1080
+ok   scrollbar_present            innerWidth-clientWidth=15
+ok   stack_has_no_injected_url    TypeError: Function.prototype.toString requires that 'this' be a Function
+ok   text_geometry_stable         100.859375 then 100.859375
+ok   touch_matches_identity       maxTouchPoints=0 ontouchstart=false
+ok   ua_string_self_agreement     appVersion=true vendor="Google Inc." appName="Netscape" product="Gecko" oscpu=undefined buildID=undefined platform="Win32"
+ok   user_agent_data_present      brands=Google Chrome:149,Not.A/Brand:8,Chromium:149 platform=Windows mobile=false ua major=149
+ok   window_chrome_height         outerHeight-innerHeight=106 (outer=874 inner=768)
+ok   worker_realm                 agree on deviceMemory, hardwareConcurrency, languages
+
+== Stealth ==
+ok   brave_absent                 typeof navigator.brave=undefined
+ok   canvas_noise_stable          three draws agree, 858 chars
+ok   connection_coherent          effectiveType=4g rtt=50 downlink=10
+ok   cross_realm_tostring         the iframe realm reads the same accessors as native
+ok   device_pixel_ratio           devicePixelRatio=1 matchMedia agrees=true
+ok   dom_rect                     x=0 left=0 w=100.86245413793341 r-l=100.86245413793341 own=[]
+ok   focus_and_visibility         hasFocus=true visibilityState=visible hidden=false
+ok   getter_names                 deviceMemory:"get deviceMemory" hardwareConcurrency:"get hardwareConcurrency" languages:"get languages" plugins:"get plugins"
+ok   heap_limit_is_a_ceiling      4294967296 bytes (4096 MiB), stable=true
+ok   host_object_brands           plugins=[object PluginArray] plugin0=[object Plugin] mimeTypes=[object MimeTypeArray] connection=[object NetworkInformation] memory=[object MemoryInfo]
+ok   iframe_realm_agrees          agree on 11 values
+ok   input_modality               pointer:fine=true hover:hover=true any-pointer:coarse=false maxTouchPoints=0
+ok   languages_fresh              identical=false value=en-US,en
+ok   languages_shape              en-US,en
+ok   navigator_getters_are_native every accessor stringifies as native
+ok   navigator_webdriver          value=false in navigator=true descriptor="get webdriver"
+ok   no_duplicate_navigator_getters no name appears twice in the chain
+ok   patched_functions_are_native all 10 stringify as native
+ok   permission_state_is_valid    brand=[object PermissionStatus] state="prompt" Notification.permission=default
+ok   plugins_present              5 plugins, first=PDF Viewer
+ok   residue                      no named residue on window
+ok   runtime_domain_unobservable  not observable
+ok   screen_plausible             screen=1920x1080 avail=1920x1032 outer=1366x874
+ok   screen_position              screenX=60 screenY=40 screen=1920x1080
+ok   scrollbar_present            innerWidth-clientWidth=15
+ok   stack_has_no_injected_url    TypeError: Function.prototype.toString requires that 'this' be a Function
+ok   text_geometry_stable         100.86245413793341 then 100.86245413793341
+ok   touch_matches_identity       maxTouchPoints=0 ontouchstart=false
+ok   ua_string_self_agreement     appVersion=true vendor="Google Inc." appName="Netscape" product="Gecko" oscpu=undefined buildID=undefined platform="Win32"
+ok   user_agent_data_present      brands=Google Chrome:149,Not.A/Brand:8,Chromium:149 platform=Windows mobile=false ua major=149
+ok   window_chrome_height         outerHeight-innerHeight=106 (outer=874 inner=768)
+ok   worker_realm                 agree on deviceMemory, hardwareConcurrency, languages
+
+== Real ==
+ok   brave_absent                 typeof navigator.brave=undefined
+ok   canvas_noise_stable          three draws agree, 858 chars
+ok   connection_coherent          effectiveType=4g rtt=50 downlink=10
+ok   cross_realm_tostring         the iframe realm reads the same accessors as native
+ok   device_pixel_ratio           devicePixelRatio=1 matchMedia agrees=true
+ok   dom_rect                     x=0 left=0 w=100.86245413793341 r-l=100.86245413793341 own=[]
+ok   focus_and_visibility         hasFocus=true visibilityState=visible hidden=false
+ok   getter_names                 deviceMemory:"get deviceMemory" hardwareConcurrency:"get hardwareConcurrency" languages:"get languages" plugins:"get plugins"
+ok   heap_limit_is_a_ceiling      4294967296 bytes (4096 MiB), stable=true
+ok   host_object_brands           plugins=[object PluginArray] plugin0=[object Plugin] mimeTypes=[object MimeTypeArray] connection=[object NetworkInformation] memory=[object MemoryInfo]
+ok   iframe_realm_agrees          agree on 11 values
+ok   input_modality               pointer:fine=true hover:hover=true any-pointer:coarse=false maxTouchPoints=0
+ok   languages_fresh              identical=false value=en-US,en
+ok   languages_shape              en-US,en
+ok   navigator_getters_are_native every accessor stringifies as native
+ok   navigator_webdriver          value=false in navigator=true descriptor="get webdriver"
+ok   no_duplicate_navigator_getters no name appears twice in the chain
+ok   patched_functions_are_native all 10 stringify as native
+ok   permission_state_is_valid    brand=[object PermissionStatus] state="prompt" Notification.permission=default
+ok   plugins_present              5 plugins, first=PDF Viewer
+ok   residue                      no named residue on window
+ok   runtime_domain_unobservable  not observable
+ok   screen_plausible             screen=1920x1080 avail=1920x1032 outer=1366x874
+ok   screen_position              screenX=60 screenY=40 screen=1920x1080
+ok   scrollbar_present            innerWidth-clientWidth=15
+ok   stack_has_no_injected_url    TypeError: Function.prototype.toString requires that 'this' be a Function
+ok   text_geometry_stable         100.86245413793341 then 100.86245413793341
+ok   touch_matches_identity       maxTouchPoints=0 ontouchstart=false
+ok   ua_string_self_agreement     appVersion=true vendor="Google Inc." appName="Netscape" product="Gecko" oscpu=undefined buildID=undefined platform="Win32"
+ok   user_agent_data_present      brands=Google Chrome:149,Not.A/Brand:8,Chromium:149 platform=Windows mobile=false ua major=149
+ok   window_chrome_height         outerHeight-innerHeight=106 (outer=874 inner=768)
+ok   worker_realm                 agree on deviceMemory, hardwareConcurrency, languages
+
+== Warm ==
+ok   brave_absent                 typeof navigator.brave=undefined
+ok   canvas_noise_stable          three draws agree, 858 chars
+ok   connection_coherent          effectiveType=4g rtt=50 downlink=10
+ok   cross_realm_tostring         the iframe realm reads the same accessors as native
+ok   device_pixel_ratio           devicePixelRatio=1 matchMedia agrees=true
+ok   dom_rect                     x=0 left=0 w=100.86245413793341 r-l=100.86245413793341 own=[]
+ok   focus_and_visibility         hasFocus=true visibilityState=visible hidden=false
+ok   getter_names                 deviceMemory:"get deviceMemory" hardwareConcurrency:"get hardwareConcurrency" languages:"get languages" plugins:"get plugins"
+ok   heap_limit_is_a_ceiling      4294967296 bytes (4096 MiB), stable=true
+ok   host_object_brands           plugins=[object PluginArray] plugin0=[object Plugin] mimeTypes=[object MimeTypeArray] connection=[object NetworkInformation] memory=[object MemoryInfo]
+ok   iframe_realm_agrees          agree on 11 values
+ok   input_modality               pointer:fine=true hover:hover=true any-pointer:coarse=false maxTouchPoints=0
+ok   languages_fresh              identical=false value=en-US,en
+ok   languages_shape              en-US,en
+ok   navigator_getters_are_native every accessor stringifies as native
+ok   navigator_webdriver          value=false in navigator=true descriptor="get webdriver"
+ok   no_duplicate_navigator_getters no name appears twice in the chain
+ok   patched_functions_are_native all 10 stringify as native
+ok   permission_state_is_valid    brand=[object PermissionStatus] state="prompt" Notification.permission=default
+ok   plugins_present              5 plugins, first=PDF Viewer
+ok   residue                      no named residue on window
+ok   runtime_domain_unobservable  not observable
+ok   screen_plausible             screen=1920x1080 avail=1920x1032 outer=1366x874
+ok   screen_position              screenX=60 screenY=40 screen=1920x1080
+ok   scrollbar_present            innerWidth-clientWidth=15
+ok   stack_has_no_injected_url    TypeError: Function.prototype.toString requires that 'this' be a Function
+ok   text_geometry_stable         100.86245413793341 then 100.86245413793341
+ok   touch_matches_identity       maxTouchPoints=0 ontouchstart=false
+ok   ua_string_self_agreement     appVersion=true vendor="Google Inc." appName="Netscape" product="Gecko" oscpu=undefined buildID=undefined platform="Win32"
+ok   user_agent_data_present      brands=Google Chrome:149,Not.A/Brand:8,Chromium:149 platform=Windows mobile=false ua major=149
+ok   window_chrome_height         outerHeight-innerHeight=106 (outer=874 inner=768)
+ok   worker_realm                 agree on deviceMemory, hardwareConcurrency, languages
+
+== Browser (reused) ==
+ok   brave_absent                 typeof navigator.brave=undefined
+ok   canvas_noise_stable          three draws agree, 858 chars
+ok   connection_coherent          effectiveType=4g rtt=50 downlink=1.6
+ok   cross_realm_tostring         the iframe realm reads the same accessors as native
+ok   device_pixel_ratio           devicePixelRatio=1 matchMedia agrees=true
+ok   dom_rect                     x=0 left=0 w=100.859375 r-l=100.859375 own=[]
+ok   focus_and_visibility         hasFocus=true visibilityState=visible hidden=false
+ok   getter_names                 deviceMemory:"get deviceMemory" hardwareConcurrency:"get hardwareConcurrency" languages:"get languages" plugins:"get plugins"
+ok   heap_limit_is_a_ceiling      4395630592 bytes (4192 MiB), stable=true
+ok   host_object_brands           plugins=[object PluginArray] plugin0=[object Plugin] mimeTypes=[object MimeTypeArray] connection=[object NetworkInformation] memory=[object MemoryInfo]
+ok   iframe_realm_agrees          agree on 11 values
+ok   input_modality               pointer:fine=true hover:hover=true any-pointer:coarse=false maxTouchPoints=0
+ok   languages_fresh              identical=false value=en-US,en
+ok   languages_shape              en-US,en
+ok   navigator_getters_are_native every accessor stringifies as native
+ok   navigator_webdriver          value=false in navigator=true descriptor="get webdriver"
+ok   no_duplicate_navigator_getters no name appears twice in the chain
+ok   patched_functions_are_native all 10 stringify as native
+ok   permission_state_is_valid    brand=[object PermissionStatus] state="prompt" Notification.permission=default
+ok   plugins_present              5 plugins, first=PDF Viewer
+ok   residue                      no named residue on window
+ok   runtime_domain_unobservable  not observable
+ok   screen_plausible             screen=1920x1080 avail=1920x1032 outer=1366x874
+ok   screen_position              screenX=60 screenY=40 screen=1920x1080
+ok   scrollbar_present            innerWidth-clientWidth=15
+ok   stack_has_no_injected_url    TypeError: Function.prototype.toString requires that 'this' be a Function
+ok   text_geometry_stable         100.859375 then 100.859375
+ok   touch_matches_identity       maxTouchPoints=0 ontouchstart=false
+ok   ua_string_self_agreement     appVersion=true vendor="Google Inc." appName="Netscape" product="Gecko" oscpu=undefined buildID=undefined platform="Win32"
+ok   user_agent_data_present      brands=Google Chrome:149,Not.A/Brand:8,Chromium:149 platform=Windows mobile=false ua major=149
+ok   window_chrome_height         outerHeight-innerHeight=106 (outer=874 inner=768)
+ok   worker_realm                 agree on deviceMemory, hardwareConcurrency, languages
+
+160/160 probes clean
+
+tells finished in 9.7s
+    Finished `release` profile [optimized] target(s) in 0.38s
+     Running `target\release\svipall-bench.exe fingerprint --engine chrome`
+ok   coherence chrome/Windows               coherent
+ok   coherence firefox/Windows              coherent
+ok   coherence chrome/MacOs                 coherent
+ok   coherence firefox/MacOs                coherent
+ok   coherence chrome/Linux                 coherent
+ok   coherence firefox/Linux                coherent
+ok   coherence chrome/phone                 coherent
+ok   coherence sweep (1500 drawn machines)  coherent
+
+fingerprint finished in 0.0s

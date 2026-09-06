@@ -1,0 +1,16 @@
+    Blocking waiting for file lock on build directory
+   Compiling svipall-core v1.0.0 (<repo>\crates\svipall-core)
+   Compiling svipall-solver v1.0.0 (<repo>\crates\svipall-solver)
+   Compiling svipall-dashboard v1.0.0 (<repo>\crates\svipall-dashboard)
+   Compiling svipall-http v1.0.0 (<repo>\crates\svipall-http)
+   Compiling svipall-mcp v1.0.0-rc.2 (<repo>\crates\svipall-mcp)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 33.92s
+     Running tests\automatic.rs (C:\t\debug\deps\automatic-20a43693280b2f96.exe)
+     Running tests\automatic_learning.rs (C:\t\debug\deps\automatic_learning-43e403b7cbad688a.exe)
+
+thread 'two_useful_browser_observations_skip_failed_http_on_the_third_visit' (40580) panicked at crates\svipall-mcp\tests\automatic_learning.rs:35:9:
+assertion `left == right` failed: {"attempts":["http: 200 (3ms) -> cloudflare wall (just a moment)","browser: 200 (1739ms) OK"],"chars":539,"content":"# Local learning report\n\nThis detailed report explains the experiment and its results. The browser delivered the requested document with useful information about several independent observations, including their context and the reasoning behind the conclusions. Readers can inspect the content, understand how it was collected, and decide whether the evidence answers their original question. There are enough concrete observations here to support a meaningful assessment of the experiment and the circumstances in which its results apply.","exit":"http://127.0.0.1:54046","final_url":"http://learn-local.test/reports/article","identity_used":"emulated","native_fallback":false,"optimization":"ordinary","quality":"thin","quality_reasons":["low_text_ratio"],"status":200,"tier_used":"browser","title":"Local learning report","tokens_estimated":135,"url":"http://learn-local.test/reports/article"}
+  left: String("thin")
+ right: "full"
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+error: test failed, to rerun pass `-p svipall-mcp --test automatic_learning`

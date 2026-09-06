@@ -1,0 +1,13 @@
+2026-09-06T05:12:24.828274Z  INFO svipall_mcp: svipall dashboard + solver listening on http://localhost:54119/human?t=9c9f103f661b431d933574b214e48235
+2026-09-06T05:12:24.922449Z  INFO svipall_mcp::browser: browser tiers enabled: <home>/.svipall/browser/cft/152.0.7977.75/chrome-win64/chrome.exe (Chrome 152)
+2026-09-06T05:12:24.927545Z  INFO svipall_mcp::server: http engine: wreq (Chrome TLS and HTTP/2 emulation) | identity: Chrome 149 on Windows (browser: Chrome 149)
+2026-09-06T05:12:24.928118Z  INFO svipall_mcp: svipall-mcp worker 0 started
+2026-09-06T05:12:24.928133Z  INFO svipall_mcp: svipall-mcp worker 3 started
+2026-09-06T05:12:24.928131Z  INFO svipall_mcp: svipall-mcp worker 1 started
+2026-09-06T05:12:24.928136Z  INFO svipall_mcp: svipall-mcp worker 2 started
+2026-09-06T05:12:24.946102Z  INFO rmcp::handler::server: client initialized
+2026-09-06T05:12:24.946158Z  INFO serve_inner: rmcp::service: Service initialized as server peer_info=Some(InitializeRequestParam { protocol_version: ProtocolVersion("2024-11-05"), capabilities: ClientCapabilities { experimental: None, roots: None, sampling: None }, client_info: Implementation { name: "local-smoke", version: "1" } })
+2026-09-06T05:12:25.057144Z  INFO serve_inner: svipall_mcp::browser: browser tiers enabled: <home>/.svipall/browser/cft/152.0.7977.75/chrome-win64/chrome.exe (Chrome 152)
+2026-09-06T05:12:25.057249Z  INFO serve_inner: svipall_mcp::server: http engine: wreq (Chrome TLS and HTTP/2 emulation) | identity: Chrome 149 on Windows (browser: Chrome 149)
+2026-09-06T05:12:25.074758Z  INFO serve_inner: rmcp::service: input stream terminated
+2026-09-06T05:12:25.074776Z  INFO serve_inner: rmcp::service: serve finished quit_reason=Closed

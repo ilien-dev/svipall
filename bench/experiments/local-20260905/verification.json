@@ -1,0 +1,25 @@
+﻿{
+    "completed":  "2026-09-06T05:14:00.2974655Z",
+    "manual_browser_tests":  8,
+    "bundled_runtime_modules":  4,
+    "extraction_corpus":  "not configured; four corpus diagnostics unrun",
+    "automation_probes":  160,
+    "live_configuration":  "changed and applied on next call",
+    "comparison_runs":  27,
+    "local_inference":  true,
+    "artifact_profile":  "release, local CPU only",
+    "interrupted_records":  64,
+    "manual_http3_tests":  1,
+    "offline_installer":  "passed",
+    "final_cli_and_mcp_build":  "passed",
+    "comparison_audit":  "passed",
+    "manual_http_tests":  4,
+    "comparison_samples":  918,
+    "embedded_models":  [
+                            "detect",
+                            "segment"
+                        ],
+    "temporary_controller_removed":  true,
+    "mcp_tools":  29,
+    "quality_gate_exit":  0
+}

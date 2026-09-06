@@ -1,0 +1,17 @@
+
+running 1 test
+test native_is_last_and_an_opt_out_prevents_its_launch ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 4 filtered out; finished in 7.73s
+
+
+running 1 test
+test two_useful_browser_observations_skip_failed_http_on_the_third_visit ... FAILED
+
+failures:
+
+failures:
+    two_useful_browser_observations_skip_failed_http_on_the_third_visit
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.75s
+

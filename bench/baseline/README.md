@@ -1,6 +1,12 @@
 # Baseline — 2026-09-02
 
-The numbers every later change is judged against. Regenerate with:
+The historical numbers below retain their original protocol and raw logs. The separate
+[2026-09-05 local comparison](../experiments/local-20260905/README.md) records every first and
+returning visit, invalid-status failures and delivered content. It uses saved before/after binaries
+with the same harness and model assets. Its scores must not be substituted into these old tables:
+the older verdict could label a status-zero response `ok`, and repeat handling also differs.
+
+Regenerate this historical suite with:
 
 ```
 cargo run -p svipall-bench --release -- fingerprint                > baseline/fingerprint.json 2> baseline/fingerprint.txt

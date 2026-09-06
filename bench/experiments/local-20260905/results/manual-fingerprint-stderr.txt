@@ -1,0 +1,4 @@
+   Compiling svipall-core v1.0.0 (<repo>\crates\svipall-core)
+   Compiling svipall-http v1.0.0 (<repo>\crates\svipall-http)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 6.65s
+     Running tests\fingerprint.rs (target\debug\deps\fingerprint-10f7fe15de4c11ff.exe)
