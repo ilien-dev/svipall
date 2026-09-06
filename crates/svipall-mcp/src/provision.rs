@@ -1,7 +1,7 @@
 //! Fetching a browser when the machine has none.
 //!
-//! Nothing here runs on its own. The ladder reports an actionable error and the operator (or the
-//! model) calls `browser_setup` — downloading 190 MB is not something to do behind someone's back.
+//! Startup provisions the managed browser when browser_auto_install is enabled and no browser is
+//! installed. HTTP-only configurations and explicit opt-outs make no provisioning requests.
 //!
 //! Chrome for Testing is used rather than a Chromium snapshot: it is a real Chrome build with a
 //! real version number, and the whole identity design depends on the User-Agent not lying about
@@ -22,6 +22,33 @@ const VERSIONS_URL: &str =
 /// carries `Accept-Ranges: bytes` plus `x-goog-hash: md5=…`, which is what makes resume and
 /// integrity checking possible rather than aspirational.
 const CHROME_ARTIFACT: &str = "chrome";
+
+/// The normal startup path handles a missing browser using the existing managed provisioner.
+/// An explicit executable is never silently replaced. HTTP-only use never downloads a browser.
+pub async fn ensure_browser(cfg: &mut svipall_core::Config) -> Result<()> {
+    if !cfg.browser_path.trim().is_empty() {
+        anyhow::ensure!(
+            std::path::Path::new(&cfg.browser_path).is_file(),
+            "configured browser_path does not exist"
+        );
+        return Ok(());
+    }
+    if !cfg.browser_auto_install
+        || cfg.max_tier == "http"
+        || !crate::browser::detect_all(cfg).is_empty()
+    {
+        return Ok(());
+    }
+    let identity = svipall_core::IdentityProfile::resolve(None, cfg);
+    let http = svipall_http::build(svipall_http::FetcherConfig::new(identity))?;
+    let provisioner = Provisioner::new(http, None);
+    let release = provisioner.latest_stable().await?;
+    let installed = provisioner
+        .install(&release, &mut |s| tracing::info!("{s}"))
+        .await?;
+    cfg.browser_path = installed.exe;
+    Ok(())
+}
 
 #[derive(Debug, Deserialize)]
 struct VersionsFile {

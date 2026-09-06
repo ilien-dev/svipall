@@ -4,7 +4,7 @@
 use rmcp::{
     handler::server::{router::tool::ToolRouter, tool::Parameters},
     model::*,
-    tool, tool_handler, tool_router, ErrorData as McpError, ServerHandler,
+    tool, tool_router, ErrorData as McpError, ServerHandler,
 };
 use serde_json::{json, Value};
 use std::collections::{HashMap, HashSet};
@@ -42,6 +42,7 @@ const BINARY_EXT: &[&str] = &[
 
 #[derive(Clone)]
 pub struct SvipallServer {
+    live_policy: Option<Arc<tokio::sync::Mutex<LivePolicy>>>,
     tool_router: ToolRouter<Self>,
     solver_state: Option<Arc<svipall_solver::AppState>>,
     /// The http tier's engine, and the identity everything else must agree with.
@@ -55,6 +56,8 @@ pub struct SvipallServer {
     /// keeps working without it, just without caching.
     store: Option<Arc<svipall_core::cache::Store>>,
     pool: Arc<BrowserPool>,
+    native_pool: Arc<BrowserPool>,
+    traffic: Arc<anyhow::Result<svipall_core::traffic::Ledger>>,
     cfg: Arc<Config>,
     /// Tokenised human-dashboard URL, or None when the solver DB could not be opened.
     dashboard_url: Option<Arc<str>>,
@@ -62,6 +65,30 @@ pub struct SvipallServer {
     /// machine that cannot reach the sources, and that is a working state rather than an error.
     blocklist: Arc<tokio::sync::OnceCell<svipall_core::blocklist::Blocklist>>,
 }
+
+struct LivePolicy {
+    signature: String,
+    current: Option<Arc<SvipallServer>>,
+    retired: Vec<Arc<SvipallServer>>,
+}
+
+#[derive(Debug)]
+struct VisitRefusal {
+    kind: &'static str,
+    seconds: u64,
+    detail: String,
+}
+
+impl std::fmt::Display for VisitRefusal {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "{}: {}; wait {}s before retrying",
+            self.kind, self.detail, self.seconds
+        )
+    }
+}
+impl std::error::Error for VisitRefusal {}
 
 /// What a browser tier is being asked for, beyond the URL.
 ///
@@ -219,6 +246,8 @@ fn never_requested(v: &Value) -> Option<&'static str> {
     match v.get("blocked_reason").and_then(Value::as_str) {
         Some("address_budget") => Some("over_budget"),
         Some("cooldown") => Some("cooldown"),
+        Some("traffic_state") => Some("traffic_state"),
+        Some("timeout") if v["network_attempted"] == false => Some("timeout"),
         _ => None,
     }
 }
@@ -625,6 +654,12 @@ impl SvipallServer {
         store: Option<Arc<svipall_core::cache::Store>>,
     ) -> Self {
         let pool = Arc::new(BrowserPool::new(cfg.clone()));
+        let mut native_cfg = cfg.clone();
+        native_cfg.browser_identity = "native".into();
+        let native_pool = Arc::new(BrowserPool::new(native_cfg));
+        let traffic = Arc::new(svipall_core::traffic::Ledger::open(
+            &svipall_core::config::home_dir().join("traffic.sqlite3"),
+        ));
         // The browser binary decides which Chrome we may claim to be; see IdentityProfile::resolve.
         let identity = IdentityProfile::resolve(pool.browser_major(), &cfg);
         let store = store.or_else(|| match svipall_core::cache::Store::open() {
@@ -652,6 +687,7 @@ impl SvipallServer {
             identity.chrome_major
         );
         Self {
+            live_policy: None,
             tool_router: Self::tool_router(),
             solver_state,
             fetcher,
@@ -660,9 +696,98 @@ impl SvipallServer {
             identity: Arc::new(identity),
             store,
             pool,
+            native_pool,
+            traffic,
             cfg: Arc::new(cfg),
             dashboard_url: dashboard_url.map(Arc::from),
             blocklist: Arc::new(tokio::sync::OnceCell::new()),
+        }
+    }
+
+    /// Long-running transports refresh policy at request boundaries. Tests and benchmarks keep
+    /// their explicitly supplied configuration unless they opt in to this application behavior.
+    pub fn with_live_configuration(mut self) -> Self {
+        let current = Arc::new(self.clone());
+        self.live_policy = Some(Arc::new(tokio::sync::Mutex::new(LivePolicy {
+            signature: serde_json::to_string(self.cfg.as_ref()).unwrap_or_default(),
+            current: Some(current),
+            retired: Vec::new(),
+        })));
+        self
+    }
+
+    pub async fn active(&self) -> anyhow::Result<Arc<Self>> {
+        let Some(live) = &self.live_policy else {
+            return Ok(Arc::new(self.clone()));
+        };
+        let mut state = live.lock().await;
+        let mut cfg = svipall_core::config::load_in(&svipall_core::config::home_dir())?;
+        let signature = serde_json::to_string(&cfg)?;
+        if signature != state.signature {
+            crate::provision::ensure_browser(&mut cfg).await?;
+            let next = Arc::new(Self::with_store(
+                self.solver_state.clone(),
+                cfg,
+                self.dashboard_url.as_ref().map(|s| s.to_string()),
+                self.store.clone(),
+            ));
+            let old = state.current.replace(next).unwrap_or_else(|| {
+                let mut old = self.clone();
+                old.live_policy = None;
+                Arc::new(old)
+            });
+            state.retired.push(old);
+            state.signature = signature;
+        }
+        // In-flight calls own an Arc and explicitly opened browser sessions retain their pool.
+        // Completed generations can close immediately; a configuration update never interrupts
+        // a request that already started.
+        let mut i = 0;
+        while i < state.retired.len() {
+            if Arc::strong_count(&state.retired[i]) == 1
+                && state.retired[i].pool.session_ids().await.is_empty()
+            {
+                let old = state.retired.remove(i);
+                old.pool.shutdown().await;
+                old.native_pool.shutdown().await;
+            } else {
+                i += 1;
+            }
+        }
+        Ok(state.current.clone().unwrap_or_else(|| {
+            let mut current = self.clone();
+            current.live_policy = None;
+            Arc::new(current)
+        }))
+    }
+
+    pub async fn reap_configuration(&self) {
+        if let Ok(active) = self.active().await {
+            active.pool.reap_idle().await;
+            active.native_pool.reap_idle().await;
+        }
+    }
+
+    pub fn solve_engine(&self) -> SolveEngine {
+        match &self.solver_state {
+            Some(state) => SolveEngine::with_state(self.pool.clone(), &self.cfg, state.clone()),
+            None => SolveEngine::new(self.pool.clone(), &self.cfg),
+        }
+    }
+
+    pub async fn shutdown_configuration(&self) {
+        self.pool.shutdown().await;
+        self.native_pool.shutdown().await;
+        if let Some(live) = &self.live_policy {
+            let state = live.lock().await;
+            if let Some(current) = &state.current {
+                current.pool.shutdown().await;
+                current.native_pool.shutdown().await;
+            }
+            for old in &state.retired {
+                old.pool.shutdown().await;
+                old.native_pool.shutdown().await;
+            }
         }
     }
 
@@ -972,12 +1097,95 @@ impl SvipallServer {
     ///
     /// `web_route check` is deliberately not here: it is a probe of the operator's own exits, and
     /// charging it would make diagnosing a pool cost the thing the pool exists to protect.
-    fn charge_visit(&self, url: &str, tier: BrowserTier, proxy: Option<&str>) {
+    async fn charge_visit(
+        &self,
+        url: &str,
+        tier: BrowserTier,
+        proxy: Option<&str>,
+    ) -> anyhow::Result<()> {
         let domain = domain_from_url(url);
         if is_local(&domain) {
-            return;
+            return Ok(());
         }
-        svipall_core::reputation::spend(&domain, proxy, tier.as_str(), false);
+        self.admit_visit(&domain, proxy)?;
+        self.pace_visit(&domain, proxy, tier.as_str()).await?;
+        let left = self.pending_hold(&domain, proxy)?;
+        anyhow::ensure!(left == 0, "cooldown: wait {left}s before retrying");
+        Ok(())
+    }
+
+    async fn pace_visit(
+        &self,
+        domain: &str,
+        proxy: Option<&str>,
+        tier: &str,
+    ) -> anyhow::Result<()> {
+        let ledger = self
+            .traffic
+            .as_ref()
+            .as_ref()
+            .map_err(|e| anyhow::anyhow!("traffic ledger unavailable: {e}"))?;
+        let now_ms = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)?
+            .as_millis() as u64;
+        let delay = ledger.pace(domain, proxy, now_ms, self.cfg.request_min_interval_ms)?;
+        tokio::time::sleep(Duration::from_millis(delay)).await;
+        throttle::throttle_at_least(
+            domain,
+            proxy,
+            tier,
+            Duration::from_millis(self.cfg.request_min_interval_ms),
+        )
+        .await;
+        Ok(())
+    }
+
+    fn admit_visit(&self, domain: &str, proxy: Option<&str>) -> Result<(), VisitRefusal> {
+        if let Some(left) = svipall_core::check_cooldown(domain) {
+            return Err(VisitRefusal {
+                kind: "cooldown",
+                seconds: left,
+                detail: "site backoff is active".into(),
+            });
+        }
+        if let Some(r) = svipall_core::reputation::refusal(domain, proxy) {
+            return Err(VisitRefusal {
+                kind: "address_budget",
+                seconds: r.seconds_left,
+                detail: "address budget is exhausted".into(),
+            });
+        }
+        let ledger = self.traffic.as_ref().as_ref().map_err(|e| VisitRefusal {
+            kind: "traffic_state",
+            seconds: 0,
+            detail: e.to_string(),
+        })?;
+        if let Some(left) = ledger
+            .reserve(domain, proxy, &self.cfg, svipall_core::automatic::now())
+            .map_err(|e| VisitRefusal {
+                kind: "traffic_state",
+                seconds: 0,
+                detail: e.to_string(),
+            })?
+        {
+            return Err(VisitRefusal {
+                kind: "cooldown",
+                seconds: left,
+                detail: "visit limit or server backoff applies to this site and exit".into(),
+            });
+        }
+        Ok(())
+    }
+
+    fn pending_hold(&self, domain: &str, proxy: Option<&str>) -> anyhow::Result<u64> {
+        let ledger = self
+            .traffic
+            .as_ref()
+            .as_ref()
+            .map_err(|e| anyhow::anyhow!("traffic ledger unavailable: {e}"))?;
+        Ok(ledger
+            .remaining(domain, proxy, svipall_core::automatic::now())?
+            .max(svipall_core::throttle::cooldown_left(domain)))
     }
 
     /// The exit a domain leaves through now: one of its pool, or its single route, or none.
@@ -1469,10 +1677,10 @@ impl SvipallServer {
         let Ok(parsed) = url::Url::parse(url) else {
             return;
         };
-        let Some(host) = parsed.host_str() else {
+        if parsed.host_str().is_none() {
             return;
-        };
-        let root = format!("{}://{}/", parsed.scheme(), host);
+        }
+        let root = format!("{}/", parsed.origin().ascii_serialization());
         // Already the front page: there is nothing to arrive from.
         if parsed.path() == "/" && parsed.query().is_none() {
             return;
@@ -1495,13 +1703,29 @@ impl SvipallServer {
         url: &str,
         profile: Option<&str>,
     ) -> Option<PathBuf> {
-        match tier {
+        let dir = match tier {
             BrowserTier::Real | BrowserTier::Warm => Some(match profile {
                 Some(name) => named_profile(name),
-                None => PathBuf::from(svipall_core::auto_profile_path(url, true)),
+                None => PathBuf::from(svipall_core::auto_profile_path(url, false)),
             }),
             _ => profile.map(named_profile),
-        }
+        };
+        // Native and emulated sessions must never reuse each other's cookies or browser files.
+        // Named profiles stay explicit; automatic fallback is disabled for them.
+        let dir = if self.cfg.browser_identity == "native" && dir.is_none() {
+            Some(PathBuf::from(svipall_core::auto_profile_path(url, false)))
+        } else {
+            dir
+        };
+        dir.map(|p| {
+            if self.cfg.browser_identity == "native" && profile.is_none() {
+                let mut path = p.into_os_string();
+                path.push(".native");
+                PathBuf::from(path)
+            } else {
+                p
+            }
+        })
     }
 
     /// A profile that exists only for one fetch.
@@ -1535,10 +1759,9 @@ impl SvipallServer {
         } else {
             self.profile_dir_for(tier, url, profile)
         };
-        // Isolation means nothing carried in, and the machine is the first thing a wall carries
-        // between visits. A fresh profile wearing the usual hardware is only half a stranger, so
-        // isolation draws a machine nothing can tie to anything. Every other fetch wears the one
-        // its profile is filed under.
+        // Isolation draws a fresh emulated identity and clears profile state. This reduces
+        // linkability but cannot guarantee anonymity, especially with explicit native mode.
+        let first_visit = profile_dir.as_ref().is_some_and(|d| !d.exists());
         let identity_seed = if isolated {
             Some(uuid::Uuid::new_v4().as_u128() as u64)
         } else {
@@ -1546,7 +1769,6 @@ impl SvipallServer {
         };
         // Read before the browser is launched, because launching creates the directory: asked
         // afterwards, every profile looks like one that has been here before.
-        let first_visit = profile_dir.as_ref().is_some_and(|d| !d.exists());
         let opts = PageOpts {
             mobile,
             tier,
@@ -1558,7 +1780,7 @@ impl SvipallServer {
         // A page held from an earlier fetch of this domain, when there is one. Never for an
         // isolated fetch or one wearing a borrowed machine: both promise to share nothing with
         // anything, and a shared tab is the opposite of that.
-        let kept_key = (!isolated && identity_seed.is_none())
+        let kept_key = (!isolated && !mobile)
             .then(|| BrowserPool::kept_key(&opts, &domain_from_url(url), text_only));
         let (pooled, page, reused) = match &kept_key {
             Some(k) => self.pool.warm_page(&opts, k).await?,
@@ -1579,6 +1801,23 @@ impl SvipallServer {
             let _ = self.pool.block_tracking(&page, list).await;
         }
         let result = async {
+            // A request through the existing document retains SDK closures and still reaches the
+            // network (even for cache=bypass). A full Page.navigate would destroy that runtime.
+            // Only accept a complete HTML response; shells, redirects and challenges fall back
+            // to normal navigation so extraction never mistakes the old document for fresh data.
+            if reused && scroll == 0 {
+                if let Some(live) = self.pool.fetch_in_document(&page, url).await {
+                    let parts = extraction::parse_page(&live.html, &ParseWants::text());
+                    let cookies = self.pool.cookie_names(&page).await;
+                    let view = PageView::new(&live.html, &parts.text).on_the_wire(&live.headers, &cookies);
+                    if classify_view(live.status, &live.html, &view).0.is_none()
+                        && parts.text.trim().len() >= 200
+                    {
+                        return Ok((live.status, live.html, live.url, None, live.headers, cookies,
+                            Some(json!({"ended":"cleared","document_reused":true,"network_fetch":true})), Some(true)));
+                    }
+                }
+            }
             self.warm_up(&page, tier, url, first_visit).await;
             // After the front door, whose headers are not this page's; before navigating, because
             // the document's response is the first thing back and a later listener has missed it.
@@ -1632,7 +1871,13 @@ impl SvipallServer {
                 status = 200;
             }
             if tier == BrowserTier::Warm {
-                let mut deadline = Instant::now() + self.pool.warm_wait();
+                let initial_view = PageView::new(&html, "").on_the_wire(&headers, &cookies);
+                let warm_budget = svipall_core::warm::wait_budget_ms(
+                    self.cfg.warm_wait_ms, self.cfg.warm_max_wait_ms, self.cfg.warm_adaptive,
+                    svipall_core::classify::is_proof_of_work_wall(&initial_view));
+                let wait_started = Instant::now();
+                let hard_deadline = wait_started + Duration::from_millis(self.cfg.warm_max_wait_ms);
+                let mut deadline = wait_started + Duration::from_millis(warm_budget);
                 let mut extended = false;
                 // The proof-of-work vendor's clearance expires while the page sits there, so a
                 // warm wait long enough to be useful is also long enough to lose it. This is when
@@ -1674,7 +1919,8 @@ impl SvipallServer {
                     // "verification successful, waiting for the site to respond" at the deadline is
                     // a pass already earned, and giving up then throws it away — so the deadline
                     // moves once, and only when the page itself says so.
-                    let progress = svipall_core::challenge_reports_progress(view.low_text());
+                    let progress = svipall_core::challenge_reports_progress(view.low_text())
+                        && (!self.cfg.warm_adaptive || Instant::now() < hard_deadline);
                     let past = Instant::now() > deadline;
                     if let Some(end) =
                         warm_should_stop(reason.is_none(), &kind, blamed, past, extended, progress)
@@ -1683,7 +1929,11 @@ impl SvipallServer {
                     }
                     if past && !extended {
                         extended = true;
-                        deadline = Instant::now() + Duration::from_secs(15);
+                        deadline = if self.cfg.warm_adaptive {
+                            (Instant::now() + Duration::from_secs(15)).min(hard_deadline)
+                        } else {
+                            Instant::now() + Duration::from_secs(15)
+                        };
                     }
                     // One short turn: probe, run what applies, nudge if nothing does. Bounded so
                     // the classifier above looks at the page again soon after.
@@ -1761,6 +2011,8 @@ impl SvipallServer {
                     "secs": (started.elapsed().as_secs_f32() * 10.0).round() / 10.0,
                     "reissued": reissued,
                     "reissue_changed": reissue_changed,
+                    "budget_ms": warm_budget,
+                    "adaptive": self.cfg.warm_adaptive,
                 }));
             }
             // Is this page worth holding open between fetches? The runtime-clearance test comes
@@ -1792,7 +2044,7 @@ impl SvipallServer {
         let worth_keeping = svipall_core::warm::should_keep(
             true,
             isolated,
-            identity_seed.is_some(),
+            mobile,
             runtime_clearance.unwrap_or(false),
             runtime_clearance.is_some(),
         );
@@ -1802,11 +2054,16 @@ impl SvipallServer {
             None => self.pool.close_page(page).await,
         }
         if isolated {
-            // Best effort, and after the page rather than after the process: the pool may still
-            // hold the browser open, in which case the directory goes on the next sweep. Leaving a
-            // few kilobytes behind is a smaller failure than blocking a fetch on a file lock.
+            // The internally generated once-profile owns a dedicated browser. Close that process
+            // before removing its directory; an open pooled browser keeps it locked on Windows.
+            // Retirement already bounds the wait for the process to release its files.
             if let Some(dir) = &profile_dir {
-                let _ = std::fs::remove_dir_all(dir);
+                if !self.pool.retire_profile(dir).await {
+                    tracing::warn!(
+                        "could not remove isolated browser profile {}",
+                        dir.display()
+                    );
+                }
             }
         }
         let (status, html, final_url, scroll_rounds, headers, cookies, warm, _) = result?;
@@ -1836,7 +2093,10 @@ impl SvipallServer {
     /// ones somebody remembered to instrument.
     pub async fn fetch_json_opts(&self, p: WebFetchParams, want_links: bool) -> FetchOutcome {
         let started = std::time::Instant::now();
-        let out = self.fetch_json_inner(p, want_links).await;
+        let mut out = self.fetch_json_inner(p, want_links).await;
+        if out.value["identity_used"] == "native" || out.value["native_fallback"] == true {
+            out.value["privacy_notice"] = json!("Native mode exposes real browser and device characteristics. Separate cookies do not prevent fingerprint linking; the network exit is unchanged.");
+        }
         if let Some(store) = self.store.as_ref() {
             let wall = out.value["wall_kind"].as_str().unwrap_or("");
             // A URL the policy refused was never requested, so it is not a request.
@@ -1931,6 +2191,7 @@ impl SvipallServer {
     }
 
     async fn fetch_inner(&self, p: &WebFetchParams, want_links: bool) -> FetchOutcome {
+        let fetch_started = Instant::now();
         let url = p.url.clone();
         let cache_mode = p
             .cache
@@ -1997,11 +2258,11 @@ impl SvipallServer {
             .clone()
             .unwrap_or_else(|| self.cfg.max_tier.clone());
 
-        if mode == "auto" && !local {
+        if !local {
             if let Some(left) = svipall_core::check_cooldown(&domain) {
                 return FetchOutcome {
                     value: json!({"url": url, "status": 0, "blocked_reason": "cooldown", "wall_kind": "status", "cooldown_seconds_left": left, "attempts": [],
-                        "note": format!("This domain hard-blocked us {}s ago and is cooling down. Use web_route with a proxy, or web_status(clear_cooldown=\"{}\").", 900 - left.min(900), domain)}),
+                        "note": format!("This site is cooling down. Wait {left}s before trying again; changing identity does not reset the limit.")}),
                     links: Vec::new(),
                     final_url: url,
                 };
@@ -2031,11 +2292,21 @@ impl SvipallServer {
         // One http attempt in front of a learned tier when the domain advertises h3: what was
         // learned was learned over TCP, and QUIC is a different request rather than a repeat.
         let h3_probe = !local && self.h3_plan(&domain, &url, proxy.as_deref()) != H3Plan::Off;
-        let mut tiers: Vec<String> = if local {
-            vec!["http".to_string()]
-        } else {
-            svipall_core::build_ladder(mode, &max_tier, &domain, h3_probe)
-        };
+        let mut tiers: Vec<String> =
+            if local && (mode == "auto" || url.starts_with("raw:") || url.starts_with("file://")) {
+                vec!["http".to_string()]
+            } else {
+                svipall_core::build_ladder(
+                    mode,
+                    &max_tier,
+                    if self.cfg.browser_identity == "auto" {
+                        ""
+                    } else {
+                        &domain
+                    },
+                    h3_probe,
+                )
+            };
         // Scrolling is something only a browser can do, so a fetch that asks for it never starts
         // at the http tier: the answer would be the first screen, which is what the caller is
         // trying not to get.
@@ -2061,46 +2332,199 @@ impl SvipallServer {
             tiers = vec!["http".to_string()];
         }
 
+        let automatic = mode == "auto" && self.cfg.browser_identity == "auto" && !local;
+        let route_context = svipall_core::automatic::context(
+            &url,
+            proxy.as_deref(),
+            &format!(
+                "{:?}|{:?}|{}|{:?}|{}|{}",
+                self.pool.browser_major(),
+                self.identity,
+                p.mobile.unwrap_or(false),
+                p.profile,
+                p.isolated.unwrap_or(false),
+                scroll_rounds(p)
+            ),
+        );
+        if automatic {
+            let native_allowed = self.cfg.auto_native_fallback
+                && p.profile.is_none()
+                && !p.isolated.unwrap_or(false)
+                && !p.mobile.unwrap_or(false)
+                && p.body.is_none()
+                && p.method
+                    .as_deref()
+                    .is_none_or(|m| m.eq_ignore_ascii_case("GET"));
+            tiers = svipall_core::automatic::plan(
+                &tiers,
+                &svipall_core::automatic::load(&route_context),
+                svipall_core::automatic::now(),
+                native_allowed,
+            );
+        }
         let mut attempts: Vec<String> = Vec::new();
+        let mut made = 0;
+        let mut native_attempted = false;
+        let mut stopped: Option<String> = None;
+        let mut stopped_wait = 0;
+        let mut stopped_kind = "error";
+        let mut last_identity = if self.cfg.browser_identity == "native" {
+            "native"
+        } else {
+            "emulated"
+        };
         let mut last: Option<(TierOutcome, PageParts, String, WallKind, String)> = None;
         // Set when a persistent profile has been refused by a wall that judges the session, for
         // the one retry on a profile nobody has seen. See the note where it is set.
         let mut retire_profile = false;
         let mut i = 0;
         while i < tiers.len() {
-            let tier = tiers[i].clone();
+            if mode == "auto" && made >= self.cfg.auto_max_attempts {
+                stopped = Some(format!(
+                    "attempt_limit: stopped after {made} transport attempts"
+                ));
+                stopped_kind = "attempt_limit";
+                break;
+            }
+            let route = tiers[i].clone();
+            let native = route.starts_with("native:");
+            let tier = route.strip_prefix("native:").unwrap_or(&route).to_string();
+            let identity_mode = if native || self.cfg.browser_identity == "native" {
+                "native"
+            } else {
+                "emulated"
+            };
+            let attempt_pool = if native {
+                &self.native_pool
+            } else {
+                &self.pool
+            };
             let bt = BrowserTier::parse(&tier);
-            if bt.is_some() && !self.pool.available() {
+            if bt.is_some() && !attempt_pool.available() {
                 attempts.push(format!("{}: SKIP {}", tier, no_browser_hint()));
                 break;
             }
             if !local {
-                throttle(&domain, proxy.as_deref(), &tier).await;
+                if let Err(e) = self.admit_visit(&domain, proxy.as_deref()) {
+                    stopped_wait = e.seconds;
+                    stopped_kind = e.kind;
+                    stopped = Some(e.to_string());
+                    break;
+                }
+                let pacing_budget = Duration::from_millis(p.timeout.unwrap_or(60_000))
+                    .saturating_sub(fetch_started.elapsed())
+                    .saturating_sub(Duration::from_millis(100));
+                match tokio::time::timeout(
+                    pacing_budget,
+                    self.pace_visit(&domain, proxy.as_deref(), &tier),
+                )
+                .await
+                {
+                    Ok(Ok(())) => {}
+                    Ok(Err(e)) => {
+                        stopped_kind = "traffic_state";
+                        stopped = Some(e.to_string());
+                        break;
+                    }
+                    Err(_) => {
+                        stopped_kind = "timeout";
+                        stopped = Some("timeout: pacing would exceed the fetch deadline; no further request was sent".into());
+                        break;
+                    }
+                }
+                match self.pending_hold(&domain, proxy.as_deref()) {
+                    Ok(0) => {}
+                    Ok(left) => {
+                        stopped_wait = left;
+                        stopped_kind = "cooldown";
+                        stopped = Some(format!(
+                            "cooldown: wait {left}s; a concurrent visit triggered backoff"
+                        ));
+                        break;
+                    }
+                    Err(e) => {
+                        stopped_kind = "traffic_state";
+                        stopped = Some(e.to_string());
+                        break;
+                    }
+                }
             }
             let t0 = Instant::now();
-            let outcome = match bt {
-                None => self.tier_http(p, proxy.as_deref(), revalidate.take()).await,
-                Some(b) => {
-                    self.tier_browser(
-                        b,
-                        &url,
-                        BrowserWants {
-                            text_only: p.text_only.unwrap_or(false),
-                            mobile: p.mobile.unwrap_or(false),
-                            proxy: proxy.clone(),
-                            profile: p.profile.as_deref(),
-                            scroll: scroll_rounds(p),
-                            isolated: p.isolated.unwrap_or(false) || retire_profile,
-                        },
-                    )
-                    .await
+            let remaining = Duration::from_millis(p.timeout.unwrap_or(60_000))
+                .saturating_sub(fetch_started.elapsed())
+                .saturating_sub(Duration::from_millis(100));
+            if remaining.is_zero() {
+                stopped = Some("timeout: no time remains for another route".into());
+                stopped_kind = "timeout";
+                break;
+            }
+            made += 1;
+            if native {
+                attempts.push(
+                    "native: last-resort fallback; real browser characteristics are exposed".into(),
+                );
+            }
+            native_attempted |= native;
+            let outcome = tokio::time::timeout(remaining, async {
+                match bt {
+                    None => self.tier_http(p, proxy.as_deref(), revalidate.take()).await,
+                    Some(b) => {
+                        let mut runner = self.clone();
+                        if native {
+                            runner.pool = self.native_pool.clone();
+                            let mut cfg = self.cfg.as_ref().clone();
+                            cfg.browser_identity = "native".into();
+                            runner.cfg = Arc::new(cfg);
+                        }
+                        runner
+                            .tier_browser(
+                                b,
+                                &url,
+                                BrowserWants {
+                                    text_only: p.text_only.unwrap_or(false),
+                                    mobile: p.mobile.unwrap_or(false),
+                                    proxy: proxy.clone(),
+                                    profile: p.profile.as_deref(),
+                                    scroll: scroll_rounds(p),
+                                    isolated: p.isolated.unwrap_or(false) || retire_profile,
+                                },
+                            )
+                            .await
+                    }
+                }
+            })
+            .await;
+            let outcome = match outcome {
+                Ok(outcome) => outcome,
+                Err(_) => {
+                    stopped = Some(format!(
+                        "timeout: {route} exhausted the remaining fetch time"
+                    ));
+                    if automatic {
+                        svipall_core::automatic::record(
+                            &route_context,
+                            &route,
+                            svipall_core::automatic::Feedback::Failed,
+                            t0.elapsed().as_millis() as u64,
+                        );
+                    }
+                    stopped_kind = "timeout";
+                    break;
                 }
             };
             let ms = t0.elapsed().as_millis();
             let o = match outcome {
                 Ok(o) => o,
                 Err(e) => {
-                    attempts.push(format!("{}: EXC {} ({}ms)", tier, e, ms));
+                    attempts.push(format!("{}: EXC {} ({}ms)", route, e, ms));
+                    if automatic {
+                        svipall_core::automatic::record(
+                            &route_context,
+                            &route,
+                            svipall_core::automatic::Feedback::Failed,
+                            ms as u64,
+                        );
+                    }
                     // A probe that threw is a probe that did not deliver, and it has to be
                     // remembered as one. Without this the `continue` below skips the only place
                     // that records it, and the same wasted attempt is paid on every future fetch
@@ -2110,6 +2534,33 @@ impl SvipallServer {
                     continue;
                 }
             };
+            last_identity = if bt.is_none() {
+                "emulated"
+            } else {
+                identity_mode
+            };
+            let rate_limited = matches!(o.status, 429 | 503);
+            if !local && rate_limited {
+                let wait = o
+                    .header("retry-after")
+                    .and_then(throttle::parse_retry_after)
+                    .map(|d| d.as_secs())
+                    .unwrap_or(self.cfg.request_cooldown_seconds)
+                    .max(self.cfg.request_cooldown_seconds);
+                if let Ok(ledger) = self.traffic.as_ref() {
+                    if let Err(e) = ledger.hold(
+                        &domain,
+                        proxy.as_deref(),
+                        svipall_core::automatic::now().saturating_add(wait),
+                    ) {
+                        tracing::warn!("cannot persist server backoff: {e}");
+                        svipall_core::set_cooldown(&domain);
+                    }
+                }
+                stopped = Some(format!("cooldown: server requested backoff; wait {wait}s"));
+                stopped_wait = wait;
+                stopped_kind = "cooldown";
+            }
             // Feed the pace: this is what lets a fast host be crawled quickly and a hostile one
             // be backed off, instead of every domain paying the same fixed gap.
             if !local {
@@ -2275,7 +2726,7 @@ impl SvipallServer {
                 // the front page, a sudden collapse in speed — and those are exactly how a tab goes
                 // bad without saying so. Two of them retire it.
                 if let Some(k) = o.kept_key.as_deref() {
-                    self.pool.record_kept(k, verdict).await;
+                    attempt_pool.record_kept(k, verdict).await;
                 }
                 if verdict != svipall_core::session::Verdict::Ok && (200..400).contains(&o.status) {
                     // Only the quiet cases: an explicit 4xx/5xx was already reported above.
@@ -2320,9 +2771,37 @@ impl SvipallServer {
             // paying an extra attempt to be told so on every future fetch is the cost this
             // remembers away. It expires, because a dropped UDP port is usually the network.
             self.record_h3_probe(h3_probe, &tier, &domain, reason.is_none());
+            if automatic
+                && !rate_limited
+                && !matches!(o.status, 401 | 407)
+                && !matches!(
+                    kind,
+                    WallKind::NotFound
+                        | WallKind::Gate
+                        | WallKind::SoftNotFound
+                        | WallKind::Login
+                        | WallKind::Paywall
+                )
+            {
+                use svipall_core::automatic::Feedback;
+                svipall_core::automatic::record(
+                    &route_context,
+                    &route,
+                    if reason.is_some() {
+                        Feedback::Failed
+                    } else if (200..300).contains(&o.status)
+                        && integrity.verdict == svipall_core::quality::Verdict::Full
+                    {
+                        Feedback::Useful
+                    } else {
+                        Feedback::Delivered
+                    },
+                    ms as u64,
+                );
+            }
             let Some(reason) = reason else {
                 attempts.push(format!("{}: {} ({}ms) OK", tier, o.status, ms));
-                if mode == "auto" && !local {
+                if mode == "auto" && !local && !automatic {
                     svipall_core::remember_tier(&domain, &tier);
                 }
                 if retire_profile {
@@ -2337,6 +2816,8 @@ impl SvipallServer {
                 let mut value = json!({
                     "url": url, "final_url": o.final_url, "status": o.status, "tier_used": tier,
                     "exit": proxy,
+                    "identity_used": last_identity,
+                    "native_fallback": native,
                     "title": parts.title, "attempts": attempts,
                 });
                 let obj = value.as_object_mut().expect("object");
@@ -2635,36 +3116,53 @@ impl SvipallServer {
                     final_url: o.final_url,
                 };
             };
-            attempts.push(format!("{}: {} ({}ms) -> {}", tier, o.status, ms, reason));
-            let next = match kind {
-                // A page that says it does not exist says the same thing from every tier, so it
-                // stops the ladder the way a real 404 does rather than costing four climbs.
-                WallKind::NotFound | WallKind::Gate | WallKind::SoftNotFound => tiers.len(),
-                // A subscription stub is the article withheld, not the page hidden from a bot:
-                // only a signed-in profile changes the answer, exactly like a login wall.
-                WallKind::Login | WallKind::Paywall => {
-                    if p.profile.is_some() {
-                        tiers.len()
-                    } else {
-                        jump(&tiers, i, "real")
+            attempts.push(format!("{}: {} ({}ms) -> {}", route, o.status, ms, reason));
+            let terminal = rate_limited
+                || matches!(o.status, 401 | 407)
+                || matches!(
+                    kind,
+                    WallKind::NotFound
+                        | WallKind::Gate
+                        | WallKind::SoftNotFound
+                        | WallKind::Login
+                        | WallKind::Paywall
+                );
+            let next = if terminal {
+                tiers.len()
+            } else if automatic {
+                i + 1
+            } else {
+                match kind {
+                    // A page that says it does not exist says the same thing from every tier, so it
+                    // stops the ladder the way a real 404 does rather than costing four climbs.
+                    WallKind::NotFound | WallKind::Gate | WallKind::SoftNotFound => tiers.len(),
+                    // A subscription stub is the article withheld, not the page hidden from a bot:
+                    // only a signed-in profile changes the answer, exactly like a login wall.
+                    WallKind::Login | WallKind::Paywall => {
+                        if p.profile.is_some() {
+                            tiers.len()
+                        } else {
+                            jump(&tiers, i, "real")
+                        }
                     }
-                }
-                WallKind::Vendor | WallKind::Hold => jump(&tiers, i, "real"),
-                // "Just a moment…" is a script that lets you through, and a stealth-patched
-                // headless browser clears it in seconds. The *managed* challenge scores the
-                // visitor instead, and headless has never passed one here — so it goes straight to
-                // the headful tier rather than spending an attempt, and teaching the site
-                // something, on the way.
-                WallKind::Cloudflare => {
-                    let to =
-                        if svipall_core::cloudflare_is_managed_challenge(&o.html.to_lowercase()) {
+                    WallKind::Vendor | WallKind::Hold => jump(&tiers, i, "real"),
+                    // "Just a moment…" is a script that lets you through, and a stealth-patched
+                    // headless browser clears it in seconds. The *managed* challenge scores the
+                    // visitor instead, and headless has never passed one here — so it goes straight to
+                    // the headful tier rather than spending an attempt, and teaching the site
+                    // something, on the way.
+                    WallKind::Cloudflare => {
+                        let to = if svipall_core::cloudflare_is_managed_challenge(
+                            &o.html.to_lowercase(),
+                        ) {
                             "real"
                         } else {
                             "stealth"
                         };
-                    jump(&tiers, i, to)
+                        jump(&tiers, i, to)
+                    }
+                    _ => i + 1,
                 }
-                _ => i + 1,
             };
             // A hold that would not clear on a persistent profile is the profile, not the page.
             // Measured: the widget's own vendor keeps the session it once flagged, in the
@@ -2678,6 +3176,7 @@ impl SvipallServer {
                 && p.profile.is_none()
                 && !p.isolated.unwrap_or(false)
                 && kind == WallKind::Hold
+                && !automatic
             {
                 retire_profile = true;
                 attempts.push(format!("{tier}: retrying on a fresh profile"));
@@ -2687,10 +3186,18 @@ impl SvipallServer {
             i = next;
         }
 
+        if let Some(note) = &stopped {
+            if made > 0 {
+                attempts.push(note.clone());
+            }
+        }
         let Some((o, parts, reason, kind, tier)) = last else {
             return FetchOutcome {
-                value: json!({"url": url, "status": 0, "blocked_reason": "no tier could fetch the page", "wall_kind": "error", "attempts": attempts,
-                    "note": "Every tier raised an error (see attempts). Check the URL, network, or browser_path in ~/.svipall/config.toml."}),
+                value: json!({"url": url, "status": 0, "blocked_reason": if stopped.is_some() { stopped_kind } else { "no tier could fetch the page" }, "wall_kind": stopped_kind, "attempts": attempts,
+                    "native_fallback": native_attempted,
+                    "network_attempted": made > 0,
+                    "cooldown_seconds_left": stopped_wait,
+                    "note": stopped.as_deref().unwrap_or("Every tier raised an error (see attempts). Check the URL, network, or browser_path.")}),
                 links: Vec::new(),
                 final_url: url,
             };
@@ -2773,6 +3280,10 @@ impl SvipallServer {
         .map(|(sign, evidence)| (sign.id, evidence));
         let mut value = json!({
             "url": url, "final_url": o.final_url, "status": o.status, "tier_used": tier,
+            "identity_used": last_identity,
+            "native_fallback": native_attempted,
+            "stopped_reason": stopped,
+            "cooldown_seconds_left": stopped_wait,
             "blocked_reason": reason, "wall_kind": format!("{:?}", kind).to_lowercase(),
             "wall_vendor": wire.as_ref().map(|(id, _)| *id),
             "wall_evidence": wire.as_ref().map(|(_, e)| e.as_str()),
@@ -2861,7 +3372,8 @@ impl SvipallServer {
             proxy,
             visible: false,
         };
-        self.charge_visit(url, opts.tier, opts.proxy.as_deref());
+        self.charge_visit(url, opts.tier, opts.proxy.as_deref())
+            .await?;
         let (_pooled, page) = self.pool.page(&opts).await?;
         let result = async {
             let status = self.pool.navigate(&page, url).await?;
@@ -3530,7 +4042,10 @@ impl SvipallServer {
             // A gate answering instead of the site is not a reason to keep popping the frontier:
             // the next URL would meet the same gate and the whole queue would empty in
             // milliseconds without a single request.
-            if matches!(stopped_by, "saturation" | "over_budget" | "cooldown") {
+            if matches!(
+                stopped_by,
+                "saturation" | "over_budget" | "cooldown" | "traffic_state" | "timeout"
+            ) {
                 break;
             }
         }
@@ -3661,7 +4176,8 @@ impl SvipallServer {
             proxy: self.exit_for(&domain_from_url(&p.url)),
             visible: false,
         };
-        self.charge_visit(&p.url, opts.tier, opts.proxy.as_deref());
+        self.charge_visit(&p.url, opts.tier, opts.proxy.as_deref())
+            .await?;
         let (_pooled, page) = self.pool.page(&opts).await?;
 
         let result = async {
@@ -3767,7 +4283,8 @@ impl SvipallServer {
         if !self.pool.available() {
             anyhow::bail!("{}", no_browser_hint());
         }
-        self.charge_visit(&p.url, opts.tier, opts.proxy.as_deref());
+        self.charge_visit(&p.url, opts.tier, opts.proxy.as_deref())
+            .await?;
         let (_pooled, page) = self.pool.page(&opts).await?;
         let result = async {
             self.pool
@@ -3882,7 +4399,8 @@ impl SvipallServer {
             visible: false,
             identity_seed: identity_seed_for(None, &p.url, None),
         };
-        self.charge_visit(&p.url, opts.tier, opts.proxy.as_deref());
+        self.charge_visit(&p.url, opts.tier, opts.proxy.as_deref())
+            .await?;
         let (_pooled, page) = self.pool.page(&opts).await?;
         let found = async {
             self.pool.navigate(&page, &p.url).await?;
@@ -4372,7 +4890,8 @@ impl SvipallServer {
         };
         let timeout = Duration::from_millis(p.timeout.unwrap_or(60_000));
         let fut = async {
-            self.charge_visit(&p.url, opts.tier, opts.proxy.as_deref());
+            self.charge_visit(&p.url, opts.tier, opts.proxy.as_deref())
+                .await?;
             let (_pooled, page) = self.pool.page(&opts).await?;
             let r = async {
                 let status = self.pool.navigate(&page, &p.url).await?;
@@ -4447,7 +4966,11 @@ impl SvipallServer {
         let timeout = Duration::from_millis(p.timeout.unwrap_or(90_000));
         let fut = async {
             let status = match &p.url {
-                Some(u) => Some(self.pool.navigate(&s.page, u).await?),
+                Some(u) => {
+                    self.charge_visit(u, BrowserTier::Real, s.proxy.as_deref())
+                        .await?;
+                    Some(self.pool.navigate(&s.page, u).await?)
+                }
                 None => None,
             };
             let results = self
@@ -4532,14 +5055,25 @@ impl SvipallServer {
                     };
                     prov.install(&release, &mut sink).await?
                 };
+                svipall_core::config::update_in(
+                    &svipall_core::config::home_dir(),
+                    json!({"browser_path":installed.exe}),
+                )?;
                 Ok(json!({
                     "installed": installed,
                     "progress": log,
-                    "note": "restart svipall-mcp so the new browser is picked up",
+                    "note": "the next request uses the installed browser; existing sessions keep their browser",
                 }))
             }
             "remove" => {
                 let freed = prov.remove_all()?;
+                let mut patch = json!({"browser_auto_install":false});
+                if std::path::Path::new(&self.cfg.browser_path)
+                    .starts_with(crate::browser::managed_browser_dir())
+                {
+                    patch["browser_path"] = json!("");
+                }
+                svipall_core::config::update_in(&svipall_core::config::home_dir(), patch)?;
                 Ok(json!({"removed": true, "freed_bytes": freed}))
             }
             other => anyhow::bail!("unknown action '{other}' (status|install|update|remove)"),
@@ -4561,6 +5095,7 @@ impl SvipallServer {
         &self,
         p: SolveAndContinueParams,
     ) -> anyhow::Result<Value> {
+        self.charge_visit(&p.url, BrowserTier::Real, None).await?;
         let engine = match &self.solver_state {
             Some(st) => SolveEngine::with_state(self.pool.clone(), &self.cfg, st.clone()),
             None => SolveEngine::new(self.pool.clone(), &self.cfg),
@@ -5070,6 +5605,50 @@ impl SvipallServer {
 
     /// What this installation has learned, without the MCP wrapper.
     pub async fn status_json(&self, params: WebStatusParams) -> anyhow::Result<Value> {
+        if let Some(patch) = &params.configure {
+            let object = patch
+                .as_object()
+                .ok_or_else(|| anyhow::anyhow!("configure must be an object"))?;
+            for key in object.keys() {
+                anyhow::ensure!(
+                    [
+                        "browser_identity",
+                        "auto_native_fallback",
+                        "auto_max_attempts",
+                        "request_limit",
+                        "request_window_seconds",
+                        "request_cooldown_seconds",
+                        "request_min_interval_ms",
+                        "browser_auto_install",
+                        "browser_path",
+                        "max_tier",
+                        "browser_timeout_ms",
+                        "warm_wait_ms",
+                        "warm_max_wait_ms",
+                        "warm_adaptive",
+                        "warm_keep_max",
+                        "warm_keep_secs",
+                        "browser_idle_secs",
+                        "parallelism",
+                        "locale",
+                        "timezone",
+                        "block_ads",
+                        "http_engine",
+                        "http_firefox",
+                        "http3"
+                    ]
+                    .contains(&key.as_str()),
+                    "{key} is not a live browser policy setting; configure it through the CLI"
+                );
+            }
+            let cfg =
+                svipall_core::config::update_in(&svipall_core::config::home_dir(), patch.clone())?;
+            let mut value = serde_json::to_value(cfg)?;
+            value["api_key"] = json!("[redacted]");
+            return Ok(
+                json!({"saved":true,"config":value,"applies":"next request; existing sessions retain their policy"}),
+            );
+        }
         if let Some(d) = &params.clear_cooldown {
             svipall_core::clear_cooldown(d);
             // An operator resetting a domain means a clean start, and a page held from before the
@@ -5080,6 +5659,7 @@ impl SvipallServer {
         }
         if let Some(d) = &params.forget_tier {
             svipall_core::forget_tier(d);
+            svipall_core::automatic::forget(d);
         }
         if let Some(d) = &params.clear_budget {
             svipall_core::reputation::clear(d);
@@ -5125,6 +5705,13 @@ impl SvipallServer {
             "version": env!("CARGO_PKG_VERSION"),
             "domain_tiers": svipall_core::load_tiers(),
             "cooldowns": svipall_core::list_cooldowns(),
+            "automatic": {"identity":self.cfg.browser_identity,
+                "native_last_resort":self.cfg.auto_native_fallback,"max_attempts":self.cfg.auto_max_attempts,
+                "learning":"local per route family, exit and environment; emulated first; evidence expires after 24 hours"},
+            "request_limits": {"visits":self.cfg.request_limit,"window_seconds":self.cfg.request_window_seconds,
+                "cooldown_seconds":self.cfg.request_cooldown_seconds,"minimum_interval_ms":self.cfg.request_min_interval_ms,
+                "scope":"top-level transport attempts per domain and exit, shared by identity modes; browser subresources excluded",
+                "ledger_available":self.traffic.is_ok()},
             "proxy_routes": self.routes(),
             "exit_pools": svipall_core::exits::pools(),
             "exit_health": svipall_core::exits::status(),
@@ -5368,8 +5955,43 @@ impl SvipallServer {
     }
 }
 
-#[tool_handler]
 impl ServerHandler for SvipallServer {
+    async fn call_tool(
+        &self,
+        request: CallToolRequestParam,
+        context: rmcp::service::RequestContext<rmcp::RoleServer>,
+    ) -> Result<CallToolResult, McpError> {
+        let mut active = self.active().await.map_err(err)?;
+        // Sessions opened before a policy change finish with their original browser.
+        if let Some(id) = request
+            .arguments
+            .as_ref()
+            .and_then(|a| a.get("session_id"))
+            .and_then(Value::as_str)
+        {
+            if active.pool.session(id).await.is_none() {
+                if let Some(live) = &self.live_policy {
+                    for old in &live.lock().await.retired {
+                        if old.pool.session(id).await.is_some() {
+                            active = old.clone();
+                            break;
+                        }
+                    }
+                }
+            }
+        }
+        let call =
+            rmcp::handler::server::tool::ToolCallContext::new(active.as_ref(), request, context);
+        active.tool_router.call(call).await
+    }
+
+    async fn list_tools(
+        &self,
+        _request: Option<PaginatedRequestParam>,
+        _context: rmcp::service::RequestContext<rmcp::RoleServer>,
+    ) -> Result<ListToolsResult, McpError> {
+        Ok(ListToolsResult::with_all_items(self.tool_router.list_all()))
+    }
     fn get_info(&self) -> ServerInfo {
         ServerInfo {
             protocol_version: ProtocolVersion::V_2024_11_05,

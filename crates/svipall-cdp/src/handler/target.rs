@@ -262,7 +262,13 @@ impl Target {
                 // The target attaches paused, so this lands before any of the worker's own code
                 // runs. See PATCHES.md §8.
                 if ev.waiting_for_debugger && crate::worker::is_worker(&ev.target_info.r#type) {
-                    if let Some(js) = crate::worker::init_script() {
+                    if let Some(js) = self
+                        .config
+                        .worker_init_script
+                        .as_deref()
+                        .or(crate::worker::init_script())
+                        .filter(|s| !s.is_empty())
+                    {
                         let evaluate = EvaluateParams::builder()
                             .expression(js.to_string())
                             .build()
@@ -607,6 +613,7 @@ impl Target {
 
 #[derive(Debug, Clone)]
 pub struct TargetConfig {
+    pub worker_init_script: Option<String>,
     pub ignore_https_errors: bool,
     ///  Request timeout to use
     pub request_timeout: Duration,
@@ -618,6 +625,7 @@ pub struct TargetConfig {
 impl Default for TargetConfig {
     fn default() -> Self {
         Self {
+            worker_init_script: None,
             ignore_https_errors: true,
             request_timeout: Duration::from_secs(REQUEST_TIMEOUT),
             viewport: Default::default(),

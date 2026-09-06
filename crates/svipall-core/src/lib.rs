@@ -21,6 +21,7 @@ pub mod export;
 // this workspace can depend on it. Re-exported here under its old name: `svipall_core::extraction`
 // and `crate::extraction` still resolve, in this crate and in every consumer.
 pub use svipall_extract as extraction;
+pub mod automatic;
 pub mod fleet;
 pub mod forms;
 pub mod frontier;
@@ -49,6 +50,7 @@ pub mod template;
 pub mod throttle;
 /// Comparing a secret against what a caller sent, without leaking it a byte at a time.
 pub mod token;
+pub mod traffic;
 pub mod types;
 pub mod warm;
 pub mod watch;

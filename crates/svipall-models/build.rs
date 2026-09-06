@@ -21,7 +21,11 @@ const MODELS: &[(&str, &str)] = &[
 ];
 
 fn main() {
-    let dir = Path::new(env!("CARGO_MANIFEST_DIR")).join("models");
+    // Build-script executables can survive a workspace move in Cargo's cache. Read the
+    // invocation's manifest directory, not the path embedded when this script was compiled.
+    let manifest =
+        std::env::var_os("CARGO_MANIFEST_DIR").expect("Cargo supplies the manifest directory");
+    let dir = Path::new(&manifest).join("models");
     println!("cargo:rerun-if-changed={}", dir.display());
     for (name, ext) in MODELS {
         let weights = dir.join(format!("{name}.{ext}"));

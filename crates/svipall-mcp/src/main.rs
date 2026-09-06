@@ -3,13 +3,13 @@
 use rmcp::{transport::stdio, ServiceExt};
 use std::sync::Arc;
 use svipall_mcp::server::SvipallServer;
-use svipall_mcp::solver_engine::{SolveEngine, Solved};
+use svipall_mcp::solver_engine::Solved;
 use svipall_solver::{db, queue};
 use tracing_subscriber::EnvFilter;
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
-    let cfg = svipall_core::config::load();
+    let mut cfg = svipall_core::config::load_in(&svipall_core::config::home_dir())?;
     // Logging to stderr so stdio is clean for MCP
     tracing_subscriber::fmt()
         .with_env_filter(
@@ -22,6 +22,7 @@ async fn main() -> anyhow::Result<()> {
         .with_writer(std::io::stderr)
         .init();
     svipall_core::ensure_dirs();
+    svipall_mcp::provision::ensure_browser(&mut cfg).await?;
     svipall_core::evict_old_profiles();
 
     // Tokenised dashboard URL, surfaced through web_status so the operator can find it.
@@ -63,8 +64,8 @@ async fn main() -> anyhow::Result<()> {
         }
     };
 
-    let server = SvipallServer::new(solver_state.clone(), cfg.clone(), dashboard_url);
-    let pool = server.pool();
+    let server = SvipallServer::new(solver_state.clone(), cfg.clone(), dashboard_url)
+        .with_live_configuration();
 
     // The same server over HTTP, when the operator asked for it. Off unless `rest_port` says
     // otherwise: the API grants everything the MCP tools do — including this machine's logged-in
@@ -88,23 +89,22 @@ async fn main() -> anyhow::Result<()> {
     // Solver workers share the server's browser pool so token captchas are solved by loading the
     // real page in a stealth browser (with human assist), and images by local OCR.
     if let Some(state) = solver_state.clone() {
-        let engine = Arc::new(SolveEngine::with_state(pool.clone(), &cfg, state.clone()));
         for i in 0..cfg.solver_workers.max(1) {
-            let (w, e) = (state.clone(), engine.clone());
+            let (w, s) = (state.clone(), server.clone());
             tokio::spawn(async move {
-                worker_loop(i, w, e).await;
+                worker_loop(i, w, s).await;
             });
         }
     }
 
-    let reaper = pool.clone();
+    let reaper = server.clone();
     let housekeeping = solver_state.clone();
     let corpus_keep_days = cfg.corpus_keep_days;
     tokio::spawn(async move {
         let mut ticks: u64 = 0;
         loop {
             tokio::time::sleep(std::time::Duration::from_secs(60)).await;
-            reaper.reap_idle().await;
+            reaper.reap_configuration().await;
             ticks += 1;
             // Every half hour: drop solved jobs and the browser caches inside idle profiles.
             // Without this the solver database and the profile directories only ever grew.
@@ -161,11 +161,11 @@ async fn main() -> anyhow::Result<()> {
         tracing::error!("serving error: {:?}", e);
     })?;
     service.waiting().await?;
-    server.pool().shutdown().await;
+    server.shutdown_configuration().await;
     Ok(())
 }
 
-async fn worker_loop(id: usize, state: Arc<svipall_solver::AppState>, engine: Arc<SolveEngine>) {
+async fn worker_loop(id: usize, state: Arc<svipall_solver::AppState>, server: SvipallServer) {
     tracing::info!("svipall-mcp worker {} started", id);
     loop {
         let job = state.queue.wait_pop().await;
@@ -173,7 +173,11 @@ async fn worker_loop(id: usize, state: Arc<svipall_solver::AppState>, engine: Ar
             let db = state.db_pool.read().await;
             let _ = db.update_status(&job.task_id, "solving");
         }
-        match engine.solve(&job).await {
+        let solved = match server.active().await {
+            Ok(active) => active.solve_engine().solve(&job).await,
+            Err(e) => Solved::NeedsHuman(format!("configuration: {e}")),
+        };
+        match solved {
             Solved::Token(token) => {
                 let db = state.db_pool.read().await;
                 let _ = db.update_solved(&job.task_id, Some(&token), None);

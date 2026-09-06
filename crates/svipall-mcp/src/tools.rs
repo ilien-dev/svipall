@@ -453,6 +453,10 @@ pub struct WebRouteParams {
 /// so the REST layer needs a way to ask for the report and nothing else.
 #[derive(Debug, Default, Deserialize, JsonSchema)]
 pub struct WebStatusParams {
+    /// Save live browser/session policy settings. Subsequent MCP/REST requests apply them
+    /// automatically; existing browser sessions keep their original policy.
+    #[serde(default)]
+    pub configure: Option<serde_json::Value>,
     /// Domain whose cooldown should be cleared.
     #[serde(default)]
     pub clear_cooldown: Option<String>,
