@@ -6,7 +6,13 @@ and a model that is in neither place means that kind of challenge goes to the hu
 instead. Each model is described by a JSON sidecar; the sidecar is the contract.
 
 Build with the matching features: `cargo build --release --features onnx-ocr,onnx-grid,onnx-audio,onnx-detect,onnx-segment,onnx-zeroshot`.
-The release binaries are built that way.
+
+**Not every release build carries them.** The Windows and Apple-silicon binaries do, and so does
+the container image on both architectures. The Linux and Intel-Mac binaries do not: the ONNX
+Runtime builds `ort` downloads reference glibc 2.38, so a Linux binary using them would not start
+on Debian 12, Ubuntu 22.04 or RHEL 9, and none is published for x86-64 macOS at all. `svipall
+doctor` reports `no_models` where they are absent, and the four modalities that need one go to the
+human dashboard.
 
 ## What the binary carries
 
