@@ -59,23 +59,27 @@ flags; `--uninstall` reverses it.
 
 ### Which platforms have builds
 
-| Platform | Build | Browser tiers | Local captcha models |
-|---|---|---|---|
-| Linux x86-64 | yes | yes | **no** — see below. The container image has them |
-| Linux arm64 | yes | **no** — Chrome for Testing publishes no linux-arm64 build. Point `browser_path` at your own Chromium, or accept the http tier | **no** — see below |
-| macOS Intel | yes | yes | **no** — ONNX Runtime publishes no x86-64 macOS build, so image challenges go to the human dashboard |
-| macOS Apple silicon | yes | yes | yes |
-| Windows x86-64 | yes | yes (Edge already counts) | yes |
-| Windows arm64 | no | run the x64 build under emulation, or use the container | — |
-| anything else | no | build from source, or use the container | — |
+| Platform | Binary | Browser tiers | Models | Everything works via |
+|---|---|---|---|---|
+| Linux x86-64 | yes | yes | **no** | the container |
+| Linux arm64 | yes | **no** — point `browser_path` at your own Chromium, or accept the http tier | **no** | the container |
+| macOS Intel | yes | yes | **no** | the container (`linux/amd64` runs under Docker Desktop) |
+| macOS Apple silicon | yes | yes | yes | the binary |
+| Windows x86-64 | yes | yes (Edge already counts) | yes | the binary |
+| Windows arm64 | no | — | — | the x64 build under emulation, or the container |
+| anything else | no | — | — | the container, or build from source |
 
 **Why the Linux binaries carry no models.** The ONNX Runtime builds that `ort` downloads reference
 glibc 2.38 and GCC 13's libstdc++, so a binary using them starts only on a distribution as new as
 Ubuntu 24.04 — not on Debian 12, Ubuntu 22.04, RHEL 9 or Amazon Linux 2023. Given the choice
 between a binary that starts everywhere and one that answers image captchas on the newest
 distributions only, the release ships the first. Image challenges go to the human dashboard
-instead, and `svipall doctor` says `no_models`. The **container image keeps the models**, because a
-container carries its own glibc and none of this constrains the host.
+instead, and `svipall doctor` says `no_models`.
+
+**The container image has everything, on both architectures**, because a container carries its own
+glibc and none of the above constrains the host. On arm64 its browser is Debian's own Chromium
+rather than Chrome for Testing, which publishes no linux-arm64 build; `svipall doctor` reports it
+as `chromium` instead of `managed`, one step down on fingerprint quality and a real browser.
 
 ---
 
@@ -182,8 +186,8 @@ claude mcp add svipall -- docker run -i --rm -v svipall-home:/data ghcr.io/ilien
 ```
 
 `-i` keeps stdin open for MCP, and `-v svipall-home:/data` is what makes it remember anything.
-Two moving tags: `latest` (browser and models, linux/amd64) and `slim` (http tier only, amd64 and
-arm64). A pre-release does not move either of them, so when the newest release is a candidate,
+Two moving tags, both built for amd64 and arm64: `latest` (browser and models) and `slim` (the http
+tier only). A pre-release does not move either of them, so when the newest release is a candidate,
 pull its version tag instead — `ghcr.io/ilien-dev/svipall:1.0.0-rc`, and `:1.0.0-rc-slim`.
 
 ---

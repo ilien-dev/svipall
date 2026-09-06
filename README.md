@@ -246,11 +246,16 @@ and a `note` telling your agent what to do next. Straight from a committed bench
 claude mcp add svipall -- docker run -i --rm -v svipall-home:/data ghcr.io/ilien-dev/svipall:latest
 ```
 
-Two tags, and the difference between them is real. `latest` carries Chrome for Testing **and** the
-captcha models, both put there at build time and never fetched at run time, so every tier works.
-`slim` carries neither: it is the http tier, and a page behind a challenge stays blocked. `latest`
-is `linux/amd64` only, because Chrome for Testing publishes no linux-arm64 build and an arm64
-"full" image would be a full image with no browser in it; `slim` is built for both architectures.
+Two tags, and the difference between them is real. `latest` carries a browser **and** the captcha
+models, both put there at build time and never fetched at run time, so every tier works. `slim`
+carries neither: it is the http tier, and a page behind a challenge stays blocked. Both are built
+for `linux/amd64` and `linux/arm64`.
+
+**On Linux, the image is the only way to get everything.** The native Linux binaries carry no
+captcha models, and on arm64 they cannot install a browser either — the reasons are
+[in the FAQ](#which-platforms-does-it-run-on). The image has both, and on arm64 its browser is the
+distribution's own Chromium rather than Chrome for Testing, which `svipall doctor` reports as
+`chromium` instead of `managed`: one step down on fingerprint quality, and a real browser.
 
 Everything it learns lives in the `svipall-home` volume, and `-i` is what keeps stdin open for MCP.
 Publish `-p 8787:8787` to reach the dashboard: loopback inside a container means the container, so
@@ -704,6 +709,10 @@ headroom for exactly that reason; the structural checks are exact and cannot fla
 
 ### Judging what came back
 
+<p align="center">
+  <img src="docs/assets/readme/classify-what-arrived.png" alt="Three HTTP 200 responses contain an article, a login form and a missing-page message. Svipall distinguishes wall_kind none, login and softnotfound. Delivered content is assessed separately as full, partial or thin; quality labels never discard a page." width="880" loading="lazy">
+</p>
+
 Most tools tell you a request succeeded. Svipall tells you what *arrived*, and never withholds a
 page over it. Nothing in this section removes a document, stops the ladder or subtracts from a
 verdict. It labels; the caller decides.
@@ -772,6 +781,13 @@ Pass `include_quality: true` for the full `quality_detail` block. It is off by d
 fields are on every response, and this is for a caller weighing a source rather than reading one.
 
 ### Getting in
+
+<p align="center">
+  <img src="docs/assets/readme/shapeshifter-identities.png" alt="Svipall takes three forms at docs.example, shop.example and news.example. Each keeps the amber eye and interwoven beard, illustrating a coherent identity across TLS, headers, browser and behavior." width="880" loading="lazy">
+</p>
+
+*Different domains, different faces. Within a session, cookies and identity stay together;
+a spent session is retired rather than changing its face on every request.*
 
 - **Automatic anti-bot escalation** — plain HTTP first, then headless Chromium, then
   a stealth-patched browser, then a headful "real" browser with a persistent per-domain profile,
@@ -859,6 +875,14 @@ fields are on every response, and this is for a caller weighing a source rather 
 ---
 
 ## How it works, in plain words
+
+<p align="center">
+  <img src="docs/assets/readme/request-ladder.png" alt="The automatic ladder offers http, browser, stealth, real and warm. Any tier can return Markdown and metadata. The successful starting tier is remembered per domain; wall classification can jump tiers or stop. Unresolved challenges can use local solving or the human dashboard." width="880" loading="lazy">
+</p>
+
+*The route is conditional: stop as soon as the page arrives. A known domain can start at its
+remembered tier, and the wall verdict can skip tiers or end the attempt. Content-quality labels
+do not trigger escalation.*
 
 1. **Ask for the page the cheapest way first.** A direct HTTP request that looks exactly like
    Chrome's. Most pages stop here — 59 of the 93 `public31` cells did, every one of them in under
@@ -1410,15 +1434,22 @@ arm64**, with a `sha256sums.txt` and a build attestation. Install them with a on
 Homebrew, Scoop, winget or the AUR, from a `.deb` or `.rpm`, through npm, or as a container image on
 `ghcr.io` — [docs/install.md](docs/install.md) has all of it.
 
-Four honest gaps, and `svipall doctor` reports whichever applies to the machine it is on.
-**Linux arm64 has no browser tiers**: Chrome for Testing publishes no linux-arm64 build, so that
-artefact is the http tier unless you point `browser_path` at your own Chromium. **The Linux and
-macOS Intel binaries carry no local captcha models**: the ONNX Runtime builds they would need
-reference glibc 2.38, which would restrict the Linux binary to distributions newer than Debian 12,
-and none is published for x86-64 macOS at all — so image challenges go to the human dashboard on
-those, and the container image is where Linux keeps its models. **Windows arm64 has no build**; the
-x64 one runs under emulation. On Windows, keep `CARGO_TARGET_DIR` short when building from source
-— BoringSSL's paths run into `MAX_PATH`.
+**Every platform has at least one way to run everything**, though on Linux and on an Intel Mac that
+way is the container rather than the binary:
+
+| Platform | Everything works via | Why not the binary |
+|---|---|---|
+| Windows x86-64 | the binary | — |
+| macOS Apple silicon | the binary | — |
+| macOS Intel | the container | ONNX Runtime publishes no x86-64 macOS build, so that binary has no captcha models |
+| Linux x86-64 | the container | the models would need glibc 2.38, which would stop the binary starting on Debian 12, Ubuntu 22.04 or RHEL 9 |
+| Linux arm64 | the container | the same, plus Chrome for Testing publishes no linux-arm64 build, so the binary cannot install a browser either |
+| Windows arm64 | the x64 build under emulation, or the container | no native build is published |
+
+`svipall doctor` reports whichever limitation applies to the machine it is on, so a binary short of
+its models says so rather than sending an image captcha to the dashboard without explanation. On
+Windows, keep `CARGO_TARGET_DIR` short when building from source — BoringSSL's paths run into
+`MAX_PATH`.
 </details>
 
 <details>
