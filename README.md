@@ -133,6 +133,7 @@ Or a package manager, or the container image:
 brew install ilien-dev/svipall/svipall               # macOS, Linux
 scoop bucket add svipall https://github.com/ilien-dev/scoop-svipall && scoop install svipall
 docker pull ghcr.io/ilien-dev/svipall:latest         # both flavours, amd64 and arm64
+npx --yes svipall doctor                             # if node is already there
 ```
 
 `.deb` and `.rpm` packages are attached to each release. Every one of these installs the same
@@ -144,14 +145,13 @@ most challenge kinds; the [platform table](docs/install.md#which-platforms-have-
 detail and the [FAQ](#faq) says what the difference costs.
 
 <details>
-<summary>winget, the AUR and npm: not yet</summary>
+<summary>winget and the AUR: not yet</summary>
 
-Each needs a one-time step outside this repository that has not been taken — a pull request to
-`microsoft/winget-pkgs`, an AUR package, an `npm publish`. The manifests are written and rendered
-from each release's own `sha256sums.txt` by `scripts/render-packaging.sh`, so what is left is
-publishing them rather than writing them; [`packaging/README.md`](packaging/README.md) says what
-each one needs. Until then `winget install ilien-dev.svipall` will tell you there is no such
-package.
+Both need a one-time step outside this repository that has not been taken — a pull request to
+`microsoft/winget-pkgs`, an AUR package. The manifests are written and rendered from each release's
+own `sha256sums.txt` by `scripts/render-packaging.sh`, so what is left is publishing them rather
+than writing them; [`packaging/README.md`](packaging/README.md) says what each one needs. Until
+then `winget install ilien-dev.svipall` will tell you there is no such package.
 </details>
 
 Never installed anything from a terminal before? [**GET-STARTED.md**](GET-STARTED.md) is the same
@@ -169,6 +169,13 @@ Wiring it into a client, when nothing did it for you:
 
 ```bash
 claude mcp add svipall -- svipall-mcp
+```
+
+With node already there, nothing needs installing first at all — the package downloads the same
+release build on its first run:
+
+```bash
+claude mcp add svipall -- npx --yes svipall-mcp
 ```
 
 <details>
@@ -1123,10 +1130,12 @@ which is the scarcest thing a local-only tool has. Full contract in [`docs/rest.
 - **robots.txt** is reported by default and can be made binding with `robots=obey`.
 - **No telemetry, no update checks, no background network.** Nothing is sent anywhere and nothing is
   fetched on a timer. Besides the pages you asked for, Svipall makes exactly two other kinds of
-  outbound request, both only when you ask for them: `browser install` / `browser_setup` downloads
+  outbound request: automatic startup provisioning when no browser is installed, or an explicit
+  `browser install` / `browser_setup`, downloads
   Chrome for Testing from Google's public build server, and setting `block_ads = true` fetches the
   two lists `blocklist_sources` ships with — StevenBlack/hosts and EasyPrivacy — once, and caches
   them. `block_ads` is `false` by default, so on a stock install that request never happens.
+  Set `browser_auto_install=false` to disable automatic browser provisioning.
 - **No breaking of access controls.** Svipall evades bot detection on public pages. It does not crack
   passwords, bypass paywalls, or forge authentication. A login wall is passed by *you*, once, in a
   visible window, and the cookies are kept.
@@ -1185,6 +1194,12 @@ Most of these are permanent and deliberate; one is a build you have to ask for, 
 
 ## Configuration
 
+Use `svipall config show`, `svipall config set key=value`, or `svipall config preset local`.
+The experimental `native` preset keeps the browser's actual hardware identity. Connected MCP
+clients can save browser policy through `web_status` with a `configure` object; running MCP/REST
+servers apply it on the next request. See [local configuration and sessions](docs/local-configuration.md)
+for identity modes, bounded waits, browser provisioning and which settings apply live.
+
 `~/.svipall/config.toml` (or `$SVIPALL_HOME/config.toml`). Every field has a default, so a missing or
 partial file is fine. Everything Svipall remembers lives in that one directory, and deleting any of
 it costs memory rather than function:
@@ -1192,6 +1207,7 @@ it costs memory rather than function:
 | | |
 |---|---|
 | `config.toml` | The settings below |
+| `settings.toml` | Validated settings saved by CLI/MCP, overriding `config.toml` |
 | `secrets.env` | Credentials referenced by name; the values never enter a tool call |
 | `domain_tiers.json` | Which tier answered for each domain, so the next fetch starts there |
 | `pools.json`, `exit_health.json` | Exits per domain, and what each one has done on each |
@@ -1200,7 +1216,7 @@ it costs memory rather than function:
 | `jobs.db` | Challenges seen, how they were answered, and the corpus |
 | `profiles/`, `auto_profiles/`, `sessions/` | Named profiles, the per-domain ones the ladder makes, and the one-fetch isolated ones |
 | `models/` | Models you installed, which win over the embedded ones |
-| `browser/` | Chrome for Testing, when `svipall browser install` put it there |
+| `browser/` | Chrome for Testing, provisioned automatically when absent or installed explicitly |
 | `in/`, `out/` | Where `file://` reads from and a relative `out_file` lands |
 | `screenshots/` | What `web_screenshot` wrote |
 
@@ -1214,8 +1230,12 @@ browser_path = ""            # wins over everything when set and the file exists
                              # PUPPETEER_EXECUTABLE_PATH, then the one `browser install` put in
                              # ~/.svipall/browser, then auto-detection
 max_tier = "warm"            # cap for mode=auto
+browser_auto_install = true  # provision a managed browser on startup if none is installed
+browser_identity = "emulated" # native keeps the browser's own hardware identity and JS APIs
 browser_timeout_ms = 45000
 warm_wait_ms = 20000         # how long `warm` waits for a challenge to clear
+warm_adaptive = true         # allow recognized proof-of-work to reach one renewal
+warm_max_wait_ms = 55000     # hard warm-stage budget; the request timeout still applies
 browser_idle_secs = 180
 warm_keep_max = 2            # cleared pages held open between fetches; 0 disables holding entirely
 warm_keep_secs = 120         # how long a held page may go unused. Above the proof-of-work token
