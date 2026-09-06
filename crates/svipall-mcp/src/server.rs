@@ -283,6 +283,18 @@ impl WarmEnd {
     }
 }
 
+/// The attempt line for a tier that raised.
+///
+/// The whole chain, not the outermost context: "launching browser" says where it failed, and the
+/// cause underneath — the browser's own last words, a missing display, a directory another
+/// instance holds — is what the reader needs to do something about it. One line, so the report
+/// stays a list.
+fn exc_attempt(route: &str, e: &anyhow::Error, ms: u128) -> String {
+    let chain = format!("{e:#}");
+    let one_line = chain.split_whitespace().collect::<Vec<_>>().join(" ");
+    format!("{route}: EXC {one_line} ({ms}ms)")
+}
+
 /// Should the wait stop now, and what would it say if asked why?
 ///
 /// Pure, so the truth table — especially the extension, which is allowed exactly once and only on
@@ -2516,7 +2528,7 @@ impl SvipallServer {
             let o = match outcome {
                 Ok(o) => o,
                 Err(e) => {
-                    attempts.push(format!("{}: EXC {} ({}ms)", route, e, ms));
+                    attempts.push(exc_attempt(&route, &e, ms));
                     if automatic {
                         svipall_core::automatic::record(
                             &route_context,
@@ -6027,6 +6039,20 @@ fn scroll_rounds(p: &WebFetchParams) -> u32 {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn a_raised_attempt_names_its_cause_on_one_line() {
+        let e = anyhow::anyhow!(
+            "Browser process exited with status 21, stderr: \"Lock file
+can not be created\""
+        )
+        .context("launching browser");
+        let line = exc_attempt("warm", &e, 1874);
+        assert_eq!(
+            line,
+            "warm: EXC launching browser: Browser process exited with status 21, stderr: \"Lock file can not be created\" (1874ms)"
+        );
+    }
 
     const WALL: &str = "This looks like a Cloudflare wall. Try web_login once by hand.";
 
