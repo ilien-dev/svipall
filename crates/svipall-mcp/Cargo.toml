@@ -1,6 +1,6 @@
 [package]
 name = "svipall-mcp"
-version = "1.0.0-rc"
+version = "1.0.0-rc.2"
 edition = "2021"
 license = "AGPL-3.0-only"
 description = "MCP server for svipall: web exploration with a real tier ladder and local captcha solving"
@@ -49,7 +49,10 @@ tower = { workspace = true }
 [features]
 # Browser-grade TLS/HTTP2 emulation for the http tier. On by default; needs cmake, perl, llvm and
 # nasm to build BoringSSL. `--no-default-features` drops to reqwest and the server says so.
-default = ["impersonate"]
+default = ["impersonate", "local-models"]
+# The shipped desktop build can use the embedded detector and segmentation model without
+# installing model files. Source-only / unsupported-runtime builds can opt out explicitly.
+local-models = ["onnx-grid", "onnx-detect", "onnx-segment"]
 impersonate = ["svipall-http/impersonate"]
 # HTTP/3 over QUIC for sites that advertised it. Off by default; `config.http3` still has to be
 # true, so building with this costs a binary that is larger and nothing else.

@@ -1,6 +1,6 @@
 {
   "name": "svipall",
-  "version": "1.0.0-rc",
+  "version": "1.0.0-rc.2",
   "description": "Local-first web access for Claude Code: read any page past its anti-bot wall, crawl sites, search without an API key, and answer captchas on this machine. Installs the binary, wires up the MCP server, and ships the skills.",
   "author": { "name": "ilien", "email": "code@ilien.dev" },
   "homepage": "https://github.com/ilien-dev/svipall",
