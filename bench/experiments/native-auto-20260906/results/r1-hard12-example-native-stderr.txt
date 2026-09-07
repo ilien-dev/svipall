@@ -1,0 +1,5 @@
+example repeat 1: delivered 23.09s (warm)
+example repeat 2: delivered 21.59s (warm)
+example repeat 3: delivered 21.67s (warm)
+
+paired finished in 66.6s

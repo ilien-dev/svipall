@@ -587,3 +587,74 @@ async fn a_resumed_crawl_does_not_tell_a_listener_it_is_starting_from_zero() {
         "a resumed crawl announced itself as starting from nothing"
     );
 }
+
+#[tokio::test]
+async fn a_crawl_with_a_schema_returns_rows_from_every_page_and_writes_them_flat() {
+    // A listing spread over pages nobody has enumerated is the case for a crawl, and the rows are
+    // what the caller wants: with `schema` on web_fetch alone, a crawl handed back prose to parse.
+    let listing = |names: &[&str]| {
+        let items: String = names
+            .iter()
+            .map(|n| format!("<div class=\"product\"><h2><a href=\"/{n}\">{n}</a></h2><span class=\"price\">{}</span></div>", n.len()))
+            .collect();
+        format!("<html><body><main><h1>Listing</h1>{items}<p><a href=\"/list?page=2\">next</a></p></main></body></html>")
+    };
+    let site = Site::start(vec![
+        ("/list", Reply::html(&listing(&["cup", "plate"]))),
+        ("/list?page=2", Reply::html(&listing(&["spoon"]))),
+    ])
+    .await;
+    let schema = serde_json::json!({
+        "name": "products",
+        "base_selector": "div.product",
+        "fields": [
+            {"name": "title", "selector": "h2 a"},
+            {"name": "price", "selector": ".price", "type": "number"}
+        ]
+    });
+    let db = Db::new();
+    let out = db
+        .server()
+        .crawl_json(WebCrawlParams {
+            schema: Some(schema.clone()),
+            ..crawl(&site.url("/list?page=1"), 3)
+        })
+        .await;
+    let pages = out["pages"].as_array().expect("pages");
+    let rows: usize = pages
+        .iter()
+        .map(|p| p["extracted"]["items"].as_array().map_or(0, Vec::len))
+        .sum();
+    assert_eq!(rows, 3, "every page's rows: {out}");
+    assert!(
+        pages
+            .iter()
+            .filter(|p| p["status"] == 200)
+            .all(|p| p.get("content").is_none()),
+        "rows were asked for, prose came too: {out}"
+    );
+
+    let path = support::isolate().join("rows.jsonl");
+    let out = db
+        .server()
+        .crawl_json(WebCrawlParams {
+            schema: Some(schema),
+            out_file: Some(path.to_string_lossy().to_string()),
+            ..crawl(&site.url("/list?page=1"), 3)
+        })
+        .await;
+    assert_eq!(out["rows"], 3, "one row per item, not per page: {out}");
+    let text = std::fs::read_to_string(out["out_file"].as_str().expect("a path")).expect("file");
+    let lines: Vec<Value> = text
+        .lines()
+        .map(|l| serde_json::from_str(l).expect("a JSON row"))
+        .collect();
+    assert_eq!(lines.len(), 3, "{text}");
+    assert!(
+        lines
+            .iter()
+            .all(|r| r["url"].as_str().is_some_and(|u| u.contains("/list"))
+                && r["title"].is_string()),
+        "each row names its page and carries the fields: {text}"
+    );
+}

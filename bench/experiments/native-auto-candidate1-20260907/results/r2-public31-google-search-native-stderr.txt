@@ -1,0 +1,5 @@
+google-search repeat 1: delivered 23.32s (warm)
+google-search repeat 2: delivered 22.15s (warm)
+google-search repeat 3: delivered 21.96s (warm)
+
+paired finished in 67.9s

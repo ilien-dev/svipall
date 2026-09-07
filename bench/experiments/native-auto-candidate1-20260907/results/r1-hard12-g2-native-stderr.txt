@@ -1,0 +1,5 @@
+g2 repeat 1: delivered 12.00s (warm)
+g2 repeat 2: delivered 4.25s (warm)
+g2 repeat 3: delivered 3.53s (warm)
+
+paired finished in 20.2s

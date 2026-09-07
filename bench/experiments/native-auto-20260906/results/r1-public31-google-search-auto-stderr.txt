@@ -1,0 +1,5 @@
+google-search repeat 1: failed 0.74s (http)
+google-search repeat 2: failed 0.00s (-)
+google-search repeat 3: failed 0.00s (-)
+
+paired finished in 0.9s

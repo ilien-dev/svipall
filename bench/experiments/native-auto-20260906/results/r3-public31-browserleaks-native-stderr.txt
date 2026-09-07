@@ -1,0 +1,5 @@
+browserleaks repeat 1: delivered 2.24s (warm)
+browserleaks repeat 2: delivered 1.45s (warm)
+browserleaks repeat 3: delivered 1.45s (warm)
+
+paired finished in 5.4s

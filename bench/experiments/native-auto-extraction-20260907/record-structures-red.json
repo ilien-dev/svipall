@@ -1,0 +1,91 @@
+{
+  "binary_sha256": "9c756a7060158f53e69f244d51c0a4e3f95780a1509cf03807e48c854f1b69d6",
+  "rows": [
+    {
+      "shape": "decorated-heading",
+      "full": false,
+      "exit_code": 0,
+      "timed_out": false,
+      "seconds": 0.3202974796295166,
+      "metadata_sha256": "57d517b331f2b6416120846e3855feaabdd33fe935d15433dfec008571d82ac2",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "record_titles": 0,
+      "item_destinations": 0,
+      "navigation_sentinel": false,
+      "markdown_sha256": "f7b48dfb8f820921c43740096bc0f6b953db844863873a3531560f53ed9ee476",
+      "fixture_sha256": "46a8defcf724c17c3bc02b7066d72b976e20e31469995dedc9a0a9ec5c6ae698"
+    },
+    {
+      "shape": "decorated-heading",
+      "full": true,
+      "exit_code": 0,
+      "timed_out": false,
+      "seconds": 0.33432984352111816,
+      "metadata_sha256": "0db8a45cdb8c4480602e151a6b8795b1feaecb80413e6c78f831194eb04ff7d0",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "record_titles": 5,
+      "item_destinations": 5,
+      "navigation_sentinel": true,
+      "markdown_sha256": "33cc8e33fc5c7aff34ba3372d691326c327f289023cfd98d886b9553c1a41562",
+      "fixture_sha256": "46a8defcf724c17c3bc02b7066d72b976e20e31469995dedc9a0a9ec5c6ae698"
+    },
+    {
+      "shape": "layout-table-heading",
+      "full": false,
+      "exit_code": 0,
+      "timed_out": false,
+      "seconds": 0.3238716125488281,
+      "metadata_sha256": "80a4a5fff46eed476c3ca788e458c9d3521b38da073e02e4a35ad44dfe653210",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "record_titles": 0,
+      "item_destinations": 0,
+      "navigation_sentinel": false,
+      "markdown_sha256": "2b0f33163e44aab812f59592d4049b32a0cb61bb2f7b1409f2421962c0bebbab",
+      "fixture_sha256": "05166e75447ecb9c4356cb6ede2111a09af36d2906e18511d43806e8ad9b60d7"
+    },
+    {
+      "shape": "layout-table-heading",
+      "full": true,
+      "exit_code": 0,
+      "timed_out": false,
+      "seconds": 0.3232543468475342,
+      "metadata_sha256": "4f769ac56deae87a2da6303fa5fd084912d40645bcaa17675116f5cadf6fcb70",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "record_titles": 5,
+      "item_destinations": 5,
+      "navigation_sentinel": false,
+      "markdown_sha256": "2286c6125bd6172d4d9725c3fd74292f4a9d1c4eca15fcc4ba195183942ca786",
+      "fixture_sha256": "05166e75447ecb9c4356cb6ede2111a09af36d2906e18511d43806e8ad9b60d7"
+    },
+    {
+      "shape": "block-anchor-heading",
+      "full": false,
+      "exit_code": 0,
+      "timed_out": false,
+      "seconds": 0.3253483772277832,
+      "metadata_sha256": "228b5d0225b4f8735af119310f005f353aaaf13b5dae3fb6bf7eb47859bc2bf1",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "record_titles": 0,
+      "item_destinations": 0,
+      "navigation_sentinel": false,
+      "markdown_sha256": "8993c804196f26c458ecd5cec27d62e5eeee570de87c075ecbc59c2ebefdf92d",
+      "fixture_sha256": "0128fa84b5a0de7430d85ded6621359ade23a59af04e5ea68bbe4d4819e2d908"
+    },
+    {
+      "shape": "block-anchor-heading",
+      "full": true,
+      "exit_code": 0,
+      "timed_out": false,
+      "seconds": 0.32715773582458496,
+      "metadata_sha256": "9a90f9b49791a1c73fd622e19208f6d62b0f8d302b06f771c6174c8da2befed6",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "record_titles": 5,
+      "item_destinations": 5,
+      "navigation_sentinel": false,
+      "markdown_sha256": "08757b1f9e7734aa2c1fd2da08acfd24612c2c92632fbec4832d442162ff2167",
+      "fixture_sha256": "0128fa84b5a0de7430d85ded6621359ade23a59af04e5ea68bbe4d4819e2d908"
+    }
+  ],
+  "expected": "Five visible titles and item destinations in each mode; navigation absent in main mode.",
+  "note": "Frozen narrow heading prototype, before the broader behavior change. Synthetic fixtures reproduce inspected public structures, with no copied public prose or live requests."
+}

@@ -1,0 +1,5 @@
+ceo-ca repeat 1: delivered 4.79s (browser)
+ceo-ca repeat 2: delivered 2.00s (browser)
+ceo-ca repeat 3: delivered 1.82s (browser)
+
+paired finished in 9.0s

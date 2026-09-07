@@ -1,0 +1,19 @@
+
+running 1 test
+test native_is_last_and_an_opt_out_prevents_its_launch ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 5 filtered out; finished in 7.86s
+
+
+running 1 test
+test two_useful_browser_observations_skip_failed_http_on_the_third_visit ... {"measurement":"local route learning; no public-site success claim","visits":[{"attempts":["http: 200 (3ms) -> cloudflare wall (just a moment)","browser: 200 (1631ms) OK"],"elapsed_ms":2481,"visit":1},{"attempts":["http: 200 (1ms) -> cloudflare wall (just a moment)","browser: 200 (1334ms) OK"],"elapsed_ms":2203,"visit":2},{"attempts":["browser: 200 (1324ms) OK"],"elapsed_ms":1355,"visit":3}]}
+ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 6.43s
+
+
+running 1 test
+test failed_native_attempt_preserves_the_page_and_reports_exposure ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 12.45s
+

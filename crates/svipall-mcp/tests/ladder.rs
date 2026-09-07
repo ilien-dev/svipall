@@ -649,6 +649,155 @@ async fn raw_html_is_extracted_without_any_request() {
 }
 
 #[tokio::test]
+async fn fetch_many_returns_rows_when_asked_like_fetch_does() {
+    // A listing spread over several known pages is the case for web_fetch_many, and a blind
+    // routing run had to fall back to one web_fetch per page because `tables` and `schema` were
+    // only on web_fetch.
+    let table = |q: &str| {
+        format!("<html><body><main><table><tr><th>Quarter</th><th>Revenue</th></tr><tr><td>{q}</td><td>10</td></tr></table></main></body></html>")
+    };
+    let site = Site::start(vec![
+        ("/q1", Reply::html(&table("Q1"))),
+        ("/q2", Reply::html(&table("Q2"))),
+    ])
+    .await;
+    let out = server()
+        .fetch_many_json(
+            serde_json::from_value(serde_json::json!({
+                "urls": [site.url("/q1"), site.url("/q2")],
+                "max_tier": "http",
+                "tables": true,
+            }))
+            .unwrap(),
+        )
+        .await;
+    let results = out["results"].as_array().expect("results");
+    assert_eq!(results.len(), 2, "{out}");
+    for r in results {
+        assert_eq!(r["tables"][0]["rows"][0][1], "10", "{r}");
+        assert!(
+            r.get("content").is_none(),
+            "rows were asked for, prose came: {r}"
+        );
+    }
+    let out = server()
+        .fetch_many_json(
+            serde_json::from_value(serde_json::json!({
+                "urls": [site.url("/q1")],
+                "max_tier": "http",
+                "schema": {"name": "rows", "base_selector": "tr", "fields": [{"name": "q", "selector": "td"}]},
+            }))
+            .unwrap(),
+        )
+        .await;
+    let extracted = out["results"][0]["extracted"]["items"]
+        .as_array()
+        .unwrap_or_else(|| panic!("no extracted rows: {out}"));
+    assert!(extracted.iter().any(|row| row["q"] == "Q1"), "{out}");
+}
+
+#[tokio::test]
+async fn a_cache_hit_still_honours_what_was_asked_of_the_page() {
+    // The cache stores markdown. A hit answered with that markdown whatever the call asked for,
+    // so a page read a minute ago came back whole when `css_selector` wanted one part of it, as
+    // prose when `tables` wanted rows, and as markdown when `extraction` said text.
+    let page = "<html><body><main><h1>Prices</h1><p>Intro paragraph.</p><div id=\"prices\"><table><tr><th>Item</th><th>Price</th></tr><tr><td>Cup</td><td>3</td></tr></table></div></main></body></html>";
+    let site = Site::start(vec![("/p", Reply::html(page))]).await;
+    let s = server();
+    // `cache: auto` opts a loopback URL into the cache; the first fetch stores it.
+    let first = s
+        .fetch_json(WebFetchParams {
+            url: site.url("/p"),
+            cache: Some("auto".into()),
+            ..Default::default()
+        })
+        .await;
+    assert!(
+        text(&first.value).contains("Intro paragraph"),
+        "{:?}",
+        first.value
+    );
+
+    let selected = s
+        .fetch_json(WebFetchParams {
+            url: site.url("/p"),
+            cache: Some("auto".into()),
+            css_selector: Some("#prices".into()),
+            ..Default::default()
+        })
+        .await;
+    assert!(
+        !text(&selected.value).contains("Intro paragraph"),
+        "the selector was ignored on a cache hit: {:?}",
+        selected.value
+    );
+
+    let rows = s
+        .fetch_json(WebFetchParams {
+            url: site.url("/p"),
+            cache: Some("auto".into()),
+            tables: Some(true),
+            ..Default::default()
+        })
+        .await;
+    assert_eq!(
+        rows.value["tables"][0]["rows"][0][0], "Cup",
+        "{:?}",
+        rows.value
+    );
+
+    let plain = s
+        .fetch_json(WebFetchParams {
+            url: site.url("/p"),
+            cache: Some("auto".into()),
+            extraction: Some("text".into()),
+            ..Default::default()
+        })
+        .await;
+    assert!(
+        !text(&plain.value).contains("# Prices"),
+        "markdown came back where text was asked for: {:?}",
+        plain.value
+    );
+}
+
+#[tokio::test]
+async fn a_diff_with_nothing_to_compare_does_not_claim_a_change() {
+    // `changed: true` on a first sight answered "did it change?" with yes. The honest value is
+    // unknown, which is null, next to `first_seen`.
+    let s = server();
+    let v = s
+        .diff_json(svipall_mcp::tools::WebDiffParams {
+            url: "https://never-seen.test/page".into(),
+            refetch: Some(false),
+        })
+        .await
+        .unwrap();
+    assert_eq!(v["first_seen"], true, "{v}");
+    assert!(v["changed"].is_null(), "{v}");
+}
+
+#[tokio::test]
+async fn raw_markup_is_not_echoed_back_as_the_url() {
+    // A `raw:` URL *is* the page. Echoing it under `url` and `final_url` sent the whole markup
+    // back twice on top of the content, and wrote it into the request log as an address.
+    let markup = "<html><body><h1>Inline</h1><p>".to_string()
+        + &"A long paragraph of page text. ".repeat(50)
+        + "</p></body></html>";
+    let out = server().fetch_json(http(&format!("raw:{markup}"))).await;
+    assert_eq!(out.value["url"], "raw:", "{:?}", out.value["url"]);
+    assert_eq!(out.value["final_url"], "raw:");
+    let whole = out.value.to_string();
+    let content = text(&out.value);
+    assert!(
+        whole.len() < content.len() + 1_000,
+        "{} chars around {} of content",
+        whole.len(),
+        content.len()
+    );
+}
+
+#[tokio::test]
 async fn a_local_file_under_a_root_is_readable_and_one_outside_is_not() {
     let s = server();
     // `support::isolate()` pointed SVIPALL_HOME at a fresh directory; `in/` under it is the

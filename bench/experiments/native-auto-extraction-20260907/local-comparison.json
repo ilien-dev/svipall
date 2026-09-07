@@ -1,0 +1,43 @@
+{
+  "before_binary_sha256": "6daf81b4793eb65eed118ae2d1285d5fe5540122cc8e16081eba99465c3d066a",
+  "after_binary_sha256": "9c756a7060158f53e69f244d51c0a4e3f95780a1509cf03807e48c854f1b69d6",
+  "rows": [
+    {
+      "shape": "direct",
+      "full": false,
+      "before_titles": 5,
+      "after_titles": 5,
+      "before_item_links": 5,
+      "after_item_links": 5,
+      "unchanged_content": true
+    },
+    {
+      "shape": "direct",
+      "full": true,
+      "before_titles": 5,
+      "after_titles": 5,
+      "before_item_links": 5,
+      "after_item_links": 5,
+      "unchanged_content": true
+    },
+    {
+      "shape": "wrapped",
+      "full": false,
+      "before_titles": 0,
+      "after_titles": 5,
+      "before_item_links": 0,
+      "after_item_links": 5,
+      "unchanged_content": false
+    },
+    {
+      "shape": "wrapped",
+      "full": true,
+      "before_titles": 5,
+      "after_titles": 5,
+      "before_item_links": 5,
+      "after_item_links": 5,
+      "unchanged_content": true
+    }
+  ],
+  "scope": "Four local correctness invocations per version; not a timing benchmark."
+}

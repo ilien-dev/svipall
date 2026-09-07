@@ -1,0 +1,5 @@
+reddit repeat 1: delivered 4.20s (browser)
+reddit repeat 2: delivered 3.99s (browser)
+reddit repeat 3: delivered 2.40s (browser)
+
+paired finished in 11.0s

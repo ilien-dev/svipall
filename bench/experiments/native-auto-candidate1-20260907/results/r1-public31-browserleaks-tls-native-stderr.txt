@@ -1,0 +1,5 @@
+browserleaks-tls repeat 1: delivered 7.33s (warm)
+browserleaks-tls repeat 2: delivered 1.53s (warm)
+browserleaks-tls repeat 3: delivered 2.01s (warm)
+
+paired finished in 11.3s

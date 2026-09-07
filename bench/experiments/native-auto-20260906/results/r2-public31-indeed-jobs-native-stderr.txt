@@ -1,0 +1,5 @@
+indeed-jobs repeat 1: delivered 4.62s (warm)
+indeed-jobs repeat 2: delivered 4.87s (warm)
+indeed-jobs repeat 3: delivered 8.98s (warm)
+
+paired finished in 18.8s

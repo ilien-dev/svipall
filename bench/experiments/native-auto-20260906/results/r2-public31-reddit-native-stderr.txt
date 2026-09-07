@@ -1,0 +1,5 @@
+reddit repeat 1: delivered 2.81s (warm)
+reddit repeat 2: delivered 2.18s (warm)
+reddit repeat 3: delivered 2.22s (warm)
+
+paired finished in 7.6s

@@ -1,0 +1,26 @@
+{
+  "binary_sha256": "335d9c2c5fdb70e1e3dd034524c1a1518b406727438378df2c2bea9dfa22ca23",
+  "source_extractor_sha256": {
+    "crates/svipall-extract/Cargo.toml": "b4222494191f1d7e459ea8523492c71b5692a7276999b61b8f7666eeb1e5d337",
+    "crates/svipall-extract/src/content/blocks.rs": "c694d403736b78c8d789ebc379c14fe659c72d757c8e478f7c34888a56f09417",
+    "crates/svipall-extract/src/content/candidates.rs": "4a826fc4f9aeebc212ea2a51db6a14e17273f57ed6d50aacec93c1ad9eff7b26",
+    "crates/svipall-extract/src/content/forum.rs": "3f24f7326cf69b0c35e9ffc180f20f8a9206d7ce17c0f6fc6e8d12b35dcdd089",
+    "crates/svipall-extract/src/content/mod.rs": "2711cff1a7881087fc8b5397f0c288dd5210a7026317bbd722ca363cc84ed5b9",
+    "crates/svipall-extract/src/content/profile.rs": "31136f8c2ecba48ce918419cbba2ec209d9f7e38ea272b811b9b81bcc68e737d",
+    "crates/svipall-extract/src/content/stats.rs": "ee540249ff08c2b983ccd10ce6d934d2f2f7dfce001eb84df7d96f72b65f562f",
+    "crates/svipall-extract/src/content/vote.rs": "a87212431db0ee9a5032b34148ecf3cd3ed74e4b987ba6d34e0cf2b7ca639b56",
+    "crates/svipall-extract/src/heal.rs": "b1bf294e742270e4872ec909b91f6d3e9afa028b26be8845058c51049a4e77d4",
+    "crates/svipall-extract/src/induce.rs": "4c16149457b2ab03b7f5f97a90394a176204d266fe8f63e9e9a904f557d18a28",
+    "crates/svipall-extract/src/lib.rs": "871bb694aa4b57c6ad9fdc08fbdbc44521925fc0c6383504506ed6a0b35387db",
+    "crates/svipall-extract/src/meta.rs": "8280dfc2d00ceb584d9acae3afc5b86c7510ff496e8d91f8b618c9baeaf83ec0",
+    "crates/svipall-extract/src/prune.rs": "0d4ddc2c5aa5fec4285f3e9861e03bf9ceb07e99c38473e584a42ded7d8c804b",
+    "crates/svipall-extract/src/sanitize.rs": "67ff51b4c492ec5acdc8e416e6130679dd3ad6782d56079647c47ee3617560fe",
+    "crates/svipall-extract/src/schema.rs": "b059a416a9408108d3008923ca895a8ebd4ae353a522c680f0d7e94b32bcc99d",
+    "crates/svipall-extract/src/signals.rs": "8a2893a5206fb4c5b088f043549e70f8b55b256992fee04ee1d69b150c65256a",
+    "crates/svipall-extract/src/table.rs": "eb2b737af4979d13af7e6d3dd3ce2ed8c4063460222d6e3a69de7ae6741e3dc3"
+  },
+  "started_unix": 1788801241.1124666,
+  "ended_unix": 1788802138.4641252,
+  "exit_code": 0,
+  "inputs_sha256": "7ba96d95448ffabc8d674584d1cc1bfb830aa1c00e58b3790017168a5aa14072"
+}

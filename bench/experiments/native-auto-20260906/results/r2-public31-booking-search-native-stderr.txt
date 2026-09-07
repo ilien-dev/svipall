@@ -1,0 +1,5 @@
+booking-search repeat 1: delivered 5.23s (warm)
+booking-search repeat 2: delivered 3.02s (warm)
+booking-search repeat 3: delivered 3.01s (warm)
+
+paired finished in 11.6s

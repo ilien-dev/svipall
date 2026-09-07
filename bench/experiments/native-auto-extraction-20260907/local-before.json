@@ -1,0 +1,41 @@
+{
+  "binary_sha256": "6daf81b4793eb65eed118ae2d1285d5fe5540122cc8e16081eba99465c3d066a",
+  "rows": [
+    {
+      "shape": "direct",
+      "full": false,
+      "seconds": 0.9059999999990396,
+      "titles": 5,
+      "item_links": 5,
+      "descriptions": 5,
+      "content": "## [Research Engineer 0](https://records.test/items/0)\n\nInstitute 0 is recruiting an engineer to design measurement systems, review independent observations, and explain experimental results. The role includes maintaining laboratory instruments, documenting reproducible methods, and working with researchers to validate new techniques.\n\n## [Research Engineer 1](https://records.test/items/1)\n\nInstitute 1 is recruiting an engineer to design measurement systems, review independent observations, and explain experimental results. The role includes maintaining laboratory instruments, documenting reproducible methods, and working with researchers to validate new techniques.\n\n## [Research Engineer 2](https://records.test/items/2)\n\nInstitute 2 is recruiting an engineer to design measurement systems, review independent observations, and explain experimental results. The role includes maintaining laboratory instruments, documenting reproducible methods, and working with researchers to validate new techniques.\n\n## [Research Engineer 3](https://records.test/items/3)\n\nInstitute 3 is recruiting an engineer to design measurement systems, review independent observations, and explain experimental results. The role includes maintaining laboratory instruments, documenting reproducible methods, and working with researchers to validate new techniques.\n\n## [Research Engineer 4](https://records.test/items/4)\n\nInstitute 4 is recruiting an engineer to design measurement systems, review independent observations, and explain experimental results. The role includes maintaining laboratory instruments, documenting reproducible methods, and working with researchers to validate new techniques."
+    },
+    {
+      "shape": "direct",
+      "full": true,
+      "seconds": 0.3600000000005821,
+      "titles": 5,
+      "item_links": 5,
+      "descriptions": 5,
+      "content": "HomeHelp\n\n## [Research Engineer 0](https://records.test/items/0)\n\nInstitute 0 is recruiting an engineer to design measurement systems, review independent observations, and explain experimental results. The role includes maintaining laboratory instruments, documenting reproducible methods, and working with researchers to validate new techniques.\n\n## [Research Engineer 1](https://records.test/items/1)\n\nInstitute 1 is recruiting an engineer to design measurement systems, review independent observations, and explain experimental results. The role includes maintaining laboratory instruments, documenting reproducible methods, and working with researchers to validate new techniques.\n\n## [Research Engineer 2](https://records.test/items/2)\n\nInstitute 2 is recruiting an engineer to design measurement systems, review independent observations, and explain experimental results. The role includes maintaining laboratory instruments, documenting reproducible methods, and working with researchers to validate new techniques.\n\n## [Research Engineer 3](https://records.test/items/3)\n\nInstitute 3 is recruiting an engineer to design measurement systems, review independent observations, and explain experimental results. The role includes maintaining laboratory instruments, documenting reproducible methods, and working with researchers to validate new techniques.\n\n## [Research Engineer 4](https://records.test/items/4)\n\nInstitute 4 is recruiting an engineer to design measurement systems, review independent observations, and explain experimental results. The role includes maintaining laboratory instruments, documenting reproducible methods, and working with researchers to validate new techniques."
+    },
+    {
+      "shape": "wrapped",
+      "full": false,
+      "seconds": 0.35900000000037835,
+      "titles": 0,
+      "item_links": 0,
+      "descriptions": 5,
+      "content": "Institute 0 is recruiting an engineer to design measurement systems, review independent observations, and explain experimental results. The role includes maintaining laboratory instruments, documenting reproducible methods, and working with researchers to validate new techniques.\n\nInstitute 1 is recruiting an engineer to design measurement systems, review independent observations, and explain experimental results. The role includes maintaining laboratory instruments, documenting reproducible methods, and working with researchers to validate new techniques.\n\nInstitute 2 is recruiting an engineer to design measurement systems, review independent observations, and explain experimental results. The role includes maintaining laboratory instruments, documenting reproducible methods, and working with researchers to validate new techniques.\n\nInstitute 3 is recruiting an engineer to design measurement systems, review independent observations, and explain experimental results. The role includes maintaining laboratory instruments, documenting reproducible methods, and working with researchers to validate new techniques.\n\nInstitute 4 is recruiting an engineer to design measurement systems, review independent observations, and explain experimental results. The role includes maintaining laboratory instruments, documenting reproducible methods, and working with researchers to validate new techniques."
+    },
+    {
+      "shape": "wrapped",
+      "full": true,
+      "seconds": 0.3600000000005821,
+      "titles": 5,
+      "item_links": 5,
+      "descriptions": 5,
+      "content": "HomeHelp\n\n## [Research Engineer 0](https://records.test/items/0)\n\nInstitute 0 is recruiting an engineer to design measurement systems, review independent observations, and explain experimental results. The role includes maintaining laboratory instruments, documenting reproducible methods, and working with researchers to validate new techniques.\n\n## [Research Engineer 1](https://records.test/items/1)\n\nInstitute 1 is recruiting an engineer to design measurement systems, review independent observations, and explain experimental results. The role includes maintaining laboratory instruments, documenting reproducible methods, and working with researchers to validate new techniques.\n\n## [Research Engineer 2](https://records.test/items/2)\n\nInstitute 2 is recruiting an engineer to design measurement systems, review independent observations, and explain experimental results. The role includes maintaining laboratory instruments, documenting reproducible methods, and working with researchers to validate new techniques.\n\n## [Research Engineer 3](https://records.test/items/3)\n\nInstitute 3 is recruiting an engineer to design measurement systems, review independent observations, and explain experimental results. The role includes maintaining laboratory instruments, documenting reproducible methods, and working with researchers to validate new techniques.\n\n## [Research Engineer 4](https://records.test/items/4)\n\nInstitute 4 is recruiting an engineer to design measurement systems, review independent observations, and explain experimental results. The role includes maintaining laboratory instruments, documenting reproducible methods, and working with researchers to validate new techniques."
+    }
+  ]
+}

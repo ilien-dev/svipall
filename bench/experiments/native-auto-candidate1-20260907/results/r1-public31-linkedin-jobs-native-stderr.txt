@@ -1,0 +1,5 @@
+linkedin-jobs repeat 1: failed 32.41s (warm)
+linkedin-jobs repeat 2: failed 23.65s (warm)
+linkedin-jobs repeat 3: failed 23.38s (warm)
+
+paired finished in 80.3s

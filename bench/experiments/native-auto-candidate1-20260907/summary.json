@@ -1,0 +1,456 @@
+{
+  "complete": true,
+  "calls": 918,
+  "expected_calls": 918,
+  "arms": {
+    "auto": {
+      "calls": 459,
+      "delivered": 327,
+      "seconds": 2891.0134486,
+      "median_seconds": 0.9907976,
+      "successful_median_seconds": 1.0095911,
+      "seconds_per_delivery": 8.841019720489298,
+      "per_round": {
+        "1": {
+          "calls": 153,
+          "delivered": 116,
+          "seconds": 1315.6861962,
+          "median_seconds": 1.0078994,
+          "successful_median_seconds": 1.00603285,
+          "seconds_per_delivery": 11.342122381034484
+        },
+        "2": {
+          "calls": 153,
+          "delivered": 89,
+          "seconds": 419.8373535,
+          "median_seconds": 0.6079879,
+          "successful_median_seconds": 0.9972388,
+          "seconds_per_delivery": 4.717273634831461
+        },
+        "3": {
+          "calls": 153,
+          "delivered": 122,
+          "seconds": 1155.4898989,
+          "median_seconds": 1.021845,
+          "successful_median_seconds": 1.1493582,
+          "seconds_per_delivery": 9.471228679508197
+        }
+      },
+      "audited_useful": 164,
+      "useful_content_available": 165,
+      "audited_useful_by_round": {
+        "1": {
+          "calls": 153,
+          "count": 57,
+          "seconds": 1315.6861962,
+          "seconds_per_result": 23.082213968421055
+        },
+        "2": {
+          "calls": 153,
+          "count": 48,
+          "seconds": 419.8373535,
+          "seconds_per_result": 8.74661153125
+        },
+        "3": {
+          "calls": 153,
+          "count": 59,
+          "seconds": 1155.4898989,
+          "seconds_per_result": 19.58457455762712
+        }
+      },
+      "useful_content_by_round": {
+        "1": {
+          "calls": 153,
+          "count": 58,
+          "seconds": 1315.6861962,
+          "seconds_per_result": 22.684244762068968
+        },
+        "2": {
+          "calls": 153,
+          "count": 48,
+          "seconds": 419.8373535,
+          "seconds_per_result": 8.74661153125
+        },
+        "3": {
+          "calls": 153,
+          "count": 59,
+          "seconds": 1155.4898989,
+          "seconds_per_result": 19.58457455762712
+        }
+      },
+      "by_order": {
+        "0": {
+          "calls": 231,
+          "count": 79,
+          "seconds": 1551.2996276,
+          "seconds_per_result": 19.63670414683544
+        },
+        "1": {
+          "calls": 228,
+          "count": 85,
+          "seconds": 1339.713821,
+          "seconds_per_result": 15.761339070588235
+        }
+      },
+      "seconds_per_audited_useful": 17.628130784146343,
+      "audit_verdicts": {
+        "useful": 165,
+        "unavailable": 115,
+        "wall": 29,
+        "diagnostic-only": 102,
+        "partial": 39,
+        "shell": 9
+      },
+      "stop_types": {
+        "response": 327,
+        "timeout": 17,
+        "local_deferral": 88,
+        "wall_or_error": 27
+      },
+      "native_attempts": 21,
+      "incomplete_content": 9
+    },
+    "native": {
+      "calls": 459,
+      "delivered": 331,
+      "seconds": 3545.0657222,
+      "median_seconds": 2.6917358,
+      "successful_median_seconds": 3.1097098,
+      "seconds_per_delivery": 10.710168345015106,
+      "per_round": {
+        "1": {
+          "calls": 153,
+          "delivered": 117,
+          "seconds": 1473.1094764,
+          "median_seconds": 3.9414611,
+          "successful_median_seconds": 4.0140234,
+          "seconds_per_delivery": 12.590679285470085
+        },
+        "2": {
+          "calls": 153,
+          "delivered": 93,
+          "seconds": 785.4765361,
+          "median_seconds": 1.8513852,
+          "successful_median_seconds": 2.8680972000000002,
+          "seconds_per_delivery": 8.445984259139784
+        },
+        "3": {
+          "calls": 153,
+          "delivered": 121,
+          "seconds": 1286.4797097,
+          "median_seconds": 2.9363072,
+          "successful_median_seconds": 2.9363072,
+          "seconds_per_delivery": 10.632063716528926
+        }
+      },
+      "audited_useful": 161,
+      "useful_content_available": 171,
+      "audited_useful_by_round": {
+        "1": {
+          "calls": 153,
+          "count": 59,
+          "seconds": 1473.1094764,
+          "seconds_per_result": 24.967957227118642
+        },
+        "2": {
+          "calls": 153,
+          "count": 44,
+          "seconds": 785.4765361,
+          "seconds_per_result": 17.85173945681818
+        },
+        "3": {
+          "calls": 153,
+          "count": 58,
+          "seconds": 1286.4797097,
+          "seconds_per_result": 22.18068465
+        }
+      },
+      "useful_content_by_round": {
+        "1": {
+          "calls": 153,
+          "count": 62,
+          "seconds": 1473.1094764,
+          "seconds_per_result": 23.75983026451613
+        },
+        "2": {
+          "calls": 153,
+          "count": 47,
+          "seconds": 785.4765361,
+          "seconds_per_result": 16.712266725531915
+        },
+        "3": {
+          "calls": 153,
+          "count": 62,
+          "seconds": 1286.4797097,
+          "seconds_per_result": 20.749672737096777
+        }
+      },
+      "by_order": {
+        "0": {
+          "calls": 228,
+          "count": 88,
+          "seconds": 2139.7269925,
+          "seconds_per_result": 24.315079460227274
+        },
+        "1": {
+          "calls": 231,
+          "count": 73,
+          "seconds": 1405.3387297,
+          "seconds_per_result": 19.251215475342466
+        }
+      },
+      "seconds_per_audited_useful": 22.01904175279503,
+      "audit_verdicts": {
+        "useful": 171,
+        "wall": 29,
+        "unavailable": 114,
+        "diagnostic-only": 101,
+        "partial": 37,
+        "shell": 7
+      },
+      "stop_types": {
+        "response": 331,
+        "timeout": 1,
+        "wall_or_error": 42,
+        "local_deferral": 85
+      },
+      "native_attempts": 0,
+      "incomplete_content": 9
+    }
+  },
+  "delivery_pairs": {
+    "pairs": 459,
+    "both": 304,
+    "auto_only": 23,
+    "native_only": 27,
+    "neither": 105,
+    "incomplete": 0
+  },
+  "audited_useful_pairs": {
+    "pairs": 459,
+    "both": 142,
+    "auto_only": 22,
+    "native_only": 19,
+    "neither": 276,
+    "incomplete": 0
+  },
+  "useful_content_pairs": {
+    "pairs": 459,
+    "both": 152,
+    "auto_only": 13,
+    "native_only": 19,
+    "neither": 275,
+    "incomplete": 0
+  },
+  "content_fingerprints": 376,
+  "labeled_fingerprints": 376,
+  "controller_seconds": 54024.89394688606,
+  "production": {
+    "calls": 702,
+    "arms": {
+      "auto": {
+        "calls": 351,
+        "count": 164,
+        "seconds": 2781.6185902,
+        "seconds_per_result": 16.961088964634147
+      },
+      "native": {
+        "calls": 351,
+        "count": 161,
+        "seconds": 3011.4378226,
+        "seconds_per_result": 18.704582749068322
+      }
+    },
+    "without_confirmed_local_deferrals": {
+      "calls": 498,
+      "primary_pairs": {
+        "pairs": 249,
+        "both": 142,
+        "auto_only": 19,
+        "native_only": 9,
+        "neither": 79,
+        "incomplete": 0
+      },
+      "available_content_pairs": {
+        "pairs": 249,
+        "both": 152,
+        "auto_only": 10,
+        "native_only": 9,
+        "neither": 78,
+        "incomplete": 0
+      }
+    }
+  },
+  "round_break": {
+    "first_resumed_round": 3,
+    "pause_elapsed_seconds": 47137.46871328354,
+    "all_calls": {
+      "before": {
+        "calls": 612,
+        "primary_pairs": {
+          "pairs": 306,
+          "both": 90,
+          "auto_only": 15,
+          "native_only": 13,
+          "neither": 188,
+          "incomplete": 0
+        },
+        "delivery_pairs": {
+          "pairs": 306,
+          "both": 189,
+          "auto_only": 16,
+          "native_only": 21,
+          "neither": 80,
+          "incomplete": 0
+        },
+        "available_content_pairs": {
+          "pairs": 306,
+          "both": 96,
+          "auto_only": 10,
+          "native_only": 13,
+          "neither": 187,
+          "incomplete": 0
+        },
+        "arms": {
+          "auto": {
+            "calls": 306,
+            "count": 105,
+            "seconds": 1735.5235497,
+            "seconds_per_result": 16.52879571142857
+          },
+          "native": {
+            "calls": 306,
+            "count": 103,
+            "seconds": 2258.5860125,
+            "seconds_per_result": 21.92801953883495
+          }
+        }
+      },
+      "after": {
+        "calls": 306,
+        "primary_pairs": {
+          "pairs": 153,
+          "both": 52,
+          "auto_only": 7,
+          "native_only": 6,
+          "neither": 88,
+          "incomplete": 0
+        },
+        "delivery_pairs": {
+          "pairs": 153,
+          "both": 115,
+          "auto_only": 7,
+          "native_only": 6,
+          "neither": 25,
+          "incomplete": 0
+        },
+        "available_content_pairs": {
+          "pairs": 153,
+          "both": 56,
+          "auto_only": 3,
+          "native_only": 6,
+          "neither": 88,
+          "incomplete": 0
+        },
+        "arms": {
+          "auto": {
+            "calls": 153,
+            "count": 59,
+            "seconds": 1155.4898989,
+            "seconds_per_result": 19.58457455762712
+          },
+          "native": {
+            "calls": 153,
+            "count": 58,
+            "seconds": 1286.4797097,
+            "seconds_per_result": 22.18068465
+          }
+        }
+      }
+    },
+    "production": {
+      "before": {
+        "calls": 468,
+        "primary_pairs": {
+          "pairs": 234,
+          "both": 90,
+          "auto_only": 15,
+          "native_only": 13,
+          "neither": 116,
+          "incomplete": 0
+        },
+        "delivery_pairs": {
+          "pairs": 234,
+          "both": 124,
+          "auto_only": 15,
+          "native_only": 21,
+          "neither": 74,
+          "incomplete": 0
+        },
+        "available_content_pairs": {
+          "pairs": 234,
+          "both": 96,
+          "auto_only": 10,
+          "native_only": 13,
+          "neither": 115,
+          "incomplete": 0
+        },
+        "arms": {
+          "auto": {
+            "calls": 234,
+            "count": 105,
+            "seconds": 1666.4485956,
+            "seconds_per_result": 15.870939005714286
+          },
+          "native": {
+            "calls": 234,
+            "count": 103,
+            "seconds": 1934.121725,
+            "seconds_per_result": 18.77788082524272
+          }
+        }
+      },
+      "after": {
+        "calls": 234,
+        "primary_pairs": {
+          "pairs": 117,
+          "both": 52,
+          "auto_only": 7,
+          "native_only": 6,
+          "neither": 52,
+          "incomplete": 0
+        },
+        "delivery_pairs": {
+          "pairs": 117,
+          "both": 79,
+          "auto_only": 7,
+          "native_only": 6,
+          "neither": 25,
+          "incomplete": 0
+        },
+        "available_content_pairs": {
+          "pairs": 117,
+          "both": 56,
+          "auto_only": 3,
+          "native_only": 6,
+          "neither": 52,
+          "incomplete": 0
+        },
+        "arms": {
+          "auto": {
+            "calls": 117,
+            "count": 59,
+            "seconds": 1115.1699946,
+            "seconds_per_result": 18.901186349152542
+          },
+          "native": {
+            "calls": 117,
+            "count": 58,
+            "seconds": 1077.3160976,
+            "seconds_per_result": 18.574415475862068
+          }
+        }
+      }
+    }
+  }
+}

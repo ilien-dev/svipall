@@ -1,0 +1,8 @@
+cetd: 700 pages scored, 95 changed
+cleaneval: 1431 pages scored, 95 changed
+cleanportaleval: 1500 pages scored, 95 changed
+dragnet: 2879 pages scored, 132 changed
+google-trends-2017: 3058 pages scored, 139 changed
+l3s-gn1: 3679 pages scored, 165 changed
+readability: 3794 pages scored, 172 changed
+scrapinghub: 3975 pages scored, 173 changed

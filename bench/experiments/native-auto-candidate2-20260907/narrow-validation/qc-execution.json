@@ -1,0 +1,25 @@
+{
+  "started_unix": 1788802139.8151634,
+  "ended_unix": 1788804699.328693,
+  "exit_code": 0,
+  "manual_automatic_exit_code": 0,
+  "qc_exit_code": 0,
+  "local_browser_exit_code": 0,
+  "source_stable": true,
+  "source_before_sha256": "1f2f5424a82937caaeb89226da1f619e6f3dda0d998857a70d31c4d4a7cc96a0",
+  "source_after_sha256": "1f2f5424a82937caaeb89226da1f619e6f3dda0d998857a70d31c4d4a7cc96a0",
+  "model_inputs": {
+    "crates\\svipall-models\\models\\detect.json": "1b3e034ee836066310e3e6d147901a94583c52ff151578fda8ea0cb7314d564c",
+    "crates\\svipall-models\\models\\detect.onnx": "49e83ac396c5ec4e91e2df9f8e6e3b86ab90f64faa2e10d2ad0459c3e22c25ec",
+    "crates\\svipall-models\\models\\README.md": "c8bebc58710c8b2f9f89408a385f7733f395038d7e1a35e4d77408039bf3e287",
+    "crates\\svipall-models\\models\\segment.json": "cd51c108a5fb8142470217e92b2ec93f55f34884ee325445df41e0651d9fc089",
+    "crates\\svipall-models\\models\\segment.onnx": "87922c78b3047425624c7f4b323858db05786a97034e58b72c7f88c187283e34"
+  },
+  "model_inputs_stable": true,
+  "corpus_inputs_sha256": "7ba96d95448ffabc8d674584d1cc1bfb830aa1c00e58b3790017168a5aa14072",
+  "corpus_inputs_stable": true,
+  "log_sha256": "ec48fd11d88d0058a694a737d5b851730f7a931e5b7f161022a9a2f7a9dda501",
+  "build_jobs": 1,
+  "note": "QC includes the corpus after measurement. Review its extraction table against corpus-before.txt; no public candidate is frozen or launched by this script.",
+  "binary_sha256": "020a09b2d47234bbe09e88a4263689f2586439043d76c0f5959d576403bbea25"
+}

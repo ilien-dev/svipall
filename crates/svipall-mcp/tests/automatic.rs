@@ -25,6 +25,92 @@ fn params(site: &Site, url: &str) -> WebFetchParams {
 }
 
 #[tokio::test]
+#[ignore = "opens a persistent local browser against a loopback proxy"]
+async fn a_fingerprint_wall_reaches_persistent_emulation_without_headless_probes() {
+    let url = "http://fingerprint-routing.test/article";
+    let article = "<main><h1>Persistent browser report</h1><p>This report contains the requested observations, their context, and an explanation of the method. The document is available once JavaScript has rendered it, and it provides enough substantive detail to inspect the result without relying on a title or an empty placeholder.</p></main>";
+    let wall = format!("<html><body><p>captcha-delivery.com</p><script>if(document.cookie.includes('visited_root=yes')) {{ document.body.innerHTML={}; }} else {{ document.cookie='datadome=fixture; Path=/'; }}</script></body></html>", serde_json::to_string(article).unwrap());
+    let site = Site::start(vec![
+        (url, Reply::html(&wall)),
+        ("http://fingerprint-routing.test/", Reply::html("<html><body><p>Public landing</p><script>document.cookie='visited_root=yes; Path=/';</script></body></html>")),
+    ]).await;
+    let server = SvipallServer::new(
+        None,
+        svipall_core::Config {
+            max_tier: "warm".into(),
+            request_limit: 12,
+            block_ads: false,
+            ..cfg()
+        },
+        None,
+    );
+    assert!(server.pool().available(), "manual test requires a browser");
+    let out = server.fetch_json(params(&site, url)).await.value;
+    assert_eq!(out["tier_used"], "real", "{out}");
+    assert_eq!(out["identity_used"], "emulated", "{out}");
+    assert_eq!(out["native_fallback"], false, "{out}");
+    let attempts = out["attempts"].as_array().unwrap();
+    assert_eq!(attempts.len(), 2, "{out}");
+    assert!(attempts[0].as_str().unwrap().starts_with("http:"));
+    assert!(attempts[1].as_str().unwrap().starts_with("real:"));
+    assert!(out["content"]
+        .as_str()
+        .unwrap()
+        .contains("requested observations"));
+    // The first useful real response is not yet enough for success-based promotion. Its
+    // preceding classified HTTP wall must independently prevent a return to weak probes.
+    let repeat = server.fetch_json(params(&site, url)).await.value;
+    server.shutdown_configuration().await;
+    assert_eq!(repeat["tier_used"], "real", "{repeat}");
+    assert_eq!(repeat["identity_used"], "emulated", "{repeat}");
+    assert_eq!(repeat["native_fallback"], false, "{repeat}");
+    let attempts = repeat["attempts"].as_array().unwrap();
+    assert_eq!(attempts.len(), 1, "{repeat}");
+    assert!(attempts[0].as_str().unwrap().starts_with("real:"));
+    assert!(repeat["content"]
+        .as_str()
+        .unwrap()
+        .contains("requested observations"));
+}
+
+#[tokio::test]
+#[ignore = "opens a persistent local browser against a loopback proxy"]
+async fn a_managed_challenge_reaches_headful_emulation_with_two_attempts() {
+    let url = "http://managed-routing.test/article";
+    let article = "<main><h1>Managed routing report</h1><p>This report contains the requested observations, their context, and an explanation of the method. The document is available once JavaScript has rendered it, and it provides enough substantive detail to inspect the result without relying on a title or an empty placeholder.</p></main>";
+    let wall = format!("<html><head><title>Just a moment...</title></head><body><div id=\"challenge-form\">Checking your browser before accessing the site.</div><script>window._cf_chl_opt={{cvId:'3'}};if(document.cookie.includes('visited_root=yes')) {{ document.title='Managed routing report'; document.body.innerHTML={}; }}</script></body></html>", serde_json::to_string(article).unwrap());
+    let site = Site::start(vec![
+        (url, Reply::html(&wall)),
+        ("http://managed-routing.test/", Reply::html("<html><body><p>Public landing</p><script>document.cookie='visited_root=yes; Path=/';</script></body></html>")),
+    ]).await;
+    let server = SvipallServer::new(
+        None,
+        svipall_core::Config {
+            max_tier: "warm".into(),
+            request_limit: 12,
+            auto_max_attempts: 2,
+            block_ads: false,
+            ..cfg()
+        },
+        None,
+    );
+    assert!(server.pool().available(), "manual test requires a browser");
+    let out = server.fetch_json(params(&site, url)).await.value;
+    server.shutdown_configuration().await;
+    assert_eq!(out["tier_used"], "real", "{out}");
+    assert_eq!(out["identity_used"], "emulated", "{out}");
+    assert_eq!(out["native_fallback"], false, "{out}");
+    let attempts = out["attempts"].as_array().unwrap();
+    assert_eq!(attempts.len(), 2, "{out}");
+    assert!(attempts[0].as_str().unwrap().starts_with("http:"));
+    assert!(attempts[1].as_str().unwrap().starts_with("real:"));
+    assert!(out["content"]
+        .as_str()
+        .unwrap()
+        .contains("requested observations"));
+}
+
+#[tokio::test]
 async fn a_visit_limit_keeps_unrequested_crawl_pages_pending() {
     let seed = "http://crawl-limit.test/seed";
     let root = "http://crawl-limit.test/";

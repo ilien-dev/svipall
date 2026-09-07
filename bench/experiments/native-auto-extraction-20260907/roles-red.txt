@@ -1,0 +1,42 @@
+   Compiling svipall-extract v1.0.0 (<repo>\crates\svipall-extract)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.72s
+     Running tests\listing_headings.rs (C:/t\debug\deps\listing_headings-495de767d3feed15.exe)
+
+running 1 test
+test navigation_roles_on_neutral_divs_are_not_record_headings ... FAILED
+
+failures:
+
+---- navigation_roles_on_neutral_divs_are_not_record_headings stdout ----
+
+thread 'navigation_roles_on_neutral_divs_are_not_record_headings' (52764) panicked at crates\svipall-extract\tests\listing_headings.rs:78:9:
+navigation survived: ## [Research Engineer 1](https://records.test/items/1)
+
+Institute 1 is recruiting an engineer to develop reliable research software. The role includes maintaining data pipelines, reviewing experimental results, documenting reproducible methods, and working with researchers to publish useful findings. This is a permanent position with a defined technical remit.
+
+## [Research Engineer 2](https://records.test/items/2)
+
+Institute 2 is recruiting an engineer to develop reliable research software. The role includes maintaining data pipelines, reviewing experimental results, documenting reproducible methods, and working with researchers to publish useful findings. This is a permanent position with a defined technical remit.
+
+## [Research Engineer 3](https://records.test/items/3)
+
+Institute 3 is recruiting an engineer to develop reliable research software. The role includes maintaining data pipelines, reviewing experimental results, documenting reproducible methods, and working with researchers to publish useful findings. This is a permanent position with a defined technical remit.
+
+## [Research Engineer 4](https://records.test/items/4)
+
+Institute 4 is recruiting an engineer to develop reliable research software. The role includes maintaining data pipelines, reviewing experimental results, documenting reproducible methods, and working with researchers to publish useful findings. This is a permanent position with a defined technical remit.
+
+## [Research Engineer 5](https://records.test/items/5)
+
+Institute 5 is recruiting an engineer to develop reliable research software. The role includes maintaining data pipelines, reviewing experimental results, documenting reproducible methods, and working with researchers to publish useful findings. This is a permanent position with a defined technical remit.
+
+## Role sentinel
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+
+failures:
+    navigation_roles_on_neutral_divs_are_not_record_headings
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 3 filtered out; finished in 0.00s
+
+error: test failed, to rerun pass `-p svipall-extract --test listing_headings`

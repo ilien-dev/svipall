@@ -1,0 +1,11 @@
+{
+  "saved_unix": 1788804885.9817195,
+  "changes_since_qc": [
+    "README.md"
+  ],
+  "readme_before_sha256": "fd6f1f95b1dbc7e3b00f603e50454f7e9b60d3dc3a53efe66fdbe79f63e89a2f",
+  "readme_after_sha256": "deaccd25ac1f38838adb2b6bfd26365db15368bb769b786b4b37f841282157e7",
+  "local_links_checked": 56,
+  "missing_local_targets": [],
+  "note": "Documentation-only reconciliation after narrow-prototype QC. The final README bytes were not part of that QC source snapshot; no product inputs changed."
+}

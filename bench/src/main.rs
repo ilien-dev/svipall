@@ -25,6 +25,7 @@ mod h3;
 #[cfg(feature = "http3")]
 mod h3ref;
 mod micro;
+mod paired;
 mod summary;
 mod targets;
 mod teco;
@@ -100,6 +101,7 @@ async fn main() -> anyhow::Result<()> {
     let started = Instant::now();
     let failures = match mode {
         "compare" => comparison::run(&args).await?,
+        "paired" => paired::run(&args).await?,
         "summarize" => summary::run(std::path::Path::new(
             &flag(&args, "--dir").unwrap_or_else(|| "bench/experiments/local-20260905".into()),
         ))?,

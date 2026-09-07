@@ -338,7 +338,8 @@ pub fn status() -> serde_json::Value {
     serde_json::json!({
         "budget": b,
         "half_life_hours": hl / 3600,
-        "soft_line": SOFT_LINE,
+        // An f32 printed through f64 reads 0.699999988079071.
+        "soft_line": (f64::from(SOFT_LINE) * 100.0).round() / 100.0,
         "by_domain": by_domain,
         "unreadable": st.unreadable,
     })

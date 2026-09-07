@@ -1,0 +1,22 @@
+{
+  "native-auto-20260906": {
+    "completed_blocks": 306,
+    "summed_block_minutes": 83.12,
+    "round_block_minutes": {
+      "1": 47.61,
+      "2": 19.19,
+      "3": 16.32
+    },
+    "elapsed_calendar_hours": 1.54
+  },
+  "native-auto-candidate1-20260907": {
+    "completed_blocks": 306,
+    "summed_block_minutes": 112.38,
+    "round_block_minutes": {
+      "1": 48.26,
+      "2": 21.75,
+      "3": 42.37
+    },
+    "elapsed_calendar_hours": 15.01
+  }
+}

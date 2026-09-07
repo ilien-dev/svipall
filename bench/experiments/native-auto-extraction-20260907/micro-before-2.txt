@@ -1,0 +1,21 @@
+fixture: 195 KB html, 186 KB text, 188 KB markdown
+
+ok   classify / 200KB                   184.138µs  (budget 400µs)
+ok   quality::assess / 200KB             45.840µs  (budget 250µs)
+ok   markdown, voted / 200KB              5.359ms  (budget 8ms)
+ok   template::strip / 200KB            283.634µs  (budget 2ms)
+ok   cache::find_near / 300 pages       732.000ns  (budget 2ms)
+ok   induce / 200KB                       2.512ms  (budget 60ms)
+ok   parse_page text+title / 200KB        2.299ms  (budget 14ms)
+ok   parse_page everything / 200KB        6.406ms  (budget 20ms)
+ok   bm25_filter / full page              1.895ms  (budget 3ms)
+ok   budget::take / full page           254.785µs  (budget 4ms)
+ok   simhash / full page                775.690µs  (budget 5ms)
+
+structural checks (exact, cannot flake):
+ok   DOM parses for text+title+markdown+links+metadata: 1 (expected 1)
+ok   disk reads across 10,000 lookups: 0 (expected 0)
+ok   ledger writes across 10,000 charges: 0 (expected at most 1)
+ok   pruning dropped the nav and the sidebar, kept the article, the code and the table (2% smaller)
+
+micro finished in 0.3s

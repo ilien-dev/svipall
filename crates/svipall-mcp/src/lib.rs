@@ -35,6 +35,7 @@ pub mod slider;
 pub mod snapshot;
 pub mod solve_loop;
 pub mod solver_engine;
+pub mod steer;
 pub mod substance;
 pub mod tools;
 /// Slider and rotation captchas: geometry, no model.

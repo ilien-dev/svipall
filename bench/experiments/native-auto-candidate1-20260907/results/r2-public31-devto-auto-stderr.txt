@@ -1,0 +1,5 @@
+devto repeat 1: delivered 0.12s (http)
+devto repeat 2: delivered 0.92s (http)
+devto repeat 3: delivered 1.03s (http)
+
+paired finished in 2.3s

@@ -1,0 +1,10 @@
+{
+  "relative_file_references_checked": 82,
+  "missing_file_references": [],
+  "readme_public_table_matches_recorded_calls": true,
+  "latest_tested_source_still_matches": true,
+  "latest_validation_log_hashes_match": true,
+  "public_files_scanned_before_this_record": 48,
+  "unredacted_home_or_observed_exit_ip_findings": [],
+  "observed_exit_addresses_redacted": 1
+}

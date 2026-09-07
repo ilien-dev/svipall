@@ -1,0 +1,228 @@
+{
+  "rounds": [
+    1,
+    2
+  ],
+  "matched_calls": 612,
+  "native_only_useful_pairs": 13,
+  "stop_types": {
+    "timeout": 6,
+    "local_deferral": 6,
+    "wall_or_error": 1
+  },
+  "cells": [
+    {
+      "set": "hard12",
+      "target": "g2",
+      "round": 1,
+      "position": 2,
+      "auto_verdict": "unavailable",
+      "auto_stop": "timeout",
+      "auto_seconds": 59.9205921,
+      "native_seconds": 4.2516171,
+      "reason": "browser-fingerprinting wall (captcha-delivery.com, cookie datadome)",
+      "stopped": "timeout: warm exhausted the remaining fetch time",
+      "attempts": [
+        "http: 403 (36ms) -> browser-fingerprinting wall (captcha-delivery.com)",
+        "real: 200 (1640ms) -> browser-fingerprinting wall (captcha-delivery.com, cookie datadome)",
+        "timeout: warm exhausted the remaining fetch time"
+      ],
+      "native_attempted": false
+    },
+    {
+      "set": "hard12",
+      "target": "g2",
+      "round": 1,
+      "position": 3,
+      "auto_verdict": "unavailable",
+      "auto_stop": "local_deferral",
+      "auto_seconds": 6.79e-05,
+      "native_seconds": 3.5268545,
+      "reason": "cooldown",
+      "stopped": null,
+      "attempts": [],
+      "native_attempted": false
+    },
+    {
+      "set": "public31",
+      "target": "canadianinsider",
+      "round": 1,
+      "position": 1,
+      "auto_verdict": "wall",
+      "auto_stop": "timeout",
+      "auto_seconds": 59.9132347,
+      "native_seconds": 10.3261127,
+      "reason": "cloudflare wall (just a moment)",
+      "stopped": "timeout: native:warm exhausted the remaining fetch time",
+      "attempts": [
+        "http: 403 (151ms) -> cloudflare wall (just a moment)",
+        "browser: 404 (5223ms) -> cloudflare wall (just a moment)",
+        "stealth: 200 (1551ms) -> cloudflare wall (just a moment)",
+        "real: 404 (5297ms) -> cloudflare wall (just a moment)",
+        "warm: 200 (22247ms) -> cloudflare wall (just a moment)",
+        "native: last-resort fallback; real browser characteristics are exposed",
+        "timeout: native:warm exhausted the remaining fetch time"
+      ],
+      "native_attempted": true
+    },
+    {
+      "set": "public31",
+      "target": "canadianinsider",
+      "round": 1,
+      "position": 2,
+      "auto_verdict": "wall",
+      "auto_stop": "timeout",
+      "auto_seconds": 59.9035213,
+      "native_seconds": 2.2970509,
+      "reason": "cloudflare wall (just a moment)",
+      "stopped": "timeout: pacing would exceed the fetch deadline; no further request was sent",
+      "attempts": [
+        "http: 403 (39ms) -> cloudflare wall (just a moment)",
+        "browser: 200 (1552ms) -> cloudflare wall (just a moment)",
+        "stealth: 200 (1528ms) -> cloudflare wall (just a moment)",
+        "timeout: pacing would exceed the fetch deadline; no further request was sent"
+      ],
+      "native_attempted": false
+    },
+    {
+      "set": "hard12",
+      "target": "amazon",
+      "round": 1,
+      "position": 1,
+      "auto_verdict": "unavailable",
+      "auto_stop": "wall_or_error",
+      "auto_seconds": 0.191369,
+      "native_seconds": 3.6580031,
+      "reason": "http 503",
+      "stopped": "cooldown: server requested backoff; wait 900s",
+      "attempts": [
+        "http: 503 (168ms) -> http 503",
+        "cooldown: server requested backoff; wait 900s"
+      ],
+      "native_attempted": false
+    },
+    {
+      "set": "hard12",
+      "target": "amazon",
+      "round": 1,
+      "position": 2,
+      "auto_verdict": "unavailable",
+      "auto_stop": "local_deferral",
+      "auto_seconds": 0.0002047,
+      "native_seconds": 2.2635224,
+      "reason": "cooldown",
+      "stopped": null,
+      "attempts": [],
+      "native_attempted": false
+    },
+    {
+      "set": "hard12",
+      "target": "amazon",
+      "round": 1,
+      "position": 3,
+      "auto_verdict": "unavailable",
+      "auto_stop": "local_deferral",
+      "auto_seconds": 0.0001507,
+      "native_seconds": 4.1902756,
+      "reason": "cooldown",
+      "stopped": null,
+      "attempts": [],
+      "native_attempted": false
+    },
+    {
+      "set": "vendors8",
+      "target": "cloudflare-crunchbase",
+      "round": 1,
+      "position": 1,
+      "auto_verdict": "wall",
+      "auto_stop": "timeout",
+      "auto_seconds": 59.9114093,
+      "native_seconds": 6.3402614,
+      "reason": "cloudflare wall (just a moment)",
+      "stopped": "timeout: pacing would exceed the fetch deadline; no further request was sent",
+      "attempts": [
+        "http: 403 (776ms) -> cloudflare wall (attention required! | cloudflare)",
+        "browser: 200 (4381ms) -> cloudflare wall (just a moment)",
+        "stealth: 200 (1429ms) -> cloudflare wall (just a moment)",
+        "real: 200 (9846ms) -> cloudflare wall (just a moment)",
+        "warm: 200 (22640ms) -> cloudflare wall (just a moment)",
+        "timeout: pacing would exceed the fetch deadline; no further request was sent"
+      ],
+      "native_attempted": false
+    },
+    {
+      "set": "vendors8",
+      "target": "cloudflare-crunchbase",
+      "round": 1,
+      "position": 2,
+      "auto_verdict": "wall",
+      "auto_stop": "timeout",
+      "auto_seconds": 59.9133276,
+      "native_seconds": 2.3261777,
+      "reason": "cloudflare wall (attention required! | cloudflare)",
+      "stopped": "timeout: pacing would exceed the fetch deadline; no further request was sent",
+      "attempts": [
+        "http: 403 (18ms) -> cloudflare wall (attention required! | cloudflare)",
+        "timeout: pacing would exceed the fetch deadline; no further request was sent"
+      ],
+      "native_attempted": false
+    },
+    {
+      "set": "vendors8",
+      "target": "cloudflare-crunchbase",
+      "round": 1,
+      "position": 3,
+      "auto_verdict": "unavailable",
+      "auto_stop": "timeout",
+      "auto_seconds": 59.9039871,
+      "native_seconds": 2.0405347,
+      "reason": "timeout",
+      "stopped": null,
+      "attempts": [],
+      "native_attempted": false
+    },
+    {
+      "set": "hard12",
+      "target": "stackoverflow",
+      "round": 2,
+      "position": 3,
+      "auto_verdict": "unavailable",
+      "auto_stop": "local_deferral",
+      "auto_seconds": 0.0001883,
+      "native_seconds": 4.045311,
+      "reason": "address_budget",
+      "stopped": null,
+      "attempts": [],
+      "native_attempted": false
+    },
+    {
+      "set": "vendors8",
+      "target": "datadome-idealista",
+      "round": 2,
+      "position": 1,
+      "auto_verdict": "unavailable",
+      "auto_stop": "local_deferral",
+      "auto_seconds": 0.003725,
+      "native_seconds": 13.5353069,
+      "reason": "address_budget",
+      "stopped": null,
+      "attempts": [],
+      "native_attempted": false
+    },
+    {
+      "set": "hard12",
+      "target": "idealista",
+      "round": 2,
+      "position": 1,
+      "auto_verdict": "unavailable",
+      "auto_stop": "local_deferral",
+      "auto_seconds": 0.0020755,
+      "native_seconds": 5.1155036,
+      "reason": "address_budget",
+      "stopped": null,
+      "attempts": [],
+      "native_attempted": false
+    }
+  ],
+  "note": "Descriptive matched losses with shared accounting; all audited responses retained. No causal effect or deadline change is inferred."
+}

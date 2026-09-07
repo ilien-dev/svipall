@@ -1,0 +1,17 @@
+{
+  "checked_unix": 1788806947.0623915,
+  "qc_exit_code": 0,
+  "qc_binary_sha256": "020a09b2d47234bbe09e88a4263689f2586439043d76c0f5959d576403bbea25",
+  "post_qc_input_changes": [
+    "README.md"
+  ],
+  "readme_sha256": "84ebb0b65d083cfd780e1de3fe9037f277be444f0fefcef7ae6fd016dadd3ffe",
+  "product_inputs_match_qc": true,
+  "micro_invocations": 6,
+  "micro_passed": 6,
+  "rejected_isolated_prototypes": [
+    "unrestricted headings",
+    "description-qualified headings"
+  ],
+  "accounting_seed": "../native-auto-extraction-20260907/state/public-html/limits"
+}

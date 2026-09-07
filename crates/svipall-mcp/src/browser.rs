@@ -2179,12 +2179,6 @@ impl BrowserPool {
 
     /// Execute action objects in order. Never aborts the batch: each action reports ok/error.
     pub async fn run_actions(&self, page: &Page, actions: &[Value]) -> Vec<Value> {
-        // References are stamped onto elements by the snapshot walk, and that happened on a page
-        // that has since been closed. Re-run the walk here so `ref` names the same element it named
-        // when the model saw it. Once per batch, and only when a reference is actually used.
-        if actions.iter().any(|a| a.get("ref").is_some()) {
-            let _ = page.evaluate(crate::snapshot::WALK_JS).await;
-        }
         let mut out = Vec::with_capacity(actions.len());
         for a in actions {
             let kind = a
@@ -2204,13 +2198,31 @@ impl BrowserPool {
         out
     }
 
+    /// A `ref` from web_snapshot, turned into a selector on the page as it is now.
+    async fn locate(&self, page: &Page, reference: &str) -> Result<String> {
+        let js = crate::snapshot::locate_js(reference)
+            .ok_or_else(|| anyhow!("{reference:?} is not a reference from web_snapshot"))?;
+        let found = page
+            .evaluate(js.as_str())
+            .await
+            .context("locating a reference")?
+            .into_value::<Option<String>>()
+            .unwrap_or(None);
+        found.ok_or_else(|| {
+            anyhow!("{reference} is not on this page any more; take a new web_snapshot")
+        })
+    }
+
     async fn run_action(&self, page: &Page, kind: &str, a: &Value) -> Result<Value> {
         let s = |k: &str| a.get(k).and_then(|v| v.as_str()).map(|v| v.to_string());
         // A reference from `web_snapshot` is accepted anywhere a selector is, which is the point of
-        // handing them out: the model names what it saw instead of inventing CSS and hoping.
-        let selector = s("ref")
-            .and_then(|r| crate::snapshot::selector_for(&r))
-            .or_else(|| s("selector"));
+        // handing them out: the model names what it saw instead of inventing CSS and hoping. It is
+        // resolved by running the snapshot walk again on the live page, so nothing had to be left
+        // on the page for it to work.
+        let selector = match s("ref") {
+            Some(r) => Some(self.locate(page, &r).await?),
+            None => s("selector"),
+        };
         match kind {
             "click" => {
                 let sel = selector.ok_or_else(|| anyhow!("click needs selector"))?;

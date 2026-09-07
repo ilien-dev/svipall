@@ -1,0 +1,5 @@
+kasada-twitch repeat 1: delivered 3.88s (browser)
+kasada-twitch repeat 2: delivered 6.78s (browser)
+kasada-twitch repeat 3: delivered 1.68s (browser)
+
+paired finished in 12.8s

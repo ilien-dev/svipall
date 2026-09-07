@@ -1,0 +1,12 @@
+{
+  "verified_calls": 918,
+  "verified_blocks": 306,
+  "reviewed_fingerprints": 287,
+  "raw_and_published_hashes_match": true,
+  "published_content_equals_redacted_original": true,
+  "known_exit_addresses_absent": true,
+  "frozen_source_archive_matches": true,
+  "binary_browser_runtime_match": true,
+  "protocol_and_targets_match": true,
+  "exact_schedule_order": true
+}

@@ -1,0 +1,5 @@
+example repeat 1: delivered 0.20s (http)
+example repeat 2: delivered 0.86s (http)
+example repeat 3: delivered 0.99s (http)
+
+paired finished in 2.2s

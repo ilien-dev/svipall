@@ -1,0 +1,11 @@
+
+running 6 tests
+test a_visit_limit_keeps_unrequested_crawl_pages_pending ... ok
+test attempt_cap_returns_the_page_and_never_opens_native ... ok
+test forced_mode_and_identity_changes_cannot_reset_visit_limit ... ok
+test native_is_last_and_an_opt_out_prevents_its_launch ... ok
+test retry_after_stops_escalation_and_survives_a_new_server ... ok
+test short_success_never_triggers_privacy_fallback ... ok
+
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 11.79s
+

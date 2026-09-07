@@ -1,6 +1,119 @@
 use svipall_core::Config;
 
 #[test]
+fn remembered_fingerprint_walls_do_not_restart_at_untried_weaker_routes() {
+    use svipall_core::automatic::{plan, Feedback, Sample};
+    let tiers = ["http", "browser", "stealth", "real", "warm"].map(String::from);
+    let mut row: Sample = serde_json::from_value(serde_json::json!({
+        "tier": "http", "successes": 0.0, "failures": 0.0,
+        "latency_ms": 10.0, "updated": 100
+    }))
+    .unwrap();
+    row.observe(Feedback::FingerprintWall, 10, 101);
+    let rows: Vec<Sample> =
+        serde_json::from_str(&serde_json::to_string(&vec![row.clone()]).unwrap()).unwrap();
+    assert_eq!(
+        plan(&tiers, &rows, 102, true),
+        ["real", "warm", "native:warm"]
+    );
+    assert_eq!(plan(&tiers, &rows, 102, false), ["real", "warm"]);
+    // Wall evidence expires independently of generic failure counts.
+    assert_eq!(plan(&tiers, &rows, 1901, false), tiers);
+    // A lower ceiling still gets its permitted emulated browser probe.
+    assert_eq!(
+        plan(&tiers[..2], &rows, 102, true),
+        ["http", "browser", "native:browser"]
+    );
+    // A delivered response on the same route clears the classified wall evidence.
+    row.observe(Feedback::Delivered, 10, 103);
+    assert_eq!(plan(&tiers, &[row], 104, false), tiers);
+
+    let rows: Vec<Sample> = ["http", "real", "warm"]
+        .into_iter()
+        .map(|tier| {
+            serde_json::from_value(serde_json::json!({
+                "tier": tier, "successes": 0.0, "failures": 3.0,
+                "latency_ms": 100.0, "updated": 100, "fingerprint_wall": 100
+            }))
+            .unwrap()
+        })
+        .collect();
+    assert_eq!(plan(&tiers, &rows, 101, true), ["warm", "native:warm"]);
+    assert_eq!(plan(&tiers, &rows, 101, false), ["warm"]);
+}
+
+#[test]
+fn generic_errors_and_native_walls_do_not_predict_emulated_fingerprint_failures() {
+    use svipall_core::automatic::{plan, Feedback, Sample};
+    let tiers = ["http", "browser", "stealth", "real", "warm"].map(String::from);
+    for (tier, feedback) in [
+        ("http", Feedback::Failed),
+        ("native:warm", Feedback::FingerprintWall),
+    ] {
+        let mut row: Sample = serde_json::from_value(serde_json::json!({
+            "tier": tier, "successes": 0.0, "failures": 0.0,
+            "latency_ms": 10.0, "updated": 100
+        }))
+        .unwrap();
+        row.observe(feedback, 10, 101);
+        assert_eq!(plan(&tiers, &[row], 102, false), tiers);
+    }
+}
+
+#[test]
+fn a_fingerprint_wall_skips_weak_routes_without_moving_native_ahead_of_a_browser() {
+    use svipall_core::automatic::after_wall;
+    use svipall_core::WallKind;
+    let routes = ["http", "browser", "stealth", "real", "warm", "native:warm"].map(String::from);
+    assert_eq!(after_wall(&routes, 0, &WallKind::Vendor, false), 3);
+    assert_eq!(after_wall(&routes, 3, &WallKind::Vendor, false), 4);
+    assert_eq!(after_wall(&routes, 4, &WallKind::Vendor, false), 5);
+    assert_eq!(after_wall(&routes, 0, &WallKind::Hold, false), 3);
+    // Generic walls still explore the cheaper browser: the classification is not evidence
+    // that the page needs a persistent browser session.
+    assert_eq!(after_wall(&routes, 0, &WallKind::Generic, false), 1);
+    // A caller's lower tier ceiling must not turn the heuristic into native-first routing.
+    let limited = ["http", "browser", "native:browser"].map(String::from);
+    assert_eq!(after_wall(&limited, 0, &WallKind::Vendor, false), 1);
+    assert_eq!(after_wall(&limited, 1, &WallKind::Vendor, false), 2);
+}
+
+#[test]
+fn a_failed_promoted_browser_does_not_backtrack_through_weaker_fingerprint_routes() {
+    use svipall_core::automatic::after_wall;
+    let routes = ["real", "http", "browser", "stealth", "warm", "native:warm"].map(String::from);
+    assert_eq!(
+        after_wall(&routes, 0, &svipall_core::WallKind::Vendor, false),
+        4
+    );
+    let warm = ["warm", "http", "browser", "real", "native:warm"].map(String::from);
+    assert_eq!(
+        after_wall(&warm, 0, &svipall_core::WallKind::Vendor, false),
+        4
+    );
+    assert_eq!(
+        after_wall(&warm[..4], 0, &svipall_core::WallKind::Vendor, false),
+        4
+    );
+}
+
+#[test]
+fn a_managed_challenge_uses_headful_evidence_without_generalizing_to_interstitials() {
+    use svipall_core::automatic::after_wall;
+    use svipall_core::WallKind;
+    let routes = ["http", "browser", "stealth", "real", "warm", "native:warm"].map(String::from);
+    assert_eq!(after_wall(&routes, 0, &WallKind::Cloudflare, true), 3);
+    assert_eq!(after_wall(&routes, 3, &WallKind::Cloudflare, true), 4);
+    assert_eq!(after_wall(&routes, 4, &WallKind::Cloudflare, true), 5);
+    assert_eq!(after_wall(&routes, 0, &WallKind::Cloudflare, false), 1);
+    assert_eq!(after_wall(&routes, 0, &WallKind::Generic, true), 1);
+    let limited = ["http", "browser", "native:browser"].map(String::from);
+    assert_eq!(after_wall(&limited, 0, &WallKind::Cloudflare, true), 1);
+    let promoted = ["real", "http", "browser", "warm", "native:warm"].map(String::from);
+    assert_eq!(after_wall(&promoted, 0, &WallKind::Cloudflare, true), 3);
+}
+
+#[test]
 fn automatic_identity_is_the_valid_default() {
     let cfg = Config::default();
     assert_eq!(cfg.browser_identity, "auto");
@@ -16,6 +129,7 @@ fn short_delivered_pages_clear_failures_without_being_promoted_as_full() {
         failures: 3.0,
         latency_ms: 1.0,
         updated: 100,
+        fingerprint_wall: None,
     };
     row.observe(Feedback::Delivered, 10, 101);
     assert_eq!(row.failures, 0.0);
@@ -32,6 +146,7 @@ fn learned_routes_never_promote_native_or_cross_contexts() {
         failures: 0.0,
         latency_ms: 500.0,
         updated: 100,
+        fingerprint_wall: None,
     }];
     assert_eq!(
         plan(&tiers, &records, 101, true),
@@ -82,6 +197,7 @@ fn repeated_failures_skip_wasted_routes_but_keep_an_emulated_browser_probe() {
             failures: 3.0,
             latency_ms: 100.0,
             updated: 100,
+            fingerprint_wall: None,
         })
         .collect();
     assert_eq!(plan(&tiers, &rows, 101, true), vec!["warm"]);

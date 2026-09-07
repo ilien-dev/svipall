@@ -12,9 +12,12 @@
 //! It is walked in JavaScript rather than through the protocol's Accessibility domain. That domain
 //! needs the browser to have built a tree for assistive technology and answers `uninteresting` when
 //! it has not, which is the normal state — measured, not assumed. Walking the DOM works on every
-//! page with no domain to enable and no flag to set, and it can stamp the reference onto the
-//! element, so turning a reference back into something clickable is an attribute lookup rather than
-//! a second protocol round trip.
+//! page with no domain to enable and no flag to set.
+//!
+//! A reference is the walk's own index, and nothing else: turning one back into an element is the
+//! same walk again, asking for that element's path. Nothing is written to the page to make that
+//! work, because nothing of svipall's may be readable from a page, and an attribute stamped on
+//! every interactive element was exactly that.
 //!
 //! The shaping below is pure, so what the agent sees is settled by tests rather than by squinting
 //! at a real page.
@@ -24,7 +27,7 @@ use serde_json::Value;
 /// One node worth showing to an agent.
 #[derive(Debug, Clone, PartialEq)]
 pub struct Node {
-    /// Handle the interaction tools accept, e.g. `e12`. Also stamped on the element itself.
+    /// Handle the interaction tools accept, e.g. `e12`: the element's index in the walk.
     pub reference: String,
     pub role: String,
     pub name: String,
@@ -88,7 +91,12 @@ fn is_structural(role: &str) -> bool {
 ///
 /// Invisible elements are skipped here rather than in Rust, because only the page knows what its
 /// stylesheets did.
-pub const WALK_JS: &str = r#"(() => {
+// Helpers and the walk itself, as a macro so the listing script can be a compile-time constant
+// and the locating script can share it at runtime. `out` collects what the listing shows; `els`
+// keeps the element at each index so a reference is resolved by the code that handed it out.
+macro_rules! walk_prelude {
+    () => {
+        r#"
     const ROLES = {
         A: 'link', BUTTON: 'button', INPUT: 'textbox', TEXTAREA: 'textarea', SELECT: 'combobox',
         H1: 'heading', H2: 'heading', H3: 'heading', H4: 'heading', H5: 'heading', H6: 'heading',
@@ -151,6 +159,7 @@ pub const WALK_JS: &str = r#"(() => {
     };
 
     const out = [];
+    const els = [];
     let seen = 0;
     const walk = (el, depth) => {
         if (seen > 4000) return;
@@ -169,17 +178,53 @@ pub const WALK_JS: &str = r#"(() => {
                     value: ('value' in child && child.value != null) ? String(child.value) : null,
                     depth: depth,
                 });
-                // Stamp the handle so a reference resolves without a second round trip.
-                try { child.setAttribute('data-svipall-ref', 'e' + (out.length - 1)); } catch (e) {}
+                els.push(child);
                 next = depth + 1;
             }
             walk(child, next);
             } catch (e) {}
         }
     };
-    walk(document.body || document.documentElement, 0);
+"#
+    };
+}
+
+pub const WALK_PRELUDE: &str = walk_prelude!();
+
+pub const WALK_JS: &str = concat!(
+    "(() => {",
+    walk_prelude!(),
+    "    walk(document.body || document.documentElement, 0);
     return out;
-})()"#;
+})()"
+);
+
+/// The same walk, stopping at element `index` and answering with a selector for it: a chain of
+/// `:nth-child` steps from `html`, which is unique by construction and names nothing of ours.
+pub fn locate_js(reference: &str) -> Option<String> {
+    let ok = reference.len() >= 2
+        && reference.starts_with('e')
+        && reference[1..].chars().all(|c| c.is_ascii_digit());
+    ok.then(|| {
+        format!(
+            "(() => {{{WALK_PRELUDE}    walk(document.body || document.documentElement, 0);
+    const el = els[{}];
+    if (!el) return null;
+    const parts = [];
+    let cur = el;
+    while (cur && cur.nodeType === 1 && cur !== document.documentElement) {{
+        let i = 1;
+        let sib = cur;
+        while ((sib = sib.previousElementSibling)) i++;
+        parts.unshift(cur.tagName.toLowerCase() + ':nth-child(' + i + ')');
+        cur = cur.parentElement;
+    }}
+    return 'html > ' + parts.join(' > ');
+}})()",
+            &reference[1..]
+        )
+    })
+}
 
 /// Shape the walk's output: drop what cannot be used, cap the size, keep the references.
 ///
@@ -205,9 +250,8 @@ pub fn prune(raw: &[Value], max_depth: Option<usize>, limit: usize) -> Vec<Node>
         if max_depth.is_some_and(|m| depth > m) {
             continue;
         }
-        // The reference is the walk's own index, so it still matches the attribute stamped on the
-        // element after filtering removes its neighbours. Renumbering here would send clicks
-        // somewhere else entirely.
+        // The reference is the walk's own index, so it still names the same element after filtering
+        // removes its neighbours. Renumbering here would send clicks somewhere else entirely.
         let index = n["index"].as_u64().unwrap_or(0);
         out.push(Node {
             reference: format!("e{index}"),
@@ -275,18 +319,6 @@ pub fn find(nodes: &[Node], needle: &str) -> Vec<Node> {
         })
         .cloned()
         .collect()
-}
-
-/// The selector that turns a reference back into an element, for the click and type tools.
-///
-/// Anything that is not a plain reference is refused rather than escaped: a reference comes from
-/// this module's own output, so a strange one means the caller invented it, and quietly repairing
-/// it would let an invented value reach a selector.
-pub fn selector_for(reference: &str) -> Option<String> {
-    let ok = reference.len() >= 2
-        && reference.starts_with('e')
-        && reference[1..].chars().all(|c| c.is_ascii_digit());
-    ok.then(|| format!("[data-svipall-ref=\"{reference}\"]"))
 }
 
 #[cfg(test)]
@@ -400,19 +432,49 @@ mod tests {
 
     #[test]
     fn a_reference_turns_back_into_something_clickable() {
-        assert_eq!(
-            selector_for("e7").as_deref(),
-            Some("[data-svipall-ref=\"e7\"]")
+        // The reference is the walk's own index; resolving it is the same walk again, asking for
+        // that element's path. Nothing was written to the page to make this work.
+        let js = locate_js("e7").expect("a plain reference");
+        assert!(js.contains("[7]"), "{js}");
+        assert!(
+            !js.contains("svipall") && !js.contains("setAttribute"),
+            "{js}"
         );
     }
 
     #[test]
     fn an_invented_reference_is_refused_rather_than_repaired() {
         // References come from this module. A strange one means the caller made it up, and quietly
-        // escaping it would let an invented value reach a selector.
+        // escaping it would let an invented value reach the page.
         for bad in ["", "e", "x7", "e7\"] , script", "e7; drop", "7"] {
-            assert!(selector_for(bad).is_none(), "{bad:?} was accepted");
+            assert!(locate_js(bad).is_none(), "{bad:?} was accepted");
         }
+    }
+
+    #[test]
+    fn the_walk_leaves_nothing_of_ours_on_the_page() {
+        // The rule for every tier: nothing of svipall's is readable from the page. An attribute
+        // stamped on every interactive element was exactly that.
+        for script in [WALK_JS, &locate_js("e1").unwrap()] {
+            assert!(
+                !script.contains("setAttribute"),
+                "the walk writes to the DOM"
+            );
+            assert!(!script.contains("svipall"), "the walk names us");
+            assert!(!script.contains("window."), "the walk touches a global");
+        }
+    }
+
+    #[test]
+    fn locating_and_listing_are_the_same_walk() {
+        // If the two ever diverged, a reference would name one element in the listing and another
+        // when clicked.
+        let js = locate_js("e3").unwrap();
+        assert!(
+            js.contains(WALK_PRELUDE),
+            "locate does not share the listing walk"
+        );
+        assert!(WALK_JS.contains(WALK_PRELUDE));
     }
 
     #[test]

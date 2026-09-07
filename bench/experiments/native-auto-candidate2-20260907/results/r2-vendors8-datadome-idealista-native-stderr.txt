@@ -1,0 +1,5 @@
+datadome-idealista repeat 1: delivered 14.45s (warm)
+datadome-idealista repeat 2: failed 0.00s (-)
+datadome-idealista repeat 3: failed 0.00s (-)
+
+paired finished in 14.9s

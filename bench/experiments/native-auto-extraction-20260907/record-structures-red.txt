@@ -1,0 +1,8 @@
+Traceback (most recent call last):
+  File "<repo>\bench\experiments\native-auto-extraction-20260907\record-structures-red.py", line 97, in <module>
+    assert_results(load(ROOT / 'record-structures-red.json')['rows'])
+  File "<repo>\bench\experiments\native-auto-extraction-20260907\record-structures-red.py", line 92, in assert_results
+    assert not failures, '\n'.join(failures)
+AssertionError: decorated-heading full=False: expected 5 titles/links, got 0/0
+layout-table-heading full=False: expected 5 titles/links, got 0/0
+block-anchor-heading full=False: expected 5 titles/links, got 0/0

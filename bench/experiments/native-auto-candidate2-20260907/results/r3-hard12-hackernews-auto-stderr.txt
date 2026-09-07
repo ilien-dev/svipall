@@ -1,0 +1,5 @@
+hackernews repeat 1: delivered 0.38s (http)
+hackernews repeat 2: delivered 0.72s (http)
+hackernews repeat 3: delivered 1.00s (http)
+
+paired finished in 2.3s

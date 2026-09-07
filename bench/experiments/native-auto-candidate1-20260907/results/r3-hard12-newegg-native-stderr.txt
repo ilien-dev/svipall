@@ -1,0 +1,5 @@
+newegg repeat 1: delivered 6.99s (warm)
+newegg repeat 2: delivered 6.44s (warm)
+newegg repeat 3: delivered 6.64s (warm)
+
+paired finished in 20.5s

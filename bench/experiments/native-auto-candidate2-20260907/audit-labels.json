@@ -1,0 +1,1437 @@
+{
+  "4a96de4bdb94b7a2f44359b91a376770fcb0e00ac96d768676c1838c139282e7": {
+    "verdict": "useful",
+    "reason": "Contains multiple substantive reviews of the requested software, including reviewer roles and detailed advantages and limitations; this is actual requested review content.",
+    "method": "Manual arm-hidden content review, including characters 6000 through 16500."
+  },
+  "8ce3e35b3d405cdb6ee3f9466f636fcb78cae2ffafc502bbab0cf4af393ec69d": {
+    "verdict": "useful",
+    "reason": "Same substantive requested review content; the complete difference only changes the ordering of two community questions.",
+    "method": "Manual arm-hidden review of the complete difference from reviewed fingerprint 4a96de4bdb94b7a2f44359b91a376770fcb0e00ac96d768676c1838c139282e7."
+  },
+  "2cedcc2cda28bce12e8d875f5613c706645b1da7b104e7677b489a1b224fe174": {
+    "verdict": "unavailable",
+    "reason": "The saved content is empty; no requested review text was returned.",
+    "method": "Exact URL/status/content fingerprint transfer from native-auto-candidate1-20260907"
+  },
+  "f5f0fe638ed1ed8aacff7f083479fe69bd0ae6f123b97a4fc8990155107f06ed": {
+    "verdict": "unavailable",
+    "reason": "No response content.",
+    "method": "Exact URL/status/content fingerprint transfer from native-auto-candidate1-20260907"
+  },
+  "6304af10b65cfb506526ce1c40a35828900c806a4497ed582bc4d3641d26d5d8": {
+    "verdict": "unavailable",
+    "reason": "No response content.",
+    "method": "Exact URL/status/content fingerprint transfer from native-auto-candidate1-20260907"
+  },
+  "70767c6ff39eeb67419950e819b5ad8ede79edd97197f9e9ab6674169b1970b0": {
+    "verdict": "unavailable",
+    "reason": "The saved product URL returns the explicit could-not-find-page notice and an error illustration, with no requested product details.",
+    "method": "Exact URL/status/content fingerprint transfer from native-auto-candidate1-20260907"
+  },
+  "cd1e39467411a8168d443a8b898185b1ad725042d054317d0cba513b80b594a0": {
+    "verdict": "useful",
+    "reason": "The requested root landing page includes substantive descriptions of data products, prediction categories and use cases with relevant links. This supports landing-page extraction only; no downstream company database access is inferred.",
+    "method": "Exact URL/status/content fingerprint transfer from native-auto-candidate1-20260907"
+  },
+  "50ba203e2b42127b3a2b91dae23bdefa92b4266562a2da897818ac8174419351": {
+    "verdict": "wall",
+    "reason": "Only a press-and-hold verification prompt and reference identifier; no requested property records.",
+    "method": "Manual arm-hidden review of the complete saved content."
+  },
+  "24547b4201e60d7b573d3b29c73f6f39dbaed58c6e02a396e40365084851be4b": {
+    "verdict": "unavailable",
+    "reason": "The requested product URL returned a page-not-found message and home link, with no product information.",
+    "method": "Manual arm-hidden review of the complete saved content."
+  },
+  "d054fb66b3cd3f5c6217133186d998c37f8988c7a877be7e87e06f75fbb11618": {
+    "verdict": "unavailable",
+    "reason": "The saved response content is empty.",
+    "method": "Exact URL/status/content fingerprint transfer from native-auto-candidate1-20260907"
+  },
+  "276f9089ce74e05a6af41f3fa619d10886a12681c9a0e151449ae2557e8d8c37": {
+    "verdict": "unavailable",
+    "reason": "Page-not-found content with decorative images and home links, despite HTTP 200; no requested product details.",
+    "method": "Manual arm-hidden review of complete content."
+  },
+  "59f0d7e559f10ec0333f8e9bfa685a428c6d831e0c3a41f441b7f87de43d5f09": {
+    "verdict": "unavailable",
+    "reason": "Same page-not-found message with a different decorative image destination; no requested product details.",
+    "method": "Manual arm-hidden review of the complete difference from reviewed fingerprint 276f9089ce74e05a6af41f3fa619d10886a12681c9a0e151449ae2557e8d8c37."
+  },
+  "0dd04ecc71b1f7e704428b24884490bd07b74b21d64f40ff1bf12a5264b1d269": {
+    "verdict": "useful",
+    "reason": "The requested employer directory includes identifiable companies, employee-size fields and substantive company descriptions. Some repeated record labels are absent, so this does not establish complete structured field extraction or access to individual reviews.",
+    "method": "Exact URL/status/content fingerprint transfer from native-auto-candidate1-20260907"
+  },
+  "aec74cdff290a9e0700a80b2f1496cc61609c68840af2ae91ff17ea32cd77dc8": {
+    "verdict": "useful",
+    "reason": "The employer directory includes substantive descriptions of identifiable companies and workforce information. Some repeated heading and rating fields are absent; this does not establish complete structured records or individual review access.",
+    "method": "Exact URL/status/content fingerprint transfer from native-auto-candidate1-20260907"
+  },
+  "f5ad46b8ddd2f821d4d5d249e4ba84a561f5a7cd9d5e67739a36ad6373a9ca80": {
+    "verdict": "useful",
+    "reason": "The response includes the requested employer directory content, with identifiable companies, employee-size fields and substantive company descriptions. The recorded status is 304; browser-retained content is present. Completeness of every structured field is not established.",
+    "method": "Exact URL/status/content fingerprint transfer from native-auto-candidate1-20260907"
+  },
+  "3f17e5ee20b369a758965520e96f95b7af4c7ec58fe7669352cd15f14fe98878": {
+    "verdict": "useful",
+    "reason": "The requested public root landing contains its reading/writing proposition and relevant entry links. This is a short landing-page result only, not evidence of extraction of any article or member-only content.",
+    "method": "Exact URL/status/content fingerprint transfer from native-auto-candidate1-20260907"
+  },
+  "9838a395b0e235222d605fb5036d59bda16b9f0ce119725360f9b29c46a013cf": {
+    "verdict": "diagnostic-only",
+    "reason": "A diagnostic guide with placeholder detector fields. It is not production content and does not prove passing the active detector.",
+    "method": "Exact URL/status/content fingerprint transfer from native-auto-candidate1-20260907"
+  },
+  "bef8ba910f83c2c04633231569918b52dbe9c10c06198377c2af1d22c1ce8186": {
+    "verdict": "diagnostic-only",
+    "reason": "A diagnostic guide with populated navigator properties and several missing displayed field values. It is not production content and does not establish a passing detector verdict.",
+    "method": "Exact URL/status/content fingerprint transfer from native-auto-candidate1-20260907"
+  },
+  "48f06185bf94e6207270e75237659809f993ca0d5d298a4fb7e444b6f509f0d0": {
+    "verdict": "partial",
+    "reason": "The requested Rust-job listing retains fragments and a selected detailed job, but most result titles, employer associations and all job-item destinations are missing. The complete Markdown destination inventory contains only resume-upload links. This matches the prior workload's partial-listing criterion.",
+    "method": "Correction of provisional selected-job-only reviews 004/005 after full destination-inventory inspection and consistency review against candidate-1 labels. Original review batches remain preserved; both arms receive the same criterion."
+  },
+  "acead100e8d6e32b30a25fa2871dc3b00085793405d4ffaae2b27a3e833d5494": {
+    "verdict": "partial",
+    "reason": "The requested Rust-job listing retains fragments and a selected detailed job, but most result titles, employer associations and all job-item destinations are missing. The complete Markdown destination inventory contains only resume-upload links. This matches the prior workload's partial-listing criterion.",
+    "method": "Correction of provisional selected-job-only reviews 004/005 after full destination-inventory inspection and consistency review against candidate-1 labels. Original review batches remain preserved; both arms receive the same criterion."
+  },
+  "d678fd46c5f783d859fe7f98fbdcb0e2065e5918c397a0b1777b0f2cd8e72969": {
+    "verdict": "partial",
+    "reason": "The requested Rust-job listing retains fragments and a selected detailed job, but most result titles, employer associations and all job-item destinations are missing. The complete Markdown destination inventory contains only resume-upload links. This matches the prior workload's partial-listing criterion.",
+    "method": "Correction of provisional selected-job-only reviews 004/005 after full destination-inventory inspection and consistency review against candidate-1 labels. Original review batches remain preserved; both arms receive the same criterion."
+  },
+  "e54398e831cbda80842c0d4c5a7d67d2da09d663d03a6c0172b08292c8b9f085": {
+    "verdict": "useful",
+    "reason": "The requested SCAN page identifies Liberty Defense Holdings, includes delayed quote/company metadata and dated community posts. Several financial fields are blank or gated; this is public company-page extraction, not market-scanner or subscription access.",
+    "method": "Exact URL/status/content fingerprint transfer from native-auto-candidate1-20260907"
+  },
+  "10571122e59c9dd9ad929572e512b32d78e56ee21ef2383f8f75078d5aa032ec": {
+    "verdict": "partial",
+    "reason": "The requested Rust-job listing retains fragments and a selected detailed job, but most result titles, employer associations and all job-item destinations are missing. The complete Markdown destination inventory contains only resume-upload links. This matches the prior workload's partial-listing criterion.",
+    "method": "Correction of provisional selected-job-only reviews 004/005 after full destination-inventory inspection and consistency review against candidate-1 labels. Original review batches remain preserved; both arms receive the same criterion."
+  },
+  "5cc7f0e381a684f42931edf950df103135d7672a14bf4da0a85a730e3d9ba21a": {
+    "verdict": "partial",
+    "reason": "The requested Rust-job listing retains fragments and a selected detailed job, but most result titles, employer associations and all job-item destinations are missing. The complete Markdown destination inventory contains only resume-upload links. This matches the prior workload's partial-listing criterion.",
+    "method": "Correction of provisional selected-job-only reviews 004/005 after full destination-inventory inspection and consistency review against candidate-1 labels. Original review batches remain preserved; both arms receive the same criterion."
+  },
+  "f54ecf5d7b2c38b8cccad290d5d5852546fed4307e6e7695c115811a1125c4d2": {
+    "verdict": "partial",
+    "reason": "The requested Rust-job listing retains fragments and a selected detailed job, but most result titles, employer associations and all job-item destinations are missing. The complete Markdown destination inventory contains only resume-upload links. This matches the prior workload's partial-listing criterion.",
+    "method": "Correction of provisional selected-job-only reviews 004/005 after full destination-inventory inspection and consistency review against candidate-1 labels. Original review batches remain preserved; both arms receive the same criterion."
+  },
+  "5d18a149c1cad95322d69629867556d1b31229bbc74451c31e6cf65da43fe7ad": {
+    "verdict": "useful",
+    "reason": "The requested SCAN page identifies Liberty Defense Holdings, includes delayed quote/company metadata and dated community posts. Several financial fields are blank or gated; this is public company-page extraction, not market-scanner or subscription access.",
+    "method": "Exact URL/status/content fingerprint transfer from native-auto-candidate1-20260907"
+  },
+  "dd129aeb7dfd7cfdcfebdc8499384e5333bcbb8c812e2dafb9cd3d39a43de145": {
+    "verdict": "diagnostic-only",
+    "reason": "Detector instructions and optional timing rows are returned. The required trigger actions were not part of this workload, so this is not evidence that the active detector tests passed.",
+    "method": "Exact URL/status/content fingerprint transfer from native-auto-candidate1-20260907"
+  },
+  "173ab09c0f144280967c573f941c193834f141cb68ddf39791db550e1a878527": {
+    "verdict": "useful",
+    "reason": "The requested public home feed includes identifiable posts, community names, destinations and substantive post text. This supports public feed extraction, not access to a particular private community or account.",
+    "method": "Manual arm-hidden review of characters 2000 through 3700 separately for each saved fingerprint; requested URL verified as the public home page."
+  },
+  "47cb2f7b6784aa2315807f8eeb7036d33678266f7eb17a268095f7c988124b18": {
+    "verdict": "useful",
+    "reason": "The requested public home feed includes identifiable posts, community names, destinations and substantive post text. This supports public feed extraction, not access to a particular private community or account.",
+    "method": "Manual arm-hidden review of characters 2000 through 3700 separately for each saved fingerprint; requested URL verified as the public home page."
+  },
+  "56c7d2b9f2d69c10b638fd7ce0f0b8a315ce7b35e037c405783768b915f9109f": {
+    "verdict": "useful",
+    "reason": "The requested public home feed includes identifiable posts, community names, destinations and substantive post text. This supports public feed extraction, not access to a particular private community or account.",
+    "method": "Manual arm-hidden review of characters 2000 through 3700 separately for each saved fingerprint; requested URL verified as the public home page."
+  },
+  "58be730ab414750f9ceeaef45bbe03fe79f56e9ed5c9430f9358df0eea26b6b2": {
+    "verdict": "useful",
+    "reason": "The requested public home feed includes identifiable posts, community names, destinations and substantive post text. This supports public feed extraction, not access to a particular private community or account.",
+    "method": "Manual arm-hidden review of characters 2000 through 3700 separately for each saved fingerprint; requested URL verified as the public home page."
+  },
+  "e667f6641c455db6a092b0daea0096beb46ec16053174744ec7b56ee72534dfe": {
+    "verdict": "useful",
+    "reason": "The requested public home feed includes identifiable posts, community names, destinations and substantive post text. This supports public feed extraction, not access to a particular private community or account.",
+    "method": "Manual arm-hidden review of characters 2000 through 3700 separately for each saved fingerprint; requested URL verified as the public home page."
+  },
+  "fa3f05873c044748328d862d94c62140cfa2b76e349456a195c85c84f422b159": {
+    "verdict": "useful",
+    "reason": "The requested public home feed includes identifiable posts, community names, destinations and substantive post text. This supports public feed extraction, not access to a particular private community or account.",
+    "method": "Manual arm-hidden review of characters 2000 through 3700 separately for each saved fingerprint; requested URL verified as the public home page."
+  },
+  "1e9cb6a05b715e2fe419186593e532825ddacba6b953f848c7e007a3ee606380": {
+    "verdict": "diagnostic-only",
+    "reason": "Browser diagnostic panel with several untriggered tests and a user-agent finding. Panel delivery is not proof of passing active detectors or useful production extraction.",
+    "method": "Manual arm-hidden complete panel review and complete differences between the three timing variants."
+  },
+  "e989b2d807a63acd736ec122a474ac4ddd2b99e8bf0b1239c72767805e267469": {
+    "verdict": "diagnostic-only",
+    "reason": "Browser diagnostic panel with several untriggered tests and a user-agent finding. Panel delivery is not proof of passing active detectors or useful production extraction.",
+    "method": "Manual arm-hidden complete panel review and complete differences between the three timing variants."
+  },
+  "f116cd4423549a63d6884f2e4eec771632f1c8b6a6a2f42b9ab7a6e70ef266fb": {
+    "verdict": "diagnostic-only",
+    "reason": "Browser diagnostic panel with several untriggered tests and a user-agent finding. Panel delivery is not proof of passing active detectors or useful production extraction.",
+    "method": "Manual arm-hidden complete panel review and complete differences between the three timing variants."
+  },
+  "1631d309d449fb0a48376e112b19d3d4713da4b69ea4ac64706808c676869629": {
+    "verdict": "useful",
+    "reason": "The graphics-card listing contains identifiable models and product destinations with prices and shipping context. This is substantive catalogue content; complete card recovery is not asserted.",
+    "method": "Manual arm-hidden review of saved characters 4000 through 6700."
+  },
+  "60bc6ad5fcf36ba57e46636d590a01fcf62df14f2f642422e870fcf4b1739995": {
+    "verdict": "useful",
+    "reason": "The requested public post index includes actual article titles, destinations, authors, tags and reading context. It establishes index delivery only, not full downstream articles.",
+    "method": "Manual arm-hidden review of the first 3500 characters and the complete difference for the second fingerprint, which changes displayed dates."
+  },
+  "d0f29b83f94047b8a1bcd54021c9e1605b3beb10ea7f436a184d50df6df5eea7": {
+    "verdict": "useful",
+    "reason": "The requested public post index includes actual article titles, destinations, authors, tags and reading context. It establishes index delivery only, not full downstream articles.",
+    "method": "Manual arm-hidden review of the first 3500 characters and the complete difference for the second fingerprint, which changes displayed dates."
+  },
+  "3d1fdff00a184204e4bd19a2bc3080b99249a53c03dd315817a6628ab9e9271a": {
+    "verdict": "unavailable",
+    "reason": "The saved response content is empty.",
+    "method": "Exact URL/status/content fingerprint transfer from native-auto-candidate1-20260907"
+  },
+  "812c11c689d15f6ff914d28f8ddb93260e2d5012471019aface55f77b931419e": {
+    "verdict": "useful",
+    "reason": "Saved catalogue content includes identifiable graphics-card models, product destinations, prices and shipping information. One response records HTTP 204 despite nonempty extracted DOM; the content judgment does not correct or replace that recorded status.",
+    "method": "Manual arm-hidden review of characters 4300 through 6400 separately for each fingerprint."
+  },
+  "dffea925e7d8a079424e28d27399a366cc05f751d3a9b8ea39b3c12be0010c35": {
+    "verdict": "useful",
+    "reason": "Saved catalogue content includes identifiable graphics-card models, product destinations, prices and shipping information. One response records HTTP 204 despite nonempty extracted DOM; the content judgment does not correct or replace that recorded status.",
+    "method": "Manual arm-hidden review of characters 4300 through 6400 separately for each fingerprint."
+  },
+  "aa20214658ca523f6fd19adeba1f8335d9b977485b614b47f7929e32e1fe358d": {
+    "verdict": "unavailable",
+    "reason": "The saved content is empty.",
+    "method": "Exact URL/status/content fingerprint transfer from native-auto-candidate1-20260907"
+  },
+  "de102d0afd9df486f41cf16d563a4a099c55e6f36100a7667da6d50202c6781a": {
+    "verdict": "unavailable",
+    "reason": "The saved content is empty.",
+    "method": "Exact URL/status/content fingerprint transfer from native-auto-candidate1-20260907"
+  },
+  "5eba95fa44777804f205f15ce39c540471cbebf29e3e40d123e19ac038d31177": {
+    "verdict": "unavailable",
+    "reason": "The saved response content is empty.",
+    "method": "Exact URL/status/content fingerprint transfer from native-auto-candidate1-20260907"
+  },
+  "ab32d5c2365a7fbc9dd77d0f5b1df40860bb2ae42d71b2c6b4af47276c37f0c1": {
+    "verdict": "useful",
+    "reason": "The requested public market-news page includes dated news records with company names, symbols, prices, release titles and destinations. Navigation is also present; downstream subscriber access is not inferred.",
+    "method": "Manual arm-hidden review of characters 8500 through 10500 in each fingerprint, following a navigation-only earlier window."
+  },
+  "b51f97ba421d4778abec584068089d99c28b631686762182297d7ed3d86321e2": {
+    "verdict": "useful",
+    "reason": "The requested public market-news page includes dated news records with company names, symbols, prices, release titles and destinations. Navigation is also present; downstream subscriber access is not inferred.",
+    "method": "Manual arm-hidden review of characters 8500 through 10500 in each fingerprint, following a navigation-only earlier window."
+  },
+  "bdb741774de4f1e742810fe5b1420d6a1f79bc2d4e85924746229f1aa8c452ed": {
+    "verdict": "useful",
+    "reason": "The requested public market-news page includes dated news records with company names, symbols, prices, release titles and destinations. Navigation is also present; downstream subscriber access is not inferred.",
+    "method": "Manual arm-hidden review of characters 8500 through 10500 in each fingerprint, following a navigation-only earlier window."
+  },
+  "cfc8b2c6d69c4011b06f2a71c032325528fbda516a238ac26e7b5c25b51df8fe": {
+    "verdict": "useful",
+    "reason": "The requested public market-news page includes dated records with company names, symbols, prices, release titles and destinations. The shorter page still contains substantive requested records.",
+    "method": "Manual arm-hidden review of characters 1500 through 3100 in each fingerprint."
+  },
+  "f5edec10e43d1cb87246b515f8d5b6cf0676c1ecf37cfad6af6a082cf5853ce6": {
+    "verdict": "useful",
+    "reason": "The requested public market-news page includes dated records with company names, symbols, prices, release titles and destinations. The shorter page still contains substantive requested records.",
+    "method": "Manual arm-hidden review of characters 1500 through 3100 in each fingerprint."
+  },
+  "f8edb616ef84a3c906e057820e358ff8807b716e7b692c5ea6b8f1b8a32634c6": {
+    "verdict": "useful",
+    "reason": "The requested public market-news page includes dated records with company names, symbols, prices, release titles and destinations. The shorter page still contains substantive requested records.",
+    "method": "Manual arm-hidden review of characters 1500 through 3100 in each fingerprint."
+  },
+  "53cbe71a9c3115b89cce434f1d6f736a059e4b81e9671a789f6990967006406f": {
+    "verdict": "diagnostic-only",
+    "reason": "The JavaScript diagnostic panel is mostly default or empty fields. It does not establish active browser behavior or production extraction.",
+    "method": "Exact URL/status/content fingerprint transfer from native-auto-candidate1-20260907"
+  },
+  "160426be5c0f609c4b15594c6a4e58dee6b960595221517ca9d2666deea2afb3": {
+    "verdict": "unavailable",
+    "reason": "The named profile returned site navigation, login prompts and a generic error. There is no requested profile or post content.",
+    "method": "Manual arm-hidden review of the complete saved content."
+  },
+  "21fe5403ad5ea0d3df8867ecff1d1e0c6e2da87ad897742379144cf339032b4d": {
+    "verdict": "diagnostic-only",
+    "reason": "JavaScript and screen-property diagnostic tables from a prespecified browser panel. Delivery does not establish production extraction or passing an active detector.",
+    "method": "Manual arm-hidden review of the first 1000 saved characters separately for each fingerprint."
+  },
+  "eaa28fa8a9496abf5ccb45ab291ce15a6af18a8ec152636fe6f2af9feaedb22b": {
+    "verdict": "diagnostic-only",
+    "reason": "JavaScript and screen-property diagnostic tables from a prespecified browser panel. Delivery does not establish production extraction or passing an active detector.",
+    "method": "Manual arm-hidden review of the first 1000 saved characters separately for each fingerprint."
+  },
+  "edee266fce144a7df91cd4c566417b183e8d7b1d92e8df1162bf90418930be3c": {
+    "verdict": "diagnostic-only",
+    "reason": "JavaScript and screen-property diagnostic tables from a prespecified browser panel. Delivery does not establish production extraction or passing an active detector.",
+    "method": "Manual arm-hidden review of the first 1000 saved characters separately for each fingerprint."
+  },
+  "4690065ddc9e1491b004905606e85e792ca22fe47edde83be556c0a740aa6801": {
+    "verdict": "unavailable",
+    "reason": "The saved response content is empty.",
+    "method": "Exact URL/status/content fingerprint transfer from native-auto-candidate1-20260907"
+  },
+  "26b619048ff65a0d334b84d766b1a4287eccd3edf4aec0a4eff77539ccf5e63f": {
+    "verdict": "wall",
+    "reason": "Only a security-verification page and challenge reference; no requested insider or market records. The varying recorded status does not turn this into requested content.",
+    "method": "Manual arm-hidden complete content review and complete reference-only differences."
+  },
+  "27d5496177cbf54eb784d54c95edcc974bd32b443523faf024a39e1ad63c548d": {
+    "verdict": "wall",
+    "reason": "Only a security-verification page and challenge reference; no requested insider or market records. The varying recorded status does not turn this into requested content.",
+    "method": "Manual arm-hidden complete content review and complete reference-only differences."
+  },
+  "acad25ede59944411e65dd4bf048654e017f6c0981bbba6668405e144f14debd": {
+    "verdict": "wall",
+    "reason": "Only a security-verification page and challenge reference; no requested insider or market records. The varying recorded status does not turn this into requested content.",
+    "method": "Manual arm-hidden complete content review and complete reference-only differences."
+  },
+  "49ccf48c9682634a7f58d20d1c81aa358825e5993809e805e2192989402eb83e": {
+    "verdict": "diagnostic-only",
+    "reason": "Fingerprint diagnostic panel still displays scanning/collecting status. It is excluded from production usefulness and does not establish completion of the site's active checks.",
+    "method": "Manual arm-hidden review of the first 1300 saved characters separately for each fingerprint."
+  },
+  "6476914086138032e9d7a671ceb662c6e1502866187b36c2f14a222f91fb2b06": {
+    "verdict": "diagnostic-only",
+    "reason": "Fingerprint diagnostic panel still displays scanning/collecting status. It is excluded from production usefulness and does not establish completion of the site's active checks.",
+    "method": "Manual arm-hidden review of the first 1300 saved characters separately for each fingerprint."
+  },
+  "a6f85ef8f1efe3ed93529e48078b4e900ab86280971621d3d6fee6dc5adde1ff": {
+    "verdict": "diagnostic-only",
+    "reason": "Fingerprint diagnostic panel still displays scanning/collecting status. It is excluded from production usefulness and does not establish completion of the site's active checks.",
+    "method": "Manual arm-hidden review of the first 1300 saved characters separately for each fingerprint."
+  },
+  "39f672a8a7ef836bc099fa6d1c198e00c88308db9d2cedd6d1438bec0ff65276": {
+    "verdict": "unavailable",
+    "reason": "The saved response content is empty.",
+    "method": "Exact URL/status/content fingerprint transfer from native-auto-candidate1-20260907"
+  },
+  "42ee73a0acaf8d5015bcd985be74b776cc8abbb7606ebdb0bce6194ff5bdd352": {
+    "verdict": "unavailable",
+    "reason": "The saved response content is empty.",
+    "method": "Exact URL/status/content fingerprint transfer from native-auto-20260906"
+  },
+  "84779cbc165c9b51e9807708ad2f6e35cf13b42eb374447f6696704b4dbefac5": {
+    "verdict": "diagnostic-only",
+    "reason": "This URL is a prespecified diagnostic endpoint or challenge-demo control, excluded from production-content success regardless of the displayed detector values.",
+    "method": "Exact URL/status/content fingerprint transfer from native-auto-candidate1-20260907"
+  },
+  "f2a7718171dd378e35ad7dc3cee8c9228dd267cbccf2d71eadd53cf99542a701": {
+    "verdict": "diagnostic-only",
+    "reason": "This URL is a prespecified diagnostic endpoint or challenge-demo control, excluded from production-content success regardless of the displayed detector values.",
+    "method": "Exact URL/status/content fingerprint transfer from native-auto-candidate1-20260907"
+  },
+  "4df663507cf673f58ef3eb4c2ff3b203529de6429837d28f4f29a82d174dfcd1": {
+    "verdict": "diagnostic-only",
+    "reason": "Browser-property test tables from a prespecified diagnostic panel. Delivery alone does not establish passing every detector or useful production extraction.",
+    "method": "Manual arm-hidden review of the first 800 characters separately for each fingerprint."
+  },
+  "7ef34110677063cbb837ab607676646137a9e54f40308133b94f3a983ecee953": {
+    "verdict": "diagnostic-only",
+    "reason": "Browser-property test tables from a prespecified diagnostic panel. Delivery alone does not establish passing every detector or useful production extraction.",
+    "method": "Manual arm-hidden review of the first 800 characters separately for each fingerprint."
+  },
+  "a15bf39ff11e266986be75577082614c06f2932aac29684f488643fcff2ccf57": {
+    "verdict": "diagnostic-only",
+    "reason": "Browser-property test tables from a prespecified diagnostic panel. Delivery alone does not establish passing every detector or useful production extraction.",
+    "method": "Manual arm-hidden review of the first 800 characters separately for each fingerprint."
+  },
+  "4b473d9d6975b9bb775e70989676fbc58065e206571629386387a240084240d7": {
+    "verdict": "useful",
+    "reason": "Requested SSD catalogue includes identifiable product models, capacity/interface specifications, destinations and pricing. A recorded 204 status on one response is retained as observed.",
+    "method": "Manual arm-hidden review of characters 1000 through 2500 separately for each fingerprint."
+  },
+  "ab5370dfe18d6b732310d3eaa52e4bc87f0f20dd1964e23803a8db56b86106e3": {
+    "verdict": "useful",
+    "reason": "Requested SSD catalogue includes identifiable product models, capacity/interface specifications, destinations and pricing. A recorded 204 status on one response is retained as observed.",
+    "method": "Manual arm-hidden review of characters 1000 through 2500 separately for each fingerprint."
+  },
+  "7ea4c17f10f046a82f4c88c60eec62f820d6b1a73dcb7aad6098bbafa4c8876c": {
+    "verdict": "useful",
+    "reason": "Requested SSD catalogue includes identifiable products, model identifiers, capacities, interfaces, performance specifications, destinations and shipping context. Prices were not present in the reviewed section; no complete pricing claim is made.",
+    "method": "Manual arm-hidden review of characters 1000 through 2500."
+  },
+  "6c2cc1721b4cd5bf6bb05200dad63b0cb4ce6043bf93c721644913643035e5ae": {
+    "verdict": "shell",
+    "reason": "Only a prefetch JSON fragment, the appliances page title and a help prompt were saved; no appliance records.",
+    "method": "Exact URL/status/content fingerprint transfer from native-auto-candidate1-20260907"
+  },
+  "748c74e535c1e07e70524cc0be0109378bec591ded8fc23cd2ff3f28fe5deb7a": {
+    "verdict": "useful",
+    "reason": "The requested language article contains substantive factual paragraphs about typing, memory safety and programming features, plus explanatory code and references. This establishes useful article content, not exhaustive preservation.",
+    "method": "Exact URL/status/content fingerprint transfer from native-auto-candidate1-20260907"
+  },
+  "80c1ae9ad5c93a05d471470f5dd8fc7e4a643c8378c4fa3d28f0abbb32682cdb": {
+    "verdict": "unavailable",
+    "reason": "The saved response content is empty.",
+    "method": "Exact URL/status/content fingerprint transfer from native-auto-candidate1-20260907"
+  },
+  "ec30726ca04dfa0339338e9d2f280634e16ea41708adecc016ff0215af3dcc42": {
+    "verdict": "useful",
+    "reason": "The requested language article contains substantive factual paragraphs about typing, memory safety and programming features, plus explanatory code and references. This establishes useful article content, not exhaustive preservation.",
+    "method": "Exact URL/status/content fingerprint transfer from native-auto-candidate1-20260907"
+  },
+  "ab0c32821b00c0631c54a5b35c44b4ecb1a5ec1bae7cd7bcf14f0d5d3e1e2a0a": {
+    "verdict": "shell",
+    "reason": "Only a referrer-related code fragment, appliance-page title and help prompt; no requested appliance records, specifications or prices.",
+    "method": "Manual arm-hidden review of the complete saved content."
+  },
+  "58d942aebce6267cb424561535324cea880f02b43a14bf019e0152835ca2c9c8": {
+    "verdict": "useful",
+    "reason": "The requested newsroom contains actual release titles, excerpts, publishers, timestamps and destinations. This supports index extraction, not full downstream releases.",
+    "method": "Manual arm-hidden review of the first 3700 saved characters."
+  },
+  "15a94dbf945e34c8274f1b0182c7e7cd2eb07c198a68094db715bcdd62dc9f1b": {
+    "verdict": "diagnostic-only",
+    "reason": "This URL is a prespecified diagnostic endpoint or challenge-demo control, excluded from production-content success regardless of the displayed detector values.",
+    "method": "Exact URL/status/content fingerprint transfer from native-auto-candidate1-20260907"
+  },
+  "6ea77fdfd6ff198998f99fe5195c83b80823f648a622ca043f5b6bb916df12c1": {
+    "verdict": "diagnostic-only",
+    "reason": "This URL is a prespecified diagnostic endpoint or challenge-demo control, excluded from production-content success regardless of the displayed detector values.",
+    "method": "Exact URL/status/content fingerprint transfer from native-auto-candidate1-20260907"
+  },
+  "7d61190954e6288ab0b94e011ca276dba93bc25a6aff43d8a6900ee8bd17f285": {
+    "verdict": "wall",
+    "reason": "The response explicitly says the query rate limit was reached and offers RSS alternatives. It contains no requested gold-search records.",
+    "method": "Exact URL/status/content fingerprint transfer from native-auto-candidate1-20260907"
+  },
+  "450b452d69b26e34e96eda28a11f542e1314dcb2de48b7f37e364d66ea33b541": {
+    "verdict": "useful",
+    "reason": "The truncated excerpt contains multiple requested engineering jobs with job titles, employers, locations, age and destinations. This supports useful content availability without implying complete extraction or overriding any blocked response label.",
+    "method": "Manual arm-hidden review of each complete 2000-character saved excerpt."
+  },
+  "64b41b2e1c9f8e86b48649524f92a49c0726f5f47749b75f493234f86595ebd1": {
+    "verdict": "useful",
+    "reason": "The truncated excerpt contains multiple requested engineering jobs with job titles, employers, locations, age and destinations. This supports useful content availability without implying complete extraction or overriding any blocked response label.",
+    "method": "Manual arm-hidden review of each complete 2000-character saved excerpt."
+  },
+  "d22bfbdbb721b30d966902f6bbefc56656250e9167b1020dbbb7f37f693637eb": {
+    "verdict": "useful",
+    "reason": "The truncated excerpt contains multiple requested engineering jobs with job titles, employers, locations, age and destinations. This supports useful content availability without implying complete extraction or overriding any blocked response label.",
+    "method": "Manual arm-hidden review of each complete 2000-character saved excerpt."
+  },
+  "4a2acc68cb7587c7b4854094e400ab600798d1b2f91b107192a23e7ed2d85459": {
+    "verdict": "useful",
+    "reason": "The requested engineering-job index contains multiple identifiable roles, employers, locations, age and destinations. Actual requested records are present.",
+    "method": "Manual arm-hidden review of the first 2200 characters separately for each fingerprint."
+  },
+  "56fa68ba01ae6ea455e2bce2bd00aa854a160d1546904e5390d39854c7441f29": {
+    "verdict": "useful",
+    "reason": "The requested engineering-job index contains multiple identifiable roles, employers, locations, age and destinations. Actual requested records are present.",
+    "method": "Manual arm-hidden review of the first 2200 characters separately for each fingerprint."
+  },
+  "d471c3dbf51d6bea3523a2f20549bea1aca6b9ddcb98abd63313ada2794c0c54": {
+    "verdict": "useful",
+    "reason": "The requested engineering-job index contains multiple identifiable roles, employers, locations, age and destinations. Actual requested records are present.",
+    "method": "Manual arm-hidden review of the first 2200 characters separately for each fingerprint."
+  },
+  "6e5f874039260d0bc6399fd49b088859afe8c6cac6f9b04e4e86338aa6c4033f": {
+    "verdict": "useful",
+    "reason": "The requested browse directory contains identifiable live channels and categories with destinations and viewer counts. It establishes directory extraction, not video playback.",
+    "method": "Manual arm-hidden review of the first 2400 characters and complete viewer-count differences for the second fingerprint."
+  },
+  "b2b4057c4b6e24dd71acbf018413dd58ef424eb0399e13e6b369eac5208a65a3": {
+    "verdict": "useful",
+    "reason": "The requested browse directory contains identifiable live channels and categories with destinations and viewer counts. It establishes directory extraction, not video playback.",
+    "method": "Manual arm-hidden review of the first 2400 characters and complete viewer-count differences for the second fingerprint."
+  },
+  "bfdf809053e03dc692b215b68c8e864ceacdb5863e60102e2cf4adb968e757ab": {
+    "verdict": "useful",
+    "reason": "The requested browse directory includes main category records with titles, destinations and viewer counts, as well as live channels. The judgment does not rely solely on sidebar navigation and does not establish video playback.",
+    "method": "Manual arm-hidden review of characters 0 through 2400 separately for each fingerprint."
+  },
+  "de669b0cf6e08ed42c3dd1f2e85e6b5f287a006320b8f906e856c5a7e0b6f72b": {
+    "verdict": "useful",
+    "reason": "The requested browse directory includes main category records with titles, destinations and viewer counts, as well as live channels. The judgment does not rely solely on sidebar navigation and does not establish video playback.",
+    "method": "Manual arm-hidden review of characters 0 through 2400 separately for each fingerprint."
+  },
+  "86cc88c59d74bf3997c08c33bab3f891d96d55deb9da54ec5d83690a5576519d": {
+    "verdict": "useful",
+    "reason": "The complete landing response describes disclosure alerts, the document archive, filing resources, fees and forms, with specific public reference links. This supports the requested landing page only, not successful retrieval of underlying filings.",
+    "method": "Exact URL/status/content fingerprint transfer from native-auto-candidate1-20260907"
+  },
+  "f48402c8e452204b8ccadc105ec7bb61bd971e066fa27978cc4f843804b78b5a": {
+    "verdict": "diagnostic-only",
+    "reason": "This URL is a prespecified diagnostic endpoint or challenge-demo control, excluded from production-content success regardless of the displayed detector values.",
+    "method": "Exact URL/status/content fingerprint transfer from native-auto-candidate1-20260907"
+  },
+  "b6f0e4207fada1c3cb548d37c65bd5903baac1106576303a43383d759f4c5696": {
+    "verdict": "wall",
+    "reason": "Only a Forbidden message and transaction identifier; no requested filing-search content. Recorded HTTP 200 is not treated as substantive delivery.",
+    "method": "Manual arm-hidden complete content review and complete transaction-identifier differences."
+  },
+  "bd24d38c1772a47f6bdd322fa51bc504a0f495402c877c86059fdb0f82d985d1": {
+    "verdict": "wall",
+    "reason": "Only a Forbidden message and transaction identifier; no requested filing-search content. Recorded HTTP 200 is not treated as substantive delivery.",
+    "method": "Manual arm-hidden complete content review and complete transaction-identifier differences."
+  },
+  "fa92ac797f8e6270926a47ce978d76fce472017f8461588276ef65ffb6ea492b": {
+    "verdict": "wall",
+    "reason": "Only a Forbidden message and transaction identifier; no requested filing-search content. Recorded HTTP 200 is not treated as substantive delivery.",
+    "method": "Manual arm-hidden complete content review and complete transaction-identifier differences."
+  },
+  "942988624b387ded52da63d60894ad643a250ae021a3615a4c9903e9a0899433": {
+    "verdict": "unavailable",
+    "reason": "The saved response content is empty.",
+    "method": "Exact URL/status/content fingerprint transfer from native-auto-candidate1-20260907"
+  },
+  "c8171629aae01e2c3a2c33c5ddbf2a8d7a30c154d665252896b00b479707409a": {
+    "verdict": "diagnostic-only",
+    "reason": "This URL is a prespecified diagnostic endpoint or challenge-demo control, excluded from production-content success regardless of the displayed detector values.",
+    "method": "Exact URL/status/content fingerprint transfer from native-auto-candidate1-20260907"
+  },
+  "0e49d5fef3bb33e7d6a93ac0b12e1727322b4622fad2545f54cbc5c3c854d5c5": {
+    "verdict": "diagnostic-only",
+    "reason": "TLS/HTTP fingerprint JSON from a prespecified diagnostic endpoint, containing TLS ciphers, HTTP/2, JA3/JA4 and TCP fields. This is not production-content extraction or evidence of passing active detectors.",
+    "method": "Arm-hidden review of diagnostic field names separately for each saved fingerprint; network address values were not displayed."
+  },
+  "182aebf7dffdb17e7af4d109cfd9d4002cd53f1cf6c948eec5dedbbf6f4a2ffc": {
+    "verdict": "diagnostic-only",
+    "reason": "TLS/HTTP fingerprint JSON from a prespecified diagnostic endpoint, containing TLS ciphers, HTTP/2, JA3/JA4 and TCP fields. This is not production-content extraction or evidence of passing active detectors.",
+    "method": "Arm-hidden review of diagnostic field names separately for each saved fingerprint; network address values were not displayed."
+  },
+  "9c1e6deb3e8ec3bcb49064ffc75d6f01c9a5e0149ca61bba0eb3178f11d48a52": {
+    "verdict": "diagnostic-only",
+    "reason": "TLS/HTTP fingerprint JSON from a prespecified diagnostic endpoint, containing TLS ciphers, HTTP/2, JA3/JA4 and TCP fields. This is not production-content extraction or evidence of passing active detectors.",
+    "method": "Arm-hidden review of diagnostic field names separately for each saved fingerprint; network address values were not displayed."
+  },
+  "a813a2f71b3a0737a267cee4d198c09dff44f237060fc1bcb66e11dee9f767a3": {
+    "verdict": "diagnostic-only",
+    "reason": "TLS/HTTP fingerprint JSON from a prespecified diagnostic endpoint, containing TLS ciphers, HTTP/2, JA3/JA4 and TCP fields. This is not production-content extraction or evidence of passing active detectors.",
+    "method": "Arm-hidden review of diagnostic field names separately for each saved fingerprint; network address values were not displayed."
+  },
+  "c63601f94e582ce6b5489829a3e2300daa7c3b99cfe28c0800e34d8256bb7e13": {
+    "verdict": "diagnostic-only",
+    "reason": "TLS/HTTP fingerprint JSON from a prespecified diagnostic endpoint, containing TLS ciphers, HTTP/2, JA3/JA4 and TCP fields. This is not production-content extraction or evidence of passing active detectors.",
+    "method": "Arm-hidden review of diagnostic field names separately for each saved fingerprint; network address values were not displayed."
+  },
+  "fc882f33d9e19e5dcd1da6a3d90cc850700228cd7e591c6f194936299f341050": {
+    "verdict": "diagnostic-only",
+    "reason": "TLS/HTTP fingerprint JSON from a prespecified diagnostic endpoint, containing TLS ciphers, HTTP/2, JA3/JA4 and TCP fields. This is not production-content extraction or evidence of passing active detectors.",
+    "method": "Arm-hidden review of diagnostic field names separately for each saved fingerprint; network address values were not displayed."
+  },
+  "1e7b68f92cd91560f2a6093613d35bbed74040b3d3fa0df36433c635f05a5b36": {
+    "verdict": "diagnostic-only",
+    "reason": "Bot-detection test panel and explanatory text from a prespecified diagnostic page. Delivery does not establish completion or success of its active behavior checks.",
+    "method": "Manual arm-hidden review of the first 600 characters separately for each fingerprint."
+  },
+  "f54fb64e703852f5696391b89f75fd9fe29c9b99dc56930fc3747059181ee103": {
+    "verdict": "diagnostic-only",
+    "reason": "Bot-detection test panel and explanatory text from a prespecified diagnostic page. Delivery does not establish completion or success of its active behavior checks.",
+    "method": "Manual arm-hidden review of the first 600 characters separately for each fingerprint."
+  },
+  "f7e69e0fc0462db1021a8d23ed2877b71bd3bc089bd5a4e31d1ce9e6a057b333": {
+    "verdict": "diagnostic-only",
+    "reason": "Bot-detection test panel and explanatory text from a prespecified diagnostic page. Delivery does not establish completion or success of its active behavior checks.",
+    "method": "Manual arm-hidden review of the first 600 characters separately for each fingerprint."
+  },
+  "58018f3a9814b754c42a0d819aef3de8396965bd2e45d9b21b729879db2ca5ed": {
+    "verdict": "partial",
+    "reason": "Trending repository descriptions, languages and dates survive, but repeated repository names and destinations are missing. Two image alternatives and surviving collection/marketplace recommendations do not restore the materially incomplete discovery listing.",
+    "method": "Manual arm-hidden review of the trending-record section through the end of each response, with earlier featured-content review and comparison against the prior audit criterion."
+  },
+  "97828fb6245812a1ebf18b6204fe1579a7e1af45827f3edc756fb4bd2db8e7e3": {
+    "verdict": "partial",
+    "reason": "Trending repository descriptions, languages and dates survive, but repeated repository names and destinations are missing. Two image alternatives and surviving collection/marketplace recommendations do not restore the materially incomplete discovery listing.",
+    "method": "Manual arm-hidden review of the trending-record section through the end of each response, with earlier featured-content review and comparison against the prior audit criterion."
+  },
+  "a7f7a558c22b3a2d9beaa5ea08f267a2ba1403f02e57ed828b12592fa5f2996e": {
+    "verdict": "useful",
+    "reason": "Requested Echo Dot search contains identifiable related offers, including battery bases and adapters, with product titles, prices, shipping details and destinations. It does not establish complete catalogue extraction or availability of a specific speaker model.",
+    "method": "Manual arm-hidden review of the results section at characters 6800 through 9300; requested search URL verified."
+  },
+  "1fca0289753eb2981bff32b44504848c2a8cbcf4eabc802456a77ceebc40f6c6": {
+    "verdict": "unavailable",
+    "reason": "The complete response says the post or profile is unavailable or removed. No requested post content is present.",
+    "method": "Exact URL/status/content fingerprint transfer from native-auto-candidate1-20260907"
+  },
+  "60e55fc10ee1c2ef55e3c33504b4b10b93be7922ab11d53cb6bdee1b5d64a135": {
+    "verdict": "useful",
+    "reason": "The requested Rust-question index contains multiple actual question titles, excerpts, destinations and posting context. Full answers are not implied.",
+    "method": "Manual arm-hidden review of the first 2400 saved characters."
+  },
+  "fc1ad95a5b914816cb46dd8073d4c10a54358a452fe7630b9087e01b9c8487a5": {
+    "verdict": "wall",
+    "reason": "Only a security-verification page and challenge reference, with no requested questions.",
+    "method": "Manual arm-hidden review of complete saved content."
+  },
+  "c9c3513873c0b4dafe628724ebb8b71d3ce807031dbc8a71f05974bcefc0a1b1": {
+    "verdict": "unavailable",
+    "reason": "The complete response says the post or profile is unavailable or removed. No requested post content is present.",
+    "method": "Exact URL/status/content fingerprint transfer from native-auto-candidate1-20260907"
+  },
+  "2f177e7ed23561fe26aa18782c057e98006d12c57bd2f8b2fc946e38bddba5aa": {
+    "verdict": "useful",
+    "reason": "The requested area search includes named accommodations with location and amenity descriptions, including the Saanichton airport motel and Shawnigan properties. The heading has a narrower property count and many filters are empty; this supports useful accommodation records, not complete availability, prices or geographic coverage.",
+    "method": "Exact URL/status/content fingerprint transfer from native-auto-candidate1-20260907"
+  },
+  "80e19363a9f8aae173d3c17bfdbcc2c23aa60fea2fb06abd092561acc5217e44": {
+    "verdict": "diagnostic-only",
+    "reason": "This URL is a prespecified diagnostic endpoint or challenge-demo control, excluded from production-content success regardless of the displayed detector values.",
+    "method": "Exact URL/status/content fingerprint transfer from native-auto-candidate1-20260907"
+  },
+  "c45390d7e139beb7fb13eee4aae6bb6f457168a8fff9db485f56e1756f60df8d": {
+    "verdict": "unavailable",
+    "reason": "The saved response content is empty.",
+    "method": "Exact URL/status/content fingerprint transfer from native-auto-candidate1-20260907"
+  },
+  "f5be3998ac31ac583ce15d9f3f12455759be8f513e97e3d5bc5286549b9a0de4": {
+    "verdict": "useful",
+    "reason": "The requested area search includes named accommodations with location and amenity descriptions, including the Saanichton airport motel and Shawnigan properties. The heading has a narrower property count and many filters are empty; this supports useful accommodation records, not complete availability, prices or geographic coverage.",
+    "method": "Exact URL/status/content fingerprint transfer from native-auto-20260906"
+  },
+  "1a208dfafe9d99eb4776201f4dbbd343d5b6f4ab976374d5076cc0635adb3dac": {
+    "verdict": "partial",
+    "reason": "Search snippets survive, but result titles and destinations are missing. The full Markdown destination inventory contains only search/pagination URLs, so the requested search-result extraction remains materially incomplete.",
+    "method": "Manual arm-hidden snippet review at characters 1500 through 2900, followed by complete destination-inventory inspection for every fingerprint and comparison with the prior audit criterion."
+  },
+  "4fa2ce66a2a6c6db8f814de8d4a2632dc53dda73a3e0b7b51103c051531b2627": {
+    "verdict": "partial",
+    "reason": "Search snippets survive, but result titles and destinations are missing. The full Markdown destination inventory contains only search/pagination URLs, so the requested search-result extraction remains materially incomplete.",
+    "method": "Manual arm-hidden snippet review at characters 1500 through 2900, followed by complete destination-inventory inspection for every fingerprint and comparison with the prior audit criterion."
+  },
+  "691c90880f50162175ccad7ba24a687a5858aefaba34447250c2eafa79655403": {
+    "verdict": "partial",
+    "reason": "Search snippets survive, but result titles and destinations are missing. The full Markdown destination inventory contains only search/pagination URLs, so the requested search-result extraction remains materially incomplete.",
+    "method": "Manual arm-hidden snippet review at characters 1500 through 2900, followed by complete destination-inventory inspection for every fingerprint and comparison with the prior audit criterion."
+  },
+  "88957034388ba3edd611dbce5813832a1a379af63f38924b162d1f591c6da85e": {
+    "verdict": "partial",
+    "reason": "Search snippets survive, but result titles and destinations are missing. The full Markdown destination inventory contains only search/pagination URLs, so the requested search-result extraction remains materially incomplete.",
+    "method": "Manual arm-hidden snippet review at characters 1500 through 2900, followed by complete destination-inventory inspection for every fingerprint and comparison with the prior audit criterion."
+  },
+  "a12ffaf8dd701dc2cbde8aec200c7f47ff82e0b09bb4361a0619d5db4d94d6f9": {
+    "verdict": "partial",
+    "reason": "Search snippets survive, but result titles and destinations are missing. The full Markdown destination inventory contains only search/pagination URLs, so the requested search-result extraction remains materially incomplete.",
+    "method": "Manual arm-hidden snippet review at characters 1500 through 2900, followed by complete destination-inventory inspection for every fingerprint and comparison with the prior audit criterion."
+  },
+  "cc21eb2f3bcf7c11bc27a91c0966bde296f24f6efb37135cfd79ba153a47764a": {
+    "verdict": "partial",
+    "reason": "Search snippets survive, but result titles and destinations are missing. The full Markdown destination inventory contains only search/pagination URLs, so the requested search-result extraction remains materially incomplete.",
+    "method": "Manual arm-hidden snippet review at characters 1500 through 2900, followed by complete destination-inventory inspection for every fingerprint and comparison with the prior audit criterion."
+  },
+  "a1dbb77f63a76051cf5c8791b109da5d4ef924c293fc50014493defbfd76419b": {
+    "verdict": "useful",
+    "reason": "The requested area search identifies multiple accommodations near Victoria and Shawnigan Lake with locations and amenities. Many headings, prices and links are absent; useful property descriptions do not imply complete availability or geographic coverage.",
+    "method": "Manual arm-hidden review of the complete saved content and consistency comparison with the prior accommodation audit."
+  },
+  "e8b42fba7b238bd736348aedd392dd381d82406b4dcfaf8eef0fdd50392a5df7": {
+    "verdict": "useful",
+    "reason": "The requested news index contains actual ranked story titles, destinations, authors, scores and comment counts. Full linked articles are not implied.",
+    "method": "Manual arm-hidden review of the first 1900 saved characters."
+  },
+  "0a0d727be17b82ef93f4736ebdfa796e7ec01c90eb8de28366f68c4e205d71f7": {
+    "verdict": "diagnostic-only",
+    "reason": "TLS fingerprint JSON from a prespecified diagnostic endpoint; no production-content or active-detector success claim follows from delivery.",
+    "method": "Manual arm-hidden review of the first 600 characters separately for each fingerprint."
+  },
+  "4317324fc3c7d83964db06d93b4f5d961df165270b42b26a241794b24f2266ad": {
+    "verdict": "diagnostic-only",
+    "reason": "TLS fingerprint JSON from a prespecified diagnostic endpoint; no production-content or active-detector success claim follows from delivery.",
+    "method": "Manual arm-hidden review of the first 600 characters separately for each fingerprint."
+  },
+  "a6bdfbd425429df9bdf3ec0638ccb0f3fa57a421a560be149ddde7375994daad": {
+    "verdict": "diagnostic-only",
+    "reason": "TLS fingerprint JSON from a prespecified diagnostic endpoint; no production-content or active-detector success claim follows from delivery.",
+    "method": "Manual arm-hidden review of the first 600 characters separately for each fingerprint."
+  },
+  "0399041825e813c8a8bbf0df14b4c370cb40d7763f621ac5db6af66fcbe14ee9": {
+    "verdict": "useful",
+    "reason": "The requested company profile includes a subject-specific description of its research and deployment activities plus descriptions of its conversational service and developer platform. Financial fields include placeholders or subscription prompts; no complete or verified funding data is claimed.",
+    "method": "Exact URL/status/content fingerprint transfer from native-auto-candidate1-20260907"
+  },
+  "1244029dff925f904d364bb3a8306944c2da4a587916d9579decde8d707063cf": {
+    "verdict": "unavailable",
+    "reason": "The saved response content is empty.",
+    "method": "Exact URL/status/content fingerprint transfer from native-auto-candidate1-20260907"
+  },
+  "5c66dcd5389e5bb95cc52f5dce4bfa7fdbb04bd20cf513fa8c05d685d79be04b": {
+    "verdict": "wall",
+    "reason": "The complete explore response is an authentication/sign-up interface; no timeline items are present.",
+    "method": "Exact URL/status/content fingerprint transfer from native-auto-candidate1-20260907"
+  },
+  "f60c72d66c18a139838d490bb561bd82c4f7d966869407d24e08cd557ece2b8e": {
+    "verdict": "unavailable",
+    "reason": "The saved response content is empty.",
+    "method": "Exact URL/status/content fingerprint transfer from native-auto-candidate1-20260907"
+  },
+  "05cfc3d02edb6d1e4f72fba71e922e5c860ccaf565d5793b24f05e0d890ab0cd": {
+    "verdict": "useful",
+    "reason": "The requested Python-question index contains actual question titles, excerpts, destinations and posting context. Full linked answers are not implied.",
+    "method": "Manual arm-hidden review of the first 1500 characters separately for each saved fingerprint; target URL checked against the frozen workload."
+  },
+  "3617497da9b46bbd8068484602b1c494bf6ffaea6644b7d7766b4b3c9bd57e99": {
+    "verdict": "useful",
+    "reason": "The requested Python-question index contains actual question titles, excerpts, destinations and posting context. Full linked answers are not implied.",
+    "method": "Manual arm-hidden review of the first 1500 characters separately for each saved fingerprint; target URL checked against the frozen workload."
+  },
+  "582e789eea74ff60ae137b77e961b00fb3d6eed4b091770ca719fb8b48c2af62": {
+    "verdict": "unavailable",
+    "reason": "The saved response content is empty.",
+    "method": "Exact URL/status/content fingerprint transfer from native-auto-candidate1-20260907"
+  },
+  "741a693abfa635a5f3ddad57491e3b8aff1b6c8062a905dd09a88b1271fbd91b": {
+    "verdict": "unavailable",
+    "reason": "The saved response content is empty.",
+    "method": "Exact URL/status/content fingerprint transfer from native-auto-candidate1-20260907"
+  },
+  "d9bb9a6d0d03402b2541c4c4e570192cd093e2574705f963dd1df740588e18ce": {
+    "verdict": "unavailable",
+    "reason": "The saved response content is empty.",
+    "method": "Exact URL/status/content fingerprint transfer from native-auto-candidate1-20260907"
+  },
+  "dabbaad9d533765176977299dde83391a78dcf5f1a09dfc7d6a775b522e5d832": {
+    "verdict": "unavailable",
+    "reason": "The saved response content is empty.",
+    "method": "Exact URL/status/content fingerprint transfer from native-auto-candidate1-20260907"
+  },
+  "ed61b53b0992ba42ea21adf916248068e97d405c2de360d63106abd9ff4fc018": {
+    "verdict": "diagnostic-only",
+    "reason": "This URL is a prespecified diagnostic endpoint or challenge-demo control, excluded from production-content success regardless of the displayed detector values.",
+    "method": "Exact URL/status/content fingerprint transfer from native-auto-candidate1-20260907"
+  },
+  "7a5d955914cbd88734d88d9d6a43bcf1c4cdfe8fd2ebd014f44522ca1e6f35a6": {
+    "verdict": "useful",
+    "reason": "The complete short example-domain control contains its intended explanatory paragraph and information link.",
+    "method": "Exact URL/status/content fingerprint transfer from native-auto-candidate1-20260907"
+  },
+  "481f9021da8cabc651ab9d733828c3e2f3e96ca102734a7da4c3a5eb21a52927": {
+    "verdict": "diagnostic-only",
+    "reason": "Prespecified browser diagnostic panel with user-agent, WebDriver and plugin-property tests; delivery alone is not production extraction or proof that all detectors pass.",
+    "method": "Manual arm-hidden review of the first 440 characters separately for each saved fingerprint."
+  },
+  "51e103b744af03670f436ae498268f8dd6da232d90be7b3d4b731192ac3a953b": {
+    "verdict": "diagnostic-only",
+    "reason": "Prespecified browser diagnostic panel with user-agent, WebDriver and plugin-property tests; delivery alone is not production extraction or proof that all detectors pass.",
+    "method": "Manual arm-hidden review of the first 440 characters separately for each saved fingerprint."
+  },
+  "66b4b0079414cfa8710148d06283c12a3adaf08100f1f4d4827b16a5b771ab6f": {
+    "verdict": "diagnostic-only",
+    "reason": "Prespecified browser diagnostic panel with user-agent, WebDriver and plugin-property tests; delivery alone is not production extraction or proof that all detectors pass.",
+    "method": "Manual arm-hidden review of the first 440 characters separately for each saved fingerprint."
+  },
+  "a48a2267be7a1dc236b20b64d7816d3cd0cd1dd73e2f8f84d990f4b4688262a0": {
+    "verdict": "partial",
+    "reason": "Only a generic market paragraph and a top-buy/sell section link remain. Actual insider records and identifiable dated report/article entries are absent, matching the previous workload's partial-page criterion.",
+    "method": "Manual arm-hidden complete content review with prior-label consistency check."
+  },
+  "69009ccc60a2e03da6e3efaa6a5eec88926ba0369e89d17987e0f1133f216ba9": {
+    "verdict": "unavailable",
+    "reason": "The complete short response is an error template whose image alternative text says something went wrong. No product search results are present.",
+    "method": "Exact URL/status/content fingerprint transfer from native-auto-candidate1-20260907"
+  },
+  "b3bf3d5dca098e39a76c797f11f09d4b2800feac8f7e2349dca1aa3b8c85fde7": {
+    "verdict": "unavailable",
+    "reason": "The saved response content is empty.",
+    "method": "Exact URL/status/content fingerprint transfer from native-auto-candidate1-20260907"
+  },
+  "0ec451701f3b4ff982f0b2c7b20b0e96430441b77acf6efa9d9452cb681df97e": {
+    "verdict": "diagnostic-only",
+    "reason": "TLS/HTTP fingerprint JSON from a prespecified diagnostic endpoint; TLS, HTTP/2, JA3/JA4 and TCP fields are present. No production or active-detector success claim follows.",
+    "method": "Arm-hidden diagnostic-field review separately for each fingerprint, without displaying network addresses."
+  },
+  "15ef379fe901666d392bb3fe6d65fbcf72d8c8837870749013e1120d0e61c22f": {
+    "verdict": "diagnostic-only",
+    "reason": "TLS/HTTP fingerprint JSON from a prespecified diagnostic endpoint; TLS, HTTP/2, JA3/JA4 and TCP fields are present. No production or active-detector success claim follows.",
+    "method": "Arm-hidden diagnostic-field review separately for each fingerprint, without displaying network addresses."
+  },
+  "866e6c30c3e8754a810019863d56ad471f722d63d000acf98da7d206b37c891a": {
+    "verdict": "diagnostic-only",
+    "reason": "TLS/HTTP fingerprint JSON from a prespecified diagnostic endpoint; TLS, HTTP/2, JA3/JA4 and TCP fields are present. No production or active-detector success claim follows.",
+    "method": "Arm-hidden diagnostic-field review separately for each fingerprint, without displaying network addresses."
+  },
+  "93e86d1e5154952572da73f94cf78ad9131f4fbc4800f8e04c4374da1689682f": {
+    "verdict": "diagnostic-only",
+    "reason": "TLS/HTTP fingerprint JSON from a prespecified diagnostic endpoint; TLS, HTTP/2, JA3/JA4 and TCP fields are present. No production or active-detector success claim follows.",
+    "method": "Arm-hidden diagnostic-field review separately for each fingerprint, without displaying network addresses."
+  },
+  "d427b01f3ef88dc4b30df3ad89aaecbf9a9c31a777e34fcbdbce9cf0bb5e4140": {
+    "verdict": "diagnostic-only",
+    "reason": "TLS/HTTP fingerprint JSON from a prespecified diagnostic endpoint; TLS, HTTP/2, JA3/JA4 and TCP fields are present. No production or active-detector success claim follows.",
+    "method": "Arm-hidden diagnostic-field review separately for each fingerprint, without displaying network addresses."
+  },
+  "f379d8b1444cc42eede788476ab66c813cc44de07ccc6346807eaeeb5634cfa6": {
+    "verdict": "diagnostic-only",
+    "reason": "TLS/HTTP fingerprint JSON from a prespecified diagnostic endpoint; TLS, HTTP/2, JA3/JA4 and TCP fields are present. No production or active-detector success claim follows.",
+    "method": "Arm-hidden diagnostic-field review separately for each fingerprint, without displaying network addresses."
+  },
+  "2bfb7abef5ab0f9a3155ba0fc1326cfbae28c2c7a11c3cb41545f609e05ddc9c": {
+    "verdict": "wall",
+    "reason": "Only Forbidden text and a transaction identifier; no requested filing-search content despite recorded HTTP 200.",
+    "method": "Manual arm-hidden complete content review separately for each fingerprint."
+  },
+  "3c03443ad1114f9c2bcfdad3f5ae81513be466b618b3f7f38c3a1d5eecb9f3f0": {
+    "verdict": "wall",
+    "reason": "Only Forbidden text and a transaction identifier; no requested filing-search content despite recorded HTTP 200.",
+    "method": "Manual arm-hidden complete content review separately for each fingerprint."
+  },
+  "b3d8a0abd84feb5491622ad3c96b1939b16398a8aa68f94073e9aeee74a91206": {
+    "verdict": "wall",
+    "reason": "Only Forbidden text and a transaction identifier; no requested filing-search content despite recorded HTTP 200.",
+    "method": "Manual arm-hidden complete content review separately for each fingerprint."
+  },
+  "0014033da139e05a66e33f3e003158d740d8308207141a52592592b990bc21e5": {
+    "verdict": "partial",
+    "reason": "Requested search snippets survive without result titles or destinations. The complete Markdown destination inventory contains only search/pagination URLs; the listing is materially incomplete.",
+    "method": "Manual arm-hidden snippet review at characters 1200 through 1900 and complete destination-inventory inspection for every fingerprint."
+  },
+  "09118644d247c1195716b9d3cb7b6ba18e61469b9ce0c2f2ad1998b09776fc3f": {
+    "verdict": "partial",
+    "reason": "Requested search snippets survive without result titles or destinations. The complete Markdown destination inventory contains only search/pagination URLs; the listing is materially incomplete.",
+    "method": "Manual arm-hidden snippet review at characters 1200 through 1900 and complete destination-inventory inspection for every fingerprint."
+  },
+  "139a4cdbd0bf463bc12a656215f6aca178a87aec1671fab6bf57ed9325f37c07": {
+    "verdict": "partial",
+    "reason": "Requested search snippets survive without result titles or destinations. The complete Markdown destination inventory contains only search/pagination URLs; the listing is materially incomplete.",
+    "method": "Manual arm-hidden snippet review at characters 1200 through 1900 and complete destination-inventory inspection for every fingerprint."
+  },
+  "17a0aa0cc97b8246064d4458b0496e88837f25cc79e619c00cadb457580fa34d": {
+    "verdict": "partial",
+    "reason": "Requested search snippets survive without result titles or destinations. The complete Markdown destination inventory contains only search/pagination URLs; the listing is materially incomplete.",
+    "method": "Manual arm-hidden snippet review at characters 1200 through 1900 and complete destination-inventory inspection for every fingerprint."
+  },
+  "30611cae556edf2d0efa62fb2588cbe144242eeaff504844c77b4614ea0238fe": {
+    "verdict": "partial",
+    "reason": "Requested search snippets survive without result titles or destinations. The complete Markdown destination inventory contains only search/pagination URLs; the listing is materially incomplete.",
+    "method": "Manual arm-hidden snippet review at characters 1200 through 1900 and complete destination-inventory inspection for every fingerprint."
+  },
+  "4a7b1af518e1719d5bf4e1f6c8c5f2a90813226f5fabaf7566542906a3960ab2": {
+    "verdict": "partial",
+    "reason": "Requested search snippets survive without result titles or destinations. The complete Markdown destination inventory contains only search/pagination URLs; the listing is materially incomplete.",
+    "method": "Manual arm-hidden snippet review at characters 1200 through 1900 and complete destination-inventory inspection for every fingerprint."
+  },
+  "76738cbc7ac72739e62d90ba64a0a359cbd4bfca73cf65045b00915ee70d3299": {
+    "verdict": "unavailable",
+    "reason": "The saved response content is empty.",
+    "method": "Exact URL/status/content fingerprint transfer from native-auto-candidate1-20260907"
+  },
+  "967628276063f8a27c496b55412b1b33c9c7c12adced8a90aed2b305e3570cf7": {
+    "verdict": "partial",
+    "reason": "Most trending repositories lose their names and item destinations while descriptions and metadata remain. Two image-backed repository links survive, along with topic/marketplace links; this does not restore the materially incomplete discovery listing.",
+    "method": "Manual arm-hidden review from the first trending record and full Markdown destination-inventory inspection."
+  },
+  "f9bc25e63cfef231cc21a597c3ec2b20bad07111088a83f9e49cdaf072d968e2": {
+    "verdict": "useful",
+    "reason": "The requested area search includes named accommodations with location and amenity descriptions, including the Saanichton airport motel and Shawnigan properties. The heading has a narrower property count and many filters are empty; this supports useful accommodation records, not complete availability, prices or geographic coverage.",
+    "method": "Exact URL/status/content fingerprint transfer from native-auto-candidate1-20260907"
+  },
+  "dc8cebca89e259c4805be3b5eca9601aa22ab0b0d8477de034fb877ba773a77f": {
+    "verdict": "useful",
+    "reason": "The requested Madrid property search includes multiple identifiable properties with locations, prices, room counts, areas, destinations and descriptive paragraphs. Complete search coverage and current transaction availability are not asserted.",
+    "method": "Manual arm-hidden review of the first 2800 saved characters."
+  },
+  "189057070f1e926489dd0f712be6ff0ec36c793482f76787cfefcc4d885ab336": {
+    "verdict": "unavailable",
+    "reason": "The saved response content is empty.",
+    "method": "Exact URL/status/content fingerprint transfer from native-auto-candidate1-20260907"
+  },
+  "5888e3b9c2616e7720e23d2962e92b82d4b956ab3829a1a34e0ce374e88799f3": {
+    "verdict": "useful",
+    "reason": "The requested area search identifies multiple accommodations with property names, locations and amenities. Prices, destinations and several headings are absent, so this supports useful property descriptions rather than complete booking results.",
+    "method": "Manual arm-hidden review of saved characters 450 through 2250, applying the established accommodation criterion."
+  },
+  "c9ac5b4127b2e64fbb165882974d1aaf00cdd5c1ac12bfdfa63e6d0d507ce8ec": {
+    "verdict": "useful",
+    "reason": "The requested graphics-card catalogue contains identifiable models, product destinations, specifications, pricing and shipping context. Complete record/field coverage is not asserted.",
+    "method": "Manual arm-hidden review of saved characters 4300 through 5800."
+  },
+  "3570cce2e727d444f747f7c0f972c77dd1bfa2deff0946941b1fc9e2aaed1f0d": {
+    "verdict": "useful",
+    "reason": "The requested public home feed contains identifiable post text with a matching title, community, posting context and destination. It supports public feed extraction only.",
+    "method": "Manual arm-hidden review of characters 1800 through 2700 separately for each saved fingerprint."
+  },
+  "7be00763661da887685cbde62b54c455757cb08903466009df00bdc454d083f1": {
+    "verdict": "useful",
+    "reason": "The requested public home feed contains identifiable post text with a matching title, community, posting context and destination. It supports public feed extraction only.",
+    "method": "Manual arm-hidden review of characters 1800 through 2700 separately for each saved fingerprint."
+  },
+  "bf3ae47ffa29a119fea19bd5b5254c843e57b1b9aa3a003045de4a76e48f6d36": {
+    "verdict": "useful",
+    "reason": "The requested public home feed contains identifiable post text with a matching title, community, posting context and destination. It supports public feed extraction only.",
+    "method": "Manual arm-hidden review of characters 1800 through 2700 separately for each saved fingerprint."
+  },
+  "e7438c0b1114378aed517e9bc4fcd6b6bc149e372612115eec149a38bf082839": {
+    "verdict": "useful",
+    "reason": "The requested public home feed contains identifiable post text with a matching title, community, posting context and destination. It supports public feed extraction only.",
+    "method": "Manual arm-hidden review of characters 1800 through 2700 separately for each saved fingerprint."
+  },
+  "f0638ef208dc2bfcf8eff3d0a75d306c5678e65a1b3f83a2dd1bd948179e9c71": {
+    "verdict": "useful",
+    "reason": "The requested public home feed contains identifiable post text with a matching title, community, posting context and destination. It supports public feed extraction only.",
+    "method": "Manual arm-hidden review of characters 1800 through 2700 separately for each saved fingerprint."
+  },
+  "f87bc81829f2d1febf68c5e710aacc1c6b76264f5acb0c8c584bc0dc0bb5c5c9": {
+    "verdict": "useful",
+    "reason": "The requested public home feed contains identifiable post text with a matching title, community, posting context and destination. It supports public feed extraction only.",
+    "method": "Manual arm-hidden review of characters 1800 through 2700 separately for each saved fingerprint."
+  },
+  "4780bf06565850db6a6b7a98df069a9c758775d892466223ea28a637efbce63e": {
+    "verdict": "diagnostic-only",
+    "reason": "Prespecified TLS diagnostic response containing fingerprint fields; delivery does not establish production extraction or passing active detectors.",
+    "method": "Arm-hidden JSON field-name review separately for each fingerprint."
+  },
+  "6b7ae14419f87662a65067091e4b53cfefec4bb2cd1cae5f774ad7470ca8de2b": {
+    "verdict": "diagnostic-only",
+    "reason": "Prespecified TLS diagnostic response containing fingerprint fields; delivery does not establish production extraction or passing active detectors.",
+    "method": "Arm-hidden JSON field-name review separately for each fingerprint."
+  },
+  "ce9c37b3d14d6490aa3c28ce3a3392235af123810278fdb132eaec045bdb7629": {
+    "verdict": "diagnostic-only",
+    "reason": "Prespecified TLS diagnostic response containing fingerprint fields; delivery does not establish production extraction or passing active detectors.",
+    "method": "Arm-hidden JSON field-name review separately for each fingerprint."
+  },
+  "0adf63fe1ee1f819905e05ced5719b561586a87b371afabd182028070f6f58df": {
+    "verdict": "diagnostic-only",
+    "reason": "JavaScript, document and screen-property diagnostic tables from a prespecified panel; not production content or evidence that every active detector passed.",
+    "method": "Manual arm-hidden review of the first 520 characters separately for each saved fingerprint."
+  },
+  "8b89bb41e74f2178712d86a60cef891d188f78d314b0bf35b936ae8f86f44e7d": {
+    "verdict": "diagnostic-only",
+    "reason": "JavaScript, document and screen-property diagnostic tables from a prespecified panel; not production content or evidence that every active detector passed.",
+    "method": "Manual arm-hidden review of the first 520 characters separately for each saved fingerprint."
+  },
+  "cec4fa46f1e3cb902bc06848c480d237982d5fb3a793665d3ba92b93aa9b1e8c": {
+    "verdict": "diagnostic-only",
+    "reason": "JavaScript, document and screen-property diagnostic tables from a prespecified panel; not production content or evidence that every active detector passed.",
+    "method": "Manual arm-hidden review of the first 520 characters separately for each saved fingerprint."
+  },
+  "0ee8587542da95077d06c8113fc7bf710a460371419254354908e5ceaef29183": {
+    "verdict": "useful",
+    "reason": "The requested browse directory contains main category titles, destinations and viewer counts, beyond the sidebar channel links. It establishes directory extraction, not video playback.",
+    "method": "Manual arm-hidden review of a 1400-character window around the main Browse heading separately for each fingerprint."
+  },
+  "17a83e9cff7ac702082109da2a96aa0519188ce11783fcade91d9ab97a458389": {
+    "verdict": "useful",
+    "reason": "The requested browse directory contains main category titles, destinations and viewer counts, beyond the sidebar channel links. It establishes directory extraction, not video playback.",
+    "method": "Manual arm-hidden review of a 1400-character window around the main Browse heading separately for each fingerprint."
+  },
+  "50dafa6d836c07cfe7f187c81494cf2b89ee126b0329918077e33c2b4a43f3c5": {
+    "verdict": "useful",
+    "reason": "The requested browse directory contains main category titles, destinations and viewer counts, beyond the sidebar channel links. It establishes directory extraction, not video playback.",
+    "method": "Manual arm-hidden review of a 1400-character window around the main Browse heading separately for each fingerprint."
+  },
+  "59c1e4153a09551f2d7fab6c6e6dbeb5f279418d07d9e55f9092ee4c01c38828": {
+    "verdict": "useful",
+    "reason": "The requested browse directory contains main category titles, destinations and viewer counts, beyond the sidebar channel links. It establishes directory extraction, not video playback.",
+    "method": "Manual arm-hidden review of a 1400-character window around the main Browse heading separately for each fingerprint."
+  },
+  "f4ce765c7f2dfc09c1195d08cd42f4ea6822c44aa2d1687ab53faef46fb5e349": {
+    "verdict": "useful",
+    "reason": "The requested browse directory contains main category titles, destinations and viewer counts, beyond the sidebar channel links. It establishes directory extraction, not video playback.",
+    "method": "Manual arm-hidden review of a 1400-character window around the main Browse heading separately for each fingerprint."
+  },
+  "3ec95f434b605c1ed8b2edf0c505d9ee685ee114622f5b59822eee913232f821": {
+    "verdict": "useful",
+    "reason": "The requested named public profile contains its handle, follower/like counts, biography and playlist titles/counts with destinations. The video section has an error, so this supports profile metadata only, not video extraction or playback.",
+    "method": "Manual arm-hidden review of complete saved content."
+  },
+  "e484e034e1efb7dac0b0fd93423a6b3eed571fd2714d4dc20b360be9575a452c": {
+    "verdict": "unavailable",
+    "reason": "The saved response content is empty.",
+    "method": "Exact URL/status/content fingerprint transfer from native-auto-20260906"
+  },
+  "3ead0f6a916f089b80d6e7abeecfb912a5ecc93a5c937c82d2037af6f71a1a53": {
+    "verdict": "unavailable",
+    "reason": "The saved response content is empty.",
+    "method": "Exact URL/status/content fingerprint transfer from native-auto-candidate1-20260907"
+  },
+  "6cb2512d3bc631db0185100591e95da5fabce97c497b291129557096f5bfe6b8": {
+    "verdict": "unavailable",
+    "reason": "The saved response content is empty.",
+    "method": "Exact URL/status/content fingerprint transfer from native-auto-candidate1-20260907"
+  },
+  "a1944500372ba1dee8443640923139487644f662b826c441553172367582c966": {
+    "verdict": "partial",
+    "reason": "A no-matching-results interface with search tips; no property records. No independent evidence confirms that the requested listing is empty.",
+    "method": "Exact URL/status/content fingerprint transfer from native-auto-candidate1-20260907"
+  },
+  "28126c7080a95f26ed1cf3b7b68723d6978467857367873c4296916d3741dd48": {
+    "verdict": "partial",
+    "reason": "The engineer search retains description fragments but loses most result titles, employer associations and job-item destinations. The full Markdown destination inventory contains only resume-upload links; the listing remains materially incomplete.",
+    "method": "Manual arm-hidden review of the first 1100 characters and complete destination-inventory inspection for each fingerprint."
+  },
+  "4834b5f09c437da4e5e737aa2b112278a05a58284068e4973b3ed2280f6fe0d5": {
+    "verdict": "partial",
+    "reason": "The engineer search retains description fragments but loses most result titles, employer associations and job-item destinations. The full Markdown destination inventory contains only resume-upload links; the listing remains materially incomplete.",
+    "method": "Manual arm-hidden review of the first 1100 characters and complete destination-inventory inspection for each fingerprint."
+  },
+  "3009b96834bb8f6bba9ea06838f7c94d53baa7afc764aaeae8a60446df03b2c2": {
+    "verdict": "useful",
+    "reason": "The requested news index contains actual story titles and destinations with scores, authors, ages and comment counts; full linked articles are not implied.",
+    "method": "Manual arm-hidden review of the first 1300 saved characters."
+  },
+  "b0fd1e37cbe6128d17c841ce273a89efbad1175f497a3bc3e29f3b909d912c5c": {
+    "verdict": "wall",
+    "reason": "Only a press-and-hold verification prompt and reference identifier; no requested property records.",
+    "method": "Manual arm-hidden complete content review."
+  },
+  "58d151a6376486eca9a07c5dfaee7f20c6bedc5861947d32edd17216ef8edc54": {
+    "verdict": "diagnostic-only",
+    "reason": "Prespecified browser-detection panel with instructions for triggering tests. Delivery does not establish execution or success of all active checks.",
+    "method": "Manual arm-hidden review of the first 370 characters separately for each fingerprint."
+  },
+  "9aa3a91dc0bee72ff758a15cb75a4d605f8047788008173867992a008d26bee6": {
+    "verdict": "diagnostic-only",
+    "reason": "Prespecified browser-detection panel with instructions for triggering tests. Delivery does not establish execution or success of all active checks.",
+    "method": "Manual arm-hidden review of the first 370 characters separately for each fingerprint."
+  },
+  "dd5b870291f102ed852e2a81130fc690de2bbefcfa2c6eaba93894d3c85703ee": {
+    "verdict": "diagnostic-only",
+    "reason": "Prespecified browser-detection panel with instructions for triggering tests. Delivery does not establish execution or success of all active checks.",
+    "method": "Manual arm-hidden review of the first 370 characters separately for each fingerprint."
+  },
+  "c329af661eaead6a92e87f40b7f3d0501c068f0d86c4f3c4b119d7f813a52545": {
+    "verdict": "shell",
+    "reason": "Only a JavaScript fragment and appliance-page title remain; there are no appliance records or substantive landing content.",
+    "method": "Exact URL/status/content fingerprint transfer from native-auto-candidate1-20260907"
+  },
+  "021609f3f256e54738b244aef69c9105c346b31e316af10a69da76b955d299eb": {
+    "verdict": "useful",
+    "reason": "Actual engineering vacancies retain titles, employers, locations and destinations. Short excerpts still contain several identifiable records; useful content does not override blocked delivery or imply complete coverage.",
+    "method": "Manual arm-hidden review of the first 1700 characters separately for each fingerprint."
+  },
+  "1a10a3d8630f5ab0d85a0becce9f0c5f29f2ceb6e642af9bfa9652ee35aad2b0": {
+    "verdict": "useful",
+    "reason": "Actual engineering vacancies retain titles, employers, locations and destinations. Short excerpts still contain several identifiable records; useful content does not override blocked delivery or imply complete coverage.",
+    "method": "Manual arm-hidden review of the first 1700 characters separately for each fingerprint."
+  },
+  "5338a01dbe2aa41fd812fb0522ae03110a709196d7f559f59fcd3e7366c965c8": {
+    "verdict": "useful",
+    "reason": "Actual engineering vacancies retain titles, employers, locations and destinations. Short excerpts still contain several identifiable records; useful content does not override blocked delivery or imply complete coverage.",
+    "method": "Manual arm-hidden review of the first 1700 characters separately for each fingerprint."
+  },
+  "7de60952a0c1dbc12e0b1a7a927f54d2414af092e96e206969bd71fc4357a5f2": {
+    "verdict": "useful",
+    "reason": "Actual engineering vacancies retain titles, employers, locations and destinations. Short excerpts still contain several identifiable records; useful content does not override blocked delivery or imply complete coverage.",
+    "method": "Manual arm-hidden review of the first 1700 characters separately for each fingerprint."
+  },
+  "99dfccfb789f8df11d023458676cfb7444060c6161190e44dc296a6450741b98": {
+    "verdict": "useful",
+    "reason": "Actual engineering vacancies retain titles, employers, locations and destinations. Short excerpts still contain several identifiable records; useful content does not override blocked delivery or imply complete coverage.",
+    "method": "Manual arm-hidden review of the first 1700 characters separately for each fingerprint."
+  },
+  "ddd6532c549b74f4dcfb4c185d103c8b2310d224165ba5ca79c5277c2368e5f3": {
+    "verdict": "useful",
+    "reason": "Actual engineering vacancies retain titles, employers, locations and destinations. Short excerpts still contain several identifiable records; useful content does not override blocked delivery or imply complete coverage.",
+    "method": "Manual arm-hidden review of the first 1700 characters separately for each fingerprint."
+  },
+  "2402a9c46257f8264d4aa2f8c48a7e2b00fe1065e6fb1be1a52d310943390e54": {
+    "verdict": "useful",
+    "reason": "The requested news table contains dated issuer records with symbols, company names, headlines and destinations. Linked article completeness is not implied.",
+    "method": "Manual arm-hidden review of the first 1900 characters and a separate 1600-character window around News last for every fingerprint, including tables below long navigation."
+  },
+  "31c7e299dd2214c1f1ac704ea10a9e4c5c061883e6cfb28a820067ab07e857a5": {
+    "verdict": "useful",
+    "reason": "The requested news table contains dated issuer records with symbols, company names, headlines and destinations. Linked article completeness is not implied.",
+    "method": "Manual arm-hidden review of the first 1900 characters and a separate 1600-character window around News last for every fingerprint, including tables below long navigation."
+  },
+  "4100e0f8acb78a4d253da33e8be981b60782971d02296a5aad7c227a311a99e5": {
+    "verdict": "useful",
+    "reason": "The requested news table contains dated issuer records with symbols, company names, headlines and destinations. Linked article completeness is not implied.",
+    "method": "Manual arm-hidden review of the first 1900 characters and a separate 1600-character window around News last for every fingerprint, including tables below long navigation."
+  },
+  "6702659f259d61282f45ed33c1acb4d34de878214e4cab2e277449519c8fef73": {
+    "verdict": "useful",
+    "reason": "The requested news table contains dated issuer records with symbols, company names, headlines and destinations. Linked article completeness is not implied.",
+    "method": "Manual arm-hidden review of the first 1900 characters and a separate 1600-character window around News last for every fingerprint, including tables below long navigation."
+  },
+  "c7233f6c89afffa1e44bd988685bf03611747c0e07b961f9ac0fd8e99c39a942": {
+    "verdict": "useful",
+    "reason": "The requested news table contains dated issuer records with symbols, company names, headlines and destinations. Linked article completeness is not implied.",
+    "method": "Manual arm-hidden review of the first 1900 characters and a separate 1600-character window around News last for every fingerprint, including tables below long navigation."
+  },
+  "cd354cc77503e32bf8cdd26532a6c9101652ff334a07c3725f9d9e796f6f2158": {
+    "verdict": "useful",
+    "reason": "The requested news table contains dated issuer records with symbols, company names, headlines and destinations. Linked article completeness is not implied.",
+    "method": "Manual arm-hidden review of the first 1900 characters and a separate 1600-character window around News last for every fingerprint, including tables below long navigation."
+  },
+  "2dc7d6d279fa926db90a1b9719c460d25c7c0735097e03132038bc00e6f75d31": {
+    "verdict": "useful",
+    "reason": "Actual feed records contain article titles, destinations, authors, dates, tags and engagement metadata. Full article text is not implied.",
+    "method": "Manual arm-hidden separate 1800-character windows starting at character 7000."
+  },
+  "90fd3eecf4d81221078fffe5fa4925ed5b92c8675bef1082acadeb2f5cce3768": {
+    "verdict": "useful",
+    "reason": "Actual feed records contain article titles, destinations, authors, dates, tags and engagement metadata. Full article text is not implied.",
+    "method": "Manual arm-hidden separate 1800-character windows starting at character 7000."
+  },
+  "85bcfc91defaccb51bea7616d6c57da61db9bfe1751425c9c8b707fbb7fa735f": {
+    "verdict": "useful",
+    "reason": "The requested company profile contains its actual description and named founders with roles. Funding placeholders remain; this verdict does not claim all commercial fields are available.",
+    "method": "Manual arm-hidden review of the first 2400 characters."
+  },
+  "aefc16f81ba18923adfc19ddc947c73ed407ae98cfe06bad4b19544a3c02d15f": {
+    "verdict": "useful",
+    "reason": "The SSD catalog retains identifiable product models, specifications and destinations. Some views retain prices while another lacks visible prices; complete catalog fields are not implied.",
+    "method": "Manual arm-hidden review of the first 1700 characters separately for each fingerprint."
+  },
+  "cbe3800f17e9e4761f424fecbe44ae31ce0a1c99b2b944b85cf1d7ec37ddf9b6": {
+    "verdict": "useful",
+    "reason": "The SSD catalog retains identifiable product models, specifications and destinations. Some views retain prices while another lacks visible prices; complete catalog fields are not implied.",
+    "method": "Manual arm-hidden review of the first 1700 characters separately for each fingerprint."
+  },
+  "da756cfde00a82e983f47ccaad8c1d6aa4ee4cb96d72ae57c714f55e32fb79c4": {
+    "verdict": "useful",
+    "reason": "The SSD catalog retains identifiable product models, specifications and destinations. Some views retain prices while another lacks visible prices; complete catalog fields are not implied.",
+    "method": "Manual arm-hidden review of the first 1700 characters separately for each fingerprint."
+  },
+  "3b513a7d7d7a51ce08624e1bc8742d4182bb6cc299d04ae0d68bbedebae9ed91": {
+    "verdict": "diagnostic-only",
+    "reason": "Prespecified fingerprint diagnostic page still says scanning. Delivery does not establish completion or a pass of active checks.",
+    "method": "Manual arm-hidden separate review of the first 250 characters with personal fields suppressed."
+  },
+  "3dcbba2497a39896bd89bfca7c3d77b42cf4e66c96a5d2eeba134a7c0cfb561d": {
+    "verdict": "diagnostic-only",
+    "reason": "Prespecified fingerprint diagnostic page still says scanning. Delivery does not establish completion or a pass of active checks.",
+    "method": "Manual arm-hidden separate review of the first 250 characters with personal fields suppressed."
+  },
+  "8812c18d17288a04cdf0bbae322b40b42373c8a67d0c69e2bf8a2d419a6ef7b0": {
+    "verdict": "diagnostic-only",
+    "reason": "Prespecified fingerprint diagnostic page still says scanning. Delivery does not establish completion or a pass of active checks.",
+    "method": "Manual arm-hidden separate review of the first 250 characters with personal fields suppressed."
+  },
+  "3c59f564b55fe74c2297047c40a9e8139ec7d06fc4ed4eab15be5c1e3f4242a2": {
+    "verdict": "diagnostic-only",
+    "reason": "Prespecified browser detection test panel. Its delivered introductory text does not prove active detector completion or success.",
+    "method": "Manual arm-hidden review of the first 400 characters separately for each fingerprint."
+  },
+  "72ec16f229228fa3e115186907e70ec8d8b1ca76a2af7a9600212a71ffe20d5d": {
+    "verdict": "diagnostic-only",
+    "reason": "Prespecified browser detection test panel. Its delivered introductory text does not prove active detector completion or success.",
+    "method": "Manual arm-hidden review of the first 400 characters separately for each fingerprint."
+  },
+  "80875ff4ee80f292707066a489effa634027ba4faab45b8cd1e40ab3a90af410": {
+    "verdict": "diagnostic-only",
+    "reason": "Prespecified browser detection test panel. Its delivered introductory text does not prove active detector completion or success.",
+    "method": "Manual arm-hidden review of the first 400 characters separately for each fingerprint."
+  },
+  "7274757f7e9c0a6e895d2ffaea9dd90510fbb20c7c8bcbc20e05de3be4305526": {
+    "verdict": "wall",
+    "reason": "Only a security verification interstitial and its reference identifier; no requested public landing content or issuer records.",
+    "method": "Manual arm-hidden complete review of all 314 characters."
+  },
+  "2685d70b0bb7b101a18a46959131900684d9ad72cd157cde38cabf2a73af08d3": {
+    "verdict": "shell",
+    "reason": "Only site navigation and a refresh error are present; the requested profile details are absent.",
+    "method": "Exact URL/status/content fingerprint transfer from native-auto-candidate1-20260907"
+  },
+  "2771633e2602f9f42b511ee300ddde67d4e63e158ce274a02c9ad78d0a2668c2": {
+    "verdict": "unavailable",
+    "reason": "No saved response content or valid HTTP delivery status.",
+    "method": "Manual arm-hidden inspection of both complete empty response views."
+  },
+  "2f8050be221d36a34d066a5dc5fea7e09166a2f25c08384071f2ef691171272a": {
+    "verdict": "unavailable",
+    "reason": "No saved response content or valid HTTP delivery status.",
+    "method": "Manual arm-hidden inspection of both complete empty response views."
+  },
+  "430a406328bf581ab9acb14eef30a72fdac6ae7bf73bdb2a250824cc120bbd15": {
+    "verdict": "wall",
+    "reason": "Only a continue-shopping interstitial and legal links; no requested product information.",
+    "method": "Manual arm-hidden complete review of all 321 characters."
+  },
+  "ef508b1ceb34dd590f758f1613881201e8bf7fc28936b51a5f42b9159e1b9261": {
+    "verdict": "useful",
+    "reason": "The excerpt retains multiple actual engineering vacancies with titles, employers, locations and destinations. Useful content does not override a blocked delivery label or imply complete listing coverage.",
+    "method": "Manual arm-hidden review of the first 1600 characters."
+  },
+  "595d7b765a5b7b01448de1f2ba11ebcb71fb41458bf322f0e6928caedaff1299": {
+    "verdict": "useful",
+    "reason": "The requested question index retains multiple actual titles, substantive question excerpts, destinations and age metadata. Linked answers are outside this claim.",
+    "method": "Manual arm-hidden review of the first 2400 characters."
+  },
+  "19be420ea148bff7e39a4aeebe36d0dc04e7a799e925e4383241591a689ef592": {
+    "verdict": "unavailable",
+    "reason": "The saved response content is empty.",
+    "method": "Exact URL/status/content fingerprint transfer from native-auto-candidate1-20260907"
+  },
+  "f53b02ed363d3c9ce26d7d74a57b3566799f853dd6d542b8d85414ecef7ba4bd": {
+    "verdict": "partial",
+    "reason": "Trending descriptions remain, but most repository names and item destinations are absent. Two image-backed repository links and editorial/marketplace links survive; this remains a materially incomplete requested index, consistent with earlier audited variants.",
+    "method": "Manual arm-hidden complete review of all 4763 characters and the full Markdown destination inventory."
+  },
+  "05a26e130d5e0fd7468a89178860aa898f2483b08566e2e11a5677368fe439f3": {
+    "verdict": "useful",
+    "reason": "Actual feed records retain article titles, destinations, authors, dates, tags and engagement metadata. Full linked articles are not implied.",
+    "method": "Manual arm-hidden separate 2000-character windows starting at character 6500."
+  },
+  "58b399e2ca139ac19dfa95ad4af9b9f24e4456fcc0e2c18ded1fc4ba175c259c": {
+    "verdict": "useful",
+    "reason": "Actual feed records retain article titles, destinations, authors, dates, tags and engagement metadata. Full linked articles are not implied.",
+    "method": "Manual arm-hidden separate 2000-character windows starting at character 6500."
+  },
+  "1cb9c76bb8434e772f74c326dbf738b3452d32f0194361406e525ae6b9863a23": {
+    "verdict": "useful",
+    "reason": "The requested SCAN company page identifies Liberty Defense Holdings, delayed quote metadata and dated community posts. Blank and premium fields remain unavailable; numerical accuracy and subscription access are not claimed.",
+    "method": "Manual arm-hidden review of the first 2600 characters and consistency check against prior company-page criteria. The saved status is 204; it was not changed by the audit."
+  },
+  "522fb89b3e9f9130a1719528d616b5a47f00a1e938e9243061a3812ca84bdf42": {
+    "verdict": "useful",
+    "reason": "The public feed retains multiple identifiable post titles and destinations, communities, ages and some post text. Advertisements remain; this is useful feed extraction, not full linked discussions or perfect noise removal.",
+    "method": "Manual arm-hidden separate review of the first 2300 characters."
+  },
+  "55e48d04a4932d07399f2c46b3b0a17451fc6a4dd3a05b4555598e68ea57c453": {
+    "verdict": "useful",
+    "reason": "The public feed retains multiple identifiable post titles and destinations, communities, ages and some post text. Advertisements remain; this is useful feed extraction, not full linked discussions or perfect noise removal.",
+    "method": "Manual arm-hidden separate review of the first 2300 characters."
+  },
+  "74db4b84757a924bb7f21e043dfa1608844a1b583ab252153d3bd4d9a9b9f655": {
+    "verdict": "useful",
+    "reason": "The public feed retains multiple identifiable post titles and destinations, communities, ages and some post text. Advertisements remain; this is useful feed extraction, not full linked discussions or perfect noise removal.",
+    "method": "Manual arm-hidden separate review of the first 2300 characters."
+  },
+  "be7b70f32dc6c604a228bfd7f92cb9c9a7c70096e1fc8c658ea2a735888a418f": {
+    "verdict": "unavailable",
+    "reason": "No saved response content or valid HTTP delivery status.",
+    "method": "Manual arm-hidden complete empty-response inspection."
+  },
+  "0bd0e613e60b1c5d41d1943ab639b75a64d662b957a85d651ff12e3534d7f262": {
+    "verdict": "useful",
+    "reason": "The public feed retains identifiable post titles, destinations, communities and ages. Advertising noise remains; full linked posts and perfect filtering are not implied.",
+    "method": "Manual arm-hidden separate review of the first 1900 characters."
+  },
+  "278538460a4639ffdde9b2096a73b475b8d547406a9dcab32e8f7d800cc32b36": {
+    "verdict": "useful",
+    "reason": "The public feed retains identifiable post titles, destinations, communities and ages. Advertising noise remains; full linked posts and perfect filtering are not implied.",
+    "method": "Manual arm-hidden separate review of the first 1900 characters."
+  },
+  "6ca8582129ba10a5c21ec1b61374c41302e3bb9adff8808e08d47abb135e89f4": {
+    "verdict": "useful",
+    "reason": "The public feed retains identifiable post titles, destinations, communities and ages. Advertising noise remains; full linked posts and perfect filtering are not implied.",
+    "method": "Manual arm-hidden separate review of the first 1900 characters."
+  },
+  "002e57e1084a5406f983ad5294a08a69ab2db0422df64c053929fe892fa19a86": {
+    "verdict": "diagnostic-only",
+    "reason": "Prespecified browser test panel contains diagnostic table entries. Delivery and selected passing rows do not establish universal detector success or useful production extraction.",
+    "method": "Manual arm-hidden separate review of the first 300 characters."
+  },
+  "1be94cc55f8bfea78990476064b97c34ce03455654f558eadbccabc32d9536d8": {
+    "verdict": "diagnostic-only",
+    "reason": "Prespecified browser test panel contains diagnostic table entries. Delivery and selected passing rows do not establish universal detector success or useful production extraction.",
+    "method": "Manual arm-hidden separate review of the first 300 characters."
+  },
+  "b3a4bbb479ee47614961812e9a0e89f75964a0f44e72477aac234f32fd29045e": {
+    "verdict": "diagnostic-only",
+    "reason": "Prespecified browser test panel contains diagnostic table entries. Delivery and selected passing rows do not establish universal detector success or useful production extraction.",
+    "method": "Manual arm-hidden separate review of the first 300 characters."
+  },
+  "9988a69da7e3d349f6136a02c073dbd6a536fd76ab1fd8bf3877a2441ce9507e": {
+    "verdict": "unavailable",
+    "reason": "No saved content despite the recorded HTTP 200 status.",
+    "method": "Manual arm-hidden complete empty-response inspection."
+  },
+  "c8a0537e741c0e32439723052415e0a514ad0a6377787b3fb5e584cff11302fd": {
+    "verdict": "useful",
+    "reason": "The requested news index retains ranked story titles, destinations, scores, authors, ages and comment counts. Linked full articles are not implied.",
+    "method": "Manual arm-hidden review of the first 1500 characters."
+  },
+  "7b638ce653508a4b77a32669b6ee37ae914dd310bd34c0952832213950a5dd19": {
+    "verdict": "diagnostic-only",
+    "reason": "Prespecified TLS/network diagnostic output contains TLS, HTTP/2, cipher, header and fingerprint fields. It is excluded from production content scoring and does not establish active browser detector success.",
+    "method": "Manual arm-hidden review of each diagnostic field-name summary and total field count; address and other personal field values were not displayed."
+  },
+  "7f9d7bc133f34dc4b4638a5f7c2b587c97211ad73329e5c7f473c11bade81c94": {
+    "verdict": "diagnostic-only",
+    "reason": "Prespecified TLS/network diagnostic output contains TLS, HTTP/2, cipher, header and fingerprint fields. It is excluded from production content scoring and does not establish active browser detector success.",
+    "method": "Manual arm-hidden review of each diagnostic field-name summary and total field count; address and other personal field values were not displayed."
+  },
+  "829e5d0d7ba445e776db84cde709a9ad75ed17673e5cec924a4f2886a3240e86": {
+    "verdict": "diagnostic-only",
+    "reason": "Prespecified TLS/network diagnostic output contains TLS, HTTP/2, cipher, header and fingerprint fields. It is excluded from production content scoring and does not establish active browser detector success.",
+    "method": "Manual arm-hidden review of each diagnostic field-name summary and total field count; address and other personal field values were not displayed."
+  },
+  "c37d600ef896f02bcaf5582cb7949a874756fb7224b88574291e02dd5281377c": {
+    "verdict": "diagnostic-only",
+    "reason": "Prespecified TLS/network diagnostic output contains TLS, HTTP/2, cipher, header and fingerprint fields. It is excluded from production content scoring and does not establish active browser detector success.",
+    "method": "Manual arm-hidden review of each diagnostic field-name summary and total field count; address and other personal field values were not displayed."
+  },
+  "c38367b927a1b118d08823932b48a8dededdda8f9079bc64106e1e8761687c15": {
+    "verdict": "diagnostic-only",
+    "reason": "Prespecified TLS/network diagnostic output contains TLS, HTTP/2, cipher, header and fingerprint fields. It is excluded from production content scoring and does not establish active browser detector success.",
+    "method": "Manual arm-hidden review of each diagnostic field-name summary and total field count; address and other personal field values were not displayed."
+  },
+  "dcdc7ba6a5a229264eaee323cae58dc130a52d8ef4c75fc3c952ddd177f8ac00": {
+    "verdict": "diagnostic-only",
+    "reason": "Prespecified TLS/network diagnostic output contains TLS, HTTP/2, cipher, header and fingerprint fields. It is excluded from production content scoring and does not establish active browser detector success.",
+    "method": "Manual arm-hidden review of each diagnostic field-name summary and total field count; address and other personal field values were not displayed."
+  },
+  "249b7c69555ca95966ee311eaeebdd4ba504b11f66fbb609d4629dacff971b93": {
+    "verdict": "diagnostic-only",
+    "reason": "Prespecified TLS fingerprint endpoint returns a diagnostic object including JA4. It is excluded from production extraction and is not evidence of active browser detector success.",
+    "method": "Manual arm-hidden review of each diagnostic field-name summary and total field count without displaying private field values."
+  },
+  "261ce87b124c2e6aaba8f6ae94ce99068c25870f3f2075123538cacf07581e5f": {
+    "verdict": "diagnostic-only",
+    "reason": "Prespecified TLS fingerprint endpoint returns a diagnostic object including JA4. It is excluded from production extraction and is not evidence of active browser detector success.",
+    "method": "Manual arm-hidden review of each diagnostic field-name summary and total field count without displaying private field values."
+  },
+  "575adf2c59ab71409b548c7628d8729f413e9bda70d699a0793965db5bb18c4b": {
+    "verdict": "diagnostic-only",
+    "reason": "Prespecified TLS fingerprint endpoint returns a diagnostic object including JA4. It is excluded from production extraction and is not evidence of active browser detector success.",
+    "method": "Manual arm-hidden review of each diagnostic field-name summary and total field count without displaying private field values."
+  },
+  "8a7572fde79533d22c399d9a218102ceda538cc8d824db2bcbb82258b2f67d72": {
+    "verdict": "wall",
+    "reason": "Only 403 Forbidden text and a transaction identifier despite the saved HTTP 200 status; no filing content.",
+    "method": "Manual arm-hidden complete review of all 107 characters."
+  },
+  "a4f8eaddefb24208faf788bbcab9af856300f5288ac7bfd51de1a2b3b88a1ade": {
+    "verdict": "unavailable",
+    "reason": "No saved response content or valid HTTP delivery status.",
+    "method": "Manual arm-hidden complete empty-response inspection."
+  },
+  "7d6f8fc080a2d6fee796e88c61286a7efce7653e4f935d9c2ec87f2bc65b3c35": {
+    "verdict": "diagnostic-only",
+    "reason": "Prespecified browser detection test panel. Its introductory text does not prove completion or success of all active checks.",
+    "method": "Manual arm-hidden separate review of the first 350 characters."
+  },
+  "b7225cf30fbfc5ea8fa79732e99e3442d756d36d6622e13d51a0806d0ba43c91": {
+    "verdict": "diagnostic-only",
+    "reason": "Prespecified browser detection test panel. Its introductory text does not prove completion or success of all active checks.",
+    "method": "Manual arm-hidden separate review of the first 350 characters."
+  },
+  "ef4dc9dafeb71a6a2305d5f52b6e6a62afb73fd36974eca072c640b6c9f0ee8d": {
+    "verdict": "diagnostic-only",
+    "reason": "Prespecified browser detection test panel. Its introductory text does not prove completion or success of all active checks.",
+    "method": "Manual arm-hidden separate review of the first 350 characters."
+  },
+  "ee76a08848f008de72f725149b0788a9775beae5f9eb760ab70dc6d761473029": {
+    "verdict": "unavailable",
+    "reason": "No saved response content or valid HTTP delivery status, including no example-domain explanation.",
+    "method": "Manual arm-hidden complete empty-response inspection."
+  },
+  "3bd9300bd481c9aaeb0d4bc084c13b254718f048a31f5ff6a3dfd75c710885d0": {
+    "verdict": "diagnostic-only",
+    "reason": "Prespecified browser/JavaScript diagnostic panel contains document and realm test tables. It is excluded from production extraction and does not prove every active detector passes.",
+    "method": "Manual arm-hidden separate review of the first 430 characters."
+  },
+  "82be73f26310dc3036f51a3248e0714ee5c31a5772b170c47dcb7fbd20a89e28": {
+    "verdict": "diagnostic-only",
+    "reason": "Prespecified browser/JavaScript diagnostic panel contains document and realm test tables. It is excluded from production extraction and does not prove every active detector passes.",
+    "method": "Manual arm-hidden separate review of the first 430 characters."
+  },
+  "923cbcb8fdbb3a35514c4fc1660cdab6418e79836aaa8c03713c893415958878": {
+    "verdict": "diagnostic-only",
+    "reason": "Prespecified browser/JavaScript diagnostic panel contains document and realm test tables. It is excluded from production extraction and does not prove every active detector passes.",
+    "method": "Manual arm-hidden separate review of the first 430 characters."
+  },
+  "bc9f732639554dc0d6443db38572b3aaf604c089098ffceb6f50f8715be2acc0": {
+    "verdict": "unavailable",
+    "reason": "No saved response content or valid HTTP delivery status.",
+    "method": "Manual arm-hidden complete empty-response inspection."
+  },
+  "1ad3891bd1501b5d009a56dcf817f988b202d8019387a13eca41534c2d155b7d": {
+    "verdict": "useful",
+    "reason": "The requested SSD catalog retains identifiable model names, specifications and product destinations. Visible price fields are missing; complete commercial fields are not claimed.",
+    "method": "Manual arm-hidden review of the first 1700 characters. The saved status is 204 and was not altered by the audit."
+  },
+  "faa0bd16406d948d6ab59e48ec6c3e14dbdca814aa71021126ff35c7fc2df8a5": {
+    "verdict": "unavailable",
+    "reason": "No saved response content or valid HTTP delivery status.",
+    "method": "Manual arm-hidden complete empty-response inspection."
+  },
+  "5c8ed6289e8658c966072b9de6434155dcc50a500c6e9b85df69fd15d0a35da9": {
+    "verdict": "diagnostic-only",
+    "reason": "Prespecified browser detection panel includes instructions for triggering its active checks. Fetching the page does not establish their execution or success.",
+    "method": "Manual arm-hidden separate review of the first 450 characters."
+  },
+  "871f64516e66edfa1f10fd04fc6a8598566a4fffababac24259e4c677544af86": {
+    "verdict": "diagnostic-only",
+    "reason": "Prespecified browser detection panel includes instructions for triggering its active checks. Fetching the page does not establish their execution or success.",
+    "method": "Manual arm-hidden separate review of the first 450 characters."
+  },
+  "9abc777ddcccf911457cc161028c8e0a93d5c9170aca5d201a43265ccfed4aa2": {
+    "verdict": "diagnostic-only",
+    "reason": "Prespecified browser detection panel includes instructions for triggering its active checks. Fetching the page does not establish their execution or success.",
+    "method": "Manual arm-hidden separate review of the first 450 characters."
+  },
+  "0bca534e8dc87bff082957368ee792ac892b873904de8f77dd5728ca97846bf4": {
+    "verdict": "unavailable",
+    "reason": "No saved response content or valid HTTP delivery status.",
+    "method": "Manual arm-hidden complete empty-response inspection."
+  },
+  "d6d4b207a76e6e954fbf6a137c404bf4bec038f4965138f25c78265ce0d2038b": {
+    "verdict": "unavailable",
+    "reason": "No saved response content or valid HTTP delivery status.",
+    "method": "Manual arm-hidden complete empty-response inspection."
+  },
+  "2d89a73502528d96e6bb8b448b60adb647014e4f0ea443d523e9fdd64bf4ad3d": {
+    "verdict": "partial",
+    "reason": "Search snippets and an AI overview remain, but the complete Markdown destination inventory contains only search-page links. The requested source-result associations and destinations remain materially incomplete, consistent with earlier variants.",
+    "method": "Manual arm-hidden separate review of the first 950 characters and the complete destination inventory for every fingerprint."
+  },
+  "64aad7f5eee4bfd3fde3476199fb433c33816a27dda26250951ffbaca0341a3f": {
+    "verdict": "partial",
+    "reason": "Search snippets and an AI overview remain, but the complete Markdown destination inventory contains only search-page links. The requested source-result associations and destinations remain materially incomplete, consistent with earlier variants.",
+    "method": "Manual arm-hidden separate review of the first 950 characters and the complete destination inventory for every fingerprint."
+  },
+  "66c3a619fa8b95afe53f9b9f1f884d7673178a3d931d947712d7fcccc8273ca9": {
+    "verdict": "partial",
+    "reason": "Search snippets and an AI overview remain, but the complete Markdown destination inventory contains only search-page links. The requested source-result associations and destinations remain materially incomplete, consistent with earlier variants.",
+    "method": "Manual arm-hidden separate review of the first 950 characters and the complete destination inventory for every fingerprint."
+  },
+  "70085ed264ed3e9c4cb3b5c24e3581b7c665d8ae8977800c108fe332f36a0884": {
+    "verdict": "partial",
+    "reason": "Search snippets and an AI overview remain, but the complete Markdown destination inventory contains only search-page links. The requested source-result associations and destinations remain materially incomplete, consistent with earlier variants.",
+    "method": "Manual arm-hidden separate review of the first 950 characters and the complete destination inventory for every fingerprint."
+  },
+  "d04633cb341646a0b9294c60cdba0a515b1837d4b96106b86f67fc1df1e13935": {
+    "verdict": "partial",
+    "reason": "Search snippets and an AI overview remain, but the complete Markdown destination inventory contains only search-page links. The requested source-result associations and destinations remain materially incomplete, consistent with earlier variants.",
+    "method": "Manual arm-hidden separate review of the first 950 characters and the complete destination inventory for every fingerprint."
+  },
+  "e882dd24c9ccfec2f15fb2c6f07f7f7306cde8bf65738b6f1d3f1513f9a43c84": {
+    "verdict": "partial",
+    "reason": "Search snippets and an AI overview remain, but the complete Markdown destination inventory contains only search-page links. The requested source-result associations and destinations remain materially incomplete, consistent with earlier variants.",
+    "method": "Manual arm-hidden separate review of the first 950 characters and the complete destination inventory for every fingerprint."
+  },
+  "42a144d8ffd10f5d2cc918fef1cb4c4bbbb0ad1eea74bbf4f69202ba9fb676a1": {
+    "verdict": "useful",
+    "reason": "The live directory retains multiple named linked channels, content categories, live status and viewer counts. This supports directory metadata extraction, not video playback or downstream access.",
+    "method": "Manual arm-hidden separate review of the first 1150 characters, checked against historical directory criteria."
+  },
+  "587255399f498d8743043c68778090a5559429f12841f5d93a887c52d434b1b4": {
+    "verdict": "useful",
+    "reason": "The live directory retains multiple named linked channels, content categories, live status and viewer counts. This supports directory metadata extraction, not video playback or downstream access.",
+    "method": "Manual arm-hidden separate review of the first 1150 characters, checked against historical directory criteria."
+  },
+  "6b3016d633b282cafa6c3d8fa14cfd2adfef0719a4a5892b48018b1e1efbf519": {
+    "verdict": "useful",
+    "reason": "The live directory retains multiple named linked channels, content categories, live status and viewer counts. This supports directory metadata extraction, not video playback or downstream access.",
+    "method": "Manual arm-hidden separate review of the first 1150 characters, checked against historical directory criteria."
+  },
+  "c773de658b4358174736b3da55d21e876fd83c3c9cad0400a37c743a10655191": {
+    "verdict": "useful",
+    "reason": "The live directory retains multiple named linked channels, content categories, live status and viewer counts. This supports directory metadata extraction, not video playback or downstream access.",
+    "method": "Manual arm-hidden separate review of the first 1150 characters, checked against historical directory criteria."
+  },
+  "fef6e4b083881d724a539bddc4f4d54d6ea93edcd21526dd6a67ce5517e68d6f": {
+    "verdict": "useful",
+    "reason": "The live directory retains multiple named linked channels, content categories, live status and viewer counts. This supports directory metadata extraction, not video playback or downstream access.",
+    "method": "Manual arm-hidden separate review of the first 1150 characters, checked against historical directory criteria."
+  },
+  "e09ec1f45f23de2541e0a9495720e97bdadb37a4970b4e5f17ae1ae671ae3c6b": {
+    "verdict": "useful",
+    "reason": "The requested news table retains dated issuer records, company names, symbols, headlines and destinations. Full linked articles are not implied.",
+    "method": "Manual arm-hidden review of the first 1600 characters."
+  },
+  "e72f1593972c3f8a3b11a24c16c475207b20b84754c57ff73dd76464ee113848": {
+    "verdict": "useful",
+    "reason": "The requested product results contain identifiable product titles and destinations, model/specification text and some prices/offers. Navigation and advertising remain; complete result fields or exact commercial accuracy are not claimed.",
+    "method": "Manual arm-hidden review of the initial 2500 characters, 3200 characters from offset 12000 and 1900 characters from offset 19000."
+  }
+}

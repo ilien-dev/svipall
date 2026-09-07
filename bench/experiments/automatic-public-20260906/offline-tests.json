@@ -1,0 +1,12 @@
+[
+  {
+    "script": "scripts/test_measure_automatic.py",
+    "exit_code": 0,
+    "output": ".....\n----------------------------------------------------------------------\nRan 5 tests in 0.000s\n\nOK\n"
+  },
+  {
+    "script": "bench/experiments/automatic-public-20260906/test_report.py",
+    "exit_code": 0,
+    "output": ".....\n----------------------------------------------------------------------\nRan 5 tests in 0.001s\n\nOK\n"
+  }
+]

@@ -1,0 +1,5 @@
+amazon repeat 1: delivered 3.49s (warm)
+amazon repeat 2: delivered 2.40s (warm)
+amazon repeat 3: delivered 2.39s (warm)
+
+paired finished in 8.6s

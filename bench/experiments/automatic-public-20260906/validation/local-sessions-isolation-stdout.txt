@@ -1,0 +1,10 @@
+
+running 5 tests
+test a_profile_is_free_the_moment_its_pool_has_shut_down ... ok
+test browsers_without_a_profile_get_a_directory_each_and_leave_none_behind ... ok
+test native_mode_keeps_real_apis_and_workers_even_after_an_emulated_pool ... ok
+test saved_policy_is_applied_without_restarting_or_mutating_inflight_calls ... ok
+test stable_profile_warms_once_and_reuses_sdk_without_returning_cached_content ... ok
+
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 24.99s
+

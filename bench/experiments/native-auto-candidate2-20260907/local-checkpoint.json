@@ -1,0 +1,14 @@
+{
+  "status": "prototype_not_frozen",
+  "planner_tests_exit": 0,
+  "source_sha256": {
+    "crates/svipall-core/src/automatic.rs": "b9ca2ead1872738a0ce9d7fe551cf5e3c76ea7a6abb502276437992c4cd64f63",
+    "crates/svipall-core/tests/automatic.rs": "798bb980c17cb35121e9861acf2c30e8b36dd994c09a1835834f9b4ae218cab4",
+    "crates/svipall-mcp/src/server.rs": "101beb2e7f6d49c2474646d0953e4850b316bf5ec451d915da85903a863a1e7f",
+    "crates/svipall-mcp/tests/automatic.rs": "12b5e68fb9f0a7770595f997d904f1e8590b59384e2c073da2b70d6e3be66c6a",
+    "crates/svipall-extract/src/prune.rs": "89cee95eb2c53f0532c261249a2b219b08972bc6eaaf68b101e213b0579f15b9",
+    "crates/svipall-extract/tests/listing_headings.rs": "2fa0bb7e103553ec849738e0c85e692f3ce85282d18ea6ace6e5cdc82553dfe3"
+  },
+  "mcp_integration": "7 passed including ignored local browser tests",
+  "corpus": "unchanged extractor gate queued after candidate 1; candidate extractor not measured"
+}

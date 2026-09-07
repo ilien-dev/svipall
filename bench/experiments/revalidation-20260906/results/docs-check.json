@@ -1,0 +1,21 @@
+{
+  "documented_config_fields": 45,
+  "config_mismatches": {},
+  "local_links_checked": 48,
+  "missing_local_targets": [],
+  "public31": {
+    "median": 26,
+    "min": 25,
+    "max": 26,
+    "by_tier": {
+      "http": 44,
+      "real": 29,
+      "warm": 4
+    },
+    "tier_all": {
+      "http": 59,
+      "real": 29,
+      "warm": 5
+    }
+  }
+}

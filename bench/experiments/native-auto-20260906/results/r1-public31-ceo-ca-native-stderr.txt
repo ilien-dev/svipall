@@ -1,0 +1,5 @@
+ceo-ca repeat 1: delivered 9.95s (warm)
+ceo-ca repeat 2: delivered 1.81s (warm)
+ceo-ca repeat 3: delivered 2.71s (warm)
+
+paired finished in 14.8s

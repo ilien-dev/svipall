@@ -1,0 +1,5 @@
+pixelscan-fp repeat 1: delivered 1.91s (http)
+pixelscan-fp repeat 2: delivered 0.97s (http)
+pixelscan-fp repeat 3: delivered 0.87s (http)
+
+paired finished in 3.9s

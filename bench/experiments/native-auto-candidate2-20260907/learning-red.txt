@@ -1,0 +1,16 @@
+   Compiling svipall-extract v1.0.0 (<repo>\crates\svipall-extract)
+   Compiling svipall-core v1.0.0 (<repo>\crates\svipall-core)
+error[E0599]: no variant, associated function, or constant named `FingerprintWall` found for enum `Feedback` in the current scope
+  --> crates\svipall-core\tests\automatic.rs:12:27
+   |
+12 |     row.observe(Feedback::FingerprintWall, 10, 101);
+   |                           ^^^^^^^^^^^^^^^ variant, associated function, or constant not found in `Feedback`
+
+error[E0599]: no variant, associated function, or constant named `FingerprintWall` found for enum `Feedback` in the current scope
+  --> crates\svipall-core\tests\automatic.rs:32:84
+   |
+32 |     for (tier, feedback) in [("http", Feedback::Failed), ("native:warm", Feedback::FingerprintWall)] {
+   |                                                                                    ^^^^^^^^^^^^^^^ variant, associated function, or constant not found in `Feedback`
+
+For more information about this error, try `rustc --explain E0599`.
+error: could not compile `svipall-core` (test "automatic") due to 2 previous errors

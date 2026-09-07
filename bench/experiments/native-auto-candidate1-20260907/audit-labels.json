@@ -1,0 +1,1882 @@
+{
+  "2cedcc2cda28bce12e8d875f5613c706645b1da7b104e7677b489a1b224fe174": {
+    "verdict": "unavailable",
+    "reason": "The saved content is empty; no requested review text was returned.",
+    "method": "Exact URL/status/content fingerprint matches the reviewed baseline; baseline content review"
+  },
+  "6304af10b65cfb506526ce1c40a35828900c806a4497ed582bc4d3641d26d5d8": {
+    "verdict": "unavailable",
+    "reason": "No response content.",
+    "method": "Exact URL/status/content fingerprint matches the reviewed baseline; baseline content review"
+  },
+  "cd1e39467411a8168d443a8b898185b1ad725042d054317d0cba513b80b594a0": {
+    "verdict": "useful",
+    "reason": "The requested root landing page includes substantive descriptions of data products, prediction categories and use cases with relevant links. This supports landing-page extraction only; no downstream company database access is inferred.",
+    "method": "Exact URL/status/content fingerprint matches the reviewed baseline; baseline content review"
+  },
+  "0dd04ecc71b1f7e704428b24884490bd07b74b21d64f40ff1bf12a5264b1d269": {
+    "verdict": "useful",
+    "reason": "The requested employer directory includes identifiable companies, employee-size fields and substantive company descriptions. Some repeated record labels are absent, so this does not establish complete structured field extraction or access to individual reviews.",
+    "method": "Exact URL/status/content fingerprint matches the reviewed baseline; baseline content review"
+  },
+  "f5f0fe638ed1ed8aacff7f083479fe69bd0ae6f123b97a4fc8990155107f06ed": {
+    "verdict": "unavailable",
+    "reason": "No response content.",
+    "method": "Exact URL/status/content fingerprint matches the reviewed baseline; baseline content review"
+  },
+  "e9f707531c1de91c5e9563fd20a353dc74631c26a3751ef4e1c6590022734129": {
+    "verdict": "useful",
+    "reason": "The requested review page contains multiple named reviews with substantial likes/dislikes paragraphs about the product. This is actual review content rather than only the generated summary or product branding.",
+    "method": "Exact URL/status/content fingerprint matches the reviewed baseline; baseline content review"
+  },
+  "3f17e5ee20b369a758965520e96f95b7af4c7ec58fe7669352cd15f14fe98878": {
+    "verdict": "useful",
+    "reason": "The requested public root landing contains its reading/writing proposition and relevant entry links. This is a short landing-page result only, not evidence of extraction of any article or member-only content.",
+    "method": "Exact URL/status/content fingerprint matches reviewed baseline"
+  },
+  "bef8ba910f83c2c04633231569918b52dbe9c10c06198377c2af1d22c1ce8186": {
+    "verdict": "diagnostic-only",
+    "reason": "A diagnostic guide with populated navigator properties and several missing displayed field values. It is not production content and does not establish a passing detector verdict.",
+    "method": "Exact URL/status/content fingerprint matches reviewed baseline"
+  },
+  "9838a395b0e235222d605fb5036d59bda16b9f0ce119725360f9b29c46a013cf": {
+    "verdict": "diagnostic-only",
+    "reason": "A diagnostic guide with placeholder detector fields. It is not production content and does not prove passing the active detector.",
+    "method": "Exact URL/status/content fingerprint matches reviewed baseline"
+  },
+  "bea65bf911677912d01729a196203af8b1a6a2dbe1570a4f3eea03bcee88bfdf": {
+    "verdict": "useful",
+    "reason": "The requested company/ticker page contains the named company, quote fields and dated community posts. Some financial fields are missing and premium sections remain unavailable; neither full data coverage nor numerical accuracy is independently verified.",
+    "method": "Exact URL/status/content fingerprint matches reviewed baseline"
+  },
+  "969c88ce65b7958399b5e4587df827df22139c189b1677738d100eaffda03793": {
+    "verdict": "useful",
+    "reason": "The requested company/ticker page contains the named company, quote fields and dated community posts. Some financial fields are missing and premium sections remain unavailable; neither full data coverage nor numerical accuracy is independently verified.",
+    "method": "Exact URL/status/content fingerprint matches reviewed baseline"
+  },
+  "7742f5e76d12c3b40eed7c0f9539529884484807cd5fcaec546c056feec7bedb": {
+    "verdict": "diagnostic-only",
+    "reason": "The target is a prespecified detector panel, TLS endpoint or challenge demonstration, excluded from the production-content endpoint. This label does not claim the detector passed.",
+    "method": "prespecified target-category exclusion"
+  },
+  "ae93c7e863c22a5c192dfeb0a3d56ca570cab7da5d2d52958264c98aad7fa69e": {
+    "verdict": "diagnostic-only",
+    "reason": "The target is a prespecified detector panel, TLS endpoint or challenge demonstration, excluded from the production-content endpoint. This label does not claim the detector passed.",
+    "method": "prespecified target-category exclusion"
+  },
+  "9e2c5ecd6a74c67cf49eb1417ba7fc9d6115ebb731555fe8078d0a335432e3fe": {
+    "verdict": "diagnostic-only",
+    "reason": "The target is a prespecified detector panel, TLS endpoint or challenge demonstration, excluded from the production-content endpoint. This label does not claim the detector passed.",
+    "method": "prespecified target-category exclusion"
+  },
+  "dd129aeb7dfd7cfdcfebdc8499384e5333bcbb8c812e2dafb9cd3d39a43de145": {
+    "verdict": "diagnostic-only",
+    "reason": "Detector instructions and optional timing rows are returned. The required trigger actions were not part of this workload, so this is not evidence that the active detector tests passed.",
+    "method": "Exact URL/status/content fingerprint matches reviewed baseline"
+  },
+  "1b6d37d9ab5cfaee5d47bd3bdfee4fcf4c7edaeb0feb7b54fe2328ef62083456": {
+    "verdict": "useful",
+    "reason": "The saved property listing includes multiple linked Madrid properties with street names, prices, room counts, floor areas and descriptions. This establishes useful listing content, not complete catalogue coverage.",
+    "method": "Saved content excerpt review; complete Markdown link inventory additionally inspected for job listings"
+  },
+  "fd23839ca572300978b081c6711a819fe22faaa7a04b61fa99fe7650cdd78242": {
+    "verdict": "useful",
+    "reason": "The saved property listing includes multiple linked Madrid properties with street names, prices, room counts, floor areas and descriptions. This establishes useful listing content, not complete catalogue coverage.",
+    "method": "Saved content excerpt review; complete Markdown link inventory additionally inspected for job listings"
+  },
+  "aa20214658ca523f6fd19adeba1f8335d9b977485b614b47f7929e32e1fe358d": {
+    "verdict": "unavailable",
+    "reason": "The saved content is empty.",
+    "method": "Exact empty content"
+  },
+  "de102d0afd9df486f41cf16d563a4a099c55e6f36100a7667da6d50202c6781a": {
+    "verdict": "unavailable",
+    "reason": "The saved content is empty.",
+    "method": "Exact empty content"
+  },
+  "6176732f41f4117e42f5569cee43593887211fd0957c72a330912544b0649aa6": {
+    "verdict": "useful",
+    "reason": "Multiple substantive user reviews include likes and dislikes about project organization, calendars, academic collaboration and sharing. Actual review paragraphs were inspected beyond the branding introduction.",
+    "method": "Saved content excerpt review; complete Markdown link inventory additionally inspected for job listings"
+  },
+  "97180a6b9b993ad185fcb874fbb033538908dc8f1a12e1a1b955632eb1782ab7": {
+    "verdict": "useful",
+    "reason": "The employer directory includes substantive descriptions of identifiable companies and workforce information. Some repeated heading and rating fields are absent; this does not establish complete structured records or individual review access.",
+    "method": "Saved content excerpt review; complete Markdown link inventory additionally inspected for job listings"
+  },
+  "aec74cdff290a9e0700a80b2f1496cc61609c68840af2ae91ff17ea32cd77dc8": {
+    "verdict": "useful",
+    "reason": "The employer directory includes substantive descriptions of identifiable companies and workforce information. Some repeated heading and rating fields are absent; this does not establish complete structured records or individual review access.",
+    "method": "Saved content excerpt review; complete Markdown link inventory additionally inspected for job listings"
+  },
+  "2a4a3ab1eb9b09623bdb1641e2787371dec509802ff0bfc2f312f418866d8f2c": {
+    "verdict": "partial",
+    "reason": "Job descriptions and occasional employer mentions survive, but repeated job titles and job-item links are missing. The complete Markdown link inventory contains resume/profile links rather than job-item links; record identification remains incomplete.",
+    "method": "Saved content excerpt review; complete Markdown link inventory additionally inspected for job listings"
+  },
+  "69869d54a5fec5f4771e609f13e33eaba018d7e2e82748810f78cb10083232d5": {
+    "verdict": "partial",
+    "reason": "Job descriptions and occasional employer mentions survive, but repeated job titles and job-item links are missing. The complete Markdown link inventory contains resume/profile links rather than job-item links; record identification remains incomplete.",
+    "method": "Saved content excerpt review; complete Markdown link inventory additionally inspected for job listings"
+  },
+  "74130d4827b024b39e183785c1dfd103137d796a8627e3936ccb72c0304a790b": {
+    "verdict": "partial",
+    "reason": "Job descriptions and occasional employer mentions survive, but repeated job titles and job-item links are missing. The complete Markdown link inventory contains resume/profile links rather than job-item links; record identification remains incomplete.",
+    "method": "Saved content excerpt review; complete Markdown link inventory additionally inspected for job listings"
+  },
+  "94dd5b03fdea4e2e53e3b8e0b32c7d0be23aea15eb8c5e098eed51919c318df7": {
+    "verdict": "partial",
+    "reason": "Job descriptions and occasional employer mentions survive, but repeated job titles and job-item links are missing. The complete Markdown link inventory contains resume/profile links rather than job-item links; record identification remains incomplete.",
+    "method": "Saved content excerpt review; complete Markdown link inventory additionally inspected for job listings"
+  },
+  "a4a74afb87ed650d9267b8b580703e86cf8a025d8e190908dd2acef98411dad1": {
+    "verdict": "partial",
+    "reason": "Job descriptions and occasional employer mentions survive, but repeated job titles and job-item links are missing. The complete Markdown link inventory contains resume/profile links rather than job-item links; record identification remains incomplete.",
+    "method": "Saved content excerpt review; complete Markdown link inventory additionally inspected for job listings"
+  },
+  "bf22d84ff3c3a9819501d1b579d764767e9cd2d79c24ca66fd9578ee627b7203": {
+    "verdict": "partial",
+    "reason": "Job descriptions and occasional employer mentions survive, but repeated job titles and job-item links are missing. The complete Markdown link inventory contains resume/profile links rather than job-item links; record identification remains incomplete.",
+    "method": "Saved content excerpt review; complete Markdown link inventory additionally inspected for job listings"
+  },
+  "2bcfa7f586a6b6b5ca2628d8090a04e77001f9658cd54e7fdf554faa332b7404": {
+    "verdict": "partial",
+    "reason": "Job descriptions and occasional employer mentions survive, but repeated job titles and job-item links are missing. The complete Markdown link inventory contains resume/profile links rather than job-item links; record identification remains incomplete.",
+    "method": "Saved content excerpt review; complete Markdown link inventory additionally inspected for job listings"
+  },
+  "52d06c561464f5b9188e73e493e4317414f0a9703606080005487c81cc51657f": {
+    "verdict": "partial",
+    "reason": "Job descriptions and occasional employer mentions survive, but repeated job titles and job-item links are missing. The complete Markdown link inventory contains resume/profile links rather than job-item links; record identification remains incomplete.",
+    "method": "Saved content excerpt review; complete Markdown link inventory additionally inspected for job listings"
+  },
+  "6f2b209f0b4ce13f95c34bdcc1538f026e365c732dd382a28edf1fd0f4dcd161": {
+    "verdict": "partial",
+    "reason": "Job descriptions and occasional employer mentions survive, but repeated job titles and job-item links are missing. The complete Markdown link inventory contains resume/profile links rather than job-item links; record identification remains incomplete.",
+    "method": "Saved content excerpt review; complete Markdown link inventory additionally inspected for job listings"
+  },
+  "7e4a96961cd86f2298cdfb9347d6a62d7bb433aa4c98ce19f24b21f5aaa7b4e1": {
+    "verdict": "partial",
+    "reason": "Job descriptions and occasional employer mentions survive, but repeated job titles and job-item links are missing. The complete Markdown link inventory contains resume/profile links rather than job-item links; record identification remains incomplete.",
+    "method": "Saved content excerpt review; complete Markdown link inventory additionally inspected for job listings"
+  },
+  "ede140daaa0db16d543342de764889abc197e071af1aa177728076ebbbc9d495": {
+    "verdict": "partial",
+    "reason": "Job descriptions and occasional employer mentions survive, but repeated job titles and job-item links are missing. The complete Markdown link inventory contains resume/profile links rather than job-item links; record identification remains incomplete.",
+    "method": "Saved content excerpt review; complete Markdown link inventory additionally inspected for job listings"
+  },
+  "f6adb12125e843654f9a764e73e4587163f6ae97b3160490b75026b0dd0c7536": {
+    "verdict": "partial",
+    "reason": "Job descriptions and occasional employer mentions survive, but repeated job titles and job-item links are missing. The complete Markdown link inventory contains resume/profile links rather than job-item links; record identification remains incomplete.",
+    "method": "Saved content excerpt review; complete Markdown link inventory additionally inspected for job listings"
+  },
+  "008b19ab8d114b694fabe10fd4c9848bcba1606b800701108a3a356e31909f3d": {
+    "verdict": "unavailable",
+    "reason": "The saved content is empty.",
+    "method": "Exact empty content"
+  },
+  "39f672a8a7ef836bc099fa6d1c198e00c88308db9d2cedd6d1438bec0ff65276": {
+    "verdict": "unavailable",
+    "reason": "The saved response content is empty.",
+    "method": "Exact URL/status/content fingerprint matches reviewed baseline"
+  },
+  "53cbe71a9c3115b89cce434f1d6f736a059e4b81e9671a789f6990967006406f": {
+    "verdict": "diagnostic-only",
+    "reason": "The JavaScript diagnostic panel is mostly default or empty fields. It does not establish active browser behavior or production extraction.",
+    "method": "Exact URL/status/content fingerprint matches reviewed baseline"
+  },
+  "5eba95fa44777804f205f15ce39c540471cbebf29e3e40d123e19ac038d31177": {
+    "verdict": "unavailable",
+    "reason": "The saved response content is empty.",
+    "method": "Exact URL/status/content fingerprint matches reviewed baseline"
+  },
+  "84779cbc165c9b51e9807708ad2f6e35cf13b42eb374447f6696704b4dbefac5": {
+    "verdict": "diagnostic-only",
+    "reason": "This URL is a prespecified diagnostic endpoint or challenge-demo control, excluded from production-content success regardless of the displayed detector values.",
+    "method": "Exact URL/status/content fingerprint matches reviewed baseline"
+  },
+  "f2a7718171dd378e35ad7dc3cee8c9228dd267cbccf2d71eadd53cf99542a701": {
+    "verdict": "diagnostic-only",
+    "reason": "This URL is a prespecified diagnostic endpoint or challenge-demo control, excluded from production-content success regardless of the displayed detector values.",
+    "method": "Exact URL/status/content fingerprint matches reviewed baseline"
+  },
+  "1585bcb2fa0ef18fda804efcb1b84713324bcc0234e5f964bb384e4632ffeac4": {
+    "verdict": "useful",
+    "reason": "The named profile has its biography, follower/like counts and linked playlists. The video section reports a loading failure, so this establishes profile metadata only, not video extraction.",
+    "method": "Complete short content or relevant record-table excerpt reviewed"
+  },
+  "1826f05ba429902d096af7f0cc70469b0f14df1522787a21699cf7a6bf8b94cc": {
+    "verdict": "useful",
+    "reason": "The requested news listing contains two dated records with company names, symbols, prices, descriptive headlines and item links. Navigation remains, and downstream article access is not established.",
+    "method": "Complete short content or relevant record-table excerpt reviewed"
+  },
+  "3aa516e89e09b72a1eb7459e34708d94ff1b76dfbeb9d14a7fef82298c677be2": {
+    "verdict": "useful",
+    "reason": "The requested news listing contains two dated records with company names, symbols, prices, descriptive headlines and item links. Navigation remains, and downstream article access is not established.",
+    "method": "Complete short content or relevant record-table excerpt reviewed"
+  },
+  "98642a8f2dd8808e19065954cdaf9db66c093afcd1387704d56a5e9161d3b9f5": {
+    "verdict": "useful",
+    "reason": "The requested news listing contains two dated records with company names, symbols, prices, descriptive headlines and item links. Navigation remains, and downstream article access is not established.",
+    "method": "Complete short content or relevant record-table excerpt reviewed"
+  },
+  "ab86c1ad2cfc951db6eaf490d930f53a27ba9ceecfe3bca01c6df407e0540f17": {
+    "verdict": "useful",
+    "reason": "The requested news listing contains two dated records with company names, symbols, prices, descriptive headlines and item links. Navigation remains, and downstream article access is not established.",
+    "method": "Complete short content or relevant record-table excerpt reviewed"
+  },
+  "d7a6af536e417ef2b6656c4415e27dd2bd0a3a353d1e32027ae8cb03c0490b7e": {
+    "verdict": "useful",
+    "reason": "The requested news listing contains two dated records with company names, symbols, prices, descriptive headlines and item links. Navigation remains, and downstream article access is not established.",
+    "method": "Complete short content or relevant record-table excerpt reviewed"
+  },
+  "fa15c0e352849710253d1de2f735b78fdda11771f1a65a305b22daf215c35c7e": {
+    "verdict": "useful",
+    "reason": "The requested news listing contains two dated records with company names, symbols, prices, descriptive headlines and item links. Navigation remains, and downstream article access is not established.",
+    "method": "Complete short content or relevant record-table excerpt reviewed"
+  },
+  "28a8cfea947e864881310b11d3429845f6a893c87b0292d2fb82b0e312ba871c": {
+    "verdict": "useful",
+    "reason": "The public landing contains named and linked stocks with insider buying/selling volumes and dated quote references, plus market-index values. Missing outlook fields and premium reports are not counted as recovered.",
+    "method": "Complete short content or relevant record-table excerpt reviewed"
+  },
+  "30704813dc8a22c5bf0bb03897d4710e5b7ffdb9912e6884a72e4a1bc065f526": {
+    "verdict": "useful",
+    "reason": "The public landing includes identifiable dated research-report titles with links, and an article title, author and topical excerpt. Insider-volume tables are absent and several sections require login; this proves public landing headlines only, not restricted reports or complete insider data.",
+    "method": "Complete short content or relevant record-table excerpt reviewed"
+  },
+  "50c7525732ce8c8144c2d88cc9a64abbbd921685aa0e3b8dfa53ddfdc0b95c6b": {
+    "verdict": "partial",
+    "reason": "Only a generic market excerpt, section headings and two market quote values survive. The main insider buy/sell records and identifiable report/article entries are absent.",
+    "method": "Complete short content or relevant record-table excerpt reviewed"
+  },
+  "52ecd53cc7f65344f759d849e0c64f8e5ba1d89abbd3f1f44320fcd5491695da": {
+    "verdict": "wall",
+    "reason": "The entire short response is security-verification text and a request identifier, with no requested insider data.",
+    "method": "Complete short content or relevant record-table excerpt reviewed"
+  },
+  "82cdb4c1cc217de7b9c2e6bf5261d38afbe5f8b30943e5431f663e2fc0f71fbc": {
+    "verdict": "wall",
+    "reason": "The entire short response is security-verification text and a request identifier, with no requested insider data.",
+    "method": "Complete short content or relevant record-table excerpt reviewed"
+  },
+  "d3d1f43102a434a0c01626bb7cf5f78245e2b494fadd5c88d28fb95e57b6d95f": {
+    "verdict": "wall",
+    "reason": "The entire short response is security-verification text and a request identifier, with no requested insider data.",
+    "method": "Complete short content or relevant record-table excerpt reviewed"
+  },
+  "5d6965458cc8d733585aafab39735b59f117733881a9d99d50a0e6f91b834ca6": {
+    "verdict": "wall",
+    "reason": "The entire response asks the visitor to press and hold to confirm they are human; no property records are present.",
+    "method": "Complete short content or relevant record-table excerpt reviewed"
+  },
+  "933c2dabb771f59646b11547ab70df59823db4ff388da82f59641b40cde96b81": {
+    "verdict": "wall",
+    "reason": "The entire response asks the visitor to press and hold to confirm they are human; no property records are present.",
+    "method": "Complete short content or relevant record-table excerpt reviewed"
+  },
+  "b8752e23eec78ea5eb158857cc8ddaf63a606bb90ab93c69117f2e2a1d2f70f5": {
+    "verdict": "wall",
+    "reason": "The entire response asks the visitor to press and hold to confirm they are human; no property records are present.",
+    "method": "Complete short content or relevant record-table excerpt reviewed"
+  },
+  "eca1ae654a79a2d03fdd5440484ce2bfe3bfedbb2c7f53e26df1851559e2f9af": {
+    "verdict": "wall",
+    "reason": "The entire response asks the visitor to press and hold to confirm they are human; no property records are present.",
+    "method": "Complete short content or relevant record-table excerpt reviewed"
+  },
+  "2a12722ce774f567fc1037a3628609ee787a16244cceaf15568180dfe148b854": {
+    "verdict": "unavailable",
+    "reason": "The complete response states that the requested product page could not be found; only error images and home links remain.",
+    "method": "Complete short content or relevant record-table excerpt reviewed"
+  },
+  "6a6921b01919a196900f5eeee1608baddaa1e87154677d57c26dd10ce7fd973d": {
+    "verdict": "unavailable",
+    "reason": "The complete response states that the requested product page could not be found; only error images and home links remain.",
+    "method": "Complete short content or relevant record-table excerpt reviewed"
+  },
+  "7a428ef1a73e56973bb552f6a0957e65123fb03b15c64ebee733461ad55e3e5b": {
+    "verdict": "unavailable",
+    "reason": "The complete response states that the requested product page could not be found; only error images and home links remain.",
+    "method": "Complete short content or relevant record-table excerpt reviewed"
+  },
+  "9204c3320462dcfd514a8006725d2d44222fad17e6109bd5ddad800ce6cfdd13": {
+    "verdict": "unavailable",
+    "reason": "The complete response states that the requested product page could not be found; only error images and home links remain.",
+    "method": "Complete short content or relevant record-table excerpt reviewed"
+  },
+  "bfd32952848ad79823221f6896cd6b643b68e09687d4aeb4a3eddfd73fcf3013": {
+    "verdict": "unavailable",
+    "reason": "The complete response states that the requested product page could not be found; only error images and home links remain.",
+    "method": "Complete short content or relevant record-table excerpt reviewed"
+  },
+  "c5646e72daad143d90c3032a9769d9d3421cd8095973fb47cd5b0f4cc2178a9c": {
+    "verdict": "unavailable",
+    "reason": "The complete response states that the requested product page could not be found; only error images and home links remain.",
+    "method": "Complete short content or relevant record-table excerpt reviewed"
+  },
+  "06cc467b303ddbd4f46898d6bcbfe5ed10a3bc569922fb7c63d7508cc9969e0b": {
+    "verdict": "diagnostic-only",
+    "reason": "This prespecified browser diagnostic panel is excluded from production usefulness scoring; delivery does not establish passing its active detectors.",
+    "method": "Prespecified target category"
+  },
+  "0d43b9134e548b7a9155e7339174e6de0b1c66435f9cde2501acf89a842ac201": {
+    "verdict": "diagnostic-only",
+    "reason": "This prespecified browser diagnostic panel is excluded from production usefulness scoring; delivery does not establish passing its active detectors.",
+    "method": "Prespecified target category"
+  },
+  "1256a8c298712abd3e36c474fc989e8eda428ac254f4f822f6670cdf5610f8d4": {
+    "verdict": "diagnostic-only",
+    "reason": "This prespecified browser diagnostic panel is excluded from production usefulness scoring; delivery does not establish passing its active detectors.",
+    "method": "Prespecified target category"
+  },
+  "a5dbde16e8344ab832cb6a5695a485af02bc6b4136b9c68d1b4350b9f03b8e53": {
+    "verdict": "diagnostic-only",
+    "reason": "This prespecified browser diagnostic panel is excluded from production usefulness scoring; delivery does not establish passing its active detectors.",
+    "method": "Prespecified target category"
+  },
+  "ae7c4d132e7490793a059efd8cc9c5bedd1912b4b5047c2278d7b99619fd2160": {
+    "verdict": "diagnostic-only",
+    "reason": "This prespecified browser diagnostic panel is excluded from production usefulness scoring; delivery does not establish passing its active detectors.",
+    "method": "Prespecified target category"
+  },
+  "bc99d50ee368ca4dce91621e8701d45199b5516e1ef9e9a13fe534db29579214": {
+    "verdict": "diagnostic-only",
+    "reason": "This prespecified browser diagnostic panel is excluded from production usefulness scoring; delivery does not establish passing its active detectors.",
+    "method": "Prespecified target category"
+  },
+  "c24b1f033edc991a5f4d3927b5e0aaee8c9f455590d1f47f2cbf6cc76cdcfaf7": {
+    "verdict": "diagnostic-only",
+    "reason": "This prespecified browser diagnostic panel is excluded from production usefulness scoring; delivery does not establish passing its active detectors.",
+    "method": "Prespecified target category"
+  },
+  "dc4a0e7eed96abe3464021fafea6e0e33e082328dd95e30708eb7e47c5101b9f": {
+    "verdict": "diagnostic-only",
+    "reason": "This prespecified browser diagnostic panel is excluded from production usefulness scoring; delivery does not establish passing its active detectors.",
+    "method": "Prespecified target category"
+  },
+  "e9b72715b0de07b274276bf928b2a742311433065faea493595d4c4b0e151d8f": {
+    "verdict": "diagnostic-only",
+    "reason": "This prespecified browser diagnostic panel is excluded from production usefulness scoring; delivery does not establish passing its active detectors.",
+    "method": "Prespecified target category"
+  },
+  "10859798e14e530f590dc0e6d78916557dc01f03a5ec5fb442ea24a017ab78e2": {
+    "verdict": "useful",
+    "reason": "The public feed contains identifiable post titles, community names and links to the corresponding posts. Advertising and duplicate titles remain; this does not establish extraction of each linked discussion.",
+    "method": "Record excerpts and link inventory reviewed"
+  },
+  "2c977ae0286ec7ab4cb0d81c2f9107a49434493dcf9486fbd89d2b72695522a0": {
+    "verdict": "useful",
+    "reason": "The public feed contains identifiable post titles, community names and links to the corresponding posts. Advertising and duplicate titles remain; this does not establish extraction of each linked discussion.",
+    "method": "Record excerpts and link inventory reviewed"
+  },
+  "460ba0f57dc55f8ef63371a0db7c8f91869eb53ad21f17f55d4d261119b938de": {
+    "verdict": "useful",
+    "reason": "The public feed contains identifiable post titles, community names and links to the corresponding posts. Advertising and duplicate titles remain; this does not establish extraction of each linked discussion.",
+    "method": "Record excerpts and link inventory reviewed"
+  },
+  "88a202c9f50afe3e4261159e31aa8d092085ed24f99ba4aea60cbb2e964d0156": {
+    "verdict": "useful",
+    "reason": "The public feed contains identifiable post titles, community names and links to the corresponding posts. Advertising and duplicate titles remain; this does not establish extraction of each linked discussion.",
+    "method": "Record excerpts and link inventory reviewed"
+  },
+  "c6ebb149e93615bbe3686a80c1756e48ce28f57042799c57b8e030c10924a6c5": {
+    "verdict": "useful",
+    "reason": "The public feed contains identifiable post titles, community names and links to the corresponding posts. Advertising and duplicate titles remain; this does not establish extraction of each linked discussion.",
+    "method": "Record excerpts and link inventory reviewed"
+  },
+  "ef5a5ef0f909299a349546b3d55683a8eecff963ae4fab23a01a2aaeed0ed71c": {
+    "verdict": "useful",
+    "reason": "The public feed contains identifiable post titles, community names and links to the corresponding posts. Advertising and duplicate titles remain; this does not establish extraction of each linked discussion.",
+    "method": "Record excerpts and link inventory reviewed"
+  },
+  "09161c783e1bfb05a4425c20d2ba0f12f45beb684d0827328652f080db6fa29c": {
+    "verdict": "useful",
+    "reason": "The public feed has multiple topical article titles with article links, authors and date/reaction metadata. Promotional blocks remain, and linked article bodies were not requested or verified.",
+    "method": "Record excerpts and link inventory reviewed"
+  },
+  "a88efbdb736c0fbc53957d1090bad0790962f362614cbe51b2ac72a5a2428692": {
+    "verdict": "useful",
+    "reason": "The public feed has multiple topical article titles with article links, authors and date/reaction metadata. Promotional blocks remain, and linked article bodies were not requested or verified.",
+    "method": "Record excerpts and link inventory reviewed"
+  },
+  "05a870d20e34cdb576972036803e1ac9c35c0a7f5ec0e21bd2ff519665a79608": {
+    "verdict": "useful",
+    "reason": "The requested hardware listing has identifiable products, model/specification text, item links and prices. Some product names are carried by image alternative text, some fields are absent, and complete catalogue or field coverage is not established.",
+    "method": "Record excerpts and link inventory reviewed"
+  },
+  "5c5a7faf6d0f27d5ee5a3b0f90cb95e206f3a0e36efd8ceca631179e995d1c8b": {
+    "verdict": "useful",
+    "reason": "The requested hardware listing has identifiable products, model/specification text, item links and prices. Some product names are carried by image alternative text, some fields are absent, and complete catalogue or field coverage is not established.",
+    "method": "Record excerpts and link inventory reviewed"
+  },
+  "aab1d6f8eeee7042001a317802d21df9f8295bca21d9ec546131b591e2114c29": {
+    "verdict": "useful",
+    "reason": "The requested hardware listing has identifiable products, model/specification text, item links and prices. Some product names are carried by image alternative text, some fields are absent, and complete catalogue or field coverage is not established.",
+    "method": "Record excerpts and link inventory reviewed"
+  },
+  "15b1fcca529f4893944c09a6387ca81d62b2298d5023d5aff52cdc4892e5485b": {
+    "verdict": "useful",
+    "reason": "The requested hardware listing has identifiable products, model/specification text, item links and prices. Some product names are carried by image alternative text, some fields are absent, and complete catalogue or field coverage is not established.",
+    "method": "Record excerpts and link inventory reviewed"
+  },
+  "1d0fd9ab34dd849a55533ff7c3b0ef953bd30d877a493ad88b927f449a67b53a": {
+    "verdict": "useful",
+    "reason": "The requested hardware listing has identifiable products, model/specification text, item links and prices. Some product names are carried by image alternative text, some fields are absent, and complete catalogue or field coverage is not established.",
+    "method": "Record excerpts and link inventory reviewed"
+  },
+  "b70410ec29c83ffe2eca4313e6e364f8481a626a6f649361982e6896a4785b86": {
+    "verdict": "useful",
+    "reason": "The requested hardware listing has identifiable products, model/specification text, item links and prices. Some product names are carried by image alternative text, some fields are absent, and complete catalogue or field coverage is not established.",
+    "method": "Record excerpts and link inventory reviewed"
+  },
+  "1a1fda9ff2f9bc639f4feae0335d8510cf45007e99d783de4a9f88ec11f4af99": {
+    "verdict": "partial",
+    "reason": "Job descriptions and occasional employer/location mentions survive, but repeated job titles and job-item links are missing. The complete Markdown link inventory contains resume/profile links rather than job-item links; record identification remains incomplete.",
+    "method": "Record excerpts and link inventory reviewed"
+  },
+  "8579834d53bfb4df7dc030a290d2062be70140ca2a6fbafa3d2a1bacd0be52eb": {
+    "verdict": "partial",
+    "reason": "Job descriptions and occasional employer/location mentions survive, but repeated job titles and job-item links are missing. The complete Markdown link inventory contains resume/profile links rather than job-item links; record identification remains incomplete.",
+    "method": "Record excerpts and link inventory reviewed"
+  },
+  "de08c6d13cc1e530d4e97a681a518685eee2484b3f9c319a98ed4d7ee4f7ea7d": {
+    "verdict": "partial",
+    "reason": "Job descriptions and occasional employer/location mentions survive, but repeated job titles and job-item links are missing. The complete Markdown link inventory contains resume/profile links rather than job-item links; record identification remains incomplete.",
+    "method": "Record excerpts and link inventory reviewed"
+  },
+  "e49ba437e63c5c7eb4593e36c2c0fa9a1f120a050af0ac69d0a1321634a7b2db": {
+    "verdict": "partial",
+    "reason": "Job descriptions and occasional employer/location mentions survive, but repeated job titles and job-item links are missing. The complete Markdown link inventory contains resume/profile links rather than job-item links; record identification remains incomplete.",
+    "method": "Record excerpts and link inventory reviewed"
+  },
+  "15a94dbf945e34c8274f1b0182c7e7cd2eb07c198a68094db715bcdd62dc9f1b": {
+    "verdict": "diagnostic-only",
+    "reason": "This URL is a prespecified diagnostic endpoint or challenge-demo control, excluded from production-content success regardless of the displayed detector values.",
+    "method": "Exact URL/status/content fingerprint matches reviewed baseline"
+  },
+  "19be420ea148bff7e39a4aeebe36d0dc04e7a799e925e4383241591a689ef592": {
+    "verdict": "unavailable",
+    "reason": "The saved response content is empty.",
+    "method": "Exact URL/status/content fingerprint matches reviewed baseline"
+  },
+  "1fca0289753eb2981bff32b44504848c2a8cbcf4eabc802456a77ceebc40f6c6": {
+    "verdict": "unavailable",
+    "reason": "The complete response says the post or profile is unavailable or removed. No requested post content is present.",
+    "method": "Exact URL/status/content fingerprint matches reviewed baseline"
+  },
+  "22bd7415db6cd4fdc11d9a639b29d48681ec398c4a33da47d58d68244f938f60": {
+    "verdict": "diagnostic-only",
+    "reason": "This prespecified diagnostic or challenge-demo target is excluded from production usefulness scoring. Delivery does not establish passing active detectors.",
+    "method": "Prespecified target category"
+  },
+  "31d8c7a436cf7da4744608c9d115cd04a6a638263576bf12960ff4c37341554e": {
+    "verdict": "useful",
+    "reason": "The requested area search includes named accommodations with location and amenity descriptions, including the Saanichton airport motel and Shawnigan properties. The heading has a narrower property count and many filters are empty; this supports useful accommodation records, not complete availability, prices or geographic coverage.",
+    "method": "Exact URL/status/content fingerprint matches reviewed baseline"
+  },
+  "34db3a632ffd98b6ba814c46fac5f7bc9362b3b03837a613cfae12083cf4b02e": {
+    "verdict": "diagnostic-only",
+    "reason": "This prespecified diagnostic or challenge-demo target is excluded from production usefulness scoring. Delivery does not establish passing active detectors.",
+    "method": "Prespecified target category"
+  },
+  "4bf2c4ba133f2532d8ec209d2f07f0211fca7f0dc0e8cb7623c733a709c45b9d": {
+    "verdict": "diagnostic-only",
+    "reason": "This prespecified diagnostic or challenge-demo target is excluded from production usefulness scoring. Delivery does not establish passing active detectors.",
+    "method": "Prespecified target category"
+  },
+  "5c66dcd5389e5bb95cc52f5dce4bfa7fdbb04bd20cf513fa8c05d685d79be04b": {
+    "verdict": "wall",
+    "reason": "The complete explore response is an authentication/sign-up interface; no timeline items are present.",
+    "method": "Exact URL/status/content fingerprint matches reviewed baseline"
+  },
+  "69009ccc60a2e03da6e3efaa6a5eec88926ba0369e89d17987e0f1133f216ba9": {
+    "verdict": "unavailable",
+    "reason": "The complete short response is an error template whose image alternative text says something went wrong. No product search results are present.",
+    "method": "Exact URL/status/content fingerprint matches reviewed baseline"
+  },
+  "6ea77fdfd6ff198998f99fe5195c83b80823f648a622ca043f5b6bb916df12c1": {
+    "verdict": "diagnostic-only",
+    "reason": "This URL is a prespecified diagnostic endpoint or challenge-demo control, excluded from production-content success regardless of the displayed detector values.",
+    "method": "Exact URL/status/content fingerprint matches reviewed baseline"
+  },
+  "785a2ea0c6db2c03cd0ca70c2a39b6169f960289260e3d3e68d54dd1239f3fb0": {
+    "verdict": "diagnostic-only",
+    "reason": "This prespecified diagnostic or challenge-demo target is excluded from production usefulness scoring. Delivery does not establish passing active detectors.",
+    "method": "Prespecified target category"
+  },
+  "7d61190954e6288ab0b94e011ca276dba93bc25a6aff43d8a6900ee8bd17f285": {
+    "verdict": "wall",
+    "reason": "The response explicitly says the query rate limit was reached and offers RSS alternatives. It contains no requested gold-search records.",
+    "method": "Exact URL/status/content fingerprint matches reviewed baseline"
+  },
+  "80c1ae9ad5c93a05d471470f5dd8fc7e4a643c8378c4fa3d28f0abbb32682cdb": {
+    "verdict": "unavailable",
+    "reason": "The saved response content is empty.",
+    "method": "Exact URL/status/content fingerprint matches reviewed baseline"
+  },
+  "80e19363a9f8aae173d3c17bfdbcc2c23aa60fea2fb06abd092561acc5217e44": {
+    "verdict": "diagnostic-only",
+    "reason": "This URL is a prespecified diagnostic endpoint or challenge-demo control, excluded from production-content success regardless of the displayed detector values.",
+    "method": "Exact URL/status/content fingerprint matches reviewed baseline"
+  },
+  "82978a94f66b3a0cce82bfca3eaf9bd166acd83af17202483a908e66086919fe": {
+    "verdict": "useful",
+    "reason": "The requested tag listing includes multiple linked question titles with substantive question excerpts and posting information. This supports identifiable questions, not their full answers.",
+    "method": "Exact URL/status/content fingerprint matches reviewed baseline"
+  },
+  "86cc88c59d74bf3997c08c33bab3f891d96d55deb9da54ec5d83690a5576519d": {
+    "verdict": "useful",
+    "reason": "The complete landing response describes disclosure alerts, the document archive, filing resources, fees and forms, with specific public reference links. This supports the requested landing page only, not successful retrieval of underlying filings.",
+    "method": "Exact URL/status/content fingerprint matches reviewed baseline"
+  },
+  "942988624b387ded52da63d60894ad643a250ae021a3615a4c9903e9a0899433": {
+    "verdict": "unavailable",
+    "reason": "The saved response content is empty.",
+    "method": "Exact URL/status/content fingerprint matches reviewed baseline"
+  },
+  "9d0bafbc4875627781143b4afdd76733e598520c8cef08db07b3ea2a7eb1450b": {
+    "verdict": "shell",
+    "reason": "The complete short response consists of prefetch configuration and an appliance-category title, optionally an assistant label. No appliances or substantive category information are present.",
+    "method": "Exact URL/status/content fingerprint matches reviewed baseline"
+  },
+  "b34bc3d39bb2a63c21231c94ad37e015e3f192d05826627cc2f92550e829972d": {
+    "verdict": "shell",
+    "reason": "The complete short response contains a refresh error, branding and customer-service link, with no appliance records.",
+    "method": "Exact URL/status/content fingerprint matches reviewed baseline"
+  },
+  "c45390d7e139beb7fb13eee4aae6bb6f457168a8fff9db485f56e1756f60df8d": {
+    "verdict": "unavailable",
+    "reason": "The saved response content is empty.",
+    "method": "Exact URL/status/content fingerprint matches reviewed baseline"
+  },
+  "c8171629aae01e2c3a2c33c5ddbf2a8d7a30c154d665252896b00b479707409a": {
+    "verdict": "diagnostic-only",
+    "reason": "This URL is a prespecified diagnostic endpoint or challenge-demo control, excluded from production-content success regardless of the displayed detector values.",
+    "method": "Exact URL/status/content fingerprint matches reviewed baseline"
+  },
+  "c9c3513873c0b4dafe628724ebb8b71d3ce807031dbc8a71f05974bcefc0a1b1": {
+    "verdict": "unavailable",
+    "reason": "The complete response says the post or profile is unavailable or removed. No requested post content is present.",
+    "method": "Exact URL/status/content fingerprint matches reviewed baseline"
+  },
+  "ce3d8e5aa8d889a9b257f76156b59bc2833a07c5b50060537b1e2024fb94caeb": {
+    "verdict": "diagnostic-only",
+    "reason": "This prespecified diagnostic or challenge-demo target is excluded from production usefulness scoring. Delivery does not establish passing active detectors.",
+    "method": "Prespecified target category"
+  },
+  "e62ac56b569adc1af214dbb0d7e0665f35dd52a0c6acf29d3d82a138121f22c0": {
+    "verdict": "diagnostic-only",
+    "reason": "This prespecified diagnostic or challenge-demo target is excluded from production usefulness scoring. Delivery does not establish passing active detectors.",
+    "method": "Prespecified target category"
+  },
+  "f48402c8e452204b8ccadc105ec7bb61bd971e066fa27978cc4f843804b78b5a": {
+    "verdict": "diagnostic-only",
+    "reason": "This URL is a prespecified diagnostic endpoint or challenge-demo control, excluded from production-content success regardless of the displayed detector values.",
+    "method": "Exact URL/status/content fingerprint matches reviewed baseline"
+  },
+  "f9bc25e63cfef231cc21a597c3ec2b20bad07111088a83f9e49cdaf072d968e2": {
+    "verdict": "useful",
+    "reason": "The requested area search includes named accommodations with location and amenity descriptions, including the Saanichton airport motel and Shawnigan properties. The heading has a narrower property count and many filters are empty; this supports useful accommodation records, not complete availability, prices or geographic coverage.",
+    "method": "Exact URL/status/content fingerprint matches reviewed baseline"
+  },
+  "00ff42d5978b5cabe24c3ca0a62f6c04b599c84692771e51aad2dc5cc31871f2": {
+    "verdict": "wall",
+    "reason": "The entire short response is a 403 Forbidden message with a transaction identifier; no requested filing or landing content is present.",
+    "method": "Short content or substantive record excerpts and link inventory reviewed"
+  },
+  "65ddfc06b0d912b0ffc53e9a11a9e88f76d03017857be736f58de884bdbfb131": {
+    "verdict": "wall",
+    "reason": "The entire short response is a 403 Forbidden message with a transaction identifier; no requested filing or landing content is present.",
+    "method": "Short content or substantive record excerpts and link inventory reviewed"
+  },
+  "c9ab122a026a57cd9afcea14cf2bfa272de109f9a1bc6c450a7e173a6e1a964a": {
+    "verdict": "wall",
+    "reason": "The entire short response is a 403 Forbidden message with a transaction identifier; no requested filing or landing content is present.",
+    "method": "Short content or substantive record excerpts and link inventory reviewed"
+  },
+  "c329af661eaead6a92e87f40b7f3d0501c068f0d86c4f3c4b119d7f813a52545": {
+    "verdict": "shell",
+    "reason": "Only a JavaScript fragment and appliance-page title remain; there are no appliance records or substantive landing content.",
+    "method": "Short content or substantive record excerpts and link inventory reviewed"
+  },
+  "3ad273af867f46c5216149a7e5720d30ff3e556eb6dd8176620258014d026a19": {
+    "verdict": "useful",
+    "reason": "The live directory has multiple identifiable linked channels with content categories, live status and viewer counts. This establishes useful directory metadata, not playback or downstream stream access.",
+    "method": "Short content or substantive record excerpts and link inventory reviewed"
+  },
+  "67139f93604f546d44ded94ddad4c61f8b1bb635b8b1823cca2bfc878f09d5ae": {
+    "verdict": "useful",
+    "reason": "The live directory has multiple identifiable linked channels with content categories, live status and viewer counts. This establishes useful directory metadata, not playback or downstream stream access.",
+    "method": "Short content or substantive record excerpts and link inventory reviewed"
+  },
+  "b1949fb065b465a767850c511bb4b67b551695ce1633d2b055949a2471ae4085": {
+    "verdict": "useful",
+    "reason": "The live directory has multiple identifiable linked channels with content categories, live status and viewer counts. This establishes useful directory metadata, not playback or downstream stream access.",
+    "method": "Short content or substantive record excerpts and link inventory reviewed"
+  },
+  "f04076711ae718edd8e0293b5ebe047b2c5a4dfaa2bbe49ac79432a57a31ca63": {
+    "verdict": "useful",
+    "reason": "The live directory has multiple identifiable linked channels with content categories, live status and viewer counts. This establishes useful directory metadata, not playback or downstream stream access.",
+    "method": "Short content or substantive record excerpts and link inventory reviewed"
+  },
+  "4815daa3c0d549da507903e90a2ca70b4bb2e2bb02c8a9ef643161446407c265": {
+    "verdict": "useful",
+    "reason": "The engineer-job listing contains multiple job titles with job-item links, employer names, locations and posting ages. This is useful listing content, not verification of every job or linked job description.",
+    "method": "Short content or substantive record excerpts and link inventory reviewed"
+  },
+  "597119f213e7fcc862a90c8d4be40cacac7287162a5ea1e4700ad9a5c7c04baf": {
+    "verdict": "useful",
+    "reason": "The engineer-job listing contains multiple job titles with job-item links, employer names, locations and posting ages. This is useful listing content, not verification of every job or linked job description.",
+    "method": "Short content or substantive record excerpts and link inventory reviewed"
+  },
+  "b19364b7ce9f6b38a75c79d5cc3c13e8cc0486370d3a72548c702e6b902d44ad": {
+    "verdict": "useful",
+    "reason": "The engineer-job listing contains multiple job titles with job-item links, employer names, locations and posting ages. This is useful listing content, not verification of every job or linked job description.",
+    "method": "Short content or substantive record excerpts and link inventory reviewed"
+  },
+  "7c5ec18b49ca7c223f510e4869355f6f82544247a0e3bf95c78692efdb43799f": {
+    "verdict": "useful",
+    "reason": "The truncated 2000-character response still includes several identifiable jobs with job-item links, employers and locations. Useful records are present despite the tool verdict; this does not establish completeness or an unblocked page.",
+    "method": "Short content or substantive record excerpts and link inventory reviewed"
+  },
+  "acd9b152bc1a60faedafbcd539ab170094c13db56fd6fa8f79a4ffc3942bd632": {
+    "verdict": "useful",
+    "reason": "The truncated 2000-character response still includes several identifiable jobs with job-item links, employers and locations. Useful records are present despite the tool verdict; this does not establish completeness or an unblocked page.",
+    "method": "Short content or substantive record excerpts and link inventory reviewed"
+  },
+  "c29c361a7bbd396feb46d4606e2abfb07c8f62fa1aaf6dd38df5f06b17d73188": {
+    "verdict": "useful",
+    "reason": "The truncated 2000-character response still includes several identifiable jobs with job-item links, employers and locations. Useful records are present despite the tool verdict; this does not establish completeness or an unblocked page.",
+    "method": "Short content or substantive record excerpts and link inventory reviewed"
+  },
+  "6cab9d46fa8973ef1d2236d931fb69a2bdf10f208ef6663fe63b3f6a4360e2e6": {
+    "verdict": "useful",
+    "reason": "The result includes named accommodation near Victoria and Shawnigan Lake with location and amenity descriptions. Item links, prices and several repeated record headings are absent; only the identified accommodation descriptions count, not complete search coverage.",
+    "method": "Short content or substantive record excerpts and link inventory reviewed"
+  },
+  "a9bf2ea46b88e81b58f7e446c0b70439b73aaa30642e45b8a5ea328ee6a784a1": {
+    "verdict": "useful",
+    "reason": "The result includes named accommodation near Victoria and Shawnigan Lake with location and amenity descriptions. Item links, prices and several repeated record headings are absent; only the identified accommodation descriptions count, not complete search coverage.",
+    "method": "Short content or substantive record excerpts and link inventory reviewed"
+  },
+  "41b29c11ba197130c1fb4aaf078b132b90cb278d876b0e899a6b95326fc5172c": {
+    "verdict": "diagnostic-only",
+    "reason": "This prespecified browser diagnostic or TLS target is excluded from production usefulness scoring. Delivery does not establish passing active detectors.",
+    "method": "Prespecified target category"
+  },
+  "6c0d8f49a8c5dd3b0ef4e5babdc8adc493a5ba7e221bdf8097fda527d9d6f4af": {
+    "verdict": "diagnostic-only",
+    "reason": "This prespecified browser diagnostic or TLS target is excluded from production usefulness scoring. Delivery does not establish passing active detectors.",
+    "method": "Prespecified target category"
+  },
+  "74d3b6b36501e5a12996afd9427a239409d76c4de5f206e6d0b2323a3cb55ed7": {
+    "verdict": "diagnostic-only",
+    "reason": "This prespecified browser diagnostic or TLS target is excluded from production usefulness scoring. Delivery does not establish passing active detectors.",
+    "method": "Prespecified target category"
+  },
+  "7a2ea021ad4b4401cacadba4e62bb405cd4524c6a83751dedcd1a29ded7a09ed": {
+    "verdict": "diagnostic-only",
+    "reason": "This prespecified browser diagnostic or TLS target is excluded from production usefulness scoring. Delivery does not establish passing active detectors.",
+    "method": "Prespecified target category"
+  },
+  "ab2ea2de6c02277c277e5bada5b9e91241ed4de6b417766400cdda662400423d": {
+    "verdict": "diagnostic-only",
+    "reason": "This prespecified browser diagnostic or TLS target is excluded from production usefulness scoring. Delivery does not establish passing active detectors.",
+    "method": "Prespecified target category"
+  },
+  "b099effc2baf4ada5658abaece4972befc8b10c1111f024709a313970bbdde75": {
+    "verdict": "diagnostic-only",
+    "reason": "This prespecified browser diagnostic or TLS target is excluded from production usefulness scoring. Delivery does not establish passing active detectors.",
+    "method": "Prespecified target category"
+  },
+  "6ea8388138c0d5c042a5495397dae06248af199fcefa01cdab047be0e9f72f3e": {
+    "verdict": "partial",
+    "reason": "Search snippets and an AI overview survive, but the entire Markdown link inventory contains only search-pagination links. Missing source-result URLs prevent recovery of the requested search records.",
+    "method": "Relevant content excerpts and complete link inventory or query-term scan inspected"
+  },
+  "71065850e9481b3e7a9494a57cec4cc6fce5fddb813ad049c12985aebcf624d3": {
+    "verdict": "partial",
+    "reason": "Search snippets and an AI overview survive, but the entire Markdown link inventory contains only search-pagination links. Missing source-result URLs prevent recovery of the requested search records.",
+    "method": "Relevant content excerpts and complete link inventory or query-term scan inspected"
+  },
+  "7fac5e931ed4bad6484305d7e9831251e042e389a93b5d3b7c7d60c04173c1f7": {
+    "verdict": "partial",
+    "reason": "Search snippets and an AI overview survive, but the entire Markdown link inventory contains only search-pagination links. Missing source-result URLs prevent recovery of the requested search records.",
+    "method": "Relevant content excerpts and complete link inventory or query-term scan inspected"
+  },
+  "91236d165d16b7e1900367414ab6d9104136679e10aee2302e33b74ade095fcf": {
+    "verdict": "partial",
+    "reason": "Search snippets and an AI overview survive, but the entire Markdown link inventory contains only search-pagination links. Missing source-result URLs prevent recovery of the requested search records.",
+    "method": "Relevant content excerpts and complete link inventory or query-term scan inspected"
+  },
+  "98db9d3dca14d03b8fbb708c8bd510f76a6972e792dde2c3fd309a048e7d8dad": {
+    "verdict": "partial",
+    "reason": "Search snippets and an AI overview survive, but the entire Markdown link inventory contains only search-pagination links. Missing source-result URLs prevent recovery of the requested search records.",
+    "method": "Relevant content excerpts and complete link inventory or query-term scan inspected"
+  },
+  "e4dd939986d34b953062101e2d9926c96ff53bbf7026857e996f86ff6f9a4895": {
+    "verdict": "partial",
+    "reason": "Search snippets and an AI overview survive, but the entire Markdown link inventory contains only search-pagination links. Missing source-result URLs prevent recovery of the requested search records.",
+    "method": "Relevant content excerpts and complete link inventory or query-term scan inspected"
+  },
+  "03e05b939118879ad5ba1b3579ff4fff250a2e14f19172b37e3f78533f387c32": {
+    "verdict": "partial",
+    "reason": "Trending repository descriptions, languages and dates remain, but repeated repository names and repository-item links are missing. Surviving images, collection and marketplace links do not restore the trending repository records.",
+    "method": "Relevant content excerpts and complete link inventory or query-term scan inspected"
+  },
+  "b19f1678ac21b1fdaff824c5919d0c69a3e4b9cd7a0a70daa02596186d7f43c2": {
+    "verdict": "partial",
+    "reason": "Trending repository descriptions, languages and dates remain, but repeated repository names and repository-item links are missing. Surviving images, collection and marketplace links do not restore the trending repository records.",
+    "method": "Relevant content excerpts and complete link inventory or query-term scan inspected"
+  },
+  "12612eea0719a2e546465ed2af2ec89d5d89d133ffc586887c6af24241cba304": {
+    "verdict": "partial",
+    "reason": "The response is a general newsroom with unrelated legal and business headlines. The requested gold query is not represented anywhere in the saved content; query-specific results are not established.",
+    "method": "Relevant content excerpts and complete link inventory or query-term scan inspected"
+  },
+  "33b541670521037d528939c2b93a5e20f6045c3e09d15e5c485800865240dd0d": {
+    "verdict": "useful",
+    "reason": "The requested news front page includes story titles with destination links, authors, scores and discussion links. These are useful front-page records; linked articles and discussions were not verified.",
+    "method": "Relevant content excerpts and complete link inventory or query-term scan inspected"
+  },
+  "748c74e535c1e07e70524cc0be0109378bec591ded8fc23cd2ff3f28fe5deb7a": {
+    "verdict": "useful",
+    "reason": "The requested language article contains substantive factual paragraphs about typing, memory safety and programming features, plus explanatory code and references. This establishes useful article content, not exhaustive preservation.",
+    "method": "Relevant content excerpts and complete link inventory or query-term scan inspected"
+  },
+  "ec30726ca04dfa0339338e9d2f280634e16ea41708adecc016ff0215af3dcc42": {
+    "verdict": "useful",
+    "reason": "The requested language article contains substantive factual paragraphs about typing, memory safety and programming features, plus explanatory code and references. This establishes useful article content, not exhaustive preservation.",
+    "method": "Relevant content excerpts and complete link inventory or query-term scan inspected"
+  },
+  "6cabfb636b569bc09ed5c92187c4430f995c07b7febe162a5aa61a9eab734b82": {
+    "verdict": "useful",
+    "reason": "The requested search response includes identifiable speaker accessories with item links, prices and delivery details. This is useful content from the returned search, not evidence of availability of a specific speaker model; navigation remains.",
+    "method": "Relevant content excerpts and complete link inventory or query-term scan inspected"
+  },
+  "a82d44a5a1fd977a831abf52fd9e2c90575b097b77e8694c505f471d4116f227": {
+    "verdict": "useful",
+    "reason": "The requested search response includes identifiable speaker accessories with item links, prices and delivery details. This is useful content from the returned search, not evidence of availability of a specific speaker model; navigation remains.",
+    "method": "Relevant content excerpts and complete link inventory or query-term scan inspected"
+  },
+  "d3c38013b9cd0020fca470f6f1d712345473f80263213736af6df943f0e6e407": {
+    "verdict": "useful",
+    "reason": "The requested search response includes identifiable speaker accessories with item links, prices and delivery details. This is useful content from the returned search, not evidence of availability of a specific speaker model; navigation remains.",
+    "method": "Relevant content excerpts and complete link inventory or query-term scan inspected"
+  },
+  "1244029dff925f904d364bb3a8306944c2da4a587916d9579decde8d707063cf": {
+    "verdict": "unavailable",
+    "reason": "The saved response content is empty.",
+    "method": "Exact URL/status/content fingerprint matches reviewed baseline"
+  },
+  "4690065ddc9e1491b004905606e85e792ca22fe47edde83be556c0a740aa6801": {
+    "verdict": "unavailable",
+    "reason": "The saved response content is empty.",
+    "method": "Exact URL/status/content fingerprint matches reviewed baseline"
+  },
+  "582e789eea74ff60ae137b77e961b00fb3d6eed4b091770ca719fb8b48c2af62": {
+    "verdict": "unavailable",
+    "reason": "The saved response content is empty.",
+    "method": "Exact URL/status/content fingerprint matches reviewed baseline"
+  },
+  "741a693abfa635a5f3ddad57491e3b8aff1b6c8062a905dd09a88b1271fbd91b": {
+    "verdict": "unavailable",
+    "reason": "The saved response content is empty.",
+    "method": "Exact URL/status/content fingerprint matches reviewed baseline"
+  },
+  "7a5d955914cbd88734d88d9d6a43bcf1c4cdfe8fd2ebd014f44522ca1e6f35a6": {
+    "verdict": "useful",
+    "reason": "The complete short example-domain control contains its intended explanatory paragraph and information link.",
+    "method": "Exact URL/status/content fingerprint matches reviewed baseline"
+  },
+  "d9bb9a6d0d03402b2541c4c4e570192cd093e2574705f963dd1df740588e18ce": {
+    "verdict": "unavailable",
+    "reason": "The saved response content is empty.",
+    "method": "Exact URL/status/content fingerprint matches reviewed baseline"
+  },
+  "dabbaad9d533765176977299dde83391a78dcf5f1a09dfc7d6a775b522e5d832": {
+    "verdict": "unavailable",
+    "reason": "The saved response content is empty.",
+    "method": "Exact URL/status/content fingerprint matches reviewed baseline"
+  },
+  "ed61b53b0992ba42ea21adf916248068e97d405c2de360d63106abd9ff4fc018": {
+    "verdict": "diagnostic-only",
+    "reason": "This URL is a prespecified diagnostic endpoint or challenge-demo control, excluded from production-content success regardless of the displayed detector values.",
+    "method": "Exact URL/status/content fingerprint matches reviewed baseline"
+  },
+  "0399041825e813c8a8bbf0df14b4c370cb40d7763f621ac5db6af66fcbe14ee9": {
+    "verdict": "useful",
+    "reason": "The requested company profile includes a subject-specific description of its research and deployment activities plus descriptions of its conversational service and developer platform. Financial fields include placeholders or subscription prompts; no complete or verified funding data is claimed.",
+    "method": "Saved short content or substantive record excerpts reviewed"
+  },
+  "1029f7f29a945d3ce0e9987245b76f8dc6ddb1efa9c5d89370b9edfe75dedbbf": {
+    "verdict": "unavailable",
+    "reason": "The entire response is a retry/error message about a failed page load; no requested exploration feed is present.",
+    "method": "Saved short content or substantive record excerpts reviewed"
+  },
+  "36056d2c2cc2822c41cef17c6c51e28df3ab584271f8397faa8c6a000e46c448": {
+    "verdict": "wall",
+    "reason": "The complete short response requires session verification and gives a request identifier, with no requested company or landing content.",
+    "method": "Saved short content or substantive record excerpts reviewed"
+  },
+  "45cbec16a4b8f01a7d128e924f73f31e1dc50ac4adbda0a45fc47644adb3f20c": {
+    "verdict": "wall",
+    "reason": "The complete short response requires session verification and gives a request identifier, with no requested company or landing content.",
+    "method": "Saved short content or substantive record excerpts reviewed"
+  },
+  "3b962e43df5bb7a0286bf93b4c9ac7c7a5590614b93db9046e0f918ee7dafdef": {
+    "verdict": "wall",
+    "reason": "The saved response consists of security-verification or explicit blocking instructions, not the requested page content.",
+    "method": "Saved short content or substantive record excerpts reviewed"
+  },
+  "3c7f82c119ba0b658c0671a7a07451348d4230f4af32b057721025813517e82d": {
+    "verdict": "wall",
+    "reason": "The saved response consists of security-verification or explicit blocking instructions, not the requested page content.",
+    "method": "Saved short content or substantive record excerpts reviewed"
+  },
+  "4b333ac6a62ffcc2066704d377717b862e317f04ef9b171cceff5e9d51c38219": {
+    "verdict": "wall",
+    "reason": "The entire response is a 403 Forbidden message with a transaction identifier; no requested filing or landing content is present.",
+    "method": "Saved short content or substantive record excerpts reviewed"
+  },
+  "80049c930a2581a28d6b3396fa13ebc349c898c9cf2210f422aeae9a6eade98a": {
+    "verdict": "wall",
+    "reason": "The entire response is a 403 Forbidden message with a transaction identifier; no requested filing or landing content is present.",
+    "method": "Saved short content or substantive record excerpts reviewed"
+  },
+  "9dacb242d87dfd758e22f2cd1158d8369eafa5eeef1ce1012bb7bd804d1ef854": {
+    "verdict": "wall",
+    "reason": "The entire response is a 403 Forbidden message with a transaction identifier; no requested filing or landing content is present.",
+    "method": "Saved short content or substantive record excerpts reviewed"
+  },
+  "60f158e7f7bd155442723cbab35c880f7186fdfda0173549adfe3b2526b10536": {
+    "verdict": "useful",
+    "reason": "The requested question listing contains identifiable question titles, topical excerpts and question links, with posting metadata for several entries. Full discussions are not established.",
+    "method": "Saved short content or substantive record excerpts reviewed"
+  },
+  "1b70b124ffc914d639a3fc1b7b95b433597c66444cccae24bd3d0cf0761d903a": {
+    "verdict": "diagnostic-only",
+    "reason": "This prespecified browser diagnostic target is excluded from production usefulness scoring. Delivery does not establish passing active detectors.",
+    "method": "Prespecified target category"
+  },
+  "24d0319f69c2dea6694fba81b5fbfe5b3eaf658124feea358e390833eaad3c04": {
+    "verdict": "diagnostic-only",
+    "reason": "This prespecified browser diagnostic target is excluded from production usefulness scoring. Delivery does not establish passing active detectors.",
+    "method": "Prespecified target category"
+  },
+  "62d48a313bd8ce245f6f1e1448b9c012db556e99b6b9d6c84e245f0955d707b6": {
+    "verdict": "diagnostic-only",
+    "reason": "This prespecified browser diagnostic target is excluded from production usefulness scoring. Delivery does not establish passing active detectors.",
+    "method": "Prespecified target category"
+  },
+  "189057070f1e926489dd0f712be6ff0ec36c793482f76787cfefcc4d885ab336": {
+    "verdict": "unavailable",
+    "reason": "The saved response content is empty.",
+    "method": "Exact URL/status/content fingerprint matches reviewed baseline"
+  },
+  "2f177e7ed23561fe26aa18782c057e98006d12c57bd2f8b2fc946e38bddba5aa": {
+    "verdict": "useful",
+    "reason": "The requested area search includes named accommodations with location and amenity descriptions, including the Saanichton airport motel and Shawnigan properties. The heading has a narrower property count and many filters are empty; this supports useful accommodation records, not complete availability, prices or geographic coverage.",
+    "method": "Exact URL/status/content fingerprint matches reviewed baseline"
+  },
+  "76738cbc7ac72739e62d90ba64a0a359cbd4bfca73cf65045b00915ee70d3299": {
+    "verdict": "unavailable",
+    "reason": "The saved response content is empty.",
+    "method": "Exact URL/status/content fingerprint matches reviewed baseline"
+  },
+  "b3bf3d5dca098e39a76c797f11f09d4b2800feac8f7e2349dca1aa3b8c85fde7": {
+    "verdict": "unavailable",
+    "reason": "The saved response content is empty.",
+    "method": "Exact URL/status/content fingerprint matches reviewed baseline"
+  },
+  "f60c72d66c18a139838d490bb561bd82c4f7d966869407d24e08cd557ece2b8e": {
+    "verdict": "unavailable",
+    "reason": "The saved response content is empty.",
+    "method": "Exact URL/status/content fingerprint matches reviewed baseline"
+  },
+  "176775243de9c0cd1cda53bb1c949d88a1e708e67bb293d616e0702a2d2cc8f4": {
+    "verdict": "useful",
+    "reason": "The public feed contains identifiable post titles, community names and corresponding post links. Advertising and duplicated titles remain; linked discussions are not verified.",
+    "method": "Saved short content or record excerpts and relevant complete link/query inventory reviewed"
+  },
+  "2501f86b4de318ba291e085aef2d8dfad906aea6d5f2d881861f8ec38584d406": {
+    "verdict": "useful",
+    "reason": "The public feed contains identifiable post titles, community names and corresponding post links. Advertising and duplicated titles remain; linked discussions are not verified.",
+    "method": "Saved short content or record excerpts and relevant complete link/query inventory reviewed"
+  },
+  "59665f1b1f21bc02eca5c813ce5cac86d9bba516503cff66bee9324ee0abf892": {
+    "verdict": "useful",
+    "reason": "The public feed contains identifiable post titles, community names and corresponding post links. Advertising and duplicated titles remain; linked discussions are not verified.",
+    "method": "Saved short content or record excerpts and relevant complete link/query inventory reviewed"
+  },
+  "dcb0f7d8e142149611741ed5a2647eab67e558132c3b16bb37f68227b6760387": {
+    "verdict": "useful",
+    "reason": "The public feed contains identifiable post titles, community names and corresponding post links. Advertising and duplicated titles remain; linked discussions are not verified.",
+    "method": "Saved short content or record excerpts and relevant complete link/query inventory reviewed"
+  },
+  "e011f4fd7c143ecb3192329226c4bd3a62ae464427467cb9c40ea14977ef2221": {
+    "verdict": "useful",
+    "reason": "The public feed contains identifiable post titles, community names and corresponding post links. Advertising and duplicated titles remain; linked discussions are not verified.",
+    "method": "Saved short content or record excerpts and relevant complete link/query inventory reviewed"
+  },
+  "f841e58655d05fab766eef55892eaddd45e6ae6c56841304e604643919eba7c2": {
+    "verdict": "useful",
+    "reason": "The public feed contains identifiable post titles, community names and corresponding post links. Advertising and duplicated titles remain; linked discussions are not verified.",
+    "method": "Saved short content or record excerpts and relevant complete link/query inventory reviewed"
+  },
+  "4ad1a930137607d2e7192c0d76307cbcfd32eb228e4ececa9421f7ef96089783": {
+    "verdict": "wall",
+    "reason": "The complete short response reports unusual traffic and a robot-verification check. It contains no requested search results.",
+    "method": "Saved short content or record excerpts and relevant complete link/query inventory reviewed"
+  },
+  "52b73de70e5abc65c40204ab8bd043da2f051173f8475b670efd08d29cd22d2a": {
+    "verdict": "wall",
+    "reason": "The complete short response reports unusual traffic and a robot-verification check. It contains no requested search results.",
+    "method": "Saved short content or record excerpts and relevant complete link/query inventory reviewed"
+  },
+  "aacf7d933c44c83ec3686ef363596ce9aed2b37bae6ffdd77332b76f7382bfe5": {
+    "verdict": "wall",
+    "reason": "The complete short response reports unusual traffic and a robot-verification check. It contains no requested search results.",
+    "method": "Saved short content or record excerpts and relevant complete link/query inventory reviewed"
+  },
+  "bbbd5865ed3cce9fc4e8bcd06fd5079d60c0cdf99f4fd1b4ddadffab05032bf6": {
+    "verdict": "wall",
+    "reason": "The complete short response reports unusual traffic and a robot-verification check. It contains no requested search results.",
+    "method": "Saved short content or record excerpts and relevant complete link/query inventory reviewed"
+  },
+  "d8d0e86486988d618115a2427b0530e4cf736a48c00cd360ab39c04cda73edce": {
+    "verdict": "wall",
+    "reason": "The complete short response reports unusual traffic and a robot-verification check. It contains no requested search results.",
+    "method": "Saved short content or record excerpts and relevant complete link/query inventory reviewed"
+  },
+  "fca768febb9a10cd1ab5a59179d119803659a466b5dbbe13f6bf3e3afa857b8f": {
+    "verdict": "wall",
+    "reason": "The complete short response reports unusual traffic and a robot-verification check. It contains no requested search results.",
+    "method": "Saved short content or record excerpts and relevant complete link/query inventory reviewed"
+  },
+  "4bb9fe47451f9d22553b547fbecd35835020be026626e4de5f71fef45de153b8": {
+    "verdict": "useful",
+    "reason": "The returned accommodation results identify named properties near Victoria and Shawnigan Lake with location and amenity descriptions. Several repeated headings and item links are absent; this does not establish complete search coverage or booking availability.",
+    "method": "Saved short content or record excerpts and relevant complete link/query inventory reviewed"
+  },
+  "687b1a3ef62b27cb465b6cced347f34e6f1bec53247053c06bb49122a4da68de": {
+    "verdict": "useful",
+    "reason": "The returned accommodation results identify named properties near Victoria and Shawnigan Lake with location and amenity descriptions. Several repeated headings and item links are absent; this does not establish complete search coverage or booking availability.",
+    "method": "Saved short content or record excerpts and relevant complete link/query inventory reviewed"
+  },
+  "d39953675abd1d2653ff03b3bc7d34dbb24f48929cd3ac86dda85df85e63319a": {
+    "verdict": "useful",
+    "reason": "The returned accommodation results identify named properties near Victoria and Shawnigan Lake with location and amenity descriptions. Several repeated headings and item links are absent; this does not establish complete search coverage or booking availability.",
+    "method": "Saved short content or record excerpts and relevant complete link/query inventory reviewed"
+  },
+  "d4e478fa452367d89298242e5d3db3ec0036a9b9adb933bb7a1ef317014db39d": {
+    "verdict": "useful",
+    "reason": "The returned accommodation results identify named properties near Victoria and Shawnigan Lake with location and amenity descriptions. Several repeated headings and item links are absent; this does not establish complete search coverage or booking availability.",
+    "method": "Saved short content or record excerpts and relevant complete link/query inventory reviewed"
+  },
+  "55045fe98c63ff107dd2cb70bf45107257cc9b24e09575f7319ef3ab898d3b16": {
+    "verdict": "useful",
+    "reason": "The hardware listing includes identifiable graphics-card names, model specifications, prices and product links. Some fields are absent and image alternative text carries some product names; complete catalogue coverage is not established.",
+    "method": "Saved short content or record excerpts and relevant complete link/query inventory reviewed"
+  },
+  "718c6521d6888fcaa79f95a33f47a7a6b79b13eeab970f785130559eb060f8b5": {
+    "verdict": "useful",
+    "reason": "The hardware listing includes identifiable graphics-card names, model specifications, prices and product links. Some fields are absent and image alternative text carries some product names; complete catalogue coverage is not established.",
+    "method": "Saved short content or record excerpts and relevant complete link/query inventory reviewed"
+  },
+  "7eb9e3fbad74bb3f575faf12fb11708aae2784d11a100770667e91df5436b766": {
+    "verdict": "useful",
+    "reason": "The property listing includes multiple linked Madrid properties with street names, prices, room counts, floor areas and descriptions. Useful records are present; complete catalogue coverage is not established.",
+    "method": "Saved short content or record excerpts and relevant complete link/query inventory reviewed"
+  },
+  "803d2b6654bd8124cd5f105ff8b7e8cc2be40093316946f9469a471c1635ae1e": {
+    "verdict": "partial",
+    "reason": "Trending repository descriptions, languages and dates remain, but repeated repository names and repository-item links are missing. The complete surviving link inventory points to images, a collection, marketplace items and related product pages rather than the trending repository records.",
+    "method": "Saved short content or record excerpts and relevant complete link/query inventory reviewed"
+  },
+  "d888bea4ce779dc21dc0c8f935378613a1fec9e4a82c5eb5b0bb20cc4e3e5c12": {
+    "verdict": "partial",
+    "reason": "The response is a general newsroom with legal/business headlines. The requested gold query is absent from the complete saved content; query-specific results are not established.",
+    "method": "Saved short content or record excerpts and relevant complete link/query inventory reviewed"
+  },
+  "f41c5642f1efc84cb26c57a86d4d1ffd22d59cb648510512d22cd64f6805c3c3": {
+    "verdict": "wall",
+    "reason": "The complete short response requires session verification and gives a request identifier, without the requested company-profile content.",
+    "method": "Saved short content or record excerpts and relevant complete link/query inventory reviewed"
+  },
+  "191ab603eedd845af8b51afd32681ebed4a486fc00f825a7cdc698066138ff0e": {
+    "verdict": "diagnostic-only",
+    "reason": "This prespecified browser diagnostic or TLS target is excluded from production usefulness scoring. Delivery does not establish passing active detectors.",
+    "method": "Prespecified target category"
+  },
+  "2def0b67ecc0bdeaf56bfd8dd2b926c125e340d86c7ae0d7f0cb7e261c89323b": {
+    "verdict": "diagnostic-only",
+    "reason": "This prespecified browser diagnostic or TLS target is excluded from production usefulness scoring. Delivery does not establish passing active detectors.",
+    "method": "Prespecified target category"
+  },
+  "7b46241478f26bc225d8d40aa2e5624efc2872aed25638ce39fea1c0a468ef7f": {
+    "verdict": "diagnostic-only",
+    "reason": "This prespecified browser diagnostic or TLS target is excluded from production usefulness scoring. Delivery does not establish passing active detectors.",
+    "method": "Prespecified target category"
+  },
+  "7b4a6d36fb55c50c203989e65bed30710d8eba86077fe65042af6aaf13663dbf": {
+    "verdict": "diagnostic-only",
+    "reason": "This prespecified browser diagnostic or TLS target is excluded from production usefulness scoring. Delivery does not establish passing active detectors.",
+    "method": "Prespecified target category"
+  },
+  "a8d528ac4af9b47b71a6d8e329484a91470c53b706fafb2809f7d2fb34d19995": {
+    "verdict": "diagnostic-only",
+    "reason": "This prespecified browser diagnostic or TLS target is excluded from production usefulness scoring. Delivery does not establish passing active detectors.",
+    "method": "Prespecified target category"
+  },
+  "d80a62e9ca3f8c086014244406b267de6720f7cac8ae8a2ac616ab6dc7f73450": {
+    "verdict": "diagnostic-only",
+    "reason": "This prespecified browser diagnostic or TLS target is excluded from production usefulness scoring. Delivery does not establish passing active detectors.",
+    "method": "Prespecified target category"
+  },
+  "e330d3e4e4fd28f1c648efce3292bed099dda61b45eefa0fe9b6803a4a74b39b": {
+    "verdict": "diagnostic-only",
+    "reason": "This prespecified browser diagnostic or TLS target is excluded from production usefulness scoring. Delivery does not establish passing active detectors.",
+    "method": "Prespecified target category"
+  },
+  "e36fad43695156d3c1fef2a06999d66622eb81a3a6627048b71c80a89e3ac441": {
+    "verdict": "diagnostic-only",
+    "reason": "This prespecified browser diagnostic or TLS target is excluded from production usefulness scoring. Delivery does not establish passing active detectors.",
+    "method": "Prespecified target category"
+  },
+  "e530db714dda8f845f79b60e52498701c5e21f491477b4c05dc86b10e9c13825": {
+    "verdict": "diagnostic-only",
+    "reason": "This prespecified browser diagnostic or TLS target is excluded from production usefulness scoring. Delivery does not establish passing active detectors.",
+    "method": "Prespecified target category"
+  },
+  "2685d70b0bb7b101a18a46959131900684d9ad72cd157cde38cabf2a73af08d3": {
+    "verdict": "shell",
+    "reason": "Only site navigation and a refresh error are present; the requested profile details are absent.",
+    "method": "Exact URL/status/content fingerprint matches reviewed baseline"
+  },
+  "3d1fdff00a184204e4bd19a2bc3080b99249a53c03dd315817a6628ab9e9271a": {
+    "verdict": "unavailable",
+    "reason": "The saved response content is empty.",
+    "method": "Exact URL/status/content fingerprint matches the reviewed baseline; baseline content review"
+  },
+  "3ead0f6a916f089b80d6e7abeecfb912a5ecc93a5c937c82d2037af6f71a1a53": {
+    "verdict": "unavailable",
+    "reason": "The saved response content is empty.",
+    "method": "Exact URL/status/content fingerprint matches the reviewed baseline; baseline content review"
+  },
+  "6cb2512d3bc631db0185100591e95da5fabce97c497b291129557096f5bfe6b8": {
+    "verdict": "unavailable",
+    "reason": "The saved response content is empty.",
+    "method": "Exact URL/status/content fingerprint matches the reviewed baseline; baseline content review"
+  },
+  "a1944500372ba1dee8443640923139487644f662b826c441553172367582c966": {
+    "verdict": "partial",
+    "reason": "A no-matching-results interface with search tips; no property records. No independent evidence confirms that the requested listing is empty.",
+    "method": "Exact URL/status/content fingerprint matches the reviewed baseline; baseline content review"
+  },
+  "d054fb66b3cd3f5c6217133186d998c37f8988c7a877be7e87e06f75fbb11618": {
+    "verdict": "unavailable",
+    "reason": "The saved response content is empty.",
+    "method": "Exact URL/status/content fingerprint matches the reviewed baseline; baseline content review"
+  },
+  "d3193554c7f76bafd62c9f445f003f1c25d3ea46c95259802f825b461a4f8691": {
+    "verdict": "unavailable",
+    "reason": "The saved response content is empty.",
+    "method": "Exact URL/status/content fingerprint matches the reviewed baseline; baseline content review"
+  },
+  "118406aaa5624048e6f860051103b71fee1a72f857f304f98d1be16846b545f0": {
+    "verdict": "diagnostic-only",
+    "reason": "Prespecified fingerprint/TLS/challenge diagnostic endpoint; excluded from production-content usefulness.",
+    "method": "Prespecified target classification"
+  },
+  "169a17d258aac214cec7b010c807dd7f31ee4008211fc52c7d0fd1b3be689ca7": {
+    "verdict": "diagnostic-only",
+    "reason": "Prespecified fingerprint/TLS/challenge diagnostic endpoint; excluded from production-content usefulness.",
+    "method": "Prespecified target classification"
+  },
+  "3025adf9c84a9df380cad377df87316dabe7a7591203d9ce2d83545fe8eea437": {
+    "verdict": "diagnostic-only",
+    "reason": "Prespecified fingerprint/TLS/challenge diagnostic endpoint; excluded from production-content usefulness.",
+    "method": "Prespecified target classification"
+  },
+  "391eb91c5d094105f37c41fbb1db9a1a9ced9a4afc91e21915b694f6ca20206d": {
+    "verdict": "diagnostic-only",
+    "reason": "Prespecified fingerprint/TLS/challenge diagnostic endpoint; excluded from production-content usefulness.",
+    "method": "Prespecified target classification"
+  },
+  "42470cb7037b5e86349e2dd55e15b2726690f2810d340a396060befb6be7778a": {
+    "verdict": "diagnostic-only",
+    "reason": "Prespecified fingerprint/TLS/challenge diagnostic endpoint; excluded from production-content usefulness.",
+    "method": "Prespecified target classification"
+  },
+  "430c589e38bb3814e7583fce75f30355910075df96b4187bd40a611d9eabd65b": {
+    "verdict": "diagnostic-only",
+    "reason": "Prespecified fingerprint/TLS/challenge diagnostic endpoint; excluded from production-content usefulness.",
+    "method": "Prespecified target classification"
+  },
+  "8113e0ae28abee52f97290800e944b0628e598de944b72903ba75d147ce0afd1": {
+    "verdict": "unavailable",
+    "reason": "No response content.",
+    "method": "Empty saved content"
+  },
+  "86889365030d84e65591cae64e99500e50d8ec8a6a648e72ebb1ee558a0477a0": {
+    "verdict": "diagnostic-only",
+    "reason": "Prespecified fingerprint/TLS/challenge diagnostic endpoint; excluded from production-content usefulness.",
+    "method": "Prespecified target classification"
+  },
+  "96e740a2a02a30b2ef556207daae395a26ea3188d2d04b8eba787943eda2e0c0": {
+    "verdict": "diagnostic-only",
+    "reason": "Prespecified fingerprint/TLS/challenge diagnostic endpoint; excluded from production-content usefulness.",
+    "method": "Prespecified target classification"
+  },
+  "da327d524d782bb858ae1c47a3e5b6fcb28725254046800ce88b02a669799274": {
+    "verdict": "diagnostic-only",
+    "reason": "Prespecified fingerprint/TLS/challenge diagnostic endpoint; excluded from production-content usefulness.",
+    "method": "Prespecified target classification"
+  },
+  "db6660bed37038bf398544d34c1b6736df8877174b684ad4d0e7cd1903b88539": {
+    "verdict": "diagnostic-only",
+    "reason": "Prespecified fingerprint/TLS/challenge diagnostic endpoint; excluded from production-content usefulness.",
+    "method": "Prespecified target classification"
+  },
+  "debce9c7d0720a5332146ea39cbe5524918e2098fd280cf7f3a8af042d34445c": {
+    "verdict": "diagnostic-only",
+    "reason": "Prespecified fingerprint/TLS/challenge diagnostic endpoint; excluded from production-content usefulness.",
+    "method": "Prespecified target classification"
+  },
+  "ecf3ef2c36a7b76e774efb65e9b1d9eb75267dc6329d5d14a861d1bdd9403781": {
+    "verdict": "diagnostic-only",
+    "reason": "Prespecified fingerprint/TLS/challenge diagnostic endpoint; excluded from production-content usefulness.",
+    "method": "Prespecified target classification"
+  },
+  "0878940b302414d5898a8b55076ac338bd20529d36629d4ed8048e049a264d96": {
+    "verdict": "wall",
+    "reason": "The saved page is a security-verification interstitial with a Ray ID and no requested insider content.",
+    "method": "Arm-hidden saved content excerpts and structured-content/link inspection"
+  },
+  "eeaecba442985878db0a1a9b4c8d4f8bb6e370e4b0cbb9af8d22e161181af791": {
+    "verdict": "wall",
+    "reason": "The saved page is a security-verification interstitial with a Ray ID and no requested insider content.",
+    "method": "Arm-hidden saved content excerpts and structured-content/link inspection"
+  },
+  "0c09720fcc1ba629e6dd0bd6b676e1242cc36c33f1474f70380b2ccd8bc5b607": {
+    "verdict": "wall",
+    "reason": "The saved page only requests a press-and-hold human verification.",
+    "method": "Arm-hidden saved content excerpts and structured-content/link inspection"
+  },
+  "08fad6c7b8f93621960f783303f9439ece2e003cfc1a751c2b7ad2ae6ea68fe3": {
+    "verdict": "useful",
+    "reason": "The 2,000-character excerpt contains four identifiable jobs with titles, employers, locations and item links, followed by a truncated fifth. This supports useful available content only, not completeness or unblocked delivery.",
+    "method": "Arm-hidden saved content excerpts and structured-content/link inspection"
+  },
+  "09535e27a5790b5759b6b7038acd2f828f961812362921048a3176ce290a0671": {
+    "verdict": "useful",
+    "reason": "The 2,000-character excerpt contains four identifiable jobs with titles, employers, locations and item links, followed by a truncated fifth. This supports useful available content only, not completeness or unblocked delivery.",
+    "method": "Arm-hidden saved content excerpts and structured-content/link inspection"
+  },
+  "1bb2e2f95c69134ab417dd3abec19f8bc1e5814d4ebd6a02505d70e9a091bc68": {
+    "verdict": "useful",
+    "reason": "The 2,000-character excerpt contains four identifiable jobs with titles, employers, locations and item links, followed by a truncated fifth. This supports useful available content only, not completeness or unblocked delivery.",
+    "method": "Arm-hidden saved content excerpts and structured-content/link inspection"
+  },
+  "270b6e1aa3377be0cc50db62045f9866f32d5eecadee0956c5745eddd7784261": {
+    "verdict": "useful",
+    "reason": "The saved listing contains job titles, employer names, locations and item links, including Entry Level Mechanical Engineer and a motor-grader engineering role. No exhaustive catalogue completeness is inferred.",
+    "method": "Arm-hidden saved content excerpts and structured-content/link inspection"
+  },
+  "b6b615d6bb59b4b7ed8cb615fa07535c3d0f970a145b9e07e077e2e2d2c89c73": {
+    "verdict": "useful",
+    "reason": "The saved listing contains job titles, employer names, locations and item links, including Entry Level Mechanical Engineer and a motor-grader engineering role. No exhaustive catalogue completeness is inferred.",
+    "method": "Arm-hidden saved content excerpts and structured-content/link inspection"
+  },
+  "f2f26b500105b41445b2a498d7dbd2129a61f6adb8e5e4ded465c0c56d0a8e7d": {
+    "verdict": "useful",
+    "reason": "The saved listing contains job titles, employer names, locations and item links, including Entry Level Mechanical Engineer and a motor-grader engineering role. No exhaustive catalogue completeness is inferred.",
+    "method": "Arm-hidden saved content excerpts and structured-content/link inspection"
+  },
+  "0d61abcffb82c548b579e997f3adab9f594aaeafb3a0fc5deffd30c90e9de106": {
+    "verdict": "partial",
+    "reason": "The search page retains description fragments, some employer/location text and a selected job description, but most result titles are blank and the complete Markdown URL inventory contains only resume/profile links, not job-item links. The requested search listing is materially incomplete.",
+    "method": "Arm-hidden saved content excerpts and structured-content/link inspection"
+  },
+  "1ac50237498bc891008c0471ba8c09e8617da65f47b76b8c3c4e5ea28d6d5c84": {
+    "verdict": "partial",
+    "reason": "The search page retains description fragments, some employer/location text and a selected job description, but most result titles are blank and the complete Markdown URL inventory contains only resume/profile links, not job-item links. The requested search listing is materially incomplete.",
+    "method": "Arm-hidden saved content excerpts and structured-content/link inspection"
+  },
+  "20974196a6a304b1a69e49a8688bde48c0867a94960644fa697c9b3ea034198b": {
+    "verdict": "partial",
+    "reason": "The search page retains description fragments, some employer/location text and a selected job description, but most result titles are blank and the complete Markdown URL inventory contains only resume/profile links, not job-item links. The requested search listing is materially incomplete.",
+    "method": "Arm-hidden saved content excerpts and structured-content/link inspection"
+  },
+  "2cf5998124501cb684fe795517059605e70be0821bbdc9d65655b8ac33b7a18f": {
+    "verdict": "partial",
+    "reason": "The search page retains description fragments, some employer/location text and a selected job description, but most result titles are blank and the complete Markdown URL inventory contains only resume/profile links, not job-item links. The requested search listing is materially incomplete.",
+    "method": "Arm-hidden saved content excerpts and structured-content/link inspection"
+  },
+  "636f83c67bc2e5552f4f6990151815b7894bcacb81cde22168b7df9171941ba6": {
+    "verdict": "partial",
+    "reason": "The search page retains description fragments, some employer/location text and a selected job description, but most result titles are blank and the complete Markdown URL inventory contains only resume/profile links, not job-item links. The requested search listing is materially incomplete.",
+    "method": "Arm-hidden saved content excerpts and structured-content/link inspection"
+  },
+  "7c690aea6b6a09abfd46aa2225d5eb02407ec44bca7125f0466b6071dd396f04": {
+    "verdict": "partial",
+    "reason": "The search page retains description fragments, some employer/location text and a selected job description, but most result titles are blank and the complete Markdown URL inventory contains only resume/profile links, not job-item links. The requested search listing is materially incomplete.",
+    "method": "Arm-hidden saved content excerpts and structured-content/link inspection"
+  },
+  "8701400bbf50be10dacb481974914b3d21af8de5df5eeeeb93614826908796b0": {
+    "verdict": "partial",
+    "reason": "The search page retains description fragments, some employer/location text and a selected job description, but most result titles are blank and the complete Markdown URL inventory contains only resume/profile links, not job-item links. The requested search listing is materially incomplete.",
+    "method": "Arm-hidden saved content excerpts and structured-content/link inspection"
+  },
+  "dc176d5a3ed883f0e4e6bf7f0f304d877223aaa150d6d70f5ba06bb6dc3d675e": {
+    "verdict": "partial",
+    "reason": "The search page retains description fragments, some employer/location text and a selected job description, but most result titles are blank and the complete Markdown URL inventory contains only resume/profile links, not job-item links. The requested search listing is materially incomplete.",
+    "method": "Arm-hidden saved content excerpts and structured-content/link inspection"
+  },
+  "15b234372c12d1ac38b628a4d1a91d3a20447c294f19fe2850fc2f12aef39f82": {
+    "verdict": "useful",
+    "reason": "The directory contains named live channels with categories, viewer counts and links, plus browse categories. This supports directory extraction, not video playback.",
+    "method": "Arm-hidden saved content excerpts and structured-content/link inspection"
+  },
+  "6bed6e61e9c1df87bf658add0c502e823e9a43c2334d7d553f811d2a21ab350f": {
+    "verdict": "useful",
+    "reason": "The directory contains named live channels with categories, viewer counts and links, plus browse categories. This supports directory extraction, not video playback.",
+    "method": "Arm-hidden saved content excerpts and structured-content/link inspection"
+  },
+  "9bfafc31a1368f0ddfeaf1e66abf96ddbcc81166aea191548e0edaf5a2226cbd": {
+    "verdict": "useful",
+    "reason": "The directory contains named live channels with categories, viewer counts and links, plus browse categories. This supports directory extraction, not video playback.",
+    "method": "Arm-hidden saved content excerpts and structured-content/link inspection"
+  },
+  "a0a5ff628fd4d91a9f23b3dffc287aac81f9c2de5db99eece064ccfc4724c9c4": {
+    "verdict": "useful",
+    "reason": "The directory contains named live channels with categories, viewer counts and links, plus browse categories. This supports directory extraction, not video playback.",
+    "method": "Arm-hidden saved content excerpts and structured-content/link inspection"
+  },
+  "173a35d42a5a21934d61375965b58bd311c6c40ae0b9e997bcdbdf4ddf6ae2c0": {
+    "verdict": "useful",
+    "reason": "The Madrid listing contains identifiable properties with item links, addresses, prices, room counts, floor areas and descriptive text.",
+    "method": "Arm-hidden saved content excerpts and structured-content/link inspection"
+  },
+  "18a7ea035f74cc01ef91d6fbcff96892c4300f28f44f843aae72c9d07499d093": {
+    "verdict": "useful",
+    "reason": "The SSD listing retains identifiable product names/models, product links and prices for some records. Several names are image alternatives, some prices are absent, and service-error fragments remain; this is useful listing content, not a complete catalogue.",
+    "method": "Arm-hidden saved content excerpts and structured-content/link inspection"
+  },
+  "43d3066e89430d39e6704f13766e750cda881aaee1c1925fd5c254937b8094e6": {
+    "verdict": "useful",
+    "reason": "The SSD listing retains identifiable product names/models, product links and prices for some records. Several names are image alternatives, some prices are absent, and service-error fragments remain; this is useful listing content, not a complete catalogue.",
+    "method": "Arm-hidden saved content excerpts and structured-content/link inspection"
+  },
+  "4a5b18aa19ab20d182de7664e907a940066678242777617a83653b37dde1a159": {
+    "verdict": "useful",
+    "reason": "The SSD listing retains identifiable product names/models, product links and prices for some records. Several names are image alternatives, some prices are absent, and service-error fragments remain; this is useful listing content, not a complete catalogue.",
+    "method": "Arm-hidden saved content excerpts and structured-content/link inspection"
+  },
+  "c630710c9162927da17593d5005e19d3c35f8d63e37efe2861dafc8031ba16e2": {
+    "verdict": "useful",
+    "reason": "The SSD listing retains identifiable product names/models, product links and prices for some records. Several names are image alternatives, some prices are absent, and service-error fragments remain; this is useful listing content, not a complete catalogue.",
+    "method": "Arm-hidden saved content excerpts and structured-content/link inspection"
+  },
+  "31bd0787803386522a77b97995014586465a680257da13b3c2f4eb37e21f0cd5": {
+    "verdict": "useful",
+    "reason": "The news-search table contains two dated records with symbols, company names, prices, headlines and item links: Cygnus Metals and Panoro Minerals. Navigation and subscription text remain but do not replace the records.",
+    "method": "Arm-hidden saved content excerpts and structured-content/link inspection"
+  },
+  "8a2a9c1b041b82374530dff5d49cb288e88ce73c33b389b26719f749d96ea48d": {
+    "verdict": "useful",
+    "reason": "The news-search table contains two dated records with symbols, company names, prices, headlines and item links: Cygnus Metals and Panoro Minerals. Navigation and subscription text remain but do not replace the records.",
+    "method": "Arm-hidden saved content excerpts and structured-content/link inspection"
+  },
+  "b46ed1a94479b4ed3e9ea9634837f7d48a520ec22b3037e0a9d2ee29efb95552": {
+    "verdict": "useful",
+    "reason": "The news-search table contains two dated records with symbols, company names, prices, headlines and item links: Cygnus Metals and Panoro Minerals. Navigation and subscription text remain but do not replace the records.",
+    "method": "Arm-hidden saved content excerpts and structured-content/link inspection"
+  },
+  "b67fdeff4eac466aa58261f1b23c851544e8cd3ac1519f20ff415248abc718ce": {
+    "verdict": "useful",
+    "reason": "The news-search table contains two dated records with symbols, company names, prices, headlines and item links: Cygnus Metals and Panoro Minerals. Navigation and subscription text remain but do not replace the records.",
+    "method": "Arm-hidden saved content excerpts and structured-content/link inspection"
+  },
+  "f9899c14cfced5f86e863d3910dacab940dad75a3532a673a6f3f18079d45e11": {
+    "verdict": "useful",
+    "reason": "The news-search table contains two dated records with symbols, company names, prices, headlines and item links: Cygnus Metals and Panoro Minerals. Navigation and subscription text remain but do not replace the records.",
+    "method": "Arm-hidden saved content excerpts and structured-content/link inspection"
+  },
+  "3360dd6dc4e7d12d83ce23da9a2a175a28606cd07fcda62e47585e24f901d744": {
+    "verdict": "useful",
+    "reason": "The saved page contains public top-buying and top-selling tables with ten issuer names, symbols, net insider volumes and company links, including Northcliff Resources and Alkane Resources. Club report access is not inferred.",
+    "method": "Arm-hidden saved content excerpts and structured-content/link inspection"
+  },
+  "6c2cc1721b4cd5bf6bb05200dad63b0cb4ce6043bf93c721644913643035e5ae": {
+    "verdict": "shell",
+    "reason": "Only a prefetch JSON fragment, the appliances page title and a help prompt were saved; no appliance records.",
+    "method": "Arm-hidden saved content excerpts and structured-content/link inspection"
+  },
+  "75df99bdbe937b8012f02d97e3d5b044f910ba8e75a22f8bde2c8f094f0b94b6": {
+    "verdict": "useful",
+    "reason": "The feed contains identifiable article titles with item links, authors/dates, tags and reaction metadata, including the weekend challenge and developer terminology article. Promotional content remains.",
+    "method": "Arm-hidden saved content excerpts and structured-content/link inspection"
+  },
+  "97f8d96ff06c913b9fdabe95395e95031970dd7ab12e3c470107c1acd35549df": {
+    "verdict": "useful",
+    "reason": "The feed contains identifiable article titles with item links, authors/dates, tags and reaction metadata, including the weekend challenge and developer terminology article. Promotional content remains.",
+    "method": "Arm-hidden saved content excerpts and structured-content/link inspection"
+  },
+  "f0dd57626bbea404500ae013a9641803edd0ef1a31a21f8867ca04ef7ce8c692": {
+    "verdict": "useful",
+    "reason": "The news listing contains story titles and destination links, with points, authors, timestamps and comment links, including the 1024-byte Python interpreter story.",
+    "method": "Arm-hidden saved content excerpts and structured-content/link inspection"
+  },
+  "1c8750eb05f958e18c4166384ce2a1cd6b18106e92d78ed94bd2179179b84250": {
+    "verdict": "unavailable",
+    "reason": "The saved product URL returns the explicit could-not-find-page notice and an error illustration, with no requested product details.",
+    "method": "Arm-hidden saved content excerpts and structured-content/link inspection"
+  },
+  "2ff7319725ac7d5519f4d45dfcb78dc38a95882f65a173bcf51aba0755c99b2e": {
+    "verdict": "unavailable",
+    "reason": "The saved product URL returns the explicit could-not-find-page notice and an error illustration, with no requested product details.",
+    "method": "Arm-hidden saved content excerpts and structured-content/link inspection"
+  },
+  "70767c6ff39eeb67419950e819b5ad8ede79edd97197f9e9ab6674169b1970b0": {
+    "verdict": "unavailable",
+    "reason": "The saved product URL returns the explicit could-not-find-page notice and an error illustration, with no requested product details.",
+    "method": "Arm-hidden saved content excerpts and structured-content/link inspection"
+  },
+  "a4b391f45f58c1411386986e4d396ab4c1ae650034f003ba9b0bc1fed52fcdc4": {
+    "verdict": "unavailable",
+    "reason": "The saved product URL returns the explicit could-not-find-page notice and an error illustration, with no requested product details.",
+    "method": "Arm-hidden saved content excerpts and structured-content/link inspection"
+  },
+  "ae29ab81c17e2c014d5649138fa7ea6c138f0bc339cbca3f75a3bc1b1963070c": {
+    "verdict": "unavailable",
+    "reason": "The saved product URL returns the explicit could-not-find-page notice and an error illustration, with no requested product details.",
+    "method": "Arm-hidden saved content excerpts and structured-content/link inspection"
+  },
+  "f82106144eecf8c8899489a1c1edbaea89bf08709c05b0ece6a9624c0f5c0931": {
+    "verdict": "unavailable",
+    "reason": "The saved product URL returns the explicit could-not-find-page notice and an error illustration, with no requested product details.",
+    "method": "Arm-hidden saved content excerpts and structured-content/link inspection"
+  },
+  "2d23d5c5d41a6789f163dd0777a0ab9adcb4181cf2bc62f8fc346c9c747d9d17": {
+    "verdict": "useful",
+    "reason": "The requested profile has its username, bio, follower/like counts and sixteen video item links with numeric counts. This supports profile metadata and item links, not playback or complete video descriptions.",
+    "method": "Arm-hidden saved content excerpts and structured-content/link inspection"
+  },
+  "db2417815aa08e39790868a795063e6867875f32c4ca0122e7dee5b925233d89": {
+    "verdict": "useful",
+    "reason": "The requested profile retains its username, bio, follower/like counts and named playlist links with post counts. Its video pane explicitly failed to load; this supports profile metadata only.",
+    "method": "Arm-hidden saved content excerpts and structured-content/link inspection"
+  },
+  "53a6739649bb9da5a77cfdf6cacbfa5d8441689faf89c780f552195c2c986a10": {
+    "verdict": "shell",
+    "reason": "The complete saved content is two Log in prompts; no requested profile metadata or records.",
+    "method": "Arm-hidden saved content excerpts and structured-content/link inspection"
+  },
+  "30952e7a60ab3ab990913848048a803d8039e68cbac106024825140cbf14a373": {
+    "verdict": "partial",
+    "reason": "Most Trending repository headings lack repository names and links despite retaining descriptions and languages. Two linked image alternatives identify editor and ruflo, and collection/marketplace links survive, but they do not restore the materially incomplete discovery listing.",
+    "method": "Arm-hidden saved content excerpts and structured-content/link inspection"
+  },
+  "422d83cdd9c94bf0064f62368f5b97b2bc119c1500c9420e5282097a0eb4653a": {
+    "verdict": "useful",
+    "reason": "The 2,000-character excerpt retains four complete job identifiers with titles, employers, locations and item links, then a truncated fifth. This supports available useful records, not complete or unblocked delivery.",
+    "method": "Arm-hidden saved content excerpts and structured-content/link inspection"
+  },
+  "5b5d2a704c6dd697fd11a71224aecb65b9b49246790e78de3c6ec0270e40cd91": {
+    "verdict": "useful",
+    "reason": "The 2,000-character excerpt retains four complete job identifiers with titles, employers, locations and item links, then a truncated fifth. This supports available useful records, not complete or unblocked delivery.",
+    "method": "Arm-hidden saved content excerpts and structured-content/link inspection"
+  },
+  "c9c846325074832db1726a4f10e9e99a2d29b7887b1e44a8f735ee5df41d050b": {
+    "verdict": "useful",
+    "reason": "The 2,000-character excerpt retains four complete job identifiers with titles, employers, locations and item links, then a truncated fifth. This supports available useful records, not complete or unblocked delivery.",
+    "method": "Arm-hidden saved content excerpts and structured-content/link inspection"
+  },
+  "684b3434dc378708c7922be796043a9403cea2d734297c2f84642602bde6aed1": {
+    "verdict": "useful",
+    "reason": "The job listing contains identifiable titles, employer names, locations and item links, including Entry Level Mechanical Engineer and the motor-grader engineering role. Exhaustive catalogue completeness is not inferred.",
+    "method": "Arm-hidden saved content excerpts and structured-content/link inspection"
+  },
+  "deae4c21ae6669f9601337c52f05ea77a3466f6accee170c95c28da1549c1f41": {
+    "verdict": "useful",
+    "reason": "The job listing contains identifiable titles, employer names, locations and item links, including Entry Level Mechanical Engineer and the motor-grader engineering role. Exhaustive catalogue completeness is not inferred.",
+    "method": "Arm-hidden saved content excerpts and structured-content/link inspection"
+  },
+  "ffd6c7f33b605f3bbd73dede38ebedb09de21c3d81d18875f6a7fd2e60af8c60": {
+    "verdict": "useful",
+    "reason": "The job listing contains identifiable titles, employer names, locations and item links, including Entry Level Mechanical Engineer and the motor-grader engineering role. Exhaustive catalogue completeness is not inferred.",
+    "method": "Arm-hidden saved content excerpts and structured-content/link inspection"
+  },
+  "867e9b8b463162f9d712ecd147b5bcd9feb20d821390923e3fd70aff21871237": {
+    "verdict": "useful",
+    "reason": "The requested Python-tag question listing contains question titles, excerpts, direct question links and timestamp/reputation metadata.",
+    "method": "Arm-hidden saved content excerpts and structured-content/link inspection"
+  },
+  "db15c41de4a24aec75447879a2134c579b23a75ae37c3c86a87b9fbfe20bb7df": {
+    "verdict": "partial",
+    "reason": "The requested gold query returns the general newsroom and unrelated dated releases. The full saved content contains no gold mention; real headlines do not establish results for the requested query.",
+    "method": "Arm-hidden saved content excerpts and structured-content/link inspection"
+  },
+  "f5ad46b8ddd2f821d4d5d249e4ba84a561f5a7cd9d5e67739a36ad6373a9ca80": {
+    "verdict": "useful",
+    "reason": "The response includes the requested employer directory content, with identifiable companies, employee-size fields and substantive company descriptions. The recorded status is 304; browser-retained content is present. Completeness of every structured field is not established.",
+    "method": "Exact URL/status/content fingerprint matches the reviewed baseline; baseline content review"
+  },
+  "1ddc95d3018260a98b8381e7323b424792adb21bd6711790888bc11f2fa1bd95": {
+    "verdict": "useful",
+    "reason": "The feed contains multiple article titles and item links, including a community MCP article, with author/date and reaction metadata. Promotional and navigation content remain.",
+    "method": "Arm-hidden saved content excerpts and structured-content/link inspection"
+  },
+  "b7a81397b62313aac9341838f3a25adce303876e01df46e17ac7a87c8203107c": {
+    "verdict": "useful",
+    "reason": "The feed contains multiple article titles and item links, including a community MCP article, with author/date and reaction metadata. Promotional and navigation content remain.",
+    "method": "Arm-hidden saved content excerpts and structured-content/link inspection"
+  },
+  "5d18a149c1cad95322d69629867556d1b31229bbc74451c31e6cf65da43fe7ad": {
+    "verdict": "useful",
+    "reason": "The requested SCAN page identifies Liberty Defense Holdings, includes delayed quote/company metadata and dated community posts. Several financial fields are blank or gated; this is public company-page extraction, not market-scanner or subscription access.",
+    "method": "Arm-hidden saved content excerpts and structured-content/link inspection"
+  },
+  "e54398e831cbda80842c0d4c5a7d67d2da09d663d03a6c0172b08292c8b9f085": {
+    "verdict": "useful",
+    "reason": "The requested SCAN page identifies Liberty Defense Holdings, includes delayed quote/company metadata and dated community posts. Several financial fields are blank or gated; this is public company-page extraction, not market-scanner or subscription access.",
+    "method": "Arm-hidden saved content excerpts and structured-content/link inspection"
+  },
+  "8aac9432cf995c4aea60671776db85c581a2ac629a70ba43ccac6a42d20cdbc5": {
+    "verdict": "wall",
+    "reason": "The complete saved content requests session verification and provides a Ray ID; no requested company or product content.",
+    "method": "Arm-hidden saved content excerpts and structured-content/link inspection"
+  },
+  "521b2a7a52f87ba0d05cb2cc323ec5f088163752abb881764e050ef84b3fcf9d": {
+    "verdict": "diagnostic-only",
+    "reason": "Prespecified diagnostic endpoint; excluded from production-content usefulness.",
+    "method": "Prespecified target classification"
+  },
+  "547c51f33117516a65d4d4be2a1c3d94e1ac398099536a2cdb879bc0147a2627": {
+    "verdict": "diagnostic-only",
+    "reason": "Prespecified diagnostic endpoint; excluded from production-content usefulness.",
+    "method": "Prespecified target classification"
+  },
+  "afa5967c02eef4c893629bdd4eeee86150cc5ae620c0dc83a58e0c1363a00817": {
+    "verdict": "shell",
+    "reason": "The complete short response consists of prefetch configuration and an appliance-category title, optionally an assistant label. No appliances or substantive category information are present.",
+    "method": "Exact URL/status/content fingerprint matches the reviewed baseline; baseline content review"
+  },
+  "c18f33fb47abe2c8bdaf11a6fafab899a0b73adb446a4ff5aa4c98baef89ac53": {
+    "verdict": "diagnostic-only",
+    "reason": "Prespecified diagnostic endpoint; excluded from production-content usefulness.",
+    "method": "Prespecified target classification"
+  },
+  "1e5d60b1798ba12e5e0993ca48e0f83e00e70a49fc21e76303e5212faa6749af": {
+    "verdict": "partial",
+    "reason": "The Rust-developer search retains description fragments, a few role headings, one advertised ERP job link and a selected job description. Most search-result titles, employer associations and item links are missing, so the requested listing remains materially incomplete.",
+    "method": "Arm-hidden saved content excerpts and structured-content/link inspection"
+  },
+  "48e9798ec1986d22530770ea03865cb48f0aa8837448b80b088876c108c745b4": {
+    "verdict": "partial",
+    "reason": "The Rust-developer search retains description fragments, a few role headings, one advertised ERP job link and a selected job description. Most search-result titles, employer associations and item links are missing, so the requested listing remains materially incomplete.",
+    "method": "Arm-hidden saved content excerpts and structured-content/link inspection"
+  },
+  "bfb0b02094150234fec747477bec44742f6e1c7d71709b62d140652eaa69e7be": {
+    "verdict": "partial",
+    "reason": "The Rust-developer search retains description fragments, a few role headings, one advertised ERP job link and a selected job description. Most search-result titles, employer associations and item links are missing, so the requested listing remains materially incomplete.",
+    "method": "Arm-hidden saved content excerpts and structured-content/link inspection"
+  },
+  "e9f818925c9edf3d4d791e89db1f416dbbc8b65ae3d65dc74f1b93e2283d809b": {
+    "verdict": "partial",
+    "reason": "The Rust-developer search retains description fragments, a few role headings, one advertised ERP job link and a selected job description. Most search-result titles, employer associations and item links are missing, so the requested listing remains materially incomplete.",
+    "method": "Arm-hidden saved content excerpts and structured-content/link inspection"
+  },
+  "f0aece0295742c5a35fcdc13696fc03b6b2d5ca74a830a7b9bc904abba90b8a8": {
+    "verdict": "partial",
+    "reason": "The Rust-developer search retains description fragments, a few role headings, one advertised ERP job link and a selected job description. Most search-result titles, employer associations and item links are missing, so the requested listing remains materially incomplete.",
+    "method": "Arm-hidden saved content excerpts and structured-content/link inspection"
+  },
+  "3189ad9cfee68bb18330edaa01daf09d9f5e77104dddc1279dcd1410b8b02837": {
+    "verdict": "partial",
+    "reason": "The Rust-developer search retains fragments and a selected Senior Rust Developer description, but most listing titles and employer associations are absent. Its complete Markdown link inventory contains only resume links and no job-item links.",
+    "method": "Arm-hidden saved content excerpts and structured-content/link inspection"
+  },
+  "2d1bbee7bd4863a79525b2e11df855588a6d33ff0488991b91712488d17a65b9": {
+    "verdict": "useful",
+    "reason": "The feed retains identifiable post titles, community names, item links and timestamps, including the television-series and rural-Michigan posts. Advertising and duplicate title links remain; this supports feed extraction, not full post/comment contents.",
+    "method": "Arm-hidden saved content excerpts and structured-content/link inspection"
+  },
+  "8463101d991250508664b87c2f864fdd7528408b129c09a55b271e3999c4f7d2": {
+    "verdict": "useful",
+    "reason": "The feed retains identifiable post titles, community names, item links and timestamps, including the television-series and rural-Michigan posts. Advertising and duplicate title links remain; this supports feed extraction, not full post/comment contents.",
+    "method": "Arm-hidden saved content excerpts and structured-content/link inspection"
+  },
+  "9b3820beb4106feeac4088a8ff618b2fec767b6bf31b81bb8150e3951083121c": {
+    "verdict": "useful",
+    "reason": "The feed retains identifiable post titles, community names, item links and timestamps, including the television-series and rural-Michigan posts. Advertising and duplicate title links remain; this supports feed extraction, not full post/comment contents.",
+    "method": "Arm-hidden saved content excerpts and structured-content/link inspection"
+  },
+  "cbca2098a471c80bd5a4e38dc8b212b9e7a05dc1fe9e63fbbfe3aa00520e5125": {
+    "verdict": "useful",
+    "reason": "The feed retains identifiable post titles, community names, item links and timestamps, including the television-series and rural-Michigan posts. Advertising and duplicate title links remain; this supports feed extraction, not full post/comment contents.",
+    "method": "Arm-hidden saved content excerpts and structured-content/link inspection"
+  },
+  "d47eb993b390d0a9a7c78fabb5cfc6508f5cd70043022d0a8c62c9fedc57bbaa": {
+    "verdict": "useful",
+    "reason": "The feed retains identifiable post titles, community names, item links and timestamps, including the television-series and rural-Michigan posts. Advertising and duplicate title links remain; this supports feed extraction, not full post/comment contents.",
+    "method": "Arm-hidden saved content excerpts and structured-content/link inspection"
+  },
+  "d8dad650787361e808cb26a5938c1f6f8ce2f0d9a905108b3abf1d1c9530fcd2": {
+    "verdict": "useful",
+    "reason": "The feed retains identifiable post titles, community names, item links and timestamps, including the television-series and rural-Michigan posts. Advertising and duplicate title links remain; this supports feed extraction, not full post/comment contents.",
+    "method": "Arm-hidden saved content excerpts and structured-content/link inspection"
+  },
+  "3421fd276071d34c634da8227128413259249a11ed4569b7bbec13d48d99a665": {
+    "verdict": "useful",
+    "reason": "The news listing contains identifiable story titles and destination links, with points, authors, timestamps and comment links, including De-Brainrot Vacations and bzip3.",
+    "method": "Arm-hidden saved content excerpts and structured-content/link inspection"
+  },
+  "3c90e890dd012462d79b64c45fc2ec7c6a9859b897b015d483f13b94a6db6d0a": {
+    "verdict": "wall",
+    "reason": "The complete saved page is a press-and-hold human verification prompt with a reference ID; no requested property records.",
+    "method": "Arm-hidden saved content excerpts and structured-content/link inspection"
+  },
+  "4a668ad885bb42f79f7c84ee9d5893067ca68d42cd2385569282d5f4988fd110": {
+    "verdict": "wall",
+    "reason": "The complete saved page is a press-and-hold human verification prompt with a reference ID; no requested property records.",
+    "method": "Arm-hidden saved content excerpts and structured-content/link inspection"
+  },
+  "daf3ea3b84aeacbca2eb37c10c60b606d977167fa35f21565b848dd43314c871": {
+    "verdict": "wall",
+    "reason": "The complete saved page is a press-and-hold human verification prompt with a reference ID; no requested property records.",
+    "method": "Arm-hidden saved content excerpts and structured-content/link inspection"
+  },
+  "0c829a0fd3425d92e1ddc40f28487800edfa815ac7cf32d471ead9d758496e90": {
+    "verdict": "diagnostic-only",
+    "reason": "Prespecified diagnostic endpoint; excluded from production-content usefulness.",
+    "method": "Prespecified target classification"
+  },
+  "104058c824d07f493c2375d7c76fe9fdcac4f390a80098b68dfcf8cea6df6597": {
+    "verdict": "diagnostic-only",
+    "reason": "Prespecified diagnostic endpoint; excluded from production-content usefulness.",
+    "method": "Prespecified target classification"
+  },
+  "181bc8ba1de480eefa80609d527a51180cde9ed4a447dce4e98caa8fe1741163": {
+    "verdict": "diagnostic-only",
+    "reason": "Prespecified diagnostic endpoint; excluded from production-content usefulness.",
+    "method": "Prespecified target classification"
+  },
+  "2b6c0870038a54774ae76709d2ff78d416ec22e623f888900145f297d19674bf": {
+    "verdict": "diagnostic-only",
+    "reason": "Prespecified diagnostic endpoint; excluded from production-content usefulness.",
+    "method": "Prespecified target classification"
+  },
+  "319160a32e218cf74d2d439dcaeeb70eb47a8a59dc08895e0bbb5bfad644e69b": {
+    "verdict": "diagnostic-only",
+    "reason": "Prespecified diagnostic endpoint; excluded from production-content usefulness.",
+    "method": "Prespecified target classification"
+  },
+  "3a440a647230df284eee4f0ec78bd79e04b133544b093bd4cfdbeb56a2cc83d5": {
+    "verdict": "diagnostic-only",
+    "reason": "Prespecified diagnostic endpoint; excluded from production-content usefulness.",
+    "method": "Prespecified target classification"
+  },
+  "49b6466b9388ad61ee4770ad8cca858e8b4d0c1cbb0f6909391f97c702694152": {
+    "verdict": "diagnostic-only",
+    "reason": "Prespecified diagnostic endpoint; excluded from production-content usefulness.",
+    "method": "Prespecified target classification"
+  },
+  "49e6b285f0b4eff7adbaf4cb04cf9108285ca0cc9afd15c8713a117f2c635339": {
+    "verdict": "diagnostic-only",
+    "reason": "Prespecified diagnostic endpoint; excluded from production-content usefulness.",
+    "method": "Prespecified target classification"
+  },
+  "87ecb80a54273d2318059e6288eb6720c084ef88ac03b560055c27b1cba2b56e": {
+    "verdict": "diagnostic-only",
+    "reason": "Prespecified diagnostic endpoint; excluded from production-content usefulness.",
+    "method": "Prespecified target classification"
+  },
+  "901c7b129e32f0ae3a79d9c76a8f20fb3e547e73fa82ecff295e6558c5953282": {
+    "verdict": "diagnostic-only",
+    "reason": "Prespecified diagnostic endpoint; excluded from production-content usefulness.",
+    "method": "Prespecified target classification"
+  },
+  "b8e4dffecb2448ec1bf88cce7f65b2313b58128f415114c15503c53f8b8c21e6": {
+    "verdict": "diagnostic-only",
+    "reason": "Prespecified diagnostic endpoint; excluded from production-content usefulness.",
+    "method": "Prespecified target classification"
+  },
+  "dcf9dc5ea1677da85b36f6746a7e000877d83896c8b2c8d409fb069aeed7dddf": {
+    "verdict": "diagnostic-only",
+    "reason": "Prespecified diagnostic endpoint; excluded from production-content usefulness.",
+    "method": "Prespecified target classification"
+  },
+  "673f139a149f7d900ede6dcd15c5d5ca55b3dbe1cd2eabce9cdc9637980f7b24": {
+    "verdict": "wall",
+    "reason": "The complete saved page is a 403 Forbidden message with a transaction ID. A successful outer response status does not make this requested filing content.",
+    "method": "Arm-hidden saved content excerpts and structured-content/link inspection"
+  },
+  "771cfd7ef8fa0106e7e0b018b9ff12b93d5098f269b05e2d251fd4835387e114": {
+    "verdict": "wall",
+    "reason": "The complete saved page is a 403 Forbidden message with a transaction ID. A successful outer response status does not make this requested filing content.",
+    "method": "Arm-hidden saved content excerpts and structured-content/link inspection"
+  },
+  "96b3ce163e618edf12935bf28f20c6bbcbeae3985a2032e291c1bee1f77d3a55": {
+    "verdict": "wall",
+    "reason": "The complete saved page is a 403 Forbidden message with a transaction ID. A successful outer response status does not make this requested filing content.",
+    "method": "Arm-hidden saved content excerpts and structured-content/link inspection"
+  },
+  "76b81607763f17d65cd7ac79de48b031f42dd84d1da13ded242fed36be687f1f": {
+    "verdict": "useful",
+    "reason": "The Madrid listing contains identifiable properties with addresses, prices, room counts, floor areas, descriptions and property links, including Calle Velazquez and Calle de Guzman el Bueno. Exhaustive catalogue completeness is not inferred.",
+    "method": "Arm-hidden saved content excerpts and structured-content/link inspection"
+  },
+  "bd2ae5adaac1d143d449eea0f435bf1c0730a5bc38414f717e2bc08da4f0752e": {
+    "verdict": "useful",
+    "reason": "The Madrid listing contains identifiable properties with addresses, prices, room counts, floor areas, descriptions and property links, including Calle Velazquez and Calle de Guzman el Bueno. Exhaustive catalogue completeness is not inferred.",
+    "method": "Arm-hidden saved content excerpts and structured-content/link inspection"
+  },
+  "0cc26ced2246793410db90a8cd99257f3a272d9243ba8a2fe04e69610dd2e10d": {
+    "verdict": "diagnostic-only",
+    "reason": "Prespecified diagnostic endpoint; excluded from production-content usefulness.",
+    "method": "Prespecified target classification"
+  },
+  "32fafd393a1eb2ed17df713f4ebf58f4d31a8e42380ccad532fcdeacf5424687": {
+    "verdict": "diagnostic-only",
+    "reason": "Prespecified diagnostic endpoint; excluded from production-content usefulness.",
+    "method": "Prespecified target classification"
+  },
+  "3bdfc711872634b6e55cdfc433bf3a132fb351d72dae789d20cfa13fd2428e79": {
+    "verdict": "diagnostic-only",
+    "reason": "Prespecified diagnostic endpoint; excluded from production-content usefulness.",
+    "method": "Prespecified target classification"
+  },
+  "77808371b624757c0500e6a10749894be143b98e2882030b7065aca43200e628": {
+    "verdict": "diagnostic-only",
+    "reason": "Prespecified diagnostic endpoint; excluded from production-content usefulness.",
+    "method": "Prespecified target classification"
+  },
+  "9565c9c69a5ae2b7f135e01aa3865fd8ad162b4dfc4bd5b4cfd0e239de8487bd": {
+    "verdict": "diagnostic-only",
+    "reason": "Prespecified diagnostic endpoint; excluded from production-content usefulness.",
+    "method": "Prespecified target classification"
+  },
+  "a9622f20aa318888b35a30c9f3affd06c625e8331f485165984183de9d6eed60": {
+    "verdict": "diagnostic-only",
+    "reason": "Prespecified diagnostic endpoint; excluded from production-content usefulness.",
+    "method": "Prespecified target classification"
+  },
+  "d683c8f9199d4b11169585d96b99fbd5811a13a2fcb88d9480f9973361e13387": {
+    "verdict": "diagnostic-only",
+    "reason": "Prespecified diagnostic endpoint; excluded from production-content usefulness.",
+    "method": "Prespecified target classification"
+  },
+  "e9728df8043e4ba4b7f5556d3aa8627ee955da63f52196781d9e8c193108ef48": {
+    "verdict": "diagnostic-only",
+    "reason": "Prespecified diagnostic endpoint; excluded from production-content usefulness.",
+    "method": "Prespecified target classification"
+  },
+  "f087a75fa79b7f4819faafe04020ba03d4d4e3963f063d1e542bcd060bedadeb": {
+    "verdict": "diagnostic-only",
+    "reason": "Prespecified diagnostic endpoint; excluded from production-content usefulness.",
+    "method": "Prespecified target classification"
+  },
+  "062b83f61c89397d2e4c61587cb78e784ec884fbd27ea5c734efa9057bc87f19": {
+    "verdict": "useful",
+    "reason": "The Rust-tag question listing contains identifiable question titles, excerpts and direct item links with timestamp/reputation metadata, including macro match arms and per-process CPU consumption questions.",
+    "method": "Arm-hidden saved content excerpts and structured-content/link inspection"
+  },
+  "0938fda8b87e4ac7d35a7cb0ff3acf0ec2b90be3a7fb12e2d408c7788024f3ed": {
+    "verdict": "useful",
+    "reason": "The SSD listing retains identifiable product names/models, product links and prices for some records, including Samsung 990 PRO and 9100 PRO. Some names are image alternatives and some prices are absent; useful listing content does not imply a complete catalogue.",
+    "method": "Arm-hidden saved content excerpts and structured-content/link inspection"
+  },
+  "22f535d929a8c35ed08376f0167bdf8db6fb726dc4c3ef8482153838abec0161": {
+    "verdict": "useful",
+    "reason": "The SSD listing retains identifiable product names/models, product links and prices for some records, including Samsung 990 PRO and 9100 PRO. Some names are image alternatives and some prices are absent; useful listing content does not imply a complete catalogue.",
+    "method": "Arm-hidden saved content excerpts and structured-content/link inspection"
+  },
+  "59fe6f5907391d296b8fe301c88a9ec5ed3d8c15fbba99266344d994398ddb5b": {
+    "verdict": "useful",
+    "reason": "The SSD listing retains identifiable product names/models, product links and prices for some records, including Samsung 990 PRO and 9100 PRO. Some names are image alternatives and some prices are absent; useful listing content does not imply a complete catalogue.",
+    "method": "Arm-hidden saved content excerpts and structured-content/link inspection"
+  },
+  "5efbddaa01e1a402da706b43d6338eb720e994967bb656bfbcc3f49db87bc907": {
+    "verdict": "useful",
+    "reason": "The SSD listing retains identifiable product names/models, product links and prices for some records, including Samsung 990 PRO and 9100 PRO. Some names are image alternatives and some prices are absent; useful listing content does not imply a complete catalogue.",
+    "method": "Arm-hidden saved content excerpts and structured-content/link inspection"
+  },
+  "115100e66d3cc698d6e990fd080bfdcad141e5a0894b135f0a10dd922a87b0b0": {
+    "verdict": "useful",
+    "reason": "The requested review page contains substantive first-person likes and dislikes about Notion, including scheduling, academic use, integrations and collaboration. This supports review extraction rather than only product branding.",
+    "method": "Arm-hidden saved content excerpts and structured-content/link inspection"
+  },
+  "52d88fd8475e5caec4b016dbd4bffbe6566532d9c55113e5c0eb6bf66577ad38": {
+    "verdict": "useful",
+    "reason": "The requested review page contains substantive first-person likes and dislikes about Notion, including scheduling, academic use, integrations and collaboration. This supports review extraction rather than only product branding.",
+    "method": "Arm-hidden saved content excerpts and structured-content/link inspection"
+  },
+  "26d3476b9a97fa9c82a113332dd9a12ed025392086a36a6903536f5664898771": {
+    "verdict": "useful",
+    "reason": "The news-search table contains six dated company records with symbols, names, prices, headlines and item links, including Ecora Royalties, Westgold Resources and International Petroleum. Navigation/subscription text remains.",
+    "method": "Arm-hidden saved content excerpts and structured-content/link inspection"
+  },
+  "398bbcd092ab695e0311ec6385e9fde8e4bfaafa47538f8bd829c7ed9ce230a3": {
+    "verdict": "useful",
+    "reason": "The news-search table contains six dated company records with symbols, names, prices, headlines and item links, including Ecora Royalties, Westgold Resources and International Petroleum. Navigation/subscription text remains.",
+    "method": "Arm-hidden saved content excerpts and structured-content/link inspection"
+  },
+  "3dcc74e836ad6a6acd7401b0d125950055243ce39af68a3a1a29588032a37e28": {
+    "verdict": "useful",
+    "reason": "The news-search table contains six dated company records with symbols, names, prices, headlines and item links, including Ecora Royalties, Westgold Resources and International Petroleum. Navigation/subscription text remains.",
+    "method": "Arm-hidden saved content excerpts and structured-content/link inspection"
+  },
+  "890d1d7738961f2a9721fea8d5ab2895dba85bbb7e0f098068689793dce4ed13": {
+    "verdict": "useful",
+    "reason": "The news-search table contains six dated company records with symbols, names, prices, headlines and item links, including Ecora Royalties, Westgold Resources and International Petroleum. Navigation/subscription text remains.",
+    "method": "Arm-hidden saved content excerpts and structured-content/link inspection"
+  },
+  "a74a436314a1a7d7187a33bf3dfed6285aeca40b8978d7ae66fcaa834a5856d2": {
+    "verdict": "useful",
+    "reason": "The news-search table contains six dated company records with symbols, names, prices, headlines and item links, including Ecora Royalties, Westgold Resources and International Petroleum. Navigation/subscription text remains.",
+    "method": "Arm-hidden saved content excerpts and structured-content/link inspection"
+  },
+  "fbbb2576f9f6b14d644569d8a0b20d8391c696e1bc2681d57fc8ae578c469d4c": {
+    "verdict": "useful",
+    "reason": "The news-search table contains six dated company records with symbols, names, prices, headlines and item links, including Ecora Royalties, Westgold Resources and International Petroleum. Navigation/subscription text remains.",
+    "method": "Arm-hidden saved content excerpts and structured-content/link inspection"
+  },
+  "323cb358795e31be0e056d62a8b1dc887b68f6d6f45ee6e77c0d5a18a0d92e5b": {
+    "verdict": "partial",
+    "reason": "The software-engineer search retains description fragments, some location/role text and a selected job description, but most result titles and employer associations are missing. The complete Markdown link inventory contains only resume/profile links, not job-item links.",
+    "method": "Arm-hidden saved content excerpts and structured-content/link inspection"
+  },
+  "34f9ae506511b9f9c864444a1e126fb90d0f9ee0204a709b86286e7a7dadbfbf": {
+    "verdict": "partial",
+    "reason": "The software-engineer search retains description fragments, some location/role text and a selected job description, but most result titles and employer associations are missing. The complete Markdown link inventory contains only resume/profile links, not job-item links.",
+    "method": "Arm-hidden saved content excerpts and structured-content/link inspection"
+  },
+  "36cf97c8e0215306115c42f0ae474a7da3080ac698db41ef44d3c61a8d9f119f": {
+    "verdict": "partial",
+    "reason": "The software-engineer search retains description fragments, some location/role text and a selected job description, but most result titles and employer associations are missing. The complete Markdown link inventory contains only resume/profile links, not job-item links.",
+    "method": "Arm-hidden saved content excerpts and structured-content/link inspection"
+  },
+  "3a8fdbe2f01eb37999ee2cd88ebd947af419387a6a490b593f6c01dfdae87a93": {
+    "verdict": "partial",
+    "reason": "The software-engineer search retains description fragments, some location/role text and a selected job description, but most result titles and employer associations are missing. The complete Markdown link inventory contains only resume/profile links, not job-item links.",
+    "method": "Arm-hidden saved content excerpts and structured-content/link inspection"
+  },
+  "acf04cf8608436cbacf14799cb08aacd966e533febd355a453a8be884b19d81c": {
+    "verdict": "partial",
+    "reason": "The software-engineer search retains description fragments, some location/role text and a selected job description, but most result titles and employer associations are missing. The complete Markdown link inventory contains only resume/profile links, not job-item links.",
+    "method": "Arm-hidden saved content excerpts and structured-content/link inspection"
+  },
+  "fd9c8844753bdb2198cbdedf38da6c9f103f9958112732c960af1f1f52320107": {
+    "verdict": "partial",
+    "reason": "The software-engineer search retains description fragments, some location/role text and a selected job description, but most result titles and employer associations are missing. The complete Markdown link inventory contains only resume/profile links, not job-item links.",
+    "method": "Arm-hidden saved content excerpts and structured-content/link inspection"
+  },
+  "480c2a38189e6221d56c7d8d173396c78f6e1220a749f57824b589f70c48a8d4": {
+    "verdict": "useful",
+    "reason": "The directory contains named live channels with categories, viewer counts and links, including IlloJuan, ironmouse and auronplay. This supports directory extraction, not playback.",
+    "method": "Arm-hidden saved content excerpts and structured-content/link inspection"
+  },
+  "87f7847754e2db189d70fe1e30c05e0eedb8dc627e1689f6d10f43663c034de8": {
+    "verdict": "useful",
+    "reason": "The directory contains named live channels with categories, viewer counts and links, including IlloJuan, ironmouse and auronplay. This supports directory extraction, not playback.",
+    "method": "Arm-hidden saved content excerpts and structured-content/link inspection"
+  },
+  "a1b0898a7177e09bf7e01c6c50dc7a27fcfe394b2f1db681c434da7875b1fb79": {
+    "verdict": "useful",
+    "reason": "The directory contains named live channels with categories, viewer counts and links, including IlloJuan, ironmouse and auronplay. This supports directory extraction, not playback.",
+    "method": "Arm-hidden saved content excerpts and structured-content/link inspection"
+  },
+  "c5432db85cf2d361cd19eeb72b07b79e4625e4ef3687844bc8c0394289e76760": {
+    "verdict": "useful",
+    "reason": "The directory contains named live channels with categories, viewer counts and links, including IlloJuan, ironmouse and auronplay. This supports directory extraction, not playback.",
+    "method": "Arm-hidden saved content excerpts and structured-content/link inspection"
+  },
+  "c67020ceef28ec68db673606e9e457ec328ddff1bea997c2ccbf5dd33fb1c04c": {
+    "verdict": "useful",
+    "reason": "The directory contains named live channels with categories, viewer counts and links, including IlloJuan, ironmouse and auronplay. This supports directory extraction, not playback.",
+    "method": "Arm-hidden saved content excerpts and structured-content/link inspection"
+  },
+  "4ae2716af7f10e20ec0f948448fde6e4182a5db29627c2af069508996bf35ae2": {
+    "verdict": "partial",
+    "reason": "The search page retains an AI overview and result snippets, but its complete Markdown URL inventory contains only search pagination links and no result-destination links. The requested search-result extraction is materially incomplete.",
+    "method": "Arm-hidden saved content excerpts and structured-content/link inspection"
+  },
+  "a3c7ab6a42c9b6373532ee8e4b4b762db8fc0f2ed2f93dcad5a63f549e63aa8a": {
+    "verdict": "partial",
+    "reason": "The search page retains an AI overview and result snippets, but its complete Markdown URL inventory contains only search pagination links and no result-destination links. The requested search-result extraction is materially incomplete.",
+    "method": "Arm-hidden saved content excerpts and structured-content/link inspection"
+  },
+  "c2e602fac59c61367242e51933339d563a417c69da4f1cbe7381dcadb250138b": {
+    "verdict": "partial",
+    "reason": "The search page retains an AI overview and result snippets, but its complete Markdown URL inventory contains only search pagination links and no result-destination links. The requested search-result extraction is materially incomplete.",
+    "method": "Arm-hidden saved content excerpts and structured-content/link inspection"
+  },
+  "82740b3f5249e6450be5bc10c7f00375d77bd6927945627cf8dbeff842096651": {
+    "verdict": "useful",
+    "reason": "The saved search response identifies Motel 6-Saanichton, Shawnigan Hills Guest Suite and Shawnigan Suite B & B with locations and amenities. Many result headings, prices and item links are absent, so this supports useful property descriptions only, not complete booking results.",
+    "method": "Arm-hidden saved content excerpts and structured-content/link inspection"
+  },
+  "9dda030a93c28736d1a4f5e7b89f5a9d3a747f62d821c86bc4bf0ca8b2ffe7a2": {
+    "verdict": "useful",
+    "reason": "The saved search response identifies Motel 6-Saanichton, Shawnigan Hills Guest Suite and Shawnigan Suite B & B with locations and amenities. Many result headings, prices and item links are absent, so this supports useful property descriptions only, not complete booking results.",
+    "method": "Arm-hidden saved content excerpts and structured-content/link inspection"
+  },
+  "c468f369e48d7b94cd11f1cf79f8fb4543a6f5ea9907a140161c4a3a6cb7eb9e": {
+    "verdict": "useful",
+    "reason": "The saved search response identifies Motel 6-Saanichton, Shawnigan Hills Guest Suite and Shawnigan Suite B & B with locations and amenities. Many result headings, prices and item links are absent, so this supports useful property descriptions only, not complete booking results.",
+    "method": "Arm-hidden saved content excerpts and structured-content/link inspection"
+  },
+  "406afccb65430ba08a51fb5d48cc1316d654c7d294a33cdf963d79c0273db805": {
+    "verdict": "useful",
+    "reason": "The graphics-card listing contains identifiable product names/models, 35 product links and prices for some records, including Radeon RX 9070 XT and GeForce RTX 5070 Ti. Some names are image alternatives and service-error text remains; no exhaustive completeness is inferred.",
+    "method": "Arm-hidden saved content excerpts and structured-content/link inspection"
+  },
+  "751c9c19de81226363d643dc29484d826feec236bab15d204774b37d8c81d881": {
+    "verdict": "useful",
+    "reason": "The graphics-card listing contains identifiable product names/models, 35 product links and prices for some records, including Radeon RX 9070 XT and GeForce RTX 5070 Ti. Some names are image alternatives and service-error text remains; no exhaustive completeness is inferred.",
+    "method": "Arm-hidden saved content excerpts and structured-content/link inspection"
+  },
+  "a3ac8b4ece0d53a6546af57cecb4e317c02b5f6f02a23e24b0945535477d4986": {
+    "verdict": "useful",
+    "reason": "The graphics-card listing contains identifiable product names/models, 35 product links and prices for some records, including Radeon RX 9070 XT and GeForce RTX 5070 Ti. Some names are image alternatives and service-error text remains; no exhaustive completeness is inferred.",
+    "method": "Arm-hidden saved content excerpts and structured-content/link inspection"
+  },
+  "c903504e1866f37a23cff2ebd9797b5d7806e5ce80952a7e1d7d984f73fffff2": {
+    "verdict": "useful",
+    "reason": "The graphics-card listing contains identifiable product names/models, 35 product links and prices for some records, including Radeon RX 9070 XT and GeForce RTX 5070 Ti. Some names are image alternatives and service-error text remains; no exhaustive completeness is inferred.",
+    "method": "Arm-hidden saved content excerpts and structured-content/link inspection"
+  },
+  "6e42fa0794f6ef4be286eec937bee48ad3ac2da9c308d91a7642cc9b3e220c1c": {
+    "verdict": "partial",
+    "reason": "The search output includes an AI overview and snippets but the complete Markdown link inventory contains only search pagination URLs, not result destinations. The requested search-result extraction is materially incomplete.",
+    "method": "Arm-hidden saved content excerpts and structured-content/link inspection"
+  },
+  "af216e5461ab0262190bd6c1e165dbe62099c133791d517211357c2f07dc8908": {
+    "verdict": "partial",
+    "reason": "The search output includes an AI overview and snippets but the complete Markdown link inventory contains only search pagination URLs, not result destinations. The requested search-result extraction is materially incomplete.",
+    "method": "Arm-hidden saved content excerpts and structured-content/link inspection"
+  },
+  "e2ee10883e3483df13e1e0cbd14e4deb65bc3a10c20ec5712663ee2132e0fe29": {
+    "verdict": "partial",
+    "reason": "The search output includes an AI overview and snippets but the complete Markdown link inventory contains only search pagination URLs, not result destinations. The requested search-result extraction is materially incomplete.",
+    "method": "Arm-hidden saved content excerpts and structured-content/link inspection"
+  },
+  "73590976901855aee555ad3d1387d77b40c35abc69389fdec5e5eeaea594103c": {
+    "verdict": "useful",
+    "reason": "The returned echo-dot search contains identifiable accessory product names, item links, MXN prices and delivery/stock text, including a battery base and power adapter. This supports the returned search listing, not availability of a particular Echo speaker or a complete catalogue.",
+    "method": "Arm-hidden saved content excerpts and structured-content/link inspection"
+  },
+  "f0a30ce04fa6f080122be15b4d93e182f1e38c38bfd54d14f177e14b9031ab3e": {
+    "verdict": "useful",
+    "reason": "The returned echo-dot search contains identifiable accessory product names, item links, MXN prices and delivery/stock text, including a battery base and power adapter. This supports the returned search listing, not availability of a particular Echo speaker or a complete catalogue.",
+    "method": "Arm-hidden saved content excerpts and structured-content/link inspection"
+  },
+  "fc5291cbfb729440540929cc0f91172b57cf67789bc5f4a0e3a2c54d0d375ce8": {
+    "verdict": "useful",
+    "reason": "The returned echo-dot search contains identifiable accessory product names, item links, MXN prices and delivery/stock text, including a battery base and power adapter. This supports the returned search listing, not availability of a particular Echo speaker or a complete catalogue.",
+    "method": "Arm-hidden saved content excerpts and structured-content/link inspection"
+  }
+}

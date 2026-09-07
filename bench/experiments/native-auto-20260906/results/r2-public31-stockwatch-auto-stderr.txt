@@ -1,0 +1,5 @@
+stockwatch repeat 1: delivered 0.54s (http)
+stockwatch repeat 2: delivered 0.57s (http)
+stockwatch repeat 3: delivered 1.09s (http)
+
+paired finished in 2.4s

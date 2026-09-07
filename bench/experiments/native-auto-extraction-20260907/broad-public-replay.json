@@ -1,0 +1,69 @@
+{
+  "binary_sha256": "7fd11672e899a86a285eb96a6729ca310ac65fce6e0e032120b6ed68329c2f26",
+  "calls": [
+    {
+      "target": "github-explore",
+      "modes": [
+        {
+          "mode": "main",
+          "characters": 6638,
+          "headings": 42,
+          "links": 44,
+          "equals_unchanged_reference": false,
+          "markdown_sha256": "fb4177358c34d3205be17c4e90cb3b41fa19ec5b4b492bea1dca2e6cfc2bd05c"
+        },
+        {
+          "mode": "full",
+          "characters": 23860,
+          "headings": 50,
+          "links": 332,
+          "equals_unchanged_reference": true,
+          "markdown_sha256": "2fcf2662af70d969238340d566d14de06ab74f4fc0165febdbd14de9e06a89d1"
+        }
+      ]
+    },
+    {
+      "target": "indeed-jobs",
+      "modes": [
+        {
+          "mode": "main",
+          "characters": 15401,
+          "headings": 54,
+          "links": 20,
+          "equals_unchanged_reference": false,
+          "markdown_sha256": "b1d6a35bb1c23daf273635e76f9b616e3a729db4f64aadf646edef9b42b58bb1"
+        },
+        {
+          "mode": "full",
+          "characters": 31356,
+          "headings": 58,
+          "links": 129,
+          "equals_unchanged_reference": true,
+          "markdown_sha256": "efde391f5f66dd4477db5109aa3155b037e000d80b939596a7fcb7b52bfc608d"
+        }
+      ]
+    },
+    {
+      "target": "google-search",
+      "modes": [
+        {
+          "mode": "main",
+          "characters": 7896,
+          "headings": 7,
+          "links": 19,
+          "equals_unchanged_reference": false,
+          "markdown_sha256": "72155f33f57bffe87e26b88d16b73f3982a5e7d2175fffac58cb63f84c5cc2c0"
+        },
+        {
+          "mode": "full",
+          "characters": 19007,
+          "headings": 7,
+          "links": 61,
+          "equals_unchanged_reference": true,
+          "markdown_sha256": "77868889baa035356fc2c52c1c8a22893984a48a846dfa8fb25635455f4bce88"
+        }
+      ]
+    }
+  ],
+  "scope": "Offline standalone extractor, original captured HTML with explicit original base URL; debug build, not a latency benchmark."
+}

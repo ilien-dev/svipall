@@ -1,0 +1,26 @@
+python : E
+At line:2 char:1
++ python -m unittest discover -s scripts -p test_measure_automatic.py > ...
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (E:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+======================================================================
+ERROR: test_measure_automatic (unittest.loader._FailedTest.test_measure_automatic)
+----------------------------------------------------------------------
+ImportError: Failed to import test module: test_measure_automatic
+Traceback (most recent call last):
+  File "<home>\AppData\Local\Programs\Python\Python312\Lib\unittest\loader.py", line 382, in _find_test_path
+    module = self._get_module_from_name(name)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "<home>\AppData\Local\Programs\Python\Python312\Lib\unittest\loader.py", line 325, in _get_module_from_name
+    __import__(name)
+  File "<repo>\scripts\test_measure_automatic.py", line 5, in <module>
+    from measure_automatic import schedule, validate_result, summarize_cells
+ModuleNotFoundError: No module named 'measure_automatic'
+
+
+----------------------------------------------------------------------
+Ran 1 test in 0.000s
+
+FAILED (errors=1)

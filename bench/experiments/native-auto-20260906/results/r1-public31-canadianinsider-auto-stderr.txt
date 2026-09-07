@@ -1,0 +1,5 @@
+canadianinsider repeat 1: failed 47.00s (warm)
+canadianinsider repeat 2: failed 59.91s (real)
+canadianinsider repeat 3: delivered 39.76s (warm)
+
+paired finished in 147.6s

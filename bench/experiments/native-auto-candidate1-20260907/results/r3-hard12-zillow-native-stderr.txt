@@ -1,0 +1,5 @@
+zillow repeat 1: delivered 9.49s (warm)
+zillow repeat 2: failed 57.72s (warm)
+zillow repeat 3: failed 55.53s (warm)
+
+paired finished in 123.1s

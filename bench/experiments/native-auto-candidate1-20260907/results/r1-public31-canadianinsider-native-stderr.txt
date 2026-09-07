@@ -1,0 +1,5 @@
+canadianinsider repeat 1: delivered 10.33s (warm)
+canadianinsider repeat 2: delivered 2.30s (warm)
+canadianinsider repeat 3: delivered 11.03s (warm)
+
+paired finished in 24.1s

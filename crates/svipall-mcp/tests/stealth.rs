@@ -395,3 +395,80 @@ async fn a_page_the_pool_parked_comes_back_to_the_next_fetch_that_wants_it() {
 
     pool.shutdown().await;
 }
+
+/// A reference from `web_snapshot` clicks the element it named, and the page carries no trace of
+/// how. Needs a browser; the site is loopback.
+#[tokio::test]
+#[ignore = "needs a real browser"]
+async fn a_snapshot_reference_clicks_the_right_element_and_leaves_no_trace() {
+    use support::{Reply, Site};
+    let page = r#"<!doctype html><html><head><title>before</title></head><body>
+<nav><a href="/other">Elsewhere</a></nav>
+<main>
+  <button onclick="document.title='wrong'">First</button>
+  <button onclick="document.title='clicked'">Second</button>
+</main></body></html>"#;
+    let site = Site::start(vec![("/", Reply::html(page))]).await;
+    support::isolate();
+    let s = svipall_mcp::server::SvipallServer::new(None, svipall_core::Config::default(), None);
+    if !s.pool().available() {
+        eprintln!("no browser available; skipping");
+        return;
+    }
+    let snap = s
+        .snapshot_json(svipall_mcp::tools::WebSnapshotParams {
+            url: site.url("/"),
+            find: Some("Second".into()),
+            max_depth: None,
+            limit: Some(50),
+            tier: Some("browser".into()),
+            profile: None,
+            timeout: None,
+        })
+        .await
+        .expect("snapshot");
+    let text = snap["snapshot"].as_str().unwrap_or_default().to_string();
+    let reference = text
+        .split('[')
+        .nth(1)
+        .and_then(|rest| rest.split(']').next())
+        .unwrap_or_else(|| panic!("no reference for the button: {text}"))
+        .to_string();
+    assert!(reference.starts_with('e'), "{reference}");
+
+    let out = s
+        .act_json(svipall_mcp::tools::WebActParams {
+            url: site.url("/"),
+            actions: vec![
+                serde_json::json!({"do": "click", "ref": reference}),
+                serde_json::json!({"do": "eval", "script": "document.title"}),
+                serde_json::json!({"do": "eval", "script": "document.querySelector('[data-svipall-ref]') === null && Object.keys(window).filter(k => /svipall/i.test(k)).length === 0"}),
+                serde_json::json!({"do": "click", "ref": "e999"}),
+            ],
+            extraction: None,
+            tier: Some("browser".into()),
+            profile: None,
+            proxy: None,
+            timeout: None,
+        })
+        .await;
+    let actions = out["actions"].as_array().expect("actions");
+    assert_eq!(actions[0]["ok"], true, "{out}");
+    assert_eq!(
+        actions[1]["value"], "clicked",
+        "the wrong element was clicked: {out}"
+    );
+    assert_eq!(actions[2]["value"], true, "the page can see us: {out}");
+    assert_eq!(
+        actions[3]["ok"], false,
+        "a reference past the page was accepted: {out}"
+    );
+    assert!(
+        actions[3]["error"]
+            .as_str()
+            .unwrap_or_default()
+            .contains("web_snapshot"),
+        "{out}"
+    );
+    s.pool().shutdown().await;
+}

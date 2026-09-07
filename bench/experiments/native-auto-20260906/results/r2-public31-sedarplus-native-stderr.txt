@@ -1,0 +1,5 @@
+sedarplus repeat 1: delivered 23.84s (warm)
+sedarplus repeat 2: delivered 22.41s (warm)
+sedarplus repeat 3: delivered 22.29s (warm)
+
+paired finished in 68.8s

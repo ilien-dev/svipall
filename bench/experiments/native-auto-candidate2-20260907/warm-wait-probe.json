@@ -1,0 +1,58 @@
+{
+  "binary_sha256": "6daf81b4793eb65eed118ae2d1285d5fe5540122cc8e16081eba99465c3d066a",
+  "rows": [
+    {
+      "shape": "static",
+      "mode": "warm",
+      "exit_code": 0,
+      "seconds": 13.79062795639038,
+      "status": 200,
+      "tier_used": "warm",
+      "identity_used": "native",
+      "warm": {
+        "adaptive": false,
+        "budget_ms": 6000,
+        "ended": "deadline",
+        "iterations": 3,
+        "reissue_changed": false,
+        "reissued": false,
+        "secs": 6.300000190734863
+      },
+      "content": "Short useful answer.",
+      "completed_report": false
+    },
+    {
+      "shape": "delayed",
+      "mode": "real",
+      "exit_code": 0,
+      "seconds": 7.464785814285278,
+      "status": 200,
+      "tier_used": "real",
+      "identity_used": "native",
+      "warm": null,
+      "content": "Loading...",
+      "completed_report": false
+    },
+    {
+      "shape": "delayed",
+      "mode": "warm",
+      "exit_code": 0,
+      "seconds": 12.454659461975098,
+      "status": 200,
+      "tier_used": "warm",
+      "identity_used": "native",
+      "warm": {
+        "adaptive": false,
+        "budget_ms": 6000,
+        "ended": "cleared",
+        "iterations": 2,
+        "reissue_changed": false,
+        "reissued": false,
+        "secs": 5.099999904632568
+      },
+      "content": "# Rendered report\n\nThe completed report contains the requested observations and their context. Researchers measured independent samples and recorded the experimental method. These results are now available for inspection alongside the measurements.",
+      "completed_report": true
+    }
+  ],
+  "scope": "Local fixtures only; shortened wait for diagnosis, not the public protocol."
+}

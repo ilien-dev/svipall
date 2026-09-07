@@ -1,0 +1,68 @@
+{
+  "date": "2026-09-06",
+  "source_revision": "dd8a30485d7ae005aacdafbb5bc1f9fd832af7a5",
+  "platform": "Windows x86_64",
+  "browser": "Chrome for Testing 152.0.7977.75",
+  "qc_initial_exit_code": 1,
+  "qc_final_exit_code": 0,
+  "qc_tests": {
+    "tests": {
+      "passed": 1170,
+      "failed": 0,
+      "ignored": 19
+    },
+    "tests (http3)": {
+      "passed": 3,
+      "failed": 0,
+      "ignored": 1
+    },
+    "tests (onnx models)": {
+      "passed": 4,
+      "failed": 0,
+      "ignored": 0
+    }
+  },
+  "initial_brave_probes": {
+    "passed": 150,
+    "failures": 10,
+    "total": 160
+  },
+  "final_managed_browser_probes": {
+    "passed": 160,
+    "failures": 0,
+    "total": 160
+  },
+  "targeted_test_executions": 8,
+  "targeted_exit_codes": [
+    {
+      "exit_code": 0,
+      "test": "automatic-6650dea4019ab38b"
+    },
+    {
+      "exit_code": 0,
+      "test": "automatic_learning-a40554a1839167df"
+    },
+    {
+      "exit_code": 0,
+      "test": "automatic_timeout-c85acd476267e1a6"
+    }
+  ],
+  "packaging_exit_codes": {
+    "install": 0,
+    "mcp": 0
+  },
+  "public_site_automatic_delivery_rate": "not measured",
+  "optional_extraction_corpora": "not selected; QC skipped this step",
+  "source_sha256": {
+    "crates/svipall-core/src/automatic.rs": "cfe34949eee47a3f1c109eb79bdd2a42cfab1ec9b893cea42e9a699de98f3399",
+    "crates/svipall-core/src/traffic.rs": "40ac745416d6efc54b88fcc98c4951358185c0bdd0552fc97a81334e9ac6dc2f",
+    "crates/svipall-core/src/config.rs": "82a64fc852cd6fda93f401b41257178e75776cd87549b1b092ea29d14c6d0037",
+    "crates/svipall-mcp/src/server.rs": "4dab184143e491b18989069a5736705c03d51ed8ba0ebaf9de9af6b2b54dea6f",
+    "crates/svipall-mcp/src/browser.rs": "4b45282aec37d829f6c4a1f234e8e769aec5cef562b1d3cf81f53036b52ab133",
+    "crates/svipall-models/build.rs": "a1224c5f8852e5ebae18b6412714668b357b4e95876adbc427e5ccbd79b63027",
+    "install.ps1": "e6150acf1c2d0c388930524c8f92433ffb64efbe7ab8be3ed5c61ce556711643",
+    "scripts/stage-windows-runtime.ps1": "ff287f138f5e55cf26ab375797bf6a29dee9d8d89fba99c742bcde20f945a66f",
+    "scripts/test-local-install.ps1": "e703b44aa45157d1a6c5eb7067f0ba66cdfc38aaccd2c6e23360ac26600f53cd",
+    "scripts/smoke-local-mcp.ps1": "dddad160df57bae061ae9436481329cb82be66692d84ecb96f97a23b20d6fb34"
+  }
+}

@@ -1052,13 +1052,27 @@ impl SvipallServer {
     /// quietly falling behind `server.rs`.
     pub fn tool_names(&self) -> Vec<String> {
         let mut names: Vec<String> = self
-            .tool_router
-            .list_all()
+            .tools()
             .into_iter()
             .map(|t| t.name.to_string())
             .collect();
         names.sort();
         names
+    }
+
+    /// The tool list exactly as `tools/list` hands it to the client: every schema slimmed, because
+    /// the model reads all of it, on every request, before choosing.
+    pub fn tools(&self) -> Vec<rmcp::model::Tool> {
+        self.tool_router
+            .list_all()
+            .into_iter()
+            .map(|mut t| {
+                let mut schema = (*t.input_schema).clone();
+                slim_schema(&mut schema);
+                t.input_schema = std::sync::Arc::new(schema);
+                t
+            })
+            .collect()
     }
 
     /// The config this server was built with, for a caller that has to bind a port or size a queue.
@@ -1358,6 +1372,12 @@ impl SvipallServer {
             },
         );
         let obj = value.as_object_mut().expect("tool results are objects");
+        if p.cursor
+            .as_deref()
+            .is_some_and(|c| budget::Cursor::decode(c).is_none())
+        {
+            obj.insert("cursor_error".into(), json!(crate::steer::CURSOR_IGNORED));
+        }
         obj.insert("chars".into(), json!(out.content.chars().count()));
         obj.insert("tokens_estimated".into(), json!(out.tokens));
         obj.insert("content".into(), Value::String(out.content));
@@ -2105,7 +2125,17 @@ impl SvipallServer {
     /// ones somebody remembered to instrument.
     pub async fn fetch_json_opts(&self, p: WebFetchParams, want_links: bool) -> FetchOutcome {
         let started = std::time::Instant::now();
+        let is_raw = p.url.starts_with("raw:");
         let mut out = self.fetch_json_inner(p, want_links).await;
+        // A `raw:` URL is the page itself. Echoed under `url` and `final_url` it would come back
+        // twice on top of the content, and go into the request log as an address.
+        if is_raw {
+            for key in ["url", "final_url"] {
+                if out.value.get(key).is_some() {
+                    out.value[key] = json!("raw:");
+                }
+            }
+        }
         if out.value["identity_used"] == "native" || out.value["native_fallback"] == true {
             out.value["privacy_notice"] = json!("Native mode exposes real browser and device characteristics. Separate cookies do not prevent fingerprint linking; the network exit is unchanged.");
         }
@@ -2134,14 +2164,19 @@ impl SvipallServer {
         // The operator's own rule about where this machine may go, checked before a request is
         // made rather than after one comes back. Inert unless configured.
         if let Err(why) = self.origin_policy().check(&url) {
+            let note = match why {
+                svipall_core::policy::Refusal::NotFetchable => crate::steer::not_a_url(&url),
+                _ => "This origin is refused by this installation's configuration \
+                      (allow_origins / block_origins / refuse_private_addresses in \
+                      ~/.svipall/config.toml). Nothing was requested."
+                    .into(),
+            };
             return FetchOutcome {
                 value: json!({
                     "url": url,
                     "blocked_reason": why.to_string(),
                     "wall_kind": "policy",
-                    "note": "This origin is refused by this installation's configuration \
-                             (allow_origins / block_origins / refuse_private_addresses in \
-                             ~/.svipall/config.toml). Nothing was requested.",
+                    "note": note,
                 }),
                 links: Vec::new(),
                 final_url: url,
@@ -2216,14 +2251,25 @@ impl SvipallServer {
         let mut revalidate: Option<(Option<String>, Option<String>)> = None;
         let mut stale_copy: Option<CachedPage> = None;
 
+        // The cache holds the page's markdown, whole. A call that wants anything else of the page,
+        // rows, one part of it, the raw text, has to parse it again, so for that call a hit is not
+        // an answer and a 304 would not be either.
+        let wants_stored_markdown = p.schema.is_none()
+            && !p.tables.unwrap_or(false)
+            && p.css_selector.is_none()
+            && p.extraction.as_deref().is_none_or(|e| e == "markdown")
+            && p.main_content_only.is_none_or(|m| m);
         // A fresh cached copy short-circuits the whole ladder. This is also what makes a cursor
         // continuation free: page two of a long document is a cache hit, not a second download.
         if let Some((hit, fresh)) = self.cache_lookup(p, cache_mode) {
-            if !fresh && (hit.etag.is_some() || hit.last_modified.is_some()) {
+            if !fresh
+                && wants_stored_markdown
+                && (hit.etag.is_some() || hit.last_modified.is_some())
+            {
                 revalidate = Some((hit.etag.clone(), hit.last_modified.clone()));
                 stale_copy = Some(hit.clone());
             }
-            if fresh && p.schema.is_none() && !p.tables.unwrap_or(false) {
+            if fresh && wants_stored_markdown {
                 let mut value = json!({
                     "url": url, "final_url": hit.final_url, "status": hit.status,
                     "tier_used": hit.tier, "title": hit.title,
@@ -2257,6 +2303,22 @@ impl SvipallServer {
             }
         }
         let mode = p.mode.as_deref().unwrap_or("auto");
+        // A tier that does not exist used to be tried by name and reported as "bogus: error",
+        // which reads as a network failure. It is a typo, and it says so before any request.
+        for (field, value) in [
+            ("mode", p.mode.as_deref()),
+            ("max_tier", p.max_tier.as_deref()),
+        ] {
+            if let Some(v) = value {
+                if v != "auto" && !crate::steer::TIERS.contains(&v) {
+                    return FetchOutcome {
+                        value: json!({"url": url, "status": 0, "error": crate::steer::not_a_tier(field, v)}),
+                        links: Vec::new(),
+                        final_url: url,
+                    };
+                }
+            }
+        }
         let extraction_kind = p.extraction.as_deref().unwrap_or("markdown");
         let domain = domain_from_url(&url);
         let local =
@@ -2799,7 +2861,9 @@ impl SvipallServer {
                 svipall_core::automatic::record(
                     &route_context,
                     &route,
-                    if reason.is_some() {
+                    if reason.is_some() && matches!(kind, WallKind::Vendor | WallKind::Hold) {
+                        Feedback::FingerprintWall
+                    } else if reason.is_some() {
                         Feedback::Failed
                     } else if (200..300).contains(&o.status)
                         && integrity.verdict == svipall_core::quality::Verdict::Full
@@ -3142,7 +3206,9 @@ impl SvipallServer {
             let next = if terminal {
                 tiers.len()
             } else if automatic {
-                i + 1
+                let managed = matches!(kind, WallKind::Cloudflare)
+                    && svipall_core::cloudflare_is_managed_challenge(&o.html.to_lowercase());
+                svipall_core::automatic::after_wall(&tiers, i, &kind, managed)
             } else {
                 match kind {
                     // A page that says it does not exist says the same thing from every tier, so it
@@ -3426,7 +3492,8 @@ impl SvipallServer {
 #[tool_router]
 impl SvipallServer {
     #[tool(
-        description = "Fetch any web page, auto-escalating until anti-bot is defeated. mode=auto climbs http -> browser -> stealth -> real -> warm and remembers the working tier per domain. Never set mode manually unless debugging. Supports method/body/headers for API calls on the http tier."
+        description = "Fetch one URL and return its main content as markdown (PDF and office documents too), or as rows with `schema` or `tables`. The default way to read a page: `mode=auto` climbs http -> browser -> stealth -> real -> warm, remembers the working tier per domain, and is never set by hand. Cut tokens with `query` (keep only relevant blocks), `css_selector`, `max_tokens` + `cursor` (page through), or `out_file` (write to disk, return a path). To click use web_snapshot; for the site's JSON API use web_capture; for several known URLs use web_fetch_many. Returns `content`, `title`, `tier_used` and `quality`. A wall returns `blocked_reason` and a `note` saying what to do: act on it, never retry blindly.",
+        annotations(read_only_hint = true, open_world_hint = true)
     )]
     async fn web_fetch(
         &self,
@@ -3436,7 +3503,8 @@ impl SvipallServer {
     }
 
     #[tool(
-        description = "Fetch several URLs in parallel (bounded) with the same auto escalation as web_fetch. Results keep the input order."
+        description = "Fetch several URLs in parallel with the same escalation, `query` filter, `schema` and `tables` as web_fetch, results in input order. Use when the URLs are already known, from web_search, web_map or a listing; to discover them use web_crawl. Returns one web_fetch result per URL plus `corroboration`: how many distinct documents the set really is, duplicates marked `same_text_as`.",
+        annotations(read_only_hint = true, open_world_hint = true)
     )]
     async fn web_fetch_many(
         &self,
@@ -3453,6 +3521,8 @@ impl SvipallServer {
             extraction: p.extraction,
             max_tier: p.max_tier,
             query: p.query,
+            schema: p.schema,
+            tables: p.tables,
             timeout: p.timeout,
             main_content_only: Some(true),
             ..Default::default()
@@ -3520,7 +3590,8 @@ impl SvipallServer {
     }
 
     #[tool(
-        description = "Interact with a page in a real browser: click, type, fill, press, hover, select, scroll, wait, eval, goto, screenshot. Returns action results and the final page content. Actions: [{do:'click',selector:'#x'},{do:'type',selector:'input',text:'hi'},{do:'press',key:'Enter'},{do:'wait',ms:1500}|{do:'wait',selector:'.done'},{do:'eval',script:'document.title'},{do:'scroll',pixels:800}]"
+        description = "Open a URL in a browser, run a list of actions and return the resulting page. One shot with no session: for several steps on one login or cart use browser_open + browser_do. Take a web_snapshot first and name elements by `ref`. Actions: click, type, fill, press, hover, select, scroll (`until:'stable'` loads everything), wait, eval, goto, verify, console, screenshot, hold; each is an object with `do` and the fields it needs. Returns per-action results and the final page as markdown.",
+        annotations(read_only_hint = false, open_world_hint = true)
     )]
     async fn web_act(&self, params: Parameters<WebActParams>) -> Result<CallToolResult, McpError> {
         ok(self.act_json(params.0).await)
@@ -3620,7 +3691,8 @@ impl SvipallServer {
     }
 
     #[tool(
-        description = "Crawl a site by following same-domain links breadth-first and return every page as markdown. max_pages (default 20), max_depth (default 2), include (substring filter for links). Returns a crawl_id; pass it back as crawl_id to resume where it stopped."
+        description = "Crawl one site from a start URL and return every page as markdown, deduplicated, robots.txt obeyed. Use when the pages are not known in advance; when they are, web_fetch_many is cheaper, and web_map lists a site's URLs for a few hundred tokens before deciding to crawl. `max_pages` (20), `max_depth` (2), `include` (URL substring), `query` (rank by relevance, stop when saturated), `strategy=dfs` for a manual or a paginated listing, `schema` or `tables` for rows from every page. For many rows pass `out_file` (.csv, .json, .jsonl): a path comes back instead of the pages. Returns the pages and a `crawl_id`; pass it back as `crawl_id` to resume an interrupted crawl.",
+        annotations(read_only_hint = true, open_world_hint = true)
     )]
     async fn web_crawl(
         &self,
@@ -3654,6 +3726,12 @@ impl SvipallServer {
         p: WebCrawlParams,
         progress: Option<&dyn ProgressSink>,
     ) -> Value {
+        // A start URL nothing can fetch produced an empty crawl with a crawl_id and
+        // `stopped_by: frontier_empty`, which reads as a site with no links.
+        if p.crawl_id.is_none() && !(p.url.starts_with("http://") || p.url.starts_with("https://"))
+        {
+            return json!({"error": crate::steer::needs_http_url("web_crawl", &p.url)});
+        }
         let (p, crawl_id, resume) = self.resume_or_start(p);
         // Saved before `template` moves the fields out, so a resume gets the request verbatim.
         let params_json = serde_json::to_string(&p).unwrap_or_else(|_| "{}".into());
@@ -3669,11 +3747,14 @@ impl SvipallServer {
             mode: p.mode,
             extraction: p.extraction,
             query: p.query,
+            schema: p.schema.clone(),
+            tables: p.tables,
             scroll: p.scroll.clone(),
             timeout: Some(p.timeout.unwrap_or(45_000)),
             main_content_only: Some(true),
             ..Default::default()
         };
+        let wants_rows = p.schema.is_some() || p.tables.unwrap_or(false);
         let query = template.query.clone();
         let robots_policy = p
             .robots
@@ -3947,8 +4028,12 @@ impl SvipallServer {
                 }
 
                 used_tokens += svipall_core::budget::estimate_tokens(&body);
-                let truncated: String = body.chars().take(cap).collect();
-                v["content"] = Value::String(truncated);
+                // Rows were asked for: the page carries `extracted` or `tables`, and an empty
+                // `content` beside them would only say the wrong thing.
+                if !wants_rows {
+                    let truncated: String = body.chars().take(cap).collect();
+                    v["content"] = Value::String(truncated);
+                }
                 if let Some((of, similarity)) = duplicate {
                     v["duplicate_of"] = json!(of);
                     v["similarity"] = json!(similarity);
@@ -4147,6 +4232,11 @@ impl SvipallServer {
                 // file: it reads every row, pays for every row, and writes most of them back out
                 // again to save them. A path and a count is the same information.
                 match p.out_file.as_deref().filter(|n| !n.trim().is_empty()) {
+                    // A file of rows wants the rows, one per item with the page it came from,
+                    // not one line per page holding a JSON blob of them.
+                    Some(name) if wants_rows => {
+                        Self::export_rows_into(obj, name, &flatten_rows(&pages))
+                    }
                     Some(name) => Self::export_rows_into(obj, name, &pages),
                     None => {
                         obj.insert("pages".into(), json!(pages));
@@ -4158,7 +4248,8 @@ impl SvipallServer {
     }
 
     #[tool(
-        description = "The JSON a page fetched while it loaded. Most sites render from an API their own JavaScript called a moment earlier, and that response is smaller, already typed, and far more stable than the HTML built from it. Use it to find a site's real endpoint — an endpoint that took page=1 will take page=2, which beats following links. Call it without a pattern first to see what the page asked for, then again with `pattern` and `bodies=true`."
+        description = "Record the JSON and XHR responses a page fetches while it loads and return them: the site's own API, smaller, typed and more stable than the HTML built from it. Use to find the real endpoint behind a listing or pagination; an endpoint that took page=1 takes page=2, which beats following links. Call once without `pattern` to see what the page asked for, then with `pattern` (URL substring) and `bodies=true` for the payloads. Returns `endpoints` and `responses` with url, status, mime, and body when asked.",
+        annotations(read_only_hint = true, open_world_hint = true)
     )]
     async fn web_capture(
         &self,
@@ -4262,7 +4353,8 @@ impl SvipallServer {
     }
 
     #[tool(
-        description = "The page as a structure you can act on: every button, link and field with its role, its accessible name and a short reference. Use this instead of web_fetch when the next step is to click or type, and instead of a screenshot always — it is deterministic, needs no vision model, and costs a fraction of the tokens. Pass `find` to get only what matches, `max_depth` to go shallower."
+        description = "Read a page as its interactive structure: every button, link and field with its role, accessible name and a short `ref` such as e12. Use instead of web_fetch when the next step is to click or type, and instead of web_screenshot when a page has to be understood: deterministic, no image, a fraction of the tokens. `find` keeps only matching nodes, `max_depth` goes shallower. Returns the nodes; pass a `ref` to web_act or browser_do so no CSS selector has to be guessed.",
+        annotations(read_only_hint = true, open_world_hint = true)
     )]
     async fn web_snapshot(
         &self,
@@ -4334,7 +4426,8 @@ impl SvipallServer {
     }
 
     #[tool(
-        description = "Remember something between sessions. An agent crawling a site over three days has nowhere to keep 'the last id I saw was 4820' — its own context does not survive the session, and this does. actions: get, set, list, delete. Keys are path-like ('shop/last_id') so `list` with a prefix groups them."
+        description = "Remember a value across sessions: `set` a key, `get` it back, `list` by prefix, `delete` it. Use for state needed in a later session, such as the last id seen, a learned URL pattern or a checkpoint. Keys are path-like (`shop/last_id`) so a prefix groups them.",
+        annotations(read_only_hint = false, open_world_hint = false)
     )]
     async fn web_notes(
         &self,
@@ -4344,7 +4437,8 @@ impl SvipallServer {
     }
 
     #[tool(
-        description = "What this installation has actually been doing: which tier answered, which wall appeared, how long it took, per domain. `view=summary` is the one that matters — a domain that is half blocked and slow is a domain whose learned tier is wrong, and nothing else notices that on its own."
+        description = "Report what this installation has done per domain: which tier answered, which wall appeared, how long it took. `view=summary` shows domains that are half blocked or slow, the sign of a learned tier gone wrong (reset it with web_status forget_tier); `view=recent` lists the last events. web_status shows the current state; this is the history.",
+        annotations(read_only_hint = true, open_world_hint = false)
     )]
     async fn web_log(&self, params: Parameters<WebLogParams>) -> Result<CallToolResult, McpError> {
         ok(self.log_json(params.0).map_err(err)?)
@@ -4389,7 +4483,8 @@ impl SvipallServer {
     }
 
     #[tool(
-        description = "Search a site using its own search box. A crawler only reaches what a site links to, and on a shop or a job board most of the content is only shown to somebody who asks for it. Returns the URL pattern the form produces — `/search?q=...` — which is the real prize: every later query is then an ordinary web_fetch with no browser at all."
+        description = "Search one site through its own search box and learn the URL pattern the form produces. Use for shops, job boards and docs whose content only appears when asked for: a crawl reaches only what is linked, and web_search covers the whole web, not one site. Returns `results_url`, the pattern (`/search?q=...`) that makes every later query a plain web_fetch with no browser, plus the first results while `fetch` is true.",
+        annotations(read_only_hint = true, open_world_hint = true)
     )]
     async fn web_site_search(
         &self,
@@ -4400,6 +4495,9 @@ impl SvipallServer {
 
     pub async fn site_search_json(&self, p: WebSiteSearchParams) -> anyhow::Result<Value> {
         use svipall_core::forms::{SearchForm, FIND_SEARCH_FORM_JS};
+        if !(p.url.starts_with("http://") || p.url.starts_with("https://")) {
+            anyhow::bail!(crate::steer::needs_http_url("web_site_search", &p.url));
+        }
         if let Err(why) = self.origin_policy().check(&p.url) {
             anyhow::bail!("{why}");
         }
@@ -4491,7 +4589,8 @@ impl SvipallServer {
     }
 
     #[tool(
-        description = "Watch a page and report when it changes. `add` starts watching, `list` shows what changed and when, `check` looks now. The comparison is a content hash, so a check that finds nothing costs one conditional request and no parsing. Watches survive restarts; they are only checked while the server is running, and a check that is late says so rather than pretending."
+        description = "Watch a page, or one `css_selector` region of it, and report when it changes. `add` starts a watch (`interval_secs`, default 3600), `list` shows what changed and when, `check` looks now, `remove` stops. A check that finds nothing costs one conditional request. Watches survive restarts but run only while the server is up. For a single comparison with no watch use web_diff.",
+        annotations(read_only_hint = false, open_world_hint = true)
     )]
     async fn web_watch(
         &self,
@@ -4542,7 +4641,12 @@ impl SvipallServer {
                     anyhow::bail!("remove needs a url");
                 };
                 let key = Watch::new(url, 60).key();
-                Ok(json!({"url": url, "removed": store.kv_delete(&key)}))
+                let removed = store.kv_delete(&key);
+                let mut out = json!({"url": url, "removed": removed});
+                if !removed {
+                    out["note"] = json!(crate::steer::NO_SUCH_WATCH);
+                }
+                Ok(out)
             }
             "list" => {
                 let now = std::time::SystemTime::now()
@@ -4664,7 +4768,8 @@ impl SvipallServer {
     }
 
     #[tool(
-        description = "Move a logged-in profile between machines. web_login is a person passing a challenge by hand — the most expensive thing this tool asks for — and until now the result lived on one machine only. The archive is encrypted with a password you supply; there is no unencrypted form, because a profile is the session. Caches are left behind."
+        description = "Move a logged-in browser profile between machines: `export` writes an encrypted archive, `import` restores it, `list` shows the profiles web_login saved. Use so a challenge a person passed once with web_login is not passed again elsewhere. `password` is required; there is no unencrypted form.",
+        annotations(read_only_hint = false, open_world_hint = false)
     )]
     async fn web_profile(
         &self,
@@ -4839,7 +4944,8 @@ impl SvipallServer {
     }
 
     #[tool(
-        description = "Search the web without an API by scraping DuckDuckGo, Bing and Brave (first engine with results wins). Returns title, url, snippet."
+        description = "Search the web without an API key by reading public search engines' own result pages; the first engine with results answers, `engine=all` merges them. Use to find URLs for a topic, then read them with web_fetch or web_fetch_many. To search inside one site use web_site_search. Returns title, url and snippet per result, not the pages.",
+        annotations(read_only_hint = true, open_world_hint = true)
     )]
     async fn web_search(
         &self,
@@ -4851,6 +4957,9 @@ impl SvipallServer {
     /// `web_search` without the protocol wrapper, for the REST API and tests. Infallible: an engine
     /// that answered nothing is a search with no results, which `attempts` explains.
     pub async fn search_json(&self, p: WebSearchParams) -> Value {
+        if p.query.trim().is_empty() {
+            return json!({"query": p.query, "count": 0, "results": [], "error": crate::steer::EMPTY_QUERY});
+        }
         let limit = p.limit.unwrap_or(10).clamp(1, 50);
         let fetcher = self.fetcher.clone();
         // "all" asks every engine and merges. Each of these is being read off its own HTML and
@@ -4864,7 +4973,8 @@ impl SvipallServer {
     }
 
     #[tool(
-        description = "Save a PNG screenshot of a page rendered in a real browser (anti-bot handled like web_fetch). Returns the file path and, by default, the image inline."
+        description = "Save a PNG of a page rendered in a real browser, anti-bot handled like web_fetch, and return its path, by default with the image inline. Use when the question is visual: layout, a chart, an image, how a page looks to a person. To read or act on a page use web_snapshot instead: cheaper, and it gives refs, whereas a screenshot cannot be clicked. `full_page` captures the whole scroll height, `mobile` renders it as a phone.",
+        annotations(read_only_hint = true, open_world_hint = true)
     )]
     async fn web_screenshot(
         &self,
@@ -4893,7 +5003,7 @@ impl SvipallServer {
         let proxy = p.proxy.clone().or_else(|| self.exit_for(&domain));
         let profile_dir = self.profile_dir_for(tier, &p.url, p.profile.as_deref());
         let opts = PageOpts {
-            mobile: false,
+            mobile: p.mobile.unwrap_or(false),
             tier,
             identity_seed: identity_seed_for(profile_dir.as_deref(), &p.url, p.profile.as_deref()),
             profile_dir,
@@ -4945,7 +5055,8 @@ impl SvipallServer {
     }
 
     #[tool(
-        description = "Open a persistent stealth browser session and return its session_id. Cookies and page state persist across browser_do calls until browser_close."
+        description = "Open a persistent stealth browser session and return a `session_id` for browser_do. Use for multi-step work where cookies and page state must survive between calls: log in, then browse; add to cart, then check out. For one page and a few actions web_act is simpler. `profile` reuses cookies saved by web_login. Close it with browser_close.",
+        annotations(read_only_hint = false, open_world_hint = true)
     )]
     async fn browser_open(
         &self,
@@ -4965,7 +5076,8 @@ impl SvipallServer {
     }
 
     #[tool(
-        description = "Navigate and act inside a session opened with browser_open. Omit url to keep acting on the current page. Same actions as web_act."
+        description = "Navigate and act inside a session from browser_open: the same actions as web_act, `ref` from web_snapshot accepted. Omit `url` to keep acting on the current page. Returns per-action results and the page content, filtered by `query` when given.",
+        annotations(read_only_hint = false, open_world_hint = true)
     )]
     async fn browser_do(
         &self,
@@ -4973,7 +5085,7 @@ impl SvipallServer {
     ) -> Result<CallToolResult, McpError> {
         let p = params.0;
         let Some(s) = self.pool.session(&p.session_id).await else {
-            return ok(json!({"error": format!("unknown session_id {}", p.session_id)}));
+            return ok(json!({"error": crate::steer::unknown_session(&p.session_id)}));
         };
         let timeout = Duration::from_millis(p.timeout.unwrap_or(90_000));
         let fut = async {
@@ -5021,7 +5133,8 @@ impl SvipallServer {
     }
 
     #[tool(
-        description = "Manage the browser svipall uses for the browser/stealth/real/warm tiers. action=status (default) reports which binary would run and why; action=install downloads Chrome for Testing (~190 MB) when the machine has no suitable browser; action=update replaces it with the current Stable; action=remove deletes it. Nothing is downloaded unless you ask."
+        description = "Manage the browser behind the browser, stealth, real and warm tiers. `status` (default) says which binary would run and why; `install` downloads Chrome for Testing (about 190 MB) when the machine has none; `update` replaces it with current stable; `remove` deletes it. Use when a fetch or web_status reports no usable browser. Nothing is downloaded unless asked.",
+        annotations(read_only_hint = false, open_world_hint = true)
     )]
     async fn browser_setup(
         &self,
@@ -5093,7 +5206,8 @@ impl SvipallServer {
     }
 
     #[tool(
-        description = "Solve a captcha on the blocked page itself and return the page behind it. Use this instead of solve_turnstile / solve_recaptcha_v2 / solve_hcaptcha whenever what you want is the content: those return a bare token, and a token is bound to the session and IP that produced it, so it rarely works anywhere else. Non-interactive widgets clear on their own; anything needing a person opens a visible window."
+        description = "Solve the captcha on a blocked page in place and return the page behind it. The right choice whenever the goal is the content: solve_turnstile, solve_recaptcha_v2 and solve_hcaptcha return a bare token bound to the session and address that produced it, which rarely works elsewhere. Use after web_fetch returns `blocked_reason` with a captcha widget. Non-interactive widgets clear on their own; one that needs a person opens a visible window or the dashboard (URL in web_status).",
+        annotations(read_only_hint = false, open_world_hint = true)
     )]
     async fn solve_and_continue(
         &self,
@@ -5167,7 +5281,8 @@ impl SvipallServer {
     }
 
     #[tool(
-        description = "What changed on a page since svipall last saw it. Compares against the cached copy: `changed` says whether the content differs, `similarity` by how much, and `added`/`removed` list the markdown blocks that appeared or went away. Cheap — the comparison is a stored fingerprint, not a second copy of the page."
+        description = "Compare a page with the copy svipall cached last time and return what changed: `changed`, `similarity`, and the `added` and `removed` markdown blocks. Use for a one-off question of whether a page changed since it was last read; to keep checking on a schedule use web_watch. Cheap: the comparison is a stored fingerprint, not a second full copy.",
+        annotations(read_only_hint = true, open_world_hint = true)
     )]
     async fn web_diff(
         &self,
@@ -5178,6 +5293,9 @@ impl SvipallServer {
 
     /// `web_diff` without the protocol wrapper, for the REST API and tests.
     pub async fn diff_json(&self, p: WebDiffParams) -> anyhow::Result<Value> {
+        if !(p.url.starts_with("http://") || p.url.starts_with("https://")) {
+            anyhow::bail!(crate::steer::needs_http_url("web_diff", &p.url));
+        }
         let Some(store) = self.store.clone() else {
             anyhow::bail!("the page cache is unavailable, so there is nothing to compare against");
         };
@@ -5195,9 +5313,11 @@ impl SvipallServer {
         let after = store.get(&p.url);
 
         let (Some(before), Some(after)) = (before, after) else {
+            // Not a change: nothing to compare against. `true` here answered "did it change?"
+            // with yes on every first sight.
             return Ok(json!({
                 "url": p.url,
-                "changed": true,
+                "changed": Value::Null,
                 "first_seen": true,
                 "note": "no earlier copy to compare against; this fetch is now the baseline",
             }));
@@ -5225,7 +5345,8 @@ impl SvipallServer {
     }
 
     #[tool(
-        description = "Map a site's URLs without crawling it: robots.txt, sitemaps (including nested indexes and .gz), RSS/Atom feeds, and the homepage links. Returns a few hundred tokens of structure instead of the many thousands a crawl would cost. Use it to decide what is worth fetching."
+        description = "List a site's URLs without fetching its pages: robots.txt, sitemaps (nested indexes and .gz), RSS/Atom feeds and homepage links. Use before web_crawl to decide what is worth fetching, or to find the page for a topic: a few hundred tokens instead of the thousands a crawl costs. Returns `urls` with `sources_used`, `sitemaps` and `feeds`; read the ones that matter with web_fetch_many.",
+        annotations(read_only_hint = true, open_world_hint = true)
     )]
     async fn web_map(&self, params: Parameters<WebMapParams>) -> Result<CallToolResult, McpError> {
         ok(self.map_json(params.0).await.map_err(err)?)
@@ -5241,7 +5362,10 @@ impl SvipallServer {
         });
         let want = |s: &str| sources.iter().any(|x| x.eq_ignore_ascii_case(s));
 
-        let base = url::Url::parse(&p.url).map_err(|e| err(format!("bad url: {e}")))?;
+        let base = url::Url::parse(&p.url)
+            .ok()
+            .filter(|u| matches!(u.scheme(), "http" | "https"))
+            .ok_or_else(|| anyhow::anyhow!(crate::steer::needs_http_url("web_map", &p.url)))?;
         let origin = format!(
             "{}://{}",
             base.scheme(),
@@ -5413,19 +5537,23 @@ impl SvipallServer {
         }))
     }
 
-    #[tool(description = "Close a browser session opened with browser_open.")]
+    #[tool(
+        description = "Close a session opened with browser_open and release its browser. Call it when the multi-step work is done; sessions left open keep a browser running.",
+        annotations(read_only_hint = false, open_world_hint = false)
+    )]
     async fn browser_close(
         &self,
         params: Parameters<BrowserSessionParams>,
     ) -> Result<CallToolResult, McpError> {
         match self.pool.close_session(&params.0.session_id).await {
             Ok(()) => ok(json!({"closed": params.0.session_id})),
-            Err(e) => ok(json!({"error": e.to_string()})),
+            Err(_) => ok(json!({"error": crate::steer::unknown_session(&params.0.session_id)})),
         }
     }
 
     #[tool(
-        description = "Open a visible browser window for a manual login or challenge, then save the cookies in a profile. Close the window when done. Without profile, the domain's auto profile is used and real/warm tiers pick it up automatically."
+        description = "Open a visible browser window so a person can log in or pass a challenge by hand, then save the cookies to a profile. Use when a fetch returns `blocked_reason` naming a login wall or a challenge no automatic tier clears. Without `profile` the domain's auto profile is used and later fetches pick it up on their own; name a `profile` to reuse it explicitly. Move it to another machine with web_profile.",
+        annotations(read_only_hint = false, open_world_hint = true)
     )]
     async fn web_login(
         &self,
@@ -5454,7 +5582,8 @@ impl SvipallServer {
     }
 
     #[tool(
-        description = "Route one domain through a proxy from now on (subdomains inherit), remove a route, list routes, or check=true to test the exits (liveness, latency, DNS-leak) without any third-party service."
+        description = "Send one domain (subdomains inherit) through a proxy from now on, or through a pool with `proxies` and `countries`; `remove` drops the route, no arguments lists routes, `check=true` tests the exits for liveness, latency and DNS leak. Use when a fingerprinting wall never yields at any tier, or a site is locked to a country. Give `country` so the browser's timezone and language match the exit.web_status shows each exit's health per domain.",
+        annotations(read_only_hint = false, open_world_hint = true)
     )]
     async fn web_route(
         &self,
@@ -5479,6 +5608,9 @@ impl SvipallServer {
                 svipall_core::exits::set_pool(&domain, &[]);
                 svipall_core::exits::forget(&domain);
             } else if let Some(pool) = p.proxies.filter(|p| !p.is_empty()) {
+                if let Some(bad) = pool.iter().find_map(|x| crate::steer::not_a_proxy(x)) {
+                    anyhow::bail!(bad);
+                }
                 // A pool: every exit's country is declared alongside it, by position.
                 let countries = p.countries.unwrap_or_default();
                 for (i, proxy) in pool.iter().enumerate() {
@@ -5498,6 +5630,9 @@ impl SvipallServer {
                 svipall_core::exits::forget(&domain);
                 table.insert(domain, pool[0].clone());
             } else if let Some(proxy) = p.proxy {
+                if let Some(bad) = crate::steer::not_a_proxy(&proxy) {
+                    anyhow::bail!(bad);
+                }
                 svipall_core::exits::set_pool(&domain, &[]);
                 if let Some(cc) = p.country.as_deref() {
                     if !svipall_core::store::set_proxy_region(&proxy, cc) {
@@ -5606,7 +5741,8 @@ impl SvipallServer {
     }
 
     #[tool(
-        description = "Show learned tiers, cooldowns, proxy routes, profiles, open browsers/sessions and solver stats. clear_cooldown=DOMAIN or forget_tier=DOMAIN to reset."
+        description = "Show the current state: learned tiers, cooldowns, address budgets, proxy routes, profiles, open browser sessions, resumable crawls, solver stats and the dashboard URL. Use when something is blocked or slow to see why, and to reset it: `clear_cooldown`, `forget_tier`, `clear_budget` and `clear_cache` take a domain. Without arguments nothing changes. The history per domain is web_log.",
+        annotations(read_only_hint = false, open_world_hint = false)
     )]
     async fn web_status(
         &self,
@@ -5712,7 +5848,7 @@ impl SvipallServer {
                 .collect(),
             None => Vec::new(),
         };
-        Ok(json!({
+        let mut status = json!({
             "home": home.to_string_lossy(),
             "version": env!("CARGO_PKG_VERSION"),
             "domain_tiers": svipall_core::load_tiers(),
@@ -5740,7 +5876,6 @@ impl SvipallServer {
             "auto_profiles": auto_profiles,
             "browser": {"executable": self.pool.executable(), "available": self.pool.available(), "chrome_major": self.pool.browser_major(), "advice": self.pool.advice(self.latest_stable_major()), "open": self.pool.open_browsers().await, "sessions": self.pool.session_ids().await, "kept": self.pool.kept_pages().await},
             "http_engine": svipall_http::engine_report(self.fetcher.engine()),
-            "cache_cleared": cleared,
             "cache": self.store.as_ref().map(|s| json!({
                 "pages": s.page_count(),
                 "bytes": s.size_bytes(),
@@ -5774,12 +5909,20 @@ impl SvipallServer {
                 "zeroshot": crate::zeroshot::available(),
                 "substance": crate::substance::locate().map(|l| l.describe()),
             },
-        }))
+        });
+        // Only when something was cleared: a `null` on every other call said nothing.
+        if let Some(cleared) = cleared {
+            status["cache_cleared"] = json!(cleared);
+        }
+        Ok(status)
     }
 
     // --- Captcha tools ---
 
-    #[tool(description = "Solve image captcha from base64 or URL. Returns text solution.")]
+    #[tool(
+        description = "Read the characters in an image captcha given as base64 or a URL and return them as text. Use when a form shows a picture of distorted characters you will type yourself; for a challenge widget on a blocked page use solve_and_continue. Returns `text`, or a `taskId` to follow with captcha_status.",
+        annotations(read_only_hint = false, open_world_hint = false)
+    )]
     async fn solve_image_captcha(
         &self,
         params: Parameters<SolveImageParams>,
@@ -5847,6 +5990,11 @@ impl SvipallServer {
         sitekey: String,
         page_url: String,
     ) -> Result<CallToolResult, McpError> {
+        // An empty sitekey used to be queued for a person at the dashboard, who could do nothing
+        // with it either.
+        if let Some(why) = crate::steer::widget_request_error(&sitekey, &page_url) {
+            return Err(McpError::invalid_params(why, None));
+        }
         let state = self
             .solver_state
             .as_ref()
@@ -5871,7 +6019,8 @@ impl SvipallServer {
     }
 
     #[tool(
-        description = "Solve reCAPTCHA v2. Provide sitekey and pageUrl, returns gRecaptchaResponse token."
+        description = "Solve a reCAPTCHA v2 challenge from its `sitekey` and `pageUrl` and return the gRecaptchaResponse token. Use only when you will submit the token yourself from the same session and address; to read the page behind the challenge use solve_and_continue. Returns the token, or a `taskId` to follow with captcha_status while a person solves it.",
+        annotations(read_only_hint = false, open_world_hint = true)
     )]
     async fn solve_recaptcha_v2(
         &self,
@@ -5882,7 +6031,10 @@ impl SvipallServer {
             .await
     }
 
-    #[tool(description = "Solve Cloudflare Turnstile. Provide sitekey and pageUrl, returns token.")]
+    #[tool(
+        description = "Solve a Turnstile challenge from its `sitekey` and `pageUrl` and return the token. Use only when you will submit the token yourself from the same session and address, such as a form posted with web_fetch method=POST; to read the page behind the challenge use solve_and_continue. Returns the token, or a `taskId` to follow with captcha_status while a person solves it.",
+        annotations(read_only_hint = false, open_world_hint = true)
+    )]
     async fn solve_turnstile(
         &self,
         params: Parameters<SolveTurnstileParams>,
@@ -5892,7 +6044,10 @@ impl SvipallServer {
             .await
     }
 
-    #[tool(description = "Solve hCaptcha. Provide sitekey and pageUrl.")]
+    #[tool(
+        description = "Solve an hCaptcha challenge from its `sitekey` and `pageUrl` and return the token. Use only when you will submit the token yourself from the same session and address; to read the page behind the challenge use solve_and_continue. Returns the token, or a `taskId` to follow with captcha_status while a person solves it.",
+        annotations(read_only_hint = false, open_world_hint = true)
+    )]
     async fn solve_hcaptcha(
         &self,
         params: Parameters<SolveHCaptchaParams>,
@@ -5903,7 +6058,8 @@ impl SvipallServer {
     }
 
     #[tool(
-        description = "Check captcha task status by taskId. Returns solved/processing/failed with token or text."
+        description = "Check a captcha task by its `taskId`, as returned by solve_turnstile, solve_recaptcha_v2, solve_hcaptcha or solve_image_captcha. Returns `status` solved, processing or failed, with the token or text once solved.",
+        annotations(read_only_hint = true, open_world_hint = false)
     )]
     async fn captcha_status(
         &self,
@@ -5919,12 +6075,16 @@ impl SvipallServer {
             Some(r) => ok(
                 json!({"taskId": r.task_id, "status": r.status, "token": r.token, "text": r.text, "error": r.error}),
             ),
-            None => Err(McpError::internal_error("task not found", None)),
+            None => Err(McpError::internal_error(
+                crate::steer::unknown_task(&params.0.task_id),
+                None,
+            )),
         }
     }
 
     #[tool(
-        description = "Report whether a captcha solution worked (good=true) or was rejected (good=false)."
+        description = "Report whether a captcha answer worked (`good=true`) or was rejected (`good=false`), by `taskId`. Call it after submitting a token from solve_turnstile, solve_recaptcha_v2 or solve_hcaptcha: the outcome orders the strategies tried next time on that route, so an unreported rejection is repeated.",
+        annotations(read_only_hint = false, open_world_hint = false)
     )]
     async fn report_captcha(
         &self,
@@ -5937,7 +6097,7 @@ impl SvipallServer {
         };
         let db = state.db_pool.read().await;
         let Some(job) = db.get_by_task_id(&p.task_id).map_err(err)? else {
-            return Err(err(format!("unknown taskId {}", p.task_id)));
+            return Err(err(crate::steer::unknown_task(&p.task_id)));
         };
         // The report used to be acknowledged and thrown away. Recording it is what lets the solver
         // know a token was refused, and lets `web_status` say which challenge types are working.
@@ -5964,6 +6124,113 @@ impl SvipallServer {
             }));
         }
         ok(json!({"taskId": p.task_id, "good": true, "recorded": true, "job_type": job.job_type}))
+    }
+}
+
+/// One row per extracted item or table row across crawled pages, each row carrying the `url` of
+/// the page it came from. Table rows are keyed by their header cells, `col1`.. where a header is
+/// missing.
+fn flatten_rows(pages: &[Value]) -> Vec<Value> {
+    let mut rows = Vec::new();
+    for page in pages {
+        let url = page["url"].clone();
+        if let Some(items) = page["extracted"]["items"].as_array() {
+            for item in items {
+                let mut row = serde_json::Map::new();
+                row.insert("url".into(), url.clone());
+                if let Some(fields) = item.as_object() {
+                    for (k, v) in fields {
+                        row.insert(k.clone(), v.clone());
+                    }
+                }
+                rows.push(Value::Object(row));
+            }
+        }
+        if let Some(tables) = page["tables"].as_array() {
+            for (t, table) in tables.iter().enumerate() {
+                let header: Vec<String> = table["header"]
+                    .as_array()
+                    .map(|h| {
+                        h.iter()
+                            .map(|c| c.as_str().unwrap_or_default().trim().to_string())
+                            .collect()
+                    })
+                    .unwrap_or_default();
+                for cells in table["rows"].as_array().into_iter().flatten() {
+                    let mut row = serde_json::Map::new();
+                    row.insert("url".into(), url.clone());
+                    row.insert("table".into(), json!(t + 1));
+                    for (i, cell) in cells.as_array().into_iter().flatten().enumerate() {
+                        let key = header
+                            .get(i)
+                            .filter(|h| !h.is_empty())
+                            .cloned()
+                            .unwrap_or_else(|| format!("col{}", i + 1));
+                        row.insert(key, cell.clone());
+                    }
+                    rows.push(Value::Object(row));
+                }
+            }
+        }
+    }
+    rows
+}
+
+/// Strip what schemars emits and no client validates: `$schema` and `title` at the root,
+/// `"default": null`, `nullable`, the integer `format` and a `minimum` of 0 on every optional
+/// field. Measured on the full list it was a third of the characters, and every one of them is
+/// read past by the model. Descriptions, types, `required` and real defaults stay.
+pub fn slim_schema(schema: &mut serde_json::Map<String, Value>) {
+    schema.remove("$schema");
+    schema.remove("title");
+    // The struct's doc comment: at best the tool description again, at worst a note to whoever
+    // maintains the struct. The tool's own description is the one the model reads.
+    schema.remove("description");
+    fn slim(v: &mut Value) {
+        let Value::Object(m) = v else { return };
+        if m.get("default").is_some_and(Value::is_null) {
+            m.remove("default");
+        }
+        m.remove("nullable");
+        m.remove("format");
+        if m.get("minimum") == Some(&Value::from(0)) {
+            m.remove("minimum");
+        }
+        // `Option<T>` on a `with =` type arrives as `anyOf: [T, {const: null}]`. Omitting the
+        // field is how null is expressed; the model only needs T.
+        if let Some(Value::Array(branches)) = m.get("anyOf") {
+            let real: Vec<Value> = branches
+                .iter()
+                .filter(|b| b.get("const") != Some(&Value::Null))
+                .cloned()
+                .collect();
+            if let [only] = real.as_slice() {
+                let own_description = m.get("description").cloned();
+                if let Value::Object(inner) = only {
+                    m.remove("anyOf");
+                    for (k, val) in inner {
+                        m.insert(k.clone(), val.clone());
+                    }
+                    // The field's own doc wins over the type's.
+                    if let Some(d) = own_description {
+                        m.insert("description".into(), d);
+                    }
+                }
+            } else {
+                m.insert("anyOf".into(), Value::Array(real));
+            }
+        }
+        for child in m.values_mut() {
+            slim(child);
+        }
+    }
+    for prop in schema
+        .get_mut("properties")
+        .and_then(Value::as_object_mut)
+        .into_iter()
+        .flat_map(|p| p.values_mut())
+    {
+        slim(prop);
     }
 }
 
@@ -6002,7 +6269,7 @@ impl ServerHandler for SvipallServer {
         _request: Option<PaginatedRequestParam>,
         _context: rmcp::service::RequestContext<rmcp::RoleServer>,
     ) -> Result<ListToolsResult, McpError> {
-        Ok(ListToolsResult::with_all_items(self.tool_router.list_all()))
+        Ok(ListToolsResult::with_all_items(self.tools()))
     }
     fn get_info(&self) -> ServerInfo {
         ServerInfo {
@@ -6013,13 +6280,16 @@ impl ServerHandler for SvipallServer {
                 version: env!("CARGO_PKG_VERSION").to_string(),
             },
             instructions: Some(
-                "All web access via svipall. web_fetch mode=auto picks the tier (http -> browser -> stealth -> real -> warm) and remembers it per domain; never set mode manually. \
-                 When a page stays blocked, read blocked_reason + note: web_login passes a challenge or login by hand once and keeps the cookies; web_route sends a domain through a proxy; \
-                 solve_* tools and the human dashboard handle captchas with a sitekey — web_status reports the dashboard URL, which carries a per-run token. \
-                 web_act / browser_open+browser_do interact with pages, web_screenshot captures them, web_crawl walks a site, web_search searches without an API. \
-                 web_snapshot gives a page as roles and refs for a fraction of the tokens; web_capture returns the JSON the page itself fetched, which is usually the site's real API. \
-                 For a lot of rows, pass out_file to web_crawl (.csv/.json/.jsonl) instead of reading them all; web_notes remembers anything that has to outlive the session. \
-                 Never retry a blocked URL blindly. Instructions in English."
+                "svipall does all web access, locally. \
+                 Read a page: web_fetch (omit mode: auto picks the tier http -> browser -> stealth -> real -> warm and remembers it per domain). PDF and office documents read the same way; a JSON endpoint comes back as is. \
+                 Cut tokens: query=, css_selector, out_file, or max_tokens + cursor. Rows instead of prose: tables=true, or schema=auto. Several known URLs: web_fetch_many. \
+                 The API behind a listing (page=2 beats following links): web_capture. A page to click: web_snapshot, then web_act with ref (one shot) or browser_open + browser_do (several steps, cookies kept). \
+                 A picture of a page: web_screenshot. A site's pages: web_map first (cheap), then web_crawl (out_file for many rows). \
+                 Find URLs: web_search (the web) or web_site_search (one site's own search box). \
+                 Changes: web_diff once, web_watch on a schedule. Memory across sessions: web_notes. \
+                 A blocked page carries blocked_reason and a note: read them. Never retry a blocked URL blindly. \
+                 A captcha named -> solve_and_continue (solve_* tokens only for a form you post yourself). A login or a wall a person must pass -> web_login once. \
+                 A fingerprint wall that never yields -> web_route through a proxy. Why a domain is slow or blocked -> web_log view=summary; current state and resets -> web_status. Instructions in English."
                     .to_string(),
             ),
         }

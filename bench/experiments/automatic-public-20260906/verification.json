@@ -1,0 +1,19 @@
+{
+  "complete": true,
+  "verified_calls": 459,
+  "completed_batches": 9,
+  "raw_hashes_verified": true,
+  "published_sha256": {
+    "auto-public31-1.json.gz": "e188f448488f8a7de05c83d0462f7738c603b4f98bde346240d98fd4f606e78f",
+    "auto-hard12-1.json.gz": "8465260a1c7750643935d0d46135682cc0c97371cb9a54a2a0e279d62599e54c",
+    "auto-vendors8-1.json.gz": "49e9beb0ee3841d5405bc1d6ce0dea57050f8446de2ef3be694b1129ca2ec689",
+    "auto-hard12-2.json.gz": "c7bf90e03ca1db264cc4cbe6b890a812a6ab9e5a0dd9e9620d9638375165e671",
+    "auto-vendors8-2.json.gz": "a37307a0c81478261d9de4c7adb210198433043633a0a43062c6834d3f2ae05f",
+    "auto-public31-2.json.gz": "3dfa1a2b66567fe806ebc69163033d4563ecd36c970966bfc7c609f7b0345c96",
+    "auto-vendors8-3.json.gz": "8fa938a79a4edea3c5fe7fa68a4ec63b996a5a5b890c5289250eff1a0a33db84",
+    "auto-public31-3.json.gz": "3f21cbdb1dc52a1f6da7da9adcbbdbc604e41c264ad2953dac78ac20448d7c02",
+    "auto-hard12-3.json.gz": "2fb63dc4fc39120f0a7449dda4b2eccf47da73d415eeb9052decddcd3c190297"
+  },
+  "protocol_sha256_matches": true,
+  "targets_sha256_matches": true
+}

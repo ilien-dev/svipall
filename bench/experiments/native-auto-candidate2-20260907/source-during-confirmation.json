@@ -1,0 +1,7 @@
+{
+  "changed_inputs": [
+    "scripts/measure_automatic.py",
+    "scripts/test_measure_automatic.py"
+  ],
+  "expected_controller_only_changes": true
+}

@@ -1,0 +1,8 @@
+{
+  "exit_code": 0,
+  "started_unix": 1788805952.588211,
+  "ended_unix": 1788806111.2887578,
+  "binary_sha256": "9d9e56bc8f5eb4c0132448c6b0dc8fa6701cf091a5a451dce20c910d02cbf59a",
+  "evaluator_sha256": "da5f8c8b569307338e41c0dd12f4ad1d5dcdcc544e1aa5d506013d80f31f7475",
+  "scope": "Every gradable page; same primary scorer, baseline primary score reused when extracted text is identical. Reference/full/raw columns are not rerun in this diagnostic."
+}

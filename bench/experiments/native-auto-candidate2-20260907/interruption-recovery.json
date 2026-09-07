@@ -1,0 +1,23 @@
+{
+  "reason": "The controller terminated on Windows PermissionError while atomically replacing progress.json. Its existing native child continued and completed all three calls. All original processes were confirmed stopped before recovery; no request was repeated.",
+  "interrupted_batch": "r1-vendors8-kasada-hyatt-native",
+  "logged_completed_calls_without_response": 0,
+  "additional_admissions_with_unknown_outcome": 0,
+  "recovered_calls": 3,
+  "raw_sha256": "271e1707333aa29935fb2dd421f561a505cafbf88eb2272c111e246cdf6eab0b",
+  "raw_child_ended_unix": 1788809144,
+  "recovered_unix": 1788809296.4232204,
+  "delay_after_child_seconds": 152.42322039604187,
+  "child_exit_status": "not observed by terminated controller; complete validated output and shutdown verified",
+  "accounting": "Recovered final native-home accounting before resuming the next scheduled block.",
+  "controller_fix": "Bounded retry of atomic JSON replacement only. No product binary, schedule, traffic limit, timeout, route policy or outcome changed.",
+  "validation": {
+    "red": "state/progress-save-red.txt",
+    "green": "state/progress-save-green.txt"
+  },
+  "source_changes": {
+    "scripts/measure_automatic.py": "81ac0bd9970859ba0072fbbe1499209ea98f795423bdb25a17e4821c78b8d73d",
+    "scripts/test_measure_automatic.py": "fc7bde7a23ff962d7f76a1cd4609cb583a5b8723a1cbd61778462396be43dccd"
+  },
+  "note": "This is a recorded unplanned controller interruption, not an uninterrupted confirmation. Final analysis must include affected-target sensitivity and assess whether another confirmation is necessary."
+}

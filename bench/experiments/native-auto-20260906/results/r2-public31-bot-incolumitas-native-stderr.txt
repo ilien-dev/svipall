@@ -1,0 +1,5 @@
+bot-incolumitas repeat 1: delivered 2.61s (warm)
+bot-incolumitas repeat 2: delivered 2.14s (warm)
+bot-incolumitas repeat 3: delivered 2.26s (warm)
+
+paired finished in 7.3s

@@ -1,0 +1,5 @@
+zillow repeat 1: delivered 9.98s (real)
+zillow repeat 2: delivered 10.01s (browser)
+zillow repeat 3: failed 40.67s (real)
+
+paired finished in 61.4s

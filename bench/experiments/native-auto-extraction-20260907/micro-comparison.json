@@ -1,0 +1,329 @@
+{
+  "binaries": {
+    "before": "335d9c2c5fdb70e1e3dd034524c1a1518b406727438378df2c2bea9dfa22ca23",
+    "after": "020a09b2d47234bbe09e88a4263689f2586439043d76c0f5959d576403bbea25"
+  },
+  "rows": [
+    {
+      "arm": "before",
+      "repeat": 1,
+      "exit_code": 0,
+      "seconds": 0.35199546813964844,
+      "microseconds": {
+        "classify / 200KB": 182.962,
+        "quality::assess / 200KB": 45.764,
+        "markdown, voted / 200KB": 5550.0,
+        "template::strip / 200KB": 292.362,
+        "cache::find_near / 300 pages": 0.724,
+        "induce / 200KB": 2577.0,
+        "parse_page text+title / 200KB": 2365.0,
+        "parse_page everything / 200KB": 6059.0,
+        "bm25_filter / full page": 1836.0,
+        "budget::take / full page": 222.695,
+        "simhash / full page": 754.26
+      },
+      "log_sha256": "de3edb7b817e2f56cc5974bfc2bb35c81a62660d24a67e553de9e097e1179062"
+    },
+    {
+      "arm": "after",
+      "repeat": 1,
+      "exit_code": 0,
+      "seconds": 0.8966629505157471,
+      "microseconds": {
+        "classify / 200KB": 179.026,
+        "quality::assess / 200KB": 44.406,
+        "markdown, voted / 200KB": 5486.0,
+        "template::strip / 200KB": 212.544,
+        "cache::find_near / 300 pages": 0.722,
+        "induce / 200KB": 2545.0,
+        "parse_page text+title / 200KB": 2304.0,
+        "parse_page everything / 200KB": 6139.0,
+        "bm25_filter / full page": 1862.0,
+        "budget::take / full page": 245.975,
+        "simhash / full page": 758.52
+      },
+      "log_sha256": "7a79fc05ff620c6359dda8ab7fc16623edffd6112f2e70afc28c4cdc5fb79fb8"
+    },
+    {
+      "arm": "after",
+      "repeat": 2,
+      "exit_code": 0,
+      "seconds": 0.34198975563049316,
+      "microseconds": {
+        "classify / 200KB": 188.968,
+        "quality::assess / 200KB": 45.66,
+        "markdown, voted / 200KB": 5317.0,
+        "template::strip / 200KB": 274.674,
+        "cache::find_near / 300 pages": 0.87,
+        "induce / 200KB": 2430.0,
+        "parse_page text+title / 200KB": 2322.0,
+        "parse_page everything / 200KB": 6069.0,
+        "bm25_filter / full page": 1806.0,
+        "budget::take / full page": 245.88,
+        "simhash / full page": 752.745
+      },
+      "log_sha256": "d733432fa7398bfe730766066f3ecd2921aae976a44b6c73b2f333a3be9b4cee"
+    },
+    {
+      "arm": "before",
+      "repeat": 2,
+      "exit_code": 0,
+      "seconds": 0.34464049339294434,
+      "microseconds": {
+        "classify / 200KB": 184.138,
+        "quality::assess / 200KB": 45.84,
+        "markdown, voted / 200KB": 5359.0,
+        "template::strip / 200KB": 283.634,
+        "cache::find_near / 300 pages": 0.732,
+        "induce / 200KB": 2512.0,
+        "parse_page text+title / 200KB": 2299.0,
+        "parse_page everything / 200KB": 6406.0,
+        "bm25_filter / full page": 1895.0,
+        "budget::take / full page": 254.785,
+        "simhash / full page": 775.69
+      },
+      "log_sha256": "28b466faaf89329a15f5d6ae9b6d6d6d2cb9068b6cb7310ad31d59378fa615cb"
+    },
+    {
+      "arm": "before",
+      "repeat": 3,
+      "exit_code": 0,
+      "seconds": 0.34178590774536133,
+      "microseconds": {
+        "classify / 200KB": 196.394,
+        "quality::assess / 200KB": 46.416,
+        "markdown, voted / 200KB": 5222.0,
+        "template::strip / 200KB": 210.812,
+        "cache::find_near / 300 pages": 0.718,
+        "induce / 200KB": 2458.0,
+        "parse_page text+title / 200KB": 2356.0,
+        "parse_page everything / 200KB": 5956.0,
+        "bm25_filter / full page": 1835.0,
+        "budget::take / full page": 226.055,
+        "simhash / full page": 778.765
+      },
+      "log_sha256": "2044057422f37115a8531cb98e379c70681f2a6d2922bf691122e11eea1dd22d"
+    },
+    {
+      "arm": "after",
+      "repeat": 3,
+      "exit_code": 0,
+      "seconds": 0.3447682857513428,
+      "microseconds": {
+        "classify / 200KB": 184.588,
+        "quality::assess / 200KB": 43.786,
+        "markdown, voted / 200KB": 5580.0,
+        "template::strip / 200KB": 221.942,
+        "cache::find_near / 300 pages": 0.754,
+        "induce / 200KB": 2487.0,
+        "parse_page text+title / 200KB": 2314.0,
+        "parse_page everything / 200KB": 5976.0,
+        "bm25_filter / full page": 1844.0,
+        "budget::take / full page": 238.735,
+        "simhash / full page": 752.245
+      },
+      "log_sha256": "f98aaae54f2173cc32ab30969fe02087e4cfb22173a42f1b2f976eda34bda681"
+    }
+  ],
+  "comparisons": {
+    "bm25_filter / full page": {
+      "median_microseconds": {
+        "before": 1836.0,
+        "after": 1844.0
+      },
+      "range_microseconds": {
+        "before": [
+          1835.0,
+          1895.0
+        ],
+        "after": [
+          1806.0,
+          1862.0
+        ]
+      },
+      "after_median_below_before_range": false,
+      "after_median_above_before_range": false
+    },
+    "budget::take / full page": {
+      "median_microseconds": {
+        "before": 226.055,
+        "after": 245.88
+      },
+      "range_microseconds": {
+        "before": [
+          222.695,
+          254.785
+        ],
+        "after": [
+          238.735,
+          245.975
+        ]
+      },
+      "after_median_below_before_range": false,
+      "after_median_above_before_range": false
+    },
+    "cache::find_near / 300 pages": {
+      "median_microseconds": {
+        "before": 0.724,
+        "after": 0.754
+      },
+      "range_microseconds": {
+        "before": [
+          0.718,
+          0.732
+        ],
+        "after": [
+          0.722,
+          0.87
+        ]
+      },
+      "after_median_below_before_range": false,
+      "after_median_above_before_range": true
+    },
+    "classify / 200KB": {
+      "median_microseconds": {
+        "before": 184.138,
+        "after": 184.588
+      },
+      "range_microseconds": {
+        "before": [
+          182.962,
+          196.394
+        ],
+        "after": [
+          179.026,
+          188.968
+        ]
+      },
+      "after_median_below_before_range": false,
+      "after_median_above_before_range": false
+    },
+    "induce / 200KB": {
+      "median_microseconds": {
+        "before": 2512.0,
+        "after": 2487.0
+      },
+      "range_microseconds": {
+        "before": [
+          2458.0,
+          2577.0
+        ],
+        "after": [
+          2430.0,
+          2545.0
+        ]
+      },
+      "after_median_below_before_range": false,
+      "after_median_above_before_range": false
+    },
+    "markdown, voted / 200KB": {
+      "median_microseconds": {
+        "before": 5359.0,
+        "after": 5486.0
+      },
+      "range_microseconds": {
+        "before": [
+          5222.0,
+          5550.0
+        ],
+        "after": [
+          5317.0,
+          5580.0
+        ]
+      },
+      "after_median_below_before_range": false,
+      "after_median_above_before_range": false
+    },
+    "parse_page everything / 200KB": {
+      "median_microseconds": {
+        "before": 6059.0,
+        "after": 6069.0
+      },
+      "range_microseconds": {
+        "before": [
+          5956.0,
+          6406.0
+        ],
+        "after": [
+          5976.0,
+          6139.0
+        ]
+      },
+      "after_median_below_before_range": false,
+      "after_median_above_before_range": false
+    },
+    "parse_page text+title / 200KB": {
+      "median_microseconds": {
+        "before": 2356.0,
+        "after": 2314.0
+      },
+      "range_microseconds": {
+        "before": [
+          2299.0,
+          2365.0
+        ],
+        "after": [
+          2304.0,
+          2322.0
+        ]
+      },
+      "after_median_below_before_range": false,
+      "after_median_above_before_range": false
+    },
+    "quality::assess / 200KB": {
+      "median_microseconds": {
+        "before": 45.84,
+        "after": 44.406
+      },
+      "range_microseconds": {
+        "before": [
+          45.764,
+          46.416
+        ],
+        "after": [
+          43.786,
+          45.66
+        ]
+      },
+      "after_median_below_before_range": true,
+      "after_median_above_before_range": false
+    },
+    "simhash / full page": {
+      "median_microseconds": {
+        "before": 775.69,
+        "after": 752.745
+      },
+      "range_microseconds": {
+        "before": [
+          754.26,
+          778.765
+        ],
+        "after": [
+          752.245,
+          758.52
+        ]
+      },
+      "after_median_below_before_range": true,
+      "after_median_above_before_range": false
+    },
+    "template::strip / 200KB": {
+      "median_microseconds": {
+        "before": 283.634,
+        "after": 221.942
+      },
+      "range_microseconds": {
+        "before": [
+          210.812,
+          292.362
+        ],
+        "after": [
+          212.544,
+          274.674
+        ]
+      },
+      "after_median_below_before_range": false,
+      "after_median_above_before_range": false
+    }
+  },
+  "note": "Three sequential invocations per binary with alternating order; all observations retained. Different revisions include routing and MCP changes as well as the heading patch. These are fixture timings on this host, not isolated causal effects or public latency."
+}

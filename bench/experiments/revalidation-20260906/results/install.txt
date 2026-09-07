@@ -1,0 +1,138 @@
+installing from <repo>\target\readme-audit-20260906\state\install-c60ae2551ace4ac683118226b1e00ecf\local-test.zip
+installed svipall.exe and svipall-mcp.exe in <repo>\target\readme-audit-20260906\state\install-c60ae2551ace4ac683118226b1e00ecf\installed
+
+{
+  "features": [
+    "impersonate",
+    "onnx-grid",
+    "onnx-detect",
+    "onnx-segment"
+  ],
+  "impersonation": true,
+  "target": "x86_64-pc-windows-msvc",
+  "version": "1.0.0-rc.2"
+}
+
+{
+  "browser": {
+    "brand": "self-defending",
+    "candidates": [
+      "C:\\Program Files\\BraveSoftware\\Brave-Browser\\Application\\brave.exe"
+    ],
+    "in_use": "C:\\Program Files\\BraveSoftware\\Brave-Browser\\Application\\brave.exe",
+    "major": 152,
+    "newest_known_major": 152
+  },
+  "dashboard": {
+    "free": true,
+    "port": 8787
+  },
+  "exe": "<repo>\\target\\readme-audit-20260906\\state\\install-c60ae2551ace4ac683118226b1e00ecf\\installed\\svipall.exe",
+  "home": {
+    "config_toml": false,
+    "path": "<repo>\\target\\readme-audit-20260906\\state\\install-c60ae2551ace4ac683118226b1e00ecf\\home",
+    "secrets_env": false,
+    "writable": true
+  },
+  "http_engine": "auto",
+  "impersonation": true,
+  "models": {
+    "embedded": [
+      "detect",
+      "segment"
+    ],
+    "inference": true,
+    "installed": []
+  },
+  "ok": false,
+  "problems": [
+    {
+      "code": "self_defending_browser",
+      "fix": "Run `svipall browser install` — the pool prefers the managed Chrome for Testing once it is there.",
+      "message": "The browser that would be used (C:\\Program Files\\BraveSoftware\\Brave-Browser\\Application\\brave.exe) ships its own anti-fingerprinting, which contradicts the Chrome identity stated everywhere else."
+    }
+  ],
+  "rest": {
+    "enabled": false,
+    "port": 0
+  },
+  "target": "x86_64-pc-windows-msvc",
+  "version": "1.0.0-rc.2"
+}
+{
+  "applies": "next command; running servers refresh browser policy on their next request",
+  "config": {
+    "allow_origins": [],
+    "api_key": "",
+    "auto_max_attempts": 6,
+    "auto_native_fallback": true,
+    "block_ads": false,
+    "block_origins": [],
+    "blocklist_sources": [
+      "https://raw.githubusercontent.com/StevenBlack/hosts/master/hosts",
+      "https://easylist.to/easylist/easyprivacy.txt"
+    ],
+    "browser_auto_install": false,
+    "browser_identity": "auto",
+    "browser_idle_secs": 180,
+    "browser_path": "",
+    "browser_timeout_ms": 45000,
+    "corpus_keep_days": 30,
+    "dashboard_bind": "127.0.0.1",
+    "dashboard_port": 8787,
+    "dns_over_https": "",
+    "exit_strategy": "sticky",
+    "http3": false,
+    "http_engine": "auto",
+    "http_firefox": false,
+    "local_roots": [],
+    "locale": "",
+    "log_level": "info",
+    "max_jobs": 2,
+    "max_tier": "warm",
+    "max_tokens_per_fetch": 25000,
+    "max_tokens_total": 60000,
+    "overlap_blocks": 1,
+    "parallelism": 4,
+    "refuse_private_addresses": false,
+    "reputation_budget": 250.0,
+    "reputation_half_life_hours": 6,
+    "request_cooldown_seconds": 900,
+    "request_limit": 12,
+    "request_min_interval_ms": 1000,
+    "request_window_seconds": 60,
+    "rest_bind": "127.0.0.1",
+    "rest_port": 0,
+    "solver_workers": 4,
+    "timezone": "",
+    "warm_adaptive": true,
+    "warm_keep_max": 2,
+    "warm_keep_secs": 120,
+    "warm_max_wait_ms": 55000,
+    "warm_wait_ms": 20000
+  },
+  "path": "<repo>\\target\\readme-audit-20260906\\state\\install-c60ae2551ace4ac683118226b1e00ecf\\home\\settings.toml",
+  "saved": true
+}
+
+Done. Next:
+  claude mcp add svipall -- <repo>\target\readme-audit-20260906\state\install-c60ae2551ace4ac683118226b1e00ecf\installed\svipall-mcp.exe   # wire it into Claude Code
+  svipall fetch https://example.com                    # or just use it from a shell
+
+In Claude Code, the plugin does the wiring for you:
+  /plugin marketplace add ilien-dev/svipall
+  /plugin install svipall@svipall
+Windows runtime manifest and required DLLs verified.
+removed <repo>\target\readme-audit-20260906\state\install-c60ae2551ace4ac683118226b1e00ecf\installed\svipall.exe
+removed <repo>\target\readme-audit-20260906\state\install-c60ae2551ace4ac683118226b1e00ecf\installed\svipall-mcp.exe
+
+Left alone on purpose: ~\.svipall (profiles, cache, learned tiers, any browser it
+downloaded) and the PATH entry. Remove them by hand if you want to.
+{
+    "installed":  true,
+    "fixture":  "<repo>\\target\\readme-audit-20260906\\state\\install-c60ae2551ace4ac683118226b1e00ecf",
+    "runtime_verified":  true,
+    "unrelated_and_modified_preserved":  true,
+    "uninstalled":  true,
+    "browser_opt_out":  true
+}

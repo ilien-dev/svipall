@@ -1,0 +1,5 @@
+nowsecure repeat 1: delivered 24.12s (warm)
+nowsecure repeat 2: delivered 22.53s (warm)
+nowsecure repeat 3: delivered 22.55s (warm)
+
+paired finished in 69.6s

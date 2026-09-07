@@ -1,0 +1,5 @@
+hackernews repeat 1: delivered 2.38s (warm)
+hackernews repeat 2: delivered 1.70s (warm)
+hackernews repeat 3: delivered 1.41s (warm)
+
+paired finished in 5.9s

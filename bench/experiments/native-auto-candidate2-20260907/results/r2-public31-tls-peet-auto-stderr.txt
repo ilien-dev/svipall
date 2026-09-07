@@ -1,0 +1,5 @@
+tls-peet repeat 1: delivered 0.49s (http)
+tls-peet repeat 2: delivered 0.89s (http)
+tls-peet repeat 3: delivered 0.91s (http)
+
+paired finished in 2.5s

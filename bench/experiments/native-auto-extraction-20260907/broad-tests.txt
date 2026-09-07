@@ -1,0 +1,156 @@
+   Compiling svipall-extract v1.0.0 (C:\Users\jesus\Documents\Projects\svipall\bench\experiments\native-auto-extraction-20260907\state\record-workspace\extract)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 6.12s
+     Running unittests src\lib.rs (C:/tr\debug\deps\svipall_extract-af8d11c1def0919b.exe)
+
+running 123 tests
+test content::blocks::tests::an_empty_page_condemns_nothing ... ok
+test content::blocks::tests::the_decision_tree_is_the_published_one ... ok
+test content::blocks::tests::a_page_with_no_latin_punctuation_is_still_read ... ok
+test content::blocks::tests::navigation_is_boilerplate_and_prose_is_not ... ok
+test content::candidates::tests::a_page_with_no_prose_at_all_has_no_winner ... ok
+test content::candidates::tests::the_winner_is_a_real_node_of_the_document ... ok
+test content::forum::tests::a_question_and_answer_page_is_not_evidence_of_a_forum ... ok
+test content::forum::tests::a_declared_posting_is_believed ... ok
+test content::forum::tests::an_article_is_not_a_thread ... ok
+test content::forum::tests::an_empty_page_is_not_a_thread ... ok
+test content::forum::tests::a_run_of_bylines_is_not_a_thread ... ok
+test content::profile::tests::every_type_has_a_profile_and_none_of_them_silences_everyone ... ok
+test content::forum::tests::an_undeclared_thread_is_found_by_its_shape ... ok
+test content::profile::tests::no_profile_lowers_the_bar_for_removing_content ... ok
+test content::forum::tests::repeated_posts_under_an_ordinary_container_are_a_thread ... ok
+test content::profile::tests::the_default_is_the_article_profile_because_that_is_the_safe_guess ... ok
+test content::profile::tests::the_types_that_hold_content_in_several_places_do_not_pick_one ... ok
+test content::stats::tests::a_subtree_carries_its_descendants_numbers ... ok
+test content::stats::tests::an_empty_document_has_no_text_to_judge ... ok
+test content::stats::tests::code_and_tables_are_flagged_all_the_way_up ... ok
+test content::vote::tests::a_page_with_nothing_in_it_is_left_alone ... ok
+test heal::tests::a_fingerprint_round_trips_through_json_and_tolerates_missing_fields ... ok
+test heal::tests::a_position_is_added_only_when_classes_cannot_tell_siblings_apart ... ok
+test heal::tests::an_element_survives_a_class_rename ... ok
+test heal::tests::an_element_survives_being_moved_one_level_deeper ... ok
+test heal::tests::something_unrelated_never_clears_the_bar ... ok
+test heal::tests::the_generated_selector_finds_exactly_that_element_and_its_siblings_for_a_base ... ok
+test heal::tests::two_equally_similar_candidates_are_a_miss_not_a_guess ... ok
+test induce::tests::a_generated_class_is_never_the_selector ... ok
+test induce::tests::a_field_missing_from_a_quarter_of_the_records_is_dropped ... ok
+test content::candidates::tests::the_content_wins_on_its_own_merits_not_on_its_tag_name ... ok
+test content::candidates::tests::relaxing_the_flags_lets_a_stripped_page_be_read ... ok
+test content::candidates::tests::a_content_class_beats_a_furniture_class ... ok
+test induce::tests::a_menu_of_one_word_links_is_not_a_listing ... ok
+test induce::tests::a_listing_names_its_own_records_and_columns ... ok
+test induce::tests::a_page_with_nothing_repeated_is_refused ... ok
+test induce::tests::the_link_that_carries_the_text_takes_the_name ... ok
+test induce::tests::the_navigation_is_not_the_listing ... ok
+test meta::tests::an_empty_document_produces_no_spurious_fields ... ok
+test meta::tests::a_graph_wrapper_is_flattened_and_broken_json_is_skipped ... ok
+test meta::tests::an_author_object_yields_its_name ... ok
+test meta::tests::canonical_and_image_are_absolute ... ok
+test meta::tests::dates_prefer_json_ld_over_the_meta_tag ... ok
+test meta::tests::json_ld_wins_over_opengraph_which_wins_over_the_title_tag ... ok
+test content::vote::tests::a_forum_thread_keeps_its_posts ... ok
+test meta::tests::language_feeds_keywords_and_robots_are_captured ... ok
+test content::vote::tests::what_every_voter_condemns_is_dropped_and_the_article_is_not ... ok
+test meta::tests::links_are_split_internal_versus_external_with_subdomains_counted_as_internal ... ok
+test content::vote::tests::a_single_dissenting_voter_is_enough_to_keep_a_block ... ok
+test prune::tests::a_clean_article_is_left_alone ... ok
+test content::vote::tests::agreement_is_high_on_an_obvious_page_and_lower_on_an_ambiguous_one ... ok
+test prune::tests::a_link_rail_is_dropped_and_the_article_survives ... ok
+test prune::tests::a_container_inside_a_dropped_one_is_not_charged_twice ... ok
+test sanitize::tests::a_normal_space_is_not_invisible ... ok
+test sanitize::tests::a_property_name_is_not_matched_inside_another_one ... ok
+test sanitize::tests::a_small_negative_offset_is_ordinary_layout ... ok
+test prune::tests::code_blocks_are_never_pruned ... ok
+test prune::tests::data_tables_are_never_pruned ... ok
+test sanitize::tests::ordinary_text_survives_untouched ... ok
+test prune::tests::an_index_page_is_not_emptied ... ok
+test prune::tests::chrome_inside_chrome_is_counted_once ... ok
+test sanitize::tests::the_ways_text_is_actually_hidden_are_caught ... ok
+test sanitize::tests::visible_text_is_never_dropped ... ok
+test sanitize::tests::zero_width_characters_are_stripped ... ok
+test schema::heal_tests::a_base_selector_that_broke_is_relocated_before_any_field_is_read ... ok
+test schema::heal_tests::a_field_whose_selector_broke_is_relocated_and_reported ... ok
+test schema::heal_tests::a_memory_that_matches_nothing_similar_is_an_error_not_a_guess ... ok
+test schema::heal_tests::a_selector_that_still_matches_is_never_second_guessed ... ok
+test schema::heal_tests::without_a_memory_a_broken_selector_is_still_just_null ... ok
+test schema::tests::a_base_selector_matching_nothing_yields_an_empty_result ... ok
+test schema::tests::a_list_field_collects_every_match ... ok
+test schema::tests::a_missing_field_is_null_or_its_default ... ok
+test schema::tests::an_invalid_base_selector_is_an_error ... ok
+test schema::tests::an_invalid_selector_is_a_reported_error_not_a_panic ... ok
+test schema::tests::attributes_can_be_resolved_against_the_page_url ... ok
+test schema::tests::european_and_anglo_number_formats_both_parse ... ok
+test schema::tests::a_regex_narrows_the_captured_text ... ok
+test schema::tests::exists_reports_a_boolean_per_item ... ok
+test schema::tests::nested_fields_build_objects ... ok
+test schema::tests::a_product_grid_yields_one_object_per_card ... ok
+test schema::tests::numbers_survive_currency_symbols_and_separators ... ok
+test signals::tests::a_referral_is_recognised_on_a_shortener_and_on_the_retailers_own_host ... ok
+test signals::tests::a_page_is_counted_by_what_it_is_made_of ... ok
+test schema::tests::extraction_costs_a_single_parse ... ok
+test signals::tests::an_ordinary_link_is_not_called_a_referral ... ok
+test signals::tests::headings_that_only_repeat_the_body_are_measured_as_such ... ok
+test signals::tests::the_measure_says_the_same_thing_in_another_language ... ok
+test table::tests::a_caption_is_kept_above_the_table ... ok
+test table::tests::a_layout_table_is_not_rendered_as_a_table ... ok
+test table::tests::a_newline_in_a_cell_becomes_a_space ... ok
+test table::tests::a_pipe_in_a_cell_is_escaped ... ok
+test table::tests::a_single_column_table_is_layout ... ok
+test table::tests::a_table_without_a_header_names_columns_by_position_and_carries_its_index ... ok
+test table::tests::a_table_without_th_still_renders_with_an_empty_header ... ok
+test table::tests::alignment_attributes_become_gfm_alignment ... ok
+test table::tests::colspan_repeats_the_value_across_the_columns_it_covered ... ok
+test table::tests::nested_table_rows_do_not_leak_into_the_outer_one ... ok
+test table::tests::rows_become_objects_named_by_the_header ... ok
+test table::tests::plain_cells_keep_pipes_and_newlines_are_flattened ... ok
+test table::tests::rowspan_carries_the_cell_into_following_rows ... ok
+test table::tests::thead_produces_valid_gfm ... ok
+test table_wants_tests::tables_are_collected_from_the_same_parse_and_layout_tables_are_not_tables ... ok
+test table_wants_tests::an_induced_schema_returns_its_rows_from_the_same_parse ... ok
+test tests::a_page_with_no_text_at_all_still_extracts_to_nothing ... ok
+test tests::a_fragment_of_a_small_page_is_replaced_by_the_whole_of_it ... ok
+test tests::bm25_returns_everything_when_the_query_has_no_word_characters ... ok
+test tests::bm25_keeps_the_relevant_blocks_and_drops_the_rest ... ok
+test tests::css_selector_and_links ... ok
+test tests::markdown_structure ... ok
+test tests::parse_page_does_exactly_one_dom_parse ... ok
+test tests::parse_page_skips_work_that_was_not_asked_for ... ok
+test tests::a_forum_profile_keeps_a_thread_an_article_profile_would_strip ... ok
+test tests::text_hidden_by_an_inline_style_never_reaches_the_output ... ok
+test tests::text_strips_script_and_style ... ok
+test tests::the_fallback_does_not_fire_when_the_heuristics_worked ... ok
+test tests::zero_width_characters_do_not_reach_the_output ... ok
+test tests::parse_page_matches_the_free_functions ... ok
+test tests::the_density_thresholds_can_be_varied_from_outside ... ok
+test tests::a_declared_thread_keeps_its_posts_through_the_pruner ... ok
+test tests::unclosed_nested_anchors_do_not_bring_the_fetch_down ... ok
+test prune::tests::a_deep_dom_does_not_overflow_the_scoring_pass ... ok
+test tests::a_short_main_region_on_a_large_page_is_still_the_main_region ... ok
+test tests::a_page_the_heuristics_empty_out_comes_back_whole_rather_than_not_at_all ... ok
+
+test result: ok. 123 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.05s
+
+     Running tests\listing_headings.rs (C:/tr\debug\deps\listing_headings-686695b683b902fe.exe)
+
+running 4 tests
+test hidden_record_headings_stay_hidden_in_both_extraction_modes ... ok
+test navigation_roles_on_neutral_divs_are_not_record_headings ... ok
+test linked_headings_do_not_restore_navigation_or_related_rails ... ok
+test neutral_wrappers_do_not_remove_listing_titles_or_item_links ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+
+     Running tests\record_structures.rs (C:/tr\debug\deps\record_structures-9936b64a580795da.exe)
+
+running 3 tests
+test a_link_wrapping_a_heading_and_site_label_survives_pruning ... ok
+test a_heading_in_a_layout_table_keeps_its_destination ... ok
+test decorations_and_record_controls_do_not_remove_a_heading ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+
+   Doc-tests svipall_extract
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+

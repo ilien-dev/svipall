@@ -1,0 +1,5 @@
+idealista repeat 1: delivered 45.08s (warm)
+idealista repeat 2: delivered 50.24s (warm)
+idealista repeat 3: failed 59.90s (warm)
+
+paired finished in 156.0s

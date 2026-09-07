@@ -1,0 +1,5 @@
+tiktok-user repeat 1: delivered 9.36s (stealth)
+tiktok-user repeat 2: failed 57.76s (warm)
+tiktok-user repeat 3: delivered 24.01s (real)
+
+paired finished in 92.1s

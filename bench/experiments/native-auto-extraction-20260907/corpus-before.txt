@@ -1,0 +1,48 @@
+dataset               pages       P      R     F1    svipall-vote svipall-plain   svipall-raw   readability   trafilatura   resiliparse
+cetd                    700   0.970  0.978  0.952           0.932         0.753         0.792         0.960         0.965         0.958
+cleaneval               738   0.936  0.999  0.962           0.968         0.947         0.952         0.977         0.963         0.964
+cleanportaleval          71   0.725  1.000  0.839           0.870         0.622         0.655         0.978         0.977         0.932
+dragnet                1379   0.896  0.991  0.869           0.895         0.628         0.663         0.942         0.944         0.901
+google-trends-2017      180   0.909  0.974  0.923           0.836         0.667         0.686         0.910         0.936         0.929
+l3s-gn1                 621   0.782  0.998  0.871           0.898         0.677         0.699         0.972         0.955         0.910
+readability             115   0.975  1.000  0.984           0.968         0.895         0.904         0.991         0.988         0.985
+scrapinghub             181   0.905  1.000  0.948           0.898         0.650         0.682         0.985         0.991         0.966
+ALL (median)           3975   0.916  0.995  0.920           0.920         0.732         0.767         0.963         0.958         0.936
+
+ROUGE-LSum, median over pages. P and R are svipall's own, split because F1 alone says
+only "worse": low P with high R is an extractor keeping the navigation, and the reverse
+is one throwing the article away. Baselines are the study's own published extractions,
+scored by this same code.
+
+column             median     mean               IQR
+svipall             0.920    0.831    0.773 - 0.976 
+svipall-vote        0.920    0.847    0.804 - 0.976 
+svipall-plain       0.732    0.696    0.551 - 0.887 
+svipall-raw         0.767    0.723    0.592 - 0.903 
+readability         0.963    0.861    0.881 - 0.987 
+trafilatura         0.958    0.877    0.870 - 0.986 
+resiliparse         0.936    0.826    0.810 - 0.980 
+
+10 pages were not scored: their ground truth is empty, so there is nothing for an extraction
+to be right or wrong about.
+
+content reachable and then dropped: 623328 of 5271338 gold words (11.82%), on 1940 of 3975 pages
+worst losses: dragnet/190fd746d0 (-15812), dragnet/fe27c1f819 (-12789), dragnet/0985fdcc92 (-12317), dragnet/fa295b0df1 (-11971), dragnet/36b2d06531 (-9227), dragnet/147b1897a7 (-9195), dragnet/ba7cdae850 (-8640), dragnet/561d1c14f1 (-8566), dragnet/50a49cf374 (-8384), dragnet/82fac3849d (-8286)
+
+worst pages:
+F1       dataset              page                     gold     ours
+0.000    dragnet              56e32dd7a780f7edde         67      102
+0.000    dragnet              c91a0737af8dd7060c        852       58
+0.000    dragnet              cda9b0d2a5cf05894b         58      102
+0.000    google-trends-2017   008f7b30913f850ed2       2258       27
+0.000    google-trends-2017   61f3c2b35f355bec0b         39     2968
+0.002    cleaneval            25ec1071924989a352       5886      163
+0.004    cetd                 1c597f75076f4c8b21      12444       31
+0.004    google-trends-2017   ac99cf70dd4e5bd44b         50     3142
+0.004    cetd                 9a6f020062bd91a84f       7803       31
+0.006    l3s-gn1              47099dd3977533e8f6       3569      275
+0.006    dragnet              b33981f225d7dd33cb      11726       44
+0.011    cetd                 26c233ab55102a34c3       1987       54
+0.013    dragnet              c01b7fb08bf55a23d4         29     5953
+0.014    dragnet              097d70bdbef5515a34       2463       73
+0.014    google-trends-2017   446687d0b42f6ed761       1518       25

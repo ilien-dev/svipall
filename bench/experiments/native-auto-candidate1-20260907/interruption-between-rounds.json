@@ -1,0 +1,18 @@
+{
+  "state": "recovered_between_rounds",
+  "last_completed": "r2-public31-devto-auto",
+  "saved_calls": 612,
+  "next_batch": "r3-public31-indeed-jobs-auto",
+  "last_completed_unix": 1788751512.1186676,
+  "recovery_unix": 1788798649.587381,
+  "pause_elapsed_seconds": 47137.46871328354,
+  "partial_batches": 0,
+  "extra_unscored_admissions": 0,
+  "accounting": "Canonical accounting matches the last completed arm; retained without reset or refund. Normal elapsed-time decay remains active.",
+  "runtime_controller_ast_unchanged": true,
+  "preparation_only_change": [
+    "source_hashes"
+  ],
+  "frozen_binary_and_browser_hashes_verified": true,
+  "limitation": "Extended interruption before round 3 violates the planned 120-second pause. Preserve all rounds, report rounds 1-2 separately, and use an uninterrupted final confirmation for retained changes."
+}

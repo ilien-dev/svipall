@@ -1,0 +1,175 @@
+{
+  "checked_unix": 1788750087.5271122,
+  "total": 3985,
+  "gradable": 3975,
+  "datasets": {
+    "cetd": {
+      "ground_truth": 700,
+      "gradable": 700,
+      "missing_html": [],
+      "invalid_utf8": [],
+      "lfs_pointers": [],
+      "models": {
+        "readability": {
+          "records": 700,
+          "missing_gold_ids": 0
+        },
+        "trafilatura": {
+          "records": 700,
+          "missing_gold_ids": 0
+        },
+        "resiliparse": {
+          "records": 700,
+          "missing_gold_ids": 0
+        }
+      }
+    },
+    "cleaneval": {
+      "ground_truth": 738,
+      "gradable": 731,
+      "missing_html": [],
+      "invalid_utf8": [],
+      "lfs_pointers": [],
+      "models": {
+        "readability": {
+          "records": 738,
+          "missing_gold_ids": 0
+        },
+        "trafilatura": {
+          "records": 738,
+          "missing_gold_ids": 0
+        },
+        "resiliparse": {
+          "records": 738,
+          "missing_gold_ids": 0
+        }
+      }
+    },
+    "cleanportaleval": {
+      "ground_truth": 71,
+      "gradable": 69,
+      "missing_html": [],
+      "invalid_utf8": [],
+      "lfs_pointers": [],
+      "models": {
+        "readability": {
+          "records": 71,
+          "missing_gold_ids": 0
+        },
+        "trafilatura": {
+          "records": 71,
+          "missing_gold_ids": 0
+        },
+        "resiliparse": {
+          "records": 71,
+          "missing_gold_ids": 0
+        }
+      }
+    },
+    "dragnet": {
+      "ground_truth": 1379,
+      "gradable": 1379,
+      "missing_html": [],
+      "invalid_utf8": [],
+      "lfs_pointers": [],
+      "models": {
+        "readability": {
+          "records": 1379,
+          "missing_gold_ids": 0
+        },
+        "trafilatura": {
+          "records": 1379,
+          "missing_gold_ids": 0
+        },
+        "resiliparse": {
+          "records": 1379,
+          "missing_gold_ids": 0
+        }
+      }
+    },
+    "google-trends-2017": {
+      "ground_truth": 180,
+      "gradable": 179,
+      "missing_html": [],
+      "invalid_utf8": [],
+      "lfs_pointers": [],
+      "models": {
+        "readability": {
+          "records": 180,
+          "missing_gold_ids": 0
+        },
+        "trafilatura": {
+          "records": 180,
+          "missing_gold_ids": 0
+        },
+        "resiliparse": {
+          "records": 180,
+          "missing_gold_ids": 0
+        }
+      }
+    },
+    "l3s-gn1": {
+      "ground_truth": 621,
+      "gradable": 621,
+      "missing_html": [],
+      "invalid_utf8": [],
+      "lfs_pointers": [],
+      "models": {
+        "readability": {
+          "records": 621,
+          "missing_gold_ids": 0
+        },
+        "trafilatura": {
+          "records": 621,
+          "missing_gold_ids": 0
+        },
+        "resiliparse": {
+          "records": 621,
+          "missing_gold_ids": 0
+        }
+      }
+    },
+    "readability": {
+      "ground_truth": 115,
+      "gradable": 115,
+      "missing_html": [],
+      "invalid_utf8": [],
+      "lfs_pointers": [],
+      "models": {
+        "readability": {
+          "records": 115,
+          "missing_gold_ids": 0
+        },
+        "trafilatura": {
+          "records": 115,
+          "missing_gold_ids": 0
+        },
+        "resiliparse": {
+          "records": 115,
+          "missing_gold_ids": 0
+        }
+      }
+    },
+    "scrapinghub": {
+      "ground_truth": 181,
+      "gradable": 181,
+      "missing_html": [],
+      "invalid_utf8": [],
+      "lfs_pointers": [],
+      "models": {
+        "readability": {
+          "records": 181,
+          "missing_gold_ids": 0
+        },
+        "trafilatura": {
+          "records": 181,
+          "missing_gold_ids": 0
+        },
+        "resiliparse": {
+          "records": 181,
+          "missing_gold_ids": 0
+        }
+      }
+    }
+  }
+}

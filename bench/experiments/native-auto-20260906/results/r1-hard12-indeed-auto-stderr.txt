@@ -1,0 +1,5 @@
+indeed repeat 1: delivered 6.02s (browser)
+indeed repeat 2: delivered 8.24s (browser)
+indeed repeat 3: delivered 3.93s (browser)
+
+paired finished in 18.5s

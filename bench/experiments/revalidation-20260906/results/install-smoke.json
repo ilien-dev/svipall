@@ -1,0 +1,8 @@
+{
+    "installed":  true,
+    "fixture":  "<repo>\\target\\readme-audit-20260906\\state\\install-c60ae2551ace4ac683118226b1e00ecf",
+    "runtime_verified":  true,
+    "unrelated_and_modified_preserved":  true,
+    "uninstalled":  true,
+    "browser_opt_out":  true
+}
