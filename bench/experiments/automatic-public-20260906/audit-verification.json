@@ -1,0 +1,21 @@
+{
+  "frozen_binary_matches": true,
+  "browser_executable_matches": true,
+  "staged_runtime_matches": true,
+  "confirmed_local_deferrals": 66,
+  "empty_log_reasons": {
+    "cooldown": 32,
+    "address_budget": 34
+  },
+  "recorded_native_fallbacks": 28,
+  "native_privacy_notices": 28,
+  "passing_audit_flags": {
+    "truncated_response": 156,
+    "quality_thin": 264,
+    "short_static_text": 141,
+    "html_without_body_tag": 108,
+    "quality_partial": 9
+  },
+  "browser_launch_errors": 106,
+  "calls_with_browser_launch_errors": 53
+}

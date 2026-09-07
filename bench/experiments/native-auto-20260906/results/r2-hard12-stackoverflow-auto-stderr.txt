@@ -1,0 +1,5 @@
+stackoverflow repeat 1: delivered 7.67s (stealth)
+stackoverflow repeat 2: delivered 3.31s (browser)
+stackoverflow repeat 3: delivered 3.66s (browser)
+
+paired finished in 15.0s

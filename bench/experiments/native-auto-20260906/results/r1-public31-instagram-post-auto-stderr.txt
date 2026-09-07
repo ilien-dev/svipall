@@ -1,0 +1,5 @@
+instagram-post repeat 1: delivered 3.94s (browser)
+instagram-post repeat 2: delivered 3.08s (browser)
+instagram-post repeat 3: delivered 1.96s (browser)
+
+paired finished in 9.3s

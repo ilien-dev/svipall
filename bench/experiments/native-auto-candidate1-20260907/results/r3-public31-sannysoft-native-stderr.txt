@@ -1,0 +1,5 @@
+sannysoft repeat 1: delivered 5.41s (warm)
+sannysoft repeat 2: delivered 1.87s (warm)
+sannysoft repeat 3: delivered 1.81s (warm)
+
+paired finished in 9.5s

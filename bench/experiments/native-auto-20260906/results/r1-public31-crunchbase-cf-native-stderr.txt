@@ -1,0 +1,5 @@
+crunchbase-cf repeat 1: delivered 2.00s (warm)
+crunchbase-cf repeat 2: delivered 1.43s (warm)
+crunchbase-cf repeat 3: delivered 1.45s (warm)
+
+paired finished in 5.2s

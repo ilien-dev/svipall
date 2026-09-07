@@ -1,0 +1,188 @@
+{
+  "calls": [
+    {
+      "target": "github-explore",
+      "source_capture_sha256": "f45d1408725bfb64e05e2ffa9cd94d5194b648d166842831120dd7369eb99dee",
+      "replay_html_sha256": "96e8fa7a742866f87e0725e8efa1f8d0635c6a042ceb68f1ee94e2629b24a5e3",
+      "tags_with_resolved_urls": 260,
+      "replays": [
+        {
+          "arm": "before",
+          "full": false,
+          "exit_code": 0,
+          "timed_out": false,
+          "seconds": 0.610593318939209,
+          "metadata_sha256": "c37227a9751d94a304715e20fd80915ee2b1c9b1caed8a4a7d744b2b7ce39806",
+          "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "markdown_sha256": "6760ccda0f7d2e295563fafe5cfd29585d5b95f12cb94058e46fbed83ff80d01",
+          "characters": 4924,
+          "headings": 25,
+          "links": 13
+        },
+        {
+          "arm": "before",
+          "full": true,
+          "exit_code": 0,
+          "timed_out": false,
+          "seconds": 0.6174747943878174,
+          "metadata_sha256": "4a680bce9f899fc5ef558dad130f7fb9d583c7408ba7894a46bad05ad43d8562",
+          "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "markdown_sha256": "2fcf2662af70d969238340d566d14de06ab74f4fc0165febdbd14de9e06a89d1",
+          "characters": 23860,
+          "headings": 50,
+          "links": 332
+        },
+        {
+          "arm": "after",
+          "full": false,
+          "exit_code": 0,
+          "timed_out": false,
+          "seconds": 0.5454809665679932,
+          "metadata_sha256": "908fb61e8707e4f28381e721173063f7039e88b2f9e5e3bdab6c44f7ff921c07",
+          "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "markdown_sha256": "c475c2e76cf599ad476ca5441089c1708792f04846170a3e7bff5b3a736dc9a5",
+          "characters": 5031,
+          "headings": 26,
+          "links": 14
+        },
+        {
+          "arm": "after",
+          "full": true,
+          "exit_code": 0,
+          "timed_out": false,
+          "seconds": 0.5457248687744141,
+          "metadata_sha256": "511b79444f8c94f798e5ca175ee0d898d2bd91549d95696906f783cd6c471262",
+          "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "markdown_sha256": "2fcf2662af70d969238340d566d14de06ab74f4fc0165febdbd14de9e06a89d1",
+          "characters": 23860,
+          "headings": 50,
+          "links": 332
+        }
+      ],
+      "full_outputs_equal": true
+    },
+    {
+      "target": "indeed-jobs",
+      "source_capture_sha256": "6c6ed033ab78310d9da964a830fcb2d37c63ae80f4a429aaf64b84734ffa02cc",
+      "replay_html_sha256": "81abd39333491450617e9001a08d4b15b64d9a4dc9671443c36031b260c4e5f7",
+      "tags_with_resolved_urls": 113,
+      "replays": [
+        {
+          "arm": "before",
+          "full": false,
+          "exit_code": 0,
+          "timed_out": false,
+          "seconds": 1.0953991413116455,
+          "metadata_sha256": "f429335423fbb8e6aaefad285791fa26b4ff6836f4835815ecaa75cfc58dc6af",
+          "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "markdown_sha256": "0100d6f2cf6701c15ec6e2418a62c5fec7afd3988659e9455b2fc72dc01d2f17",
+          "characters": 6634,
+          "headings": 9,
+          "links": 2
+        },
+        {
+          "arm": "before",
+          "full": true,
+          "exit_code": 0,
+          "timed_out": false,
+          "seconds": 1.05000901222229,
+          "metadata_sha256": "a7ee83f2be32c0b5b7e50ea950781114d4eab4454b3af36d2b34957486cb69d0",
+          "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "markdown_sha256": "efde391f5f66dd4477db5109aa3155b037e000d80b939596a7fcb7b52bfc608d",
+          "characters": 31356,
+          "headings": 58,
+          "links": 129
+        },
+        {
+          "arm": "after",
+          "full": false,
+          "exit_code": 0,
+          "timed_out": false,
+          "seconds": 0.8956589698791504,
+          "metadata_sha256": "c9b0e565329e8728adc0b98fd58bc518a526695a5c65234a197e3c8dd5718a91",
+          "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "markdown_sha256": "0100d6f2cf6701c15ec6e2418a62c5fec7afd3988659e9455b2fc72dc01d2f17",
+          "characters": 6634,
+          "headings": 9,
+          "links": 2
+        },
+        {
+          "arm": "after",
+          "full": true,
+          "exit_code": 0,
+          "timed_out": false,
+          "seconds": 0.8285675048828125,
+          "metadata_sha256": "91c13113f8b2d8e4ef0744015af391c9ba8794add63900d9358dc7652d8a026f",
+          "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "markdown_sha256": "efde391f5f66dd4477db5109aa3155b037e000d80b939596a7fcb7b52bfc608d",
+          "characters": 31356,
+          "headings": 58,
+          "links": 129
+        }
+      ],
+      "full_outputs_equal": true
+    },
+    {
+      "target": "google-search",
+      "source_capture_sha256": "7a7591044570c5dc7ec74acd4c1c795715b0d899e1d3fe1bb3e832cb05f90846",
+      "replay_html_sha256": "91aeecd86e6d7aab1e345235e3a5ab2112ed508f1249686f94c678e628a19b8b",
+      "tags_with_resolved_urls": 129,
+      "replays": [
+        {
+          "arm": "before",
+          "full": false,
+          "exit_code": 0,
+          "timed_out": false,
+          "seconds": 0.9736275672912598,
+          "metadata_sha256": "ae29064d05713ba0d048dcfc09b6d31507257eca3997812ae5782d3abf40b80a",
+          "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "markdown_sha256": "6be359206f6bd323c0ab2c9d10f43d3ce32eb19ab84de95793ba4ac70976a805",
+          "characters": 5510,
+          "headings": 7,
+          "links": 10
+        },
+        {
+          "arm": "before",
+          "full": true,
+          "exit_code": 0,
+          "timed_out": false,
+          "seconds": 0.9141223430633545,
+          "metadata_sha256": "c9353cbeeb523b1c5b1f6d28d17d9a01f243349d1e9a8513560c3522559a27ee",
+          "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "markdown_sha256": "77868889baa035356fc2c52c1c8a22893984a48a846dfa8fb25635455f4bce88",
+          "characters": 19007,
+          "headings": 7,
+          "links": 61
+        },
+        {
+          "arm": "after",
+          "full": false,
+          "exit_code": 0,
+          "timed_out": false,
+          "seconds": 0.8581621646881104,
+          "metadata_sha256": "eb79d1d904a62a87cc689dfb033bf5a34db9bf5eae185398336ab572a1369d93",
+          "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "markdown_sha256": "6be359206f6bd323c0ab2c9d10f43d3ce32eb19ab84de95793ba4ac70976a805",
+          "characters": 5510,
+          "headings": 7,
+          "links": 10
+        },
+        {
+          "arm": "after",
+          "full": true,
+          "exit_code": 0,
+          "timed_out": false,
+          "seconds": 0.7627284526824951,
+          "metadata_sha256": "7e1122f27290f00258b9160df492026b528dae2ab11125f84f10f8384af5cca9",
+          "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "markdown_sha256": "77868889baa035356fc2c52c1c8a22893984a48a846dfa8fb25635455f4bce88",
+          "characters": 19007,
+          "headings": 7,
+          "links": 61
+        }
+      ],
+      "full_outputs_equal": true
+    }
+  ],
+  "note": "Offline only: resolve relative href/src/data-src against the captured response URL because raw: has no origin. All other HTML source bytes are preserved. Both frozen extractors receive identical derived HTML. Initial unnormalized replays are retained but their link counts do not represent extraction with the original page origin."
+}

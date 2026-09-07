@@ -1,0 +1,2692 @@
+{
+  "audited_useful": {
+    "discordant": 41,
+    "useful_only": {
+      "native": 19,
+      "auto": 22
+    },
+    "missing_stops": {
+      "auto": {
+        "timeout": 7,
+        "local_deferral": 10,
+        "wall_or_error": 2
+      },
+      "native": {
+        "local_deferral": 3,
+        "wall_or_error": 10,
+        "response": 9
+      }
+    },
+    "rows": [
+      {
+        "set": "hard12",
+        "target": "g2",
+        "round": 1,
+        "position": 2,
+        "useful_arm": "native",
+        "missing_arm": "auto",
+        "arms": {
+          "native": {
+            "stop": "response",
+            "seconds": 4.2516171,
+            "audit_verdict": "useful",
+            "delivered": true,
+            "tier": "warm",
+            "identity": "native",
+            "attempts": [
+              "warm"
+            ],
+            "native_fallback": false,
+            "status": 200
+          },
+          "auto": {
+            "stop": "timeout",
+            "seconds": 59.9205921,
+            "audit_verdict": "unavailable",
+            "delivered": false,
+            "tier": "real",
+            "identity": "emulated",
+            "attempts": [
+              "http",
+              "real",
+              "timeout"
+            ],
+            "native_fallback": false,
+            "status": 200
+          }
+        }
+      },
+      {
+        "set": "hard12",
+        "target": "g2",
+        "round": 1,
+        "position": 3,
+        "useful_arm": "native",
+        "missing_arm": "auto",
+        "arms": {
+          "native": {
+            "stop": "response",
+            "seconds": 3.5268545,
+            "audit_verdict": "useful",
+            "delivered": true,
+            "tier": "warm",
+            "identity": "native",
+            "attempts": [
+              "warm"
+            ],
+            "native_fallback": false,
+            "status": 200
+          },
+          "auto": {
+            "stop": "local_deferral",
+            "seconds": 6.79e-05,
+            "audit_verdict": "unavailable",
+            "delivered": false,
+            "tier": null,
+            "identity": null,
+            "attempts": [],
+            "native_fallback": null,
+            "status": 0
+          }
+        }
+      },
+      {
+        "set": "hard12",
+        "target": "idealista",
+        "round": 1,
+        "position": 1,
+        "useful_arm": "auto",
+        "missing_arm": "native",
+        "arms": {
+          "auto": {
+            "stop": "response",
+            "seconds": 45.0846342,
+            "audit_verdict": "useful",
+            "delivered": true,
+            "tier": "warm",
+            "identity": "native",
+            "attempts": [
+              "http",
+              "real",
+              "warm",
+              "native",
+              "warm"
+            ],
+            "native_fallback": true,
+            "status": 200
+          },
+          "native": {
+            "stop": "local_deferral",
+            "seconds": 0.0019089,
+            "audit_verdict": "unavailable",
+            "delivered": false,
+            "tier": null,
+            "identity": null,
+            "attempts": [],
+            "native_fallback": null,
+            "status": 0
+          }
+        }
+      },
+      {
+        "set": "hard12",
+        "target": "idealista",
+        "round": 1,
+        "position": 2,
+        "useful_arm": "auto",
+        "missing_arm": "native",
+        "arms": {
+          "auto": {
+            "stop": "response",
+            "seconds": 50.2403345,
+            "audit_verdict": "useful",
+            "delivered": true,
+            "tier": "warm",
+            "identity": "native",
+            "attempts": [
+              "http",
+              "real",
+              "warm",
+              "native",
+              "warm"
+            ],
+            "native_fallback": true,
+            "status": 200
+          },
+          "native": {
+            "stop": "local_deferral",
+            "seconds": 8.97e-05,
+            "audit_verdict": "unavailable",
+            "delivered": false,
+            "tier": null,
+            "identity": null,
+            "attempts": [],
+            "native_fallback": null,
+            "status": 0
+          }
+        }
+      },
+      {
+        "set": "public31",
+        "target": "canadianinsider",
+        "round": 1,
+        "position": 1,
+        "useful_arm": "native",
+        "missing_arm": "auto",
+        "arms": {
+          "auto": {
+            "stop": "timeout",
+            "seconds": 59.9132347,
+            "audit_verdict": "wall",
+            "delivered": false,
+            "tier": "warm",
+            "identity": "emulated",
+            "attempts": [
+              "http",
+              "browser",
+              "stealth",
+              "real",
+              "warm",
+              "native",
+              "timeout"
+            ],
+            "native_fallback": true,
+            "status": 200
+          },
+          "native": {
+            "stop": "response",
+            "seconds": 10.3261127,
+            "audit_verdict": "useful",
+            "delivered": true,
+            "tier": "warm",
+            "identity": "native",
+            "attempts": [
+              "warm"
+            ],
+            "native_fallback": false,
+            "status": 200
+          }
+        }
+      },
+      {
+        "set": "public31",
+        "target": "canadianinsider",
+        "round": 1,
+        "position": 2,
+        "useful_arm": "native",
+        "missing_arm": "auto",
+        "arms": {
+          "auto": {
+            "stop": "timeout",
+            "seconds": 59.9035213,
+            "audit_verdict": "wall",
+            "delivered": false,
+            "tier": "stealth",
+            "identity": "emulated",
+            "attempts": [
+              "http",
+              "browser",
+              "stealth",
+              "timeout"
+            ],
+            "native_fallback": false,
+            "status": 200
+          },
+          "native": {
+            "stop": "response",
+            "seconds": 2.2970509,
+            "audit_verdict": "useful",
+            "delivered": true,
+            "tier": "warm",
+            "identity": "native",
+            "attempts": [
+              "warm"
+            ],
+            "native_fallback": false,
+            "status": 200
+          }
+        }
+      },
+      {
+        "set": "public31",
+        "target": "linkedin-jobs",
+        "round": 1,
+        "position": 1,
+        "useful_arm": "auto",
+        "missing_arm": "native",
+        "arms": {
+          "native": {
+            "stop": "wall_or_error",
+            "seconds": 32.4134767,
+            "audit_verdict": "useful",
+            "delivered": false,
+            "tier": "warm",
+            "identity": "native",
+            "attempts": [
+              "warm"
+            ],
+            "native_fallback": false,
+            "status": 200
+          },
+          "auto": {
+            "stop": "response",
+            "seconds": 0.8186853,
+            "audit_verdict": "useful",
+            "delivered": true,
+            "tier": "http",
+            "identity": "emulated",
+            "attempts": [
+              "http"
+            ],
+            "native_fallback": false,
+            "status": 200
+          }
+        }
+      },
+      {
+        "set": "public31",
+        "target": "linkedin-jobs",
+        "round": 1,
+        "position": 2,
+        "useful_arm": "auto",
+        "missing_arm": "native",
+        "arms": {
+          "native": {
+            "stop": "wall_or_error",
+            "seconds": 23.6456836,
+            "audit_verdict": "useful",
+            "delivered": false,
+            "tier": "warm",
+            "identity": "native",
+            "attempts": [
+              "warm"
+            ],
+            "native_fallback": false,
+            "status": 200
+          },
+          "auto": {
+            "stop": "response",
+            "seconds": 0.7741889,
+            "audit_verdict": "useful",
+            "delivered": true,
+            "tier": "http",
+            "identity": "emulated",
+            "attempts": [
+              "http"
+            ],
+            "native_fallback": false,
+            "status": 200
+          }
+        }
+      },
+      {
+        "set": "public31",
+        "target": "linkedin-jobs",
+        "round": 1,
+        "position": 3,
+        "useful_arm": "auto",
+        "missing_arm": "native",
+        "arms": {
+          "native": {
+            "stop": "wall_or_error",
+            "seconds": 23.3844001,
+            "audit_verdict": "useful",
+            "delivered": false,
+            "tier": "warm",
+            "identity": "native",
+            "attempts": [
+              "warm"
+            ],
+            "native_fallback": false,
+            "status": 200
+          },
+          "auto": {
+            "stop": "response",
+            "seconds": 0.9896187,
+            "audit_verdict": "useful",
+            "delivered": true,
+            "tier": "http",
+            "identity": "emulated",
+            "attempts": [
+              "http"
+            ],
+            "native_fallback": false,
+            "status": 200
+          }
+        }
+      },
+      {
+        "set": "public31",
+        "target": "sedarplus",
+        "round": 1,
+        "position": 1,
+        "useful_arm": "auto",
+        "missing_arm": "native",
+        "arms": {
+          "native": {
+            "stop": "response",
+            "seconds": 28.0336666,
+            "audit_verdict": "wall",
+            "delivered": true,
+            "tier": "warm",
+            "identity": "native",
+            "attempts": [
+              "warm"
+            ],
+            "native_fallback": false,
+            "status": 200
+          },
+          "auto": {
+            "stop": "response",
+            "seconds": 0.6009977,
+            "audit_verdict": "useful",
+            "delivered": true,
+            "tier": "http",
+            "identity": "emulated",
+            "attempts": [
+              "http"
+            ],
+            "native_fallback": false,
+            "status": 200
+          }
+        }
+      },
+      {
+        "set": "public31",
+        "target": "sedarplus",
+        "round": 1,
+        "position": 2,
+        "useful_arm": "auto",
+        "missing_arm": "native",
+        "arms": {
+          "native": {
+            "stop": "response",
+            "seconds": 23.2037019,
+            "audit_verdict": "wall",
+            "delivered": true,
+            "tier": "warm",
+            "identity": "native",
+            "attempts": [
+              "warm"
+            ],
+            "native_fallback": false,
+            "status": 200
+          },
+          "auto": {
+            "stop": "response",
+            "seconds": 0.8613683,
+            "audit_verdict": "useful",
+            "delivered": true,
+            "tier": "http",
+            "identity": "emulated",
+            "attempts": [
+              "http"
+            ],
+            "native_fallback": false,
+            "status": 200
+          }
+        }
+      },
+      {
+        "set": "public31",
+        "target": "sedarplus",
+        "round": 1,
+        "position": 3,
+        "useful_arm": "auto",
+        "missing_arm": "native",
+        "arms": {
+          "native": {
+            "stop": "response",
+            "seconds": 21.8441456,
+            "audit_verdict": "wall",
+            "delivered": true,
+            "tier": "warm",
+            "identity": "native",
+            "attempts": [
+              "warm"
+            ],
+            "native_fallback": false,
+            "status": 200
+          },
+          "auto": {
+            "stop": "response",
+            "seconds": 1.0001207,
+            "audit_verdict": "useful",
+            "delivered": true,
+            "tier": "http",
+            "identity": "emulated",
+            "attempts": [
+              "http"
+            ],
+            "native_fallback": false,
+            "status": 200
+          }
+        }
+      },
+      {
+        "set": "hard12",
+        "target": "amazon",
+        "round": 1,
+        "position": 1,
+        "useful_arm": "native",
+        "missing_arm": "auto",
+        "arms": {
+          "native": {
+            "stop": "response",
+            "seconds": 3.6580031,
+            "audit_verdict": "useful",
+            "delivered": true,
+            "tier": "warm",
+            "identity": "native",
+            "attempts": [
+              "warm"
+            ],
+            "native_fallback": false,
+            "status": 200
+          },
+          "auto": {
+            "stop": "wall_or_error",
+            "seconds": 0.191369,
+            "audit_verdict": "unavailable",
+            "delivered": false,
+            "tier": "http",
+            "identity": "emulated",
+            "attempts": [
+              "http",
+              "cooldown"
+            ],
+            "native_fallback": false,
+            "status": 503
+          }
+        }
+      },
+      {
+        "set": "hard12",
+        "target": "amazon",
+        "round": 1,
+        "position": 2,
+        "useful_arm": "native",
+        "missing_arm": "auto",
+        "arms": {
+          "native": {
+            "stop": "response",
+            "seconds": 2.2635224,
+            "audit_verdict": "useful",
+            "delivered": true,
+            "tier": "warm",
+            "identity": "native",
+            "attempts": [
+              "warm"
+            ],
+            "native_fallback": false,
+            "status": 200
+          },
+          "auto": {
+            "stop": "local_deferral",
+            "seconds": 0.0002047,
+            "audit_verdict": "unavailable",
+            "delivered": false,
+            "tier": null,
+            "identity": null,
+            "attempts": [],
+            "native_fallback": false,
+            "status": 0
+          }
+        }
+      },
+      {
+        "set": "hard12",
+        "target": "amazon",
+        "round": 1,
+        "position": 3,
+        "useful_arm": "native",
+        "missing_arm": "auto",
+        "arms": {
+          "native": {
+            "stop": "response",
+            "seconds": 4.1902756,
+            "audit_verdict": "useful",
+            "delivered": true,
+            "tier": "warm",
+            "identity": "native",
+            "attempts": [
+              "warm"
+            ],
+            "native_fallback": false,
+            "status": 200
+          },
+          "auto": {
+            "stop": "local_deferral",
+            "seconds": 0.0001507,
+            "audit_verdict": "unavailable",
+            "delivered": false,
+            "tier": null,
+            "identity": null,
+            "attempts": [],
+            "native_fallback": false,
+            "status": 0
+          }
+        }
+      },
+      {
+        "set": "vendors8",
+        "target": "cloudflare-crunchbase",
+        "round": 1,
+        "position": 1,
+        "useful_arm": "native",
+        "missing_arm": "auto",
+        "arms": {
+          "native": {
+            "stop": "response",
+            "seconds": 6.3402614,
+            "audit_verdict": "useful",
+            "delivered": true,
+            "tier": "warm",
+            "identity": "native",
+            "attempts": [
+              "warm"
+            ],
+            "native_fallback": false,
+            "status": 200
+          },
+          "auto": {
+            "stop": "timeout",
+            "seconds": 59.9114093,
+            "audit_verdict": "wall",
+            "delivered": false,
+            "tier": "warm",
+            "identity": "emulated",
+            "attempts": [
+              "http",
+              "browser",
+              "stealth",
+              "real",
+              "warm",
+              "timeout"
+            ],
+            "native_fallback": false,
+            "status": 200
+          }
+        }
+      },
+      {
+        "set": "vendors8",
+        "target": "cloudflare-crunchbase",
+        "round": 1,
+        "position": 2,
+        "useful_arm": "native",
+        "missing_arm": "auto",
+        "arms": {
+          "native": {
+            "stop": "response",
+            "seconds": 2.3261777,
+            "audit_verdict": "useful",
+            "delivered": true,
+            "tier": "warm",
+            "identity": "native",
+            "attempts": [
+              "warm"
+            ],
+            "native_fallback": false,
+            "status": 200
+          },
+          "auto": {
+            "stop": "timeout",
+            "seconds": 59.9133276,
+            "audit_verdict": "wall",
+            "delivered": false,
+            "tier": "http",
+            "identity": "emulated",
+            "attempts": [
+              "http",
+              "timeout"
+            ],
+            "native_fallback": false,
+            "status": 403
+          }
+        }
+      },
+      {
+        "set": "vendors8",
+        "target": "cloudflare-crunchbase",
+        "round": 1,
+        "position": 3,
+        "useful_arm": "native",
+        "missing_arm": "auto",
+        "arms": {
+          "native": {
+            "stop": "response",
+            "seconds": 2.0405347,
+            "audit_verdict": "useful",
+            "delivered": true,
+            "tier": "warm",
+            "identity": "native",
+            "attempts": [
+              "warm"
+            ],
+            "native_fallback": false,
+            "status": 200
+          },
+          "auto": {
+            "stop": "timeout",
+            "seconds": 59.9039871,
+            "audit_verdict": "unavailable",
+            "delivered": false,
+            "tier": null,
+            "identity": null,
+            "attempts": [],
+            "native_fallback": false,
+            "status": 0
+          }
+        }
+      },
+      {
+        "set": "public31",
+        "target": "sedarplus",
+        "round": 2,
+        "position": 1,
+        "useful_arm": "auto",
+        "missing_arm": "native",
+        "arms": {
+          "auto": {
+            "stop": "response",
+            "seconds": 0.6413992,
+            "audit_verdict": "useful",
+            "delivered": true,
+            "tier": "http",
+            "identity": "emulated",
+            "attempts": [
+              "http"
+            ],
+            "native_fallback": false,
+            "status": 200
+          },
+          "native": {
+            "stop": "response",
+            "seconds": 23.3795497,
+            "audit_verdict": "wall",
+            "delivered": true,
+            "tier": "warm",
+            "identity": "native",
+            "attempts": [
+              "warm"
+            ],
+            "native_fallback": false,
+            "status": 200
+          }
+        }
+      },
+      {
+        "set": "public31",
+        "target": "sedarplus",
+        "round": 2,
+        "position": 2,
+        "useful_arm": "auto",
+        "missing_arm": "native",
+        "arms": {
+          "auto": {
+            "stop": "response",
+            "seconds": 0.8534251,
+            "audit_verdict": "useful",
+            "delivered": true,
+            "tier": "http",
+            "identity": "emulated",
+            "attempts": [
+              "http"
+            ],
+            "native_fallback": false,
+            "status": 200
+          },
+          "native": {
+            "stop": "response",
+            "seconds": 22.0828569,
+            "audit_verdict": "wall",
+            "delivered": true,
+            "tier": "warm",
+            "identity": "native",
+            "attempts": [
+              "warm"
+            ],
+            "native_fallback": false,
+            "status": 200
+          }
+        }
+      },
+      {
+        "set": "public31",
+        "target": "sedarplus",
+        "round": 2,
+        "position": 3,
+        "useful_arm": "auto",
+        "missing_arm": "native",
+        "arms": {
+          "auto": {
+            "stop": "response",
+            "seconds": 1.2212701,
+            "audit_verdict": "useful",
+            "delivered": true,
+            "tier": "http",
+            "identity": "emulated",
+            "attempts": [
+              "http"
+            ],
+            "native_fallback": false,
+            "status": 200
+          },
+          "native": {
+            "stop": "response",
+            "seconds": 22.2151765,
+            "audit_verdict": "wall",
+            "delivered": true,
+            "tier": "warm",
+            "identity": "native",
+            "attempts": [
+              "warm"
+            ],
+            "native_fallback": false,
+            "status": 200
+          }
+        }
+      },
+      {
+        "set": "hard12",
+        "target": "stackoverflow",
+        "round": 2,
+        "position": 3,
+        "useful_arm": "native",
+        "missing_arm": "auto",
+        "arms": {
+          "native": {
+            "stop": "response",
+            "seconds": 4.045311,
+            "audit_verdict": "useful",
+            "delivered": true,
+            "tier": "warm",
+            "identity": "native",
+            "attempts": [
+              "warm"
+            ],
+            "native_fallback": false,
+            "status": 200
+          },
+          "auto": {
+            "stop": "local_deferral",
+            "seconds": 0.0001883,
+            "audit_verdict": "unavailable",
+            "delivered": false,
+            "tier": null,
+            "identity": null,
+            "attempts": [],
+            "native_fallback": null,
+            "status": 0
+          }
+        }
+      },
+      {
+        "set": "vendors8",
+        "target": "datadome-idealista",
+        "round": 2,
+        "position": 1,
+        "useful_arm": "native",
+        "missing_arm": "auto",
+        "arms": {
+          "native": {
+            "stop": "response",
+            "seconds": 13.5353069,
+            "audit_verdict": "useful",
+            "delivered": true,
+            "tier": "warm",
+            "identity": "native",
+            "attempts": [
+              "warm"
+            ],
+            "native_fallback": false,
+            "status": 200
+          },
+          "auto": {
+            "stop": "local_deferral",
+            "seconds": 0.003725,
+            "audit_verdict": "unavailable",
+            "delivered": false,
+            "tier": null,
+            "identity": null,
+            "attempts": [],
+            "native_fallback": null,
+            "status": 0
+          }
+        }
+      },
+      {
+        "set": "hard12",
+        "target": "idealista",
+        "round": 2,
+        "position": 1,
+        "useful_arm": "native",
+        "missing_arm": "auto",
+        "arms": {
+          "native": {
+            "stop": "response",
+            "seconds": 5.1155036,
+            "audit_verdict": "useful",
+            "delivered": true,
+            "tier": "warm",
+            "identity": "native",
+            "attempts": [
+              "warm"
+            ],
+            "native_fallback": false,
+            "status": 200
+          },
+          "auto": {
+            "stop": "local_deferral",
+            "seconds": 0.0020755,
+            "audit_verdict": "unavailable",
+            "delivered": false,
+            "tier": null,
+            "identity": null,
+            "attempts": [],
+            "native_fallback": null,
+            "status": 0
+          }
+        }
+      },
+      {
+        "set": "hard12",
+        "target": "g2",
+        "round": 2,
+        "position": 1,
+        "useful_arm": "auto",
+        "missing_arm": "native",
+        "arms": {
+          "auto": {
+            "stop": "response",
+            "seconds": 51.7612652,
+            "audit_verdict": "useful",
+            "delivered": true,
+            "tier": "warm",
+            "identity": "native",
+            "attempts": [
+              "http",
+              "real",
+              "warm",
+              "native",
+              "warm"
+            ],
+            "native_fallback": true,
+            "status": 200
+          },
+          "native": {
+            "stop": "local_deferral",
+            "seconds": 0.0019358,
+            "audit_verdict": "unavailable",
+            "delivered": false,
+            "tier": null,
+            "identity": null,
+            "attempts": [],
+            "native_fallback": null,
+            "status": 0
+          }
+        }
+      },
+      {
+        "set": "public31",
+        "target": "linkedin-jobs",
+        "round": 2,
+        "position": 1,
+        "useful_arm": "auto",
+        "missing_arm": "native",
+        "arms": {
+          "auto": {
+            "stop": "response",
+            "seconds": 0.7799238,
+            "audit_verdict": "useful",
+            "delivered": true,
+            "tier": "http",
+            "identity": "emulated",
+            "attempts": [
+              "http"
+            ],
+            "native_fallback": false,
+            "status": 200
+          },
+          "native": {
+            "stop": "wall_or_error",
+            "seconds": 24.9581956,
+            "audit_verdict": "useful",
+            "delivered": false,
+            "tier": "warm",
+            "identity": "native",
+            "attempts": [
+              "warm"
+            ],
+            "native_fallback": false,
+            "status": 200
+          }
+        }
+      },
+      {
+        "set": "public31",
+        "target": "linkedin-jobs",
+        "round": 2,
+        "position": 2,
+        "useful_arm": "auto",
+        "missing_arm": "native",
+        "arms": {
+          "auto": {
+            "stop": "response",
+            "seconds": 0.8095588,
+            "audit_verdict": "useful",
+            "delivered": true,
+            "tier": "http",
+            "identity": "emulated",
+            "attempts": [
+              "http"
+            ],
+            "native_fallback": false,
+            "status": 200
+          },
+          "native": {
+            "stop": "wall_or_error",
+            "seconds": 22.8152576,
+            "audit_verdict": "useful",
+            "delivered": false,
+            "tier": "warm",
+            "identity": "native",
+            "attempts": [
+              "warm"
+            ],
+            "native_fallback": false,
+            "status": 200
+          }
+        }
+      },
+      {
+        "set": "public31",
+        "target": "linkedin-jobs",
+        "round": 2,
+        "position": 3,
+        "useful_arm": "auto",
+        "missing_arm": "native",
+        "arms": {
+          "auto": {
+            "stop": "response",
+            "seconds": 1.0004294,
+            "audit_verdict": "useful",
+            "delivered": true,
+            "tier": "http",
+            "identity": "emulated",
+            "attempts": [
+              "http"
+            ],
+            "native_fallback": false,
+            "status": 200
+          },
+          "native": {
+            "stop": "wall_or_error",
+            "seconds": 22.7759455,
+            "audit_verdict": "useful",
+            "delivered": false,
+            "tier": "warm",
+            "identity": "native",
+            "attempts": [
+              "warm"
+            ],
+            "native_fallback": false,
+            "status": 200
+          }
+        }
+      },
+      {
+        "set": "public31",
+        "target": "canadianinsider",
+        "round": 3,
+        "position": 2,
+        "useful_arm": "native",
+        "missing_arm": "auto",
+        "arms": {
+          "auto": {
+            "stop": "timeout",
+            "seconds": 59.9049433,
+            "audit_verdict": "wall",
+            "delivered": false,
+            "tier": "stealth",
+            "identity": "emulated",
+            "attempts": [
+              "http",
+              "browser",
+              "stealth",
+              "timeout"
+            ],
+            "native_fallback": false,
+            "status": 200
+          },
+          "native": {
+            "stop": "response",
+            "seconds": 2.8805861,
+            "audit_verdict": "useful",
+            "delivered": true,
+            "tier": "warm",
+            "identity": "native",
+            "attempts": [
+              "warm"
+            ],
+            "native_fallback": false,
+            "status": 200
+          }
+        }
+      },
+      {
+        "set": "public31",
+        "target": "linkedin-jobs",
+        "round": 3,
+        "position": 1,
+        "useful_arm": "auto",
+        "missing_arm": "native",
+        "arms": {
+          "native": {
+            "stop": "wall_or_error",
+            "seconds": 23.7801559,
+            "audit_verdict": "useful",
+            "delivered": false,
+            "tier": "warm",
+            "identity": "native",
+            "attempts": [
+              "warm"
+            ],
+            "native_fallback": false,
+            "status": 200
+          },
+          "auto": {
+            "stop": "response",
+            "seconds": 0.8882412,
+            "audit_verdict": "useful",
+            "delivered": true,
+            "tier": "http",
+            "identity": "emulated",
+            "attempts": [
+              "http"
+            ],
+            "native_fallback": false,
+            "status": 200
+          }
+        }
+      },
+      {
+        "set": "public31",
+        "target": "linkedin-jobs",
+        "round": 3,
+        "position": 2,
+        "useful_arm": "auto",
+        "missing_arm": "native",
+        "arms": {
+          "native": {
+            "stop": "wall_or_error",
+            "seconds": 22.9317585,
+            "audit_verdict": "useful",
+            "delivered": false,
+            "tier": "warm",
+            "identity": "native",
+            "attempts": [
+              "warm"
+            ],
+            "native_fallback": false,
+            "status": 200
+          },
+          "auto": {
+            "stop": "response",
+            "seconds": 0.7639337,
+            "audit_verdict": "useful",
+            "delivered": true,
+            "tier": "http",
+            "identity": "emulated",
+            "attempts": [
+              "http"
+            ],
+            "native_fallback": false,
+            "status": 200
+          }
+        }
+      },
+      {
+        "set": "public31",
+        "target": "linkedin-jobs",
+        "round": 3,
+        "position": 3,
+        "useful_arm": "auto",
+        "missing_arm": "native",
+        "arms": {
+          "native": {
+            "stop": "wall_or_error",
+            "seconds": 22.8630286,
+            "audit_verdict": "useful",
+            "delivered": false,
+            "tier": "warm",
+            "identity": "native",
+            "attempts": [
+              "warm"
+            ],
+            "native_fallback": false,
+            "status": 200
+          },
+          "auto": {
+            "stop": "response",
+            "seconds": 1.043358,
+            "audit_verdict": "useful",
+            "delivered": true,
+            "tier": "http",
+            "identity": "emulated",
+            "attempts": [
+              "http"
+            ],
+            "native_fallback": false,
+            "status": 200
+          }
+        }
+      },
+      {
+        "set": "public31",
+        "target": "tiktok-user",
+        "round": 3,
+        "position": 3,
+        "useful_arm": "auto",
+        "missing_arm": "native",
+        "arms": {
+          "native": {
+            "stop": "wall_or_error",
+            "seconds": 25.524805399999998,
+            "audit_verdict": "useful",
+            "delivered": false,
+            "tier": "warm",
+            "identity": "native",
+            "attempts": [
+              "warm"
+            ],
+            "native_fallback": false,
+            "status": 200
+          },
+          "auto": {
+            "stop": "response",
+            "seconds": 24.007033,
+            "audit_verdict": "useful",
+            "delivered": true,
+            "tier": "real",
+            "identity": "emulated",
+            "attempts": [
+              "stealth",
+              "real"
+            ],
+            "native_fallback": false,
+            "status": 200
+          }
+        }
+      },
+      {
+        "set": "public31",
+        "target": "sedarplus",
+        "round": 3,
+        "position": 1,
+        "useful_arm": "auto",
+        "missing_arm": "native",
+        "arms": {
+          "native": {
+            "stop": "response",
+            "seconds": 23.6192035,
+            "audit_verdict": "wall",
+            "delivered": true,
+            "tier": "warm",
+            "identity": "native",
+            "attempts": [
+              "warm"
+            ],
+            "native_fallback": false,
+            "status": 200
+          },
+          "auto": {
+            "stop": "response",
+            "seconds": 0.6372871,
+            "audit_verdict": "useful",
+            "delivered": true,
+            "tier": "http",
+            "identity": "emulated",
+            "attempts": [
+              "http"
+            ],
+            "native_fallback": false,
+            "status": 200
+          }
+        }
+      },
+      {
+        "set": "public31",
+        "target": "sedarplus",
+        "round": 3,
+        "position": 2,
+        "useful_arm": "auto",
+        "missing_arm": "native",
+        "arms": {
+          "native": {
+            "stop": "response",
+            "seconds": 22.6813824,
+            "audit_verdict": "wall",
+            "delivered": true,
+            "tier": "warm",
+            "identity": "native",
+            "attempts": [
+              "warm"
+            ],
+            "native_fallback": false,
+            "status": 200
+          },
+          "auto": {
+            "stop": "response",
+            "seconds": 0.852583,
+            "audit_verdict": "useful",
+            "delivered": true,
+            "tier": "http",
+            "identity": "emulated",
+            "attempts": [
+              "http"
+            ],
+            "native_fallback": false,
+            "status": 200
+          }
+        }
+      },
+      {
+        "set": "public31",
+        "target": "sedarplus",
+        "round": 3,
+        "position": 3,
+        "useful_arm": "auto",
+        "missing_arm": "native",
+        "arms": {
+          "native": {
+            "stop": "response",
+            "seconds": 22.2836568,
+            "audit_verdict": "wall",
+            "delivered": true,
+            "tier": "warm",
+            "identity": "native",
+            "attempts": [
+              "warm"
+            ],
+            "native_fallback": false,
+            "status": 200
+          },
+          "auto": {
+            "stop": "response",
+            "seconds": 1.0172744,
+            "audit_verdict": "useful",
+            "delivered": true,
+            "tier": "http",
+            "identity": "emulated",
+            "attempts": [
+              "http"
+            ],
+            "native_fallback": false,
+            "status": 200
+          }
+        }
+      },
+      {
+        "set": "vendors8",
+        "target": "datadome-g2",
+        "round": 3,
+        "position": 2,
+        "useful_arm": "native",
+        "missing_arm": "auto",
+        "arms": {
+          "native": {
+            "stop": "response",
+            "seconds": 3.8909768,
+            "audit_verdict": "useful",
+            "delivered": true,
+            "tier": "warm",
+            "identity": "native",
+            "attempts": [
+              "warm"
+            ],
+            "native_fallback": false,
+            "status": 200
+          },
+          "auto": {
+            "stop": "local_deferral",
+            "seconds": 0.0001018,
+            "audit_verdict": "unavailable",
+            "delivered": false,
+            "tier": null,
+            "identity": null,
+            "attempts": [],
+            "native_fallback": null,
+            "status": 0
+          }
+        }
+      },
+      {
+        "set": "vendors8",
+        "target": "datadome-g2",
+        "round": 3,
+        "position": 3,
+        "useful_arm": "native",
+        "missing_arm": "auto",
+        "arms": {
+          "native": {
+            "stop": "response",
+            "seconds": 3.5420717,
+            "audit_verdict": "useful",
+            "delivered": true,
+            "tier": "warm",
+            "identity": "native",
+            "attempts": [
+              "warm"
+            ],
+            "native_fallback": false,
+            "status": 200
+          },
+          "auto": {
+            "stop": "local_deferral",
+            "seconds": 1.99e-05,
+            "audit_verdict": "unavailable",
+            "delivered": false,
+            "tier": null,
+            "identity": null,
+            "attempts": [],
+            "native_fallback": null,
+            "status": 0
+          }
+        }
+      },
+      {
+        "set": "hard12",
+        "target": "amazon",
+        "round": 3,
+        "position": 1,
+        "useful_arm": "native",
+        "missing_arm": "auto",
+        "arms": {
+          "native": {
+            "stop": "response",
+            "seconds": 3.4312027,
+            "audit_verdict": "useful",
+            "delivered": true,
+            "tier": "warm",
+            "identity": "native",
+            "attempts": [
+              "warm"
+            ],
+            "native_fallback": false,
+            "status": 200
+          },
+          "auto": {
+            "stop": "wall_or_error",
+            "seconds": 0.1948498,
+            "audit_verdict": "unavailable",
+            "delivered": false,
+            "tier": "http",
+            "identity": "emulated",
+            "attempts": [
+              "http",
+              "cooldown"
+            ],
+            "native_fallback": false,
+            "status": 503
+          }
+        }
+      },
+      {
+        "set": "hard12",
+        "target": "amazon",
+        "round": 3,
+        "position": 2,
+        "useful_arm": "native",
+        "missing_arm": "auto",
+        "arms": {
+          "native": {
+            "stop": "response",
+            "seconds": 2.7835288,
+            "audit_verdict": "useful",
+            "delivered": true,
+            "tier": "warm",
+            "identity": "native",
+            "attempts": [
+              "warm"
+            ],
+            "native_fallback": false,
+            "status": 200
+          },
+          "auto": {
+            "stop": "local_deferral",
+            "seconds": 0.0002102,
+            "audit_verdict": "unavailable",
+            "delivered": false,
+            "tier": null,
+            "identity": null,
+            "attempts": [],
+            "native_fallback": false,
+            "status": 0
+          }
+        }
+      },
+      {
+        "set": "hard12",
+        "target": "amazon",
+        "round": 3,
+        "position": 3,
+        "useful_arm": "native",
+        "missing_arm": "auto",
+        "arms": {
+          "native": {
+            "stop": "response",
+            "seconds": 3.4221616,
+            "audit_verdict": "useful",
+            "delivered": true,
+            "tier": "warm",
+            "identity": "native",
+            "attempts": [
+              "warm"
+            ],
+            "native_fallback": false,
+            "status": 200
+          },
+          "auto": {
+            "stop": "local_deferral",
+            "seconds": 0.0001448,
+            "audit_verdict": "unavailable",
+            "delivered": false,
+            "tier": null,
+            "identity": null,
+            "attempts": [],
+            "native_fallback": false,
+            "status": 0
+          }
+        }
+      }
+    ]
+  },
+  "useful_content_available": {
+    "discordant": 32,
+    "useful_only": {
+      "native": 19,
+      "auto": 13
+    },
+    "missing_stops": {
+      "auto": {
+        "timeout": 7,
+        "local_deferral": 10,
+        "wall_or_error": 2
+      },
+      "native": {
+        "local_deferral": 3,
+        "wall_or_error": 1,
+        "response": 9
+      }
+    },
+    "rows": [
+      {
+        "set": "hard12",
+        "target": "g2",
+        "round": 1,
+        "position": 2,
+        "useful_arm": "native",
+        "missing_arm": "auto",
+        "arms": {
+          "native": {
+            "stop": "response",
+            "seconds": 4.2516171,
+            "audit_verdict": "useful",
+            "delivered": true,
+            "tier": "warm",
+            "identity": "native",
+            "attempts": [
+              "warm"
+            ],
+            "native_fallback": false,
+            "status": 200
+          },
+          "auto": {
+            "stop": "timeout",
+            "seconds": 59.9205921,
+            "audit_verdict": "unavailable",
+            "delivered": false,
+            "tier": "real",
+            "identity": "emulated",
+            "attempts": [
+              "http",
+              "real",
+              "timeout"
+            ],
+            "native_fallback": false,
+            "status": 200
+          }
+        }
+      },
+      {
+        "set": "hard12",
+        "target": "g2",
+        "round": 1,
+        "position": 3,
+        "useful_arm": "native",
+        "missing_arm": "auto",
+        "arms": {
+          "native": {
+            "stop": "response",
+            "seconds": 3.5268545,
+            "audit_verdict": "useful",
+            "delivered": true,
+            "tier": "warm",
+            "identity": "native",
+            "attempts": [
+              "warm"
+            ],
+            "native_fallback": false,
+            "status": 200
+          },
+          "auto": {
+            "stop": "local_deferral",
+            "seconds": 6.79e-05,
+            "audit_verdict": "unavailable",
+            "delivered": false,
+            "tier": null,
+            "identity": null,
+            "attempts": [],
+            "native_fallback": null,
+            "status": 0
+          }
+        }
+      },
+      {
+        "set": "hard12",
+        "target": "idealista",
+        "round": 1,
+        "position": 1,
+        "useful_arm": "auto",
+        "missing_arm": "native",
+        "arms": {
+          "auto": {
+            "stop": "response",
+            "seconds": 45.0846342,
+            "audit_verdict": "useful",
+            "delivered": true,
+            "tier": "warm",
+            "identity": "native",
+            "attempts": [
+              "http",
+              "real",
+              "warm",
+              "native",
+              "warm"
+            ],
+            "native_fallback": true,
+            "status": 200
+          },
+          "native": {
+            "stop": "local_deferral",
+            "seconds": 0.0019089,
+            "audit_verdict": "unavailable",
+            "delivered": false,
+            "tier": null,
+            "identity": null,
+            "attempts": [],
+            "native_fallback": null,
+            "status": 0
+          }
+        }
+      },
+      {
+        "set": "hard12",
+        "target": "idealista",
+        "round": 1,
+        "position": 2,
+        "useful_arm": "auto",
+        "missing_arm": "native",
+        "arms": {
+          "auto": {
+            "stop": "response",
+            "seconds": 50.2403345,
+            "audit_verdict": "useful",
+            "delivered": true,
+            "tier": "warm",
+            "identity": "native",
+            "attempts": [
+              "http",
+              "real",
+              "warm",
+              "native",
+              "warm"
+            ],
+            "native_fallback": true,
+            "status": 200
+          },
+          "native": {
+            "stop": "local_deferral",
+            "seconds": 8.97e-05,
+            "audit_verdict": "unavailable",
+            "delivered": false,
+            "tier": null,
+            "identity": null,
+            "attempts": [],
+            "native_fallback": null,
+            "status": 0
+          }
+        }
+      },
+      {
+        "set": "public31",
+        "target": "tiktok-user",
+        "round": 1,
+        "position": 2,
+        "useful_arm": "auto",
+        "missing_arm": "native",
+        "arms": {
+          "native": {
+            "stop": "wall_or_error",
+            "seconds": 0.3796406,
+            "audit_verdict": "unavailable",
+            "delivered": false,
+            "tier": null,
+            "identity": null,
+            "attempts": [
+              "warm"
+            ],
+            "native_fallback": false,
+            "status": 0
+          },
+          "auto": {
+            "stop": "wall_or_error",
+            "seconds": 27.0297201,
+            "audit_verdict": "useful",
+            "delivered": false,
+            "tier": "stealth",
+            "identity": "emulated",
+            "attempts": [
+              "http",
+              "browser",
+              "stealth",
+              "real",
+              "warm",
+              "native",
+              "native"
+            ],
+            "native_fallback": true,
+            "status": 200
+          }
+        }
+      },
+      {
+        "set": "public31",
+        "target": "canadianinsider",
+        "round": 1,
+        "position": 1,
+        "useful_arm": "native",
+        "missing_arm": "auto",
+        "arms": {
+          "auto": {
+            "stop": "timeout",
+            "seconds": 59.9132347,
+            "audit_verdict": "wall",
+            "delivered": false,
+            "tier": "warm",
+            "identity": "emulated",
+            "attempts": [
+              "http",
+              "browser",
+              "stealth",
+              "real",
+              "warm",
+              "native",
+              "timeout"
+            ],
+            "native_fallback": true,
+            "status": 200
+          },
+          "native": {
+            "stop": "response",
+            "seconds": 10.3261127,
+            "audit_verdict": "useful",
+            "delivered": true,
+            "tier": "warm",
+            "identity": "native",
+            "attempts": [
+              "warm"
+            ],
+            "native_fallback": false,
+            "status": 200
+          }
+        }
+      },
+      {
+        "set": "public31",
+        "target": "canadianinsider",
+        "round": 1,
+        "position": 2,
+        "useful_arm": "native",
+        "missing_arm": "auto",
+        "arms": {
+          "auto": {
+            "stop": "timeout",
+            "seconds": 59.9035213,
+            "audit_verdict": "wall",
+            "delivered": false,
+            "tier": "stealth",
+            "identity": "emulated",
+            "attempts": [
+              "http",
+              "browser",
+              "stealth",
+              "timeout"
+            ],
+            "native_fallback": false,
+            "status": 200
+          },
+          "native": {
+            "stop": "response",
+            "seconds": 2.2970509,
+            "audit_verdict": "useful",
+            "delivered": true,
+            "tier": "warm",
+            "identity": "native",
+            "attempts": [
+              "warm"
+            ],
+            "native_fallback": false,
+            "status": 200
+          }
+        }
+      },
+      {
+        "set": "public31",
+        "target": "sedarplus",
+        "round": 1,
+        "position": 1,
+        "useful_arm": "auto",
+        "missing_arm": "native",
+        "arms": {
+          "native": {
+            "stop": "response",
+            "seconds": 28.0336666,
+            "audit_verdict": "wall",
+            "delivered": true,
+            "tier": "warm",
+            "identity": "native",
+            "attempts": [
+              "warm"
+            ],
+            "native_fallback": false,
+            "status": 200
+          },
+          "auto": {
+            "stop": "response",
+            "seconds": 0.6009977,
+            "audit_verdict": "useful",
+            "delivered": true,
+            "tier": "http",
+            "identity": "emulated",
+            "attempts": [
+              "http"
+            ],
+            "native_fallback": false,
+            "status": 200
+          }
+        }
+      },
+      {
+        "set": "public31",
+        "target": "sedarplus",
+        "round": 1,
+        "position": 2,
+        "useful_arm": "auto",
+        "missing_arm": "native",
+        "arms": {
+          "native": {
+            "stop": "response",
+            "seconds": 23.2037019,
+            "audit_verdict": "wall",
+            "delivered": true,
+            "tier": "warm",
+            "identity": "native",
+            "attempts": [
+              "warm"
+            ],
+            "native_fallback": false,
+            "status": 200
+          },
+          "auto": {
+            "stop": "response",
+            "seconds": 0.8613683,
+            "audit_verdict": "useful",
+            "delivered": true,
+            "tier": "http",
+            "identity": "emulated",
+            "attempts": [
+              "http"
+            ],
+            "native_fallback": false,
+            "status": 200
+          }
+        }
+      },
+      {
+        "set": "public31",
+        "target": "sedarplus",
+        "round": 1,
+        "position": 3,
+        "useful_arm": "auto",
+        "missing_arm": "native",
+        "arms": {
+          "native": {
+            "stop": "response",
+            "seconds": 21.8441456,
+            "audit_verdict": "wall",
+            "delivered": true,
+            "tier": "warm",
+            "identity": "native",
+            "attempts": [
+              "warm"
+            ],
+            "native_fallback": false,
+            "status": 200
+          },
+          "auto": {
+            "stop": "response",
+            "seconds": 1.0001207,
+            "audit_verdict": "useful",
+            "delivered": true,
+            "tier": "http",
+            "identity": "emulated",
+            "attempts": [
+              "http"
+            ],
+            "native_fallback": false,
+            "status": 200
+          }
+        }
+      },
+      {
+        "set": "hard12",
+        "target": "amazon",
+        "round": 1,
+        "position": 1,
+        "useful_arm": "native",
+        "missing_arm": "auto",
+        "arms": {
+          "native": {
+            "stop": "response",
+            "seconds": 3.6580031,
+            "audit_verdict": "useful",
+            "delivered": true,
+            "tier": "warm",
+            "identity": "native",
+            "attempts": [
+              "warm"
+            ],
+            "native_fallback": false,
+            "status": 200
+          },
+          "auto": {
+            "stop": "wall_or_error",
+            "seconds": 0.191369,
+            "audit_verdict": "unavailable",
+            "delivered": false,
+            "tier": "http",
+            "identity": "emulated",
+            "attempts": [
+              "http",
+              "cooldown"
+            ],
+            "native_fallback": false,
+            "status": 503
+          }
+        }
+      },
+      {
+        "set": "hard12",
+        "target": "amazon",
+        "round": 1,
+        "position": 2,
+        "useful_arm": "native",
+        "missing_arm": "auto",
+        "arms": {
+          "native": {
+            "stop": "response",
+            "seconds": 2.2635224,
+            "audit_verdict": "useful",
+            "delivered": true,
+            "tier": "warm",
+            "identity": "native",
+            "attempts": [
+              "warm"
+            ],
+            "native_fallback": false,
+            "status": 200
+          },
+          "auto": {
+            "stop": "local_deferral",
+            "seconds": 0.0002047,
+            "audit_verdict": "unavailable",
+            "delivered": false,
+            "tier": null,
+            "identity": null,
+            "attempts": [],
+            "native_fallback": false,
+            "status": 0
+          }
+        }
+      },
+      {
+        "set": "hard12",
+        "target": "amazon",
+        "round": 1,
+        "position": 3,
+        "useful_arm": "native",
+        "missing_arm": "auto",
+        "arms": {
+          "native": {
+            "stop": "response",
+            "seconds": 4.1902756,
+            "audit_verdict": "useful",
+            "delivered": true,
+            "tier": "warm",
+            "identity": "native",
+            "attempts": [
+              "warm"
+            ],
+            "native_fallback": false,
+            "status": 200
+          },
+          "auto": {
+            "stop": "local_deferral",
+            "seconds": 0.0001507,
+            "audit_verdict": "unavailable",
+            "delivered": false,
+            "tier": null,
+            "identity": null,
+            "attempts": [],
+            "native_fallback": false,
+            "status": 0
+          }
+        }
+      },
+      {
+        "set": "vendors8",
+        "target": "cloudflare-crunchbase",
+        "round": 1,
+        "position": 1,
+        "useful_arm": "native",
+        "missing_arm": "auto",
+        "arms": {
+          "native": {
+            "stop": "response",
+            "seconds": 6.3402614,
+            "audit_verdict": "useful",
+            "delivered": true,
+            "tier": "warm",
+            "identity": "native",
+            "attempts": [
+              "warm"
+            ],
+            "native_fallback": false,
+            "status": 200
+          },
+          "auto": {
+            "stop": "timeout",
+            "seconds": 59.9114093,
+            "audit_verdict": "wall",
+            "delivered": false,
+            "tier": "warm",
+            "identity": "emulated",
+            "attempts": [
+              "http",
+              "browser",
+              "stealth",
+              "real",
+              "warm",
+              "timeout"
+            ],
+            "native_fallback": false,
+            "status": 200
+          }
+        }
+      },
+      {
+        "set": "vendors8",
+        "target": "cloudflare-crunchbase",
+        "round": 1,
+        "position": 2,
+        "useful_arm": "native",
+        "missing_arm": "auto",
+        "arms": {
+          "native": {
+            "stop": "response",
+            "seconds": 2.3261777,
+            "audit_verdict": "useful",
+            "delivered": true,
+            "tier": "warm",
+            "identity": "native",
+            "attempts": [
+              "warm"
+            ],
+            "native_fallback": false,
+            "status": 200
+          },
+          "auto": {
+            "stop": "timeout",
+            "seconds": 59.9133276,
+            "audit_verdict": "wall",
+            "delivered": false,
+            "tier": "http",
+            "identity": "emulated",
+            "attempts": [
+              "http",
+              "timeout"
+            ],
+            "native_fallback": false,
+            "status": 403
+          }
+        }
+      },
+      {
+        "set": "vendors8",
+        "target": "cloudflare-crunchbase",
+        "round": 1,
+        "position": 3,
+        "useful_arm": "native",
+        "missing_arm": "auto",
+        "arms": {
+          "native": {
+            "stop": "response",
+            "seconds": 2.0405347,
+            "audit_verdict": "useful",
+            "delivered": true,
+            "tier": "warm",
+            "identity": "native",
+            "attempts": [
+              "warm"
+            ],
+            "native_fallback": false,
+            "status": 200
+          },
+          "auto": {
+            "stop": "timeout",
+            "seconds": 59.9039871,
+            "audit_verdict": "unavailable",
+            "delivered": false,
+            "tier": null,
+            "identity": null,
+            "attempts": [],
+            "native_fallback": false,
+            "status": 0
+          }
+        }
+      },
+      {
+        "set": "public31",
+        "target": "sedarplus",
+        "round": 2,
+        "position": 1,
+        "useful_arm": "auto",
+        "missing_arm": "native",
+        "arms": {
+          "auto": {
+            "stop": "response",
+            "seconds": 0.6413992,
+            "audit_verdict": "useful",
+            "delivered": true,
+            "tier": "http",
+            "identity": "emulated",
+            "attempts": [
+              "http"
+            ],
+            "native_fallback": false,
+            "status": 200
+          },
+          "native": {
+            "stop": "response",
+            "seconds": 23.3795497,
+            "audit_verdict": "wall",
+            "delivered": true,
+            "tier": "warm",
+            "identity": "native",
+            "attempts": [
+              "warm"
+            ],
+            "native_fallback": false,
+            "status": 200
+          }
+        }
+      },
+      {
+        "set": "public31",
+        "target": "sedarplus",
+        "round": 2,
+        "position": 2,
+        "useful_arm": "auto",
+        "missing_arm": "native",
+        "arms": {
+          "auto": {
+            "stop": "response",
+            "seconds": 0.8534251,
+            "audit_verdict": "useful",
+            "delivered": true,
+            "tier": "http",
+            "identity": "emulated",
+            "attempts": [
+              "http"
+            ],
+            "native_fallback": false,
+            "status": 200
+          },
+          "native": {
+            "stop": "response",
+            "seconds": 22.0828569,
+            "audit_verdict": "wall",
+            "delivered": true,
+            "tier": "warm",
+            "identity": "native",
+            "attempts": [
+              "warm"
+            ],
+            "native_fallback": false,
+            "status": 200
+          }
+        }
+      },
+      {
+        "set": "public31",
+        "target": "sedarplus",
+        "round": 2,
+        "position": 3,
+        "useful_arm": "auto",
+        "missing_arm": "native",
+        "arms": {
+          "auto": {
+            "stop": "response",
+            "seconds": 1.2212701,
+            "audit_verdict": "useful",
+            "delivered": true,
+            "tier": "http",
+            "identity": "emulated",
+            "attempts": [
+              "http"
+            ],
+            "native_fallback": false,
+            "status": 200
+          },
+          "native": {
+            "stop": "response",
+            "seconds": 22.2151765,
+            "audit_verdict": "wall",
+            "delivered": true,
+            "tier": "warm",
+            "identity": "native",
+            "attempts": [
+              "warm"
+            ],
+            "native_fallback": false,
+            "status": 200
+          }
+        }
+      },
+      {
+        "set": "hard12",
+        "target": "stackoverflow",
+        "round": 2,
+        "position": 3,
+        "useful_arm": "native",
+        "missing_arm": "auto",
+        "arms": {
+          "native": {
+            "stop": "response",
+            "seconds": 4.045311,
+            "audit_verdict": "useful",
+            "delivered": true,
+            "tier": "warm",
+            "identity": "native",
+            "attempts": [
+              "warm"
+            ],
+            "native_fallback": false,
+            "status": 200
+          },
+          "auto": {
+            "stop": "local_deferral",
+            "seconds": 0.0001883,
+            "audit_verdict": "unavailable",
+            "delivered": false,
+            "tier": null,
+            "identity": null,
+            "attempts": [],
+            "native_fallback": null,
+            "status": 0
+          }
+        }
+      },
+      {
+        "set": "vendors8",
+        "target": "datadome-idealista",
+        "round": 2,
+        "position": 1,
+        "useful_arm": "native",
+        "missing_arm": "auto",
+        "arms": {
+          "native": {
+            "stop": "response",
+            "seconds": 13.5353069,
+            "audit_verdict": "useful",
+            "delivered": true,
+            "tier": "warm",
+            "identity": "native",
+            "attempts": [
+              "warm"
+            ],
+            "native_fallback": false,
+            "status": 200
+          },
+          "auto": {
+            "stop": "local_deferral",
+            "seconds": 0.003725,
+            "audit_verdict": "unavailable",
+            "delivered": false,
+            "tier": null,
+            "identity": null,
+            "attempts": [],
+            "native_fallback": null,
+            "status": 0
+          }
+        }
+      },
+      {
+        "set": "hard12",
+        "target": "idealista",
+        "round": 2,
+        "position": 1,
+        "useful_arm": "native",
+        "missing_arm": "auto",
+        "arms": {
+          "native": {
+            "stop": "response",
+            "seconds": 5.1155036,
+            "audit_verdict": "useful",
+            "delivered": true,
+            "tier": "warm",
+            "identity": "native",
+            "attempts": [
+              "warm"
+            ],
+            "native_fallback": false,
+            "status": 200
+          },
+          "auto": {
+            "stop": "local_deferral",
+            "seconds": 0.0020755,
+            "audit_verdict": "unavailable",
+            "delivered": false,
+            "tier": null,
+            "identity": null,
+            "attempts": [],
+            "native_fallback": null,
+            "status": 0
+          }
+        }
+      },
+      {
+        "set": "hard12",
+        "target": "g2",
+        "round": 2,
+        "position": 1,
+        "useful_arm": "auto",
+        "missing_arm": "native",
+        "arms": {
+          "auto": {
+            "stop": "response",
+            "seconds": 51.7612652,
+            "audit_verdict": "useful",
+            "delivered": true,
+            "tier": "warm",
+            "identity": "native",
+            "attempts": [
+              "http",
+              "real",
+              "warm",
+              "native",
+              "warm"
+            ],
+            "native_fallback": true,
+            "status": 200
+          },
+          "native": {
+            "stop": "local_deferral",
+            "seconds": 0.0019358,
+            "audit_verdict": "unavailable",
+            "delivered": false,
+            "tier": null,
+            "identity": null,
+            "attempts": [],
+            "native_fallback": null,
+            "status": 0
+          }
+        }
+      },
+      {
+        "set": "public31",
+        "target": "canadianinsider",
+        "round": 3,
+        "position": 2,
+        "useful_arm": "native",
+        "missing_arm": "auto",
+        "arms": {
+          "auto": {
+            "stop": "timeout",
+            "seconds": 59.9049433,
+            "audit_verdict": "wall",
+            "delivered": false,
+            "tier": "stealth",
+            "identity": "emulated",
+            "attempts": [
+              "http",
+              "browser",
+              "stealth",
+              "timeout"
+            ],
+            "native_fallback": false,
+            "status": 200
+          },
+          "native": {
+            "stop": "response",
+            "seconds": 2.8805861,
+            "audit_verdict": "useful",
+            "delivered": true,
+            "tier": "warm",
+            "identity": "native",
+            "attempts": [
+              "warm"
+            ],
+            "native_fallback": false,
+            "status": 200
+          }
+        }
+      },
+      {
+        "set": "public31",
+        "target": "sedarplus",
+        "round": 3,
+        "position": 1,
+        "useful_arm": "auto",
+        "missing_arm": "native",
+        "arms": {
+          "native": {
+            "stop": "response",
+            "seconds": 23.6192035,
+            "audit_verdict": "wall",
+            "delivered": true,
+            "tier": "warm",
+            "identity": "native",
+            "attempts": [
+              "warm"
+            ],
+            "native_fallback": false,
+            "status": 200
+          },
+          "auto": {
+            "stop": "response",
+            "seconds": 0.6372871,
+            "audit_verdict": "useful",
+            "delivered": true,
+            "tier": "http",
+            "identity": "emulated",
+            "attempts": [
+              "http"
+            ],
+            "native_fallback": false,
+            "status": 200
+          }
+        }
+      },
+      {
+        "set": "public31",
+        "target": "sedarplus",
+        "round": 3,
+        "position": 2,
+        "useful_arm": "auto",
+        "missing_arm": "native",
+        "arms": {
+          "native": {
+            "stop": "response",
+            "seconds": 22.6813824,
+            "audit_verdict": "wall",
+            "delivered": true,
+            "tier": "warm",
+            "identity": "native",
+            "attempts": [
+              "warm"
+            ],
+            "native_fallback": false,
+            "status": 200
+          },
+          "auto": {
+            "stop": "response",
+            "seconds": 0.852583,
+            "audit_verdict": "useful",
+            "delivered": true,
+            "tier": "http",
+            "identity": "emulated",
+            "attempts": [
+              "http"
+            ],
+            "native_fallback": false,
+            "status": 200
+          }
+        }
+      },
+      {
+        "set": "public31",
+        "target": "sedarplus",
+        "round": 3,
+        "position": 3,
+        "useful_arm": "auto",
+        "missing_arm": "native",
+        "arms": {
+          "native": {
+            "stop": "response",
+            "seconds": 22.2836568,
+            "audit_verdict": "wall",
+            "delivered": true,
+            "tier": "warm",
+            "identity": "native",
+            "attempts": [
+              "warm"
+            ],
+            "native_fallback": false,
+            "status": 200
+          },
+          "auto": {
+            "stop": "response",
+            "seconds": 1.0172744,
+            "audit_verdict": "useful",
+            "delivered": true,
+            "tier": "http",
+            "identity": "emulated",
+            "attempts": [
+              "http"
+            ],
+            "native_fallback": false,
+            "status": 200
+          }
+        }
+      },
+      {
+        "set": "vendors8",
+        "target": "datadome-g2",
+        "round": 3,
+        "position": 2,
+        "useful_arm": "native",
+        "missing_arm": "auto",
+        "arms": {
+          "native": {
+            "stop": "response",
+            "seconds": 3.8909768,
+            "audit_verdict": "useful",
+            "delivered": true,
+            "tier": "warm",
+            "identity": "native",
+            "attempts": [
+              "warm"
+            ],
+            "native_fallback": false,
+            "status": 200
+          },
+          "auto": {
+            "stop": "local_deferral",
+            "seconds": 0.0001018,
+            "audit_verdict": "unavailable",
+            "delivered": false,
+            "tier": null,
+            "identity": null,
+            "attempts": [],
+            "native_fallback": null,
+            "status": 0
+          }
+        }
+      },
+      {
+        "set": "vendors8",
+        "target": "datadome-g2",
+        "round": 3,
+        "position": 3,
+        "useful_arm": "native",
+        "missing_arm": "auto",
+        "arms": {
+          "native": {
+            "stop": "response",
+            "seconds": 3.5420717,
+            "audit_verdict": "useful",
+            "delivered": true,
+            "tier": "warm",
+            "identity": "native",
+            "attempts": [
+              "warm"
+            ],
+            "native_fallback": false,
+            "status": 200
+          },
+          "auto": {
+            "stop": "local_deferral",
+            "seconds": 1.99e-05,
+            "audit_verdict": "unavailable",
+            "delivered": false,
+            "tier": null,
+            "identity": null,
+            "attempts": [],
+            "native_fallback": null,
+            "status": 0
+          }
+        }
+      },
+      {
+        "set": "hard12",
+        "target": "amazon",
+        "round": 3,
+        "position": 1,
+        "useful_arm": "native",
+        "missing_arm": "auto",
+        "arms": {
+          "native": {
+            "stop": "response",
+            "seconds": 3.4312027,
+            "audit_verdict": "useful",
+            "delivered": true,
+            "tier": "warm",
+            "identity": "native",
+            "attempts": [
+              "warm"
+            ],
+            "native_fallback": false,
+            "status": 200
+          },
+          "auto": {
+            "stop": "wall_or_error",
+            "seconds": 0.1948498,
+            "audit_verdict": "unavailable",
+            "delivered": false,
+            "tier": "http",
+            "identity": "emulated",
+            "attempts": [
+              "http",
+              "cooldown"
+            ],
+            "native_fallback": false,
+            "status": 503
+          }
+        }
+      },
+      {
+        "set": "hard12",
+        "target": "amazon",
+        "round": 3,
+        "position": 2,
+        "useful_arm": "native",
+        "missing_arm": "auto",
+        "arms": {
+          "native": {
+            "stop": "response",
+            "seconds": 2.7835288,
+            "audit_verdict": "useful",
+            "delivered": true,
+            "tier": "warm",
+            "identity": "native",
+            "attempts": [
+              "warm"
+            ],
+            "native_fallback": false,
+            "status": 200
+          },
+          "auto": {
+            "stop": "local_deferral",
+            "seconds": 0.0002102,
+            "audit_verdict": "unavailable",
+            "delivered": false,
+            "tier": null,
+            "identity": null,
+            "attempts": [],
+            "native_fallback": false,
+            "status": 0
+          }
+        }
+      },
+      {
+        "set": "hard12",
+        "target": "amazon",
+        "round": 3,
+        "position": 3,
+        "useful_arm": "native",
+        "missing_arm": "auto",
+        "arms": {
+          "native": {
+            "stop": "response",
+            "seconds": 3.4221616,
+            "audit_verdict": "useful",
+            "delivered": true,
+            "tier": "warm",
+            "identity": "native",
+            "attempts": [
+              "warm"
+            ],
+            "native_fallback": false,
+            "status": 200
+          },
+          "auto": {
+            "stop": "local_deferral",
+            "seconds": 0.0001448,
+            "audit_verdict": "unavailable",
+            "delivered": false,
+            "tier": null,
+            "identity": null,
+            "attempts": [],
+            "native_fallback": false,
+            "status": 0
+          }
+        }
+      }
+    ]
+  },
+  "note": "Descriptive discordances in the interrupted candidate-1 workload, not independent samples or proof that the paired arm would succeed under the other history. No endpoint, budget or saved result is changed by this analysis."
+}

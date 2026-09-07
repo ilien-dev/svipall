@@ -1,0 +1,5 @@
+glassdoor repeat 1: delivered 4.07s (warm)
+glassdoor repeat 2: delivered 3.06s (warm)
+glassdoor repeat 3: delivered 2.86s (warm)
+
+paired finished in 10.3s

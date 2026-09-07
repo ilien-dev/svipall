@@ -1,0 +1,5 @@
+browserscan-bot repeat 1: delivered 11.55s (warm)
+browserscan-bot repeat 2: delivered 1.89s (warm)
+browserscan-bot repeat 3: delivered 2.92s (warm)
+
+paired finished in 16.8s

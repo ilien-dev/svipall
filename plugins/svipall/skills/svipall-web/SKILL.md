@@ -17,21 +17,22 @@ shell is the same server for a fraction of the tokens, and the `svipall` skill d
 
 | You want | Call |
 |---|---|
-| One page as clean Markdown | `web_fetch` |
-| Several pages | `web_fetch_many` |
-| A whole site, or many pages of one | `web_crawl` (pass `out_file` for anything large) |
-| To search | `web_search` (no API key) |
-| A site's own search | `web_site_search` |
-| A page's URLs from robots/sitemaps/feeds | `web_map` |
-| The page as roles and refs, not prose | `web_snapshot` — a fraction of the tokens |
-| The JSON the page itself fetched | `web_capture` — usually the site's real API, and usually the right answer |
-| To click, type, scroll | `web_act`, or `browser_open` → `browser_do` … → `browser_close` when cookies must stay alive |
-| A screenshot | `web_screenshot` |
+| One page as clean Markdown (PDF and office documents too) | `web_fetch` — `query=` for one fact from a long page |
+| A table or a listing as rows | `web_fetch` with `tables=true`, or `schema="auto"` |
+| Several known pages | `web_fetch_many` |
+| A site's URLs, before deciding what to fetch | `web_map` — a few hundred tokens |
+| A whole site, or many pages of one | `web_crawl` (pass `out_file` for anything large; `schema` or `tables` for rows) |
+| To search the web | `web_search` (no API key) |
+| A site's own search box | `web_site_search` |
+| The API behind a listing | `web_capture` — the JSON the page itself fetched; `page=2` beats following links |
+| Something to click, type or scroll | `web_snapshot` first, then `web_act` with `ref` (one shot), or `browser_open` → `browser_do` … → `browser_close` when cookies must stay alive |
+| A picture of a page | `web_screenshot` (`mobile` for a phone); a screenshot cannot be clicked |
 | To get past a login or a gate by hand, once | `web_login` — the cookies are kept |
 | To send a domain through a proxy | `web_route` |
-| What changed since last time | `web_watch`, `web_diff` |
+| What changed since last time | `web_diff` once, `web_watch` on a schedule |
 | To remember something across sessions | `web_notes` |
-| What this installation is doing | `web_status` |
+| Why a domain is slow or blocked | `web_log view=summary` |
+| Current state, and resets | `web_status` |
 
 ## Rules that are not preferences
 
@@ -40,7 +41,8 @@ shell is the same server for a fraction of the tokens, and the `svipall` skill d
 - **Never retry a blocked URL blindly.** The result carries `blocked_reason`, `wall_kind`,
   `wall_vendor` and a `note` naming the move. A blind retry is how a domain earns a cooldown.
   Report the reason instead.
-- **A captcha with a sitekey** goes to `solve_and_continue` or the `solve_*` tools; `web_status`
+- **A captcha named in `blocked_reason`** goes to `solve_and_continue`; the `solve_*` tools return
+  a bare token bound to the session that produced it, for a form you post yourself. `web_status`
   reports the dashboard URL for the ones a person has to answer. **Human-verification that needs a
   person: stop and tell the user.** Do not loop.
 - **Large results go to a file.** `out_file` on `web_crawl` or `web_fetch` costs about twenty

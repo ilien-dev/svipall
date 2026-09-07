@@ -1,0 +1,5 @@
+wikipedia repeat 1: delivered 7.52s (warm)
+wikipedia repeat 2: delivered 1.61s (warm)
+wikipedia repeat 3: delivered 2.13s (warm)
+
+paired finished in 11.6s

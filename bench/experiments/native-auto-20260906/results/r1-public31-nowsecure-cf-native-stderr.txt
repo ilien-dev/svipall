@@ -1,0 +1,5 @@
+nowsecure-cf repeat 1: delivered 22.86s (warm)
+nowsecure-cf repeat 2: delivered 38.90s (warm)
+nowsecure-cf repeat 3: failed 0.00s (-)
+
+paired finished in 62.1s

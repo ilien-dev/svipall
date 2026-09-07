@@ -1,0 +1,5 @@
+datadome-g2 repeat 1: delivered 3.87s (warm)
+datadome-g2 repeat 2: failed 0.00s (-)
+datadome-g2 repeat 3: failed 0.00s (-)
+
+paired finished in 4.2s

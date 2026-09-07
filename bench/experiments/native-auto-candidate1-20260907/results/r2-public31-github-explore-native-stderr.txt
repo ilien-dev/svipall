@@ -1,0 +1,5 @@
+github-explore repeat 1: delivered 4.53s (warm)
+github-explore repeat 2: delivered 1.86s (warm)
+github-explore repeat 3: delivered 1.81s (warm)
+
+paired finished in 8.7s

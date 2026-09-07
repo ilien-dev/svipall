@@ -1,0 +1,5 @@
+indeed-jobs repeat 1: delivered 4.41s (warm)
+indeed-jobs repeat 2: failed 0.00s (-)
+indeed-jobs repeat 3: failed 0.00s (-)
+
+paired finished in 4.7s

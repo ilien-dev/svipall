@@ -1,0 +1,5 @@
+indeed repeat 1: delivered 5.49s (warm)
+indeed repeat 2: delivered 4.70s (warm)
+indeed repeat 3: delivered 4.09s (warm)
+
+paired finished in 14.8s

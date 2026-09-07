@@ -1,0 +1,5 @@
+rebrowser-detector repeat 1: delivered 0.23s (http)
+rebrowser-detector repeat 2: delivered 0.86s (http)
+rebrowser-detector repeat 3: delivered 1.00s (http)
+
+paired finished in 2.3s

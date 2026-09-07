@@ -1,0 +1,158 @@
+   Compiling zerovec v0.11.8
+   Compiling displaydoc v0.2.7
+   Compiling phf_codegen v0.11.3
+   Compiling cfg-if v1.0.4
+   Compiling serde_core v1.0.229
+   Compiling tinystr v0.8.4
+   Compiling new_debug_unreachable v1.0.6
+   Compiling litemap v0.8.3
+   Compiling writeable v0.6.4
+   Compiling parking_lot_core v0.9.12
+   Compiling icu_locale_core v2.3.0
+   Compiling zerotrie v0.2.5
+   Compiling potential_utf v0.1.6
+   Compiling phf_macros v0.11.3
+   Compiling utf8_iter v1.0.4
+   Compiling scopeguard v1.2.0
+   Compiling windows-link v0.2.1
+   Compiling serde v1.0.229
+   Compiling icu_properties_data v2.3.0
+   Compiling icu_normalizer_data v2.3.0
+   Compiling lock_api v0.4.14
+   Compiling icu_collections v2.3.0
+   Compiling phf v0.11.3
+   Compiling icu_provider v2.3.1
+   Compiling string_cache_codegen v0.5.4
+   Compiling serde_derive v1.0.229
+   Compiling precomputed-hash v0.1.1
+   Compiling mac v0.1.1
+   Compiling futf v0.1.5
+   Compiling markup5ever v0.14.1
+   Compiling parking_lot v0.12.5
+   Compiling version_check v0.9.5
+   Compiling dtoa v1.0.11
+   Compiling utf-8 v0.7.6
+   Compiling zerocopy v0.8.56
+   Compiling getrandom v0.3.4
+   Compiling itoa v1.0.18
+   Compiling log v0.4.34
+   Compiling memchr v2.8.3
+   Compiling tendril v0.4.3
+   Compiling dtoa-short v0.3.5
+   Compiling ahash v0.8.12
+   Compiling icu_normalizer v2.3.0
+   Compiling icu_properties v2.3.0
+   Compiling string_cache v0.8.9
+   Compiling selectors v0.26.0
+   Compiling cssparser-macros v0.6.1
+   Compiling zmij v1.0.23
+   Compiling byteorder v1.5.0
+   Compiling fxhash v0.2.1
+   Compiling cssparser v0.34.0
+   Compiling idna_adapter v1.2.2
+   Compiling aho-corasick v1.1.5
+   Compiling servo_arc v0.4.3
+   Compiling derive_more v0.99.20
+   Compiling match_token v0.1.0
+   Compiling once_cell v1.21.4
+   Compiling bitflags v2.13.1
+   Compiling serde_json v1.0.151
+   Compiling regex-syntax v0.8.11
+   Compiling unicode-width v0.2.2
+   Compiling percent-encoding v2.3.2
+   Compiling form_urlencoded v1.2.2
+   Compiling getopts v0.2.24
+   Compiling regex-automata v0.4.18
+   Compiling html5ever v0.29.1
+   Compiling idna v1.1.0
+   Compiling ego-tree v0.9.0
+   Compiling scraper v0.21.0
+   Compiling url v2.5.8
+   Compiling regex v1.13.1
+   Compiling svipall-extract v1.0.0 (<repo>\bench\experiments\native-auto-extraction-20260907\state\record-workspace\extract)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 47.25s
+     Running tests\record_structures.rs (C:/tr\debug\deps\record_structures-9936b64a580795da.exe)
+
+running 3 tests
+test decorations_and_record_controls_do_not_remove_a_heading ... FAILED
+test a_link_wrapping_a_heading_and_site_label_survives_pruning ... FAILED
+test a_heading_in_a_layout_table_keeps_its_destination ... FAILED
+
+failures:
+
+---- decorations_and_record_controls_do_not_remove_a_heading stdout ----
+
+thread 'decorations_and_record_controls_do_not_remove_a_heading' (45268) panicked at extract\tests\record_structures.rs:13:13:
+missing title 1: This directory records published work and the context needed to inspect each entry. This directory records published work and the context needed to inspect each entry. This directory records published work and the context needed to inspect each entry. This directory records published work and the context needed to inspect each entry. This directory records published work and the context needed to inspect each entry. This directory records published work and the context needed to inspect each entry. This directory records published work and the context needed to inspect each entry. This directory records published work and the context needed to inspect each entry.
+
+## Published record
+
+A compact toolkit for producing reproducible experimental reports.
+
+## Published record
+
+A compact toolkit for producing reproducible experimental reports.
+
+## Published record
+
+A compact toolkit for producing reproducible experimental reports.
+
+## Published record
+
+A compact toolkit for producing reproducible experimental reports.
+
+## Published record
+
+A compact toolkit for producing reproducible experimental reports.
+
+---- a_link_wrapping_a_heading_and_site_label_survives_pruning stdout ----
+
+thread 'a_link_wrapping_a_heading_and_site_label_survives_pruning' (28396) panicked at extract\tests\record_structures.rs:13:13:
+missing title 1: This directory records published work and the context needed to inspect each entry. This directory records published work and the context needed to inspect each entry. This directory records published work and the context needed to inspect each entry. This directory records published work and the context needed to inspect each entry. This directory records published work and the context needed to inspect each entry. This directory records published work and the context needed to inspect each entry. This directory records published work and the context needed to inspect each entry. This directory records published work and the context needed to inspect each entry.
+
+This result explains the measurement method and the published findings, including enough context for an independent reader to interpret the evidence.
+
+This result explains the measurement method and the published findings, including enough context for an independent reader to interpret the evidence.
+
+This result explains the measurement method and the published findings, including enough context for an independent reader to interpret the evidence.
+
+This result explains the measurement method and the published findings, including enough context for an independent reader to interpret the evidence.
+
+This result explains the measurement method and the published findings, including enough context for an independent reader to interpret the evidence.
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+---- a_heading_in_a_layout_table_keeps_its_destination stdout ----
+
+thread 'a_heading_in_a_layout_table_keeps_its_destination' (33788) panicked at extract\tests\record_structures.rs:13:13:
+missing title 1: This directory records published work and the context needed to inspect each entry. This directory records published work and the context needed to inspect each entry. This directory records published work and the context needed to inspect each entry. This directory records published work and the context needed to inspect each entry. This directory records published work and the context needed to inspect each entry. This directory records published work and the context needed to inspect each entry. This directory records published work and the context needed to inspect each entry. This directory records published work and the context needed to inspect each entry.
+
+-
+
+The role covers research software, data review and the publication of reproducible measurements for independent laboratories.
+
+-
+
+The role covers research software, data review and the publication of reproducible measurements for independent laboratories.
+
+-
+
+The role covers research software, data review and the publication of reproducible measurements for independent laboratories.
+
+-
+
+The role covers research software, data review and the publication of reproducible measurements for independent laboratories.
+
+-
+
+The role covers research software, data review and the publication of reproducible measurements for independent laboratories.
+
+
+failures:
+    a_heading_in_a_layout_table_keeps_its_destination
+    a_link_wrapping_a_heading_and_site_label_survives_pruning
+    decorations_and_record_controls_do_not_remove_a_heading
+
+test result: FAILED. 0 passed; 3 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+error: test failed, to rerun pass `-p svipall-extract --test record_structures`
+

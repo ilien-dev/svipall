@@ -1,0 +1,5 @@
+medium repeat 1: delivered 24.46s (warm)
+medium repeat 2: delivered 22.67s (warm)
+medium repeat 3: delivered 22.35s (warm)
+
+paired finished in 69.8s

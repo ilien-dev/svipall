@@ -1,0 +1,5 @@
+medium repeat 1: delivered 4.15s (real)
+medium repeat 2: delivered 4.38s (browser)
+medium repeat 3: delivered 6.70s (browser)
+
+paired finished in 15.7s

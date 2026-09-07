@@ -1,0 +1,5 @@
+wikipedia repeat 1: delivered 0.32s (http)
+wikipedia repeat 2: delivered 0.82s (http)
+wikipedia repeat 3: delivered 1.00s (http)
+
+paired finished in 2.4s

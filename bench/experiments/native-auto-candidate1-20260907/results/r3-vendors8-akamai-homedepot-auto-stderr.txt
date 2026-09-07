@@ -1,0 +1,5 @@
+akamai-homedepot repeat 1: delivered 9.71s (warm)
+akamai-homedepot repeat 2: delivered 6.94s (real)
+akamai-homedepot repeat 3: delivered 12.81s (real)
+
+paired finished in 30.0s

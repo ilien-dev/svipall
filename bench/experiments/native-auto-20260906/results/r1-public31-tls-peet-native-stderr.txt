@@ -1,0 +1,5 @@
+tls-peet repeat 1: delivered 7.94s (warm)
+tls-peet repeat 2: delivered 1.46s (warm)
+tls-peet repeat 3: delivered 2.16s (warm)
+
+paired finished in 12.0s

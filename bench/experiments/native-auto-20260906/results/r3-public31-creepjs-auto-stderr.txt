@@ -1,0 +1,5 @@
+creepjs repeat 1: delivered 0.06s (http)
+creepjs repeat 2: delivered 0.96s (http)
+creepjs repeat 3: delivered 1.01s (http)
+
+paired finished in 2.2s

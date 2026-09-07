@@ -1,0 +1,5 @@
+linkedin-jobs repeat 1: delivered 0.78s (http)
+linkedin-jobs repeat 2: delivered 0.81s (http)
+linkedin-jobs repeat 3: delivered 1.00s (http)
+
+paired finished in 2.8s

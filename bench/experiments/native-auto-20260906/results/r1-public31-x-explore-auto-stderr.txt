@@ -1,0 +1,5 @@
+x-explore repeat 1: failed 59.92s (warm)
+x-explore repeat 2: failed 59.65s (browser)
+x-explore repeat 3: failed 0.00s (-)
+
+paired finished in 120.1s

@@ -1,0 +1,2 @@
+    Checking svipall-extract v1.0.0 (C:\Users\jesus\Documents\Projects\svipall\bench\experiments\native-auto-extraction-20260907\state\record-workspace\extract)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 1.75s

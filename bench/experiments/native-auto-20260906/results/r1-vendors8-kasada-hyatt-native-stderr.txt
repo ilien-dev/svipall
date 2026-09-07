@@ -1,0 +1,5 @@
+kasada-hyatt repeat 1: failed 55.91s (warm)
+kasada-hyatt repeat 2: failed 52.18s (warm)
+kasada-hyatt repeat 3: failed 52.48s (warm)
+
+paired finished in 160.9s

@@ -1,0 +1,5 @@
+devto repeat 1: delivered 2.53s (warm)
+devto repeat 2: delivered 1.70s (warm)
+devto repeat 3: delivered 1.86s (warm)
+
+paired finished in 6.4s

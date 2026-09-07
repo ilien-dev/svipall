@@ -1,0 +1,5 @@
+amazon repeat 1: failed 0.22s (http)
+amazon repeat 2: failed 0.00s (-)
+amazon repeat 3: failed 0.00s (-)
+
+paired finished in 0.5s

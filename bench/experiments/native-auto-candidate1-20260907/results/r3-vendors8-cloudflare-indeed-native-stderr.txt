@@ -1,0 +1,5 @@
+cloudflare-indeed repeat 1: delivered 4.24s (warm)
+cloudflare-indeed repeat 2: delivered 3.98s (warm)
+cloudflare-indeed repeat 3: delivered 3.95s (warm)
+
+paired finished in 12.5s

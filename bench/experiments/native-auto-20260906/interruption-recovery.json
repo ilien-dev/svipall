@@ -1,0 +1,41 @@
+{
+  "reason": "Operator-reported accidental computer shutdown",
+  "recovered_unix": 1788716660.662694,
+  "completed_calls_retained": 30,
+  "completed_batches_retained": 10,
+  "interrupted_batch": "r1-public31-medium-native",
+  "logged_completed_calls_without_response": 1,
+  "additional_admissions_with_unknown_outcome": 1,
+  "raw_response_bytes_recovered": 0,
+  "corrupt_progress_bytes": 185,
+  "raw_results_hashes_verified": true,
+  "frozen_source_binary_browser_verified": true,
+  "recovered_additional_traffic_admissions": 2,
+  "conservative_reputation_charges": [
+    {
+      "at": 1788716364,
+      "amount": 12,
+      "basis": "logged delivered warm visit"
+    },
+    {
+      "at": 1788716387,
+      "amount": 24,
+      "basis": "unknown outcome; conservative blocked warm cost"
+    }
+  ],
+  "source_revision": "e60e10be7ccb0f981eb5cf003e9709249ddacf34",
+  "recovery": "Archive partial batch; repeat its three scheduled calls with preserved profiles and recovered shared limits.",
+  "reporting": "Report the interrupted block separately; exclude affected pairs in a sensitivity analysis. Never score the shutdown as a product failure.",
+  "archive_sha256": {
+    "completed-before.json": "cc5beb378521d11d6f52e06286f8aaace5b09c85cf38dc40ee3053f4fa0ed303",
+    "progress.json": "babd6f664158d665504571b169a1e81ef75470cdca4fdd7d95be6cdb7826136d",
+    "r1-public31-medium-native-stderr.txt": "abb913d5d08c842a306e20edc9fdcbf9eff735ddf33230bdf90730a618019004",
+    "r1-public31-medium-native.json": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "canonical-before/cooldowns.json": "12d421bba3d288ae7dfcf15716905e4136d42f729c926d8be570e4c648a0f8a9",
+    "canonical-before/reputation.json": "db1e5f3b2e6eab24ea5fefb409d563842c29ea86f263add4fb9b28c21176144e",
+    "canonical-before/traffic.sqlite3": "d774dc83715debc822d56a2e03d4b562fe584215415e452d899c3e6ef67dd3ae",
+    "native-at-shutdown/cooldowns.json": "12d421bba3d288ae7dfcf15716905e4136d42f729c926d8be570e4c648a0f8a9",
+    "native-at-shutdown/reputation.json": "db1e5f3b2e6eab24ea5fefb409d563842c29ea86f263add4fb9b28c21176144e",
+    "native-at-shutdown/traffic.sqlite3": "8b0a10521ddae78637e7525be455c9baec68044431f0f8ab6ce7406a1d93b02b"
+  }
+}

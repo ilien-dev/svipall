@@ -1,0 +1,13 @@
+{
+  "source_files": 273,
+  "new_files_included": {
+    "crates/svipall-extract/tests/listing_headings.rs": "2fa0bb7e103553ec849738e0c85e692f3ce85282d18ea6ace6e5cdc82553dfe3",
+    "crates/svipall-mcp/tests/tool_surface.rs": "efe1c6066f2b8391e5f2813468a3cf712874ea3450107abe357bab6e0cf0b318",
+    "bench/src/paired.rs": "6eb1d34d8153f4f76d7dc89a8f84f1d0deefc43c0ad87573bdc5407c306824f0",
+    "scripts/report_paired.py": "5ed84694f76668d955e0bb56bd7cf13edce18c5429c542cdd5cef152abf0397b"
+  },
+  "ignored_experiment_state_excluded": true,
+  "regression_before": "Failed: unstaged new Rust test and Cargo.lock omitted",
+  "regression_after": "10 paired-controller/report tests passed",
+  "scope": "Preparation only. The running controller loaded its original code at startup and uses its frozen manifest and binary."
+}

@@ -1,0 +1,5 @@
+stockwatch repeat 1: delivered 24.07s (warm)
+stockwatch repeat 2: delivered 22.90s (warm)
+stockwatch repeat 3: delivered 22.81s (warm)
+
+paired finished in 70.2s

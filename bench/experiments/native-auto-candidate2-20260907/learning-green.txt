@@ -1,0 +1,19 @@
+   Compiling svipall-core v1.0.0 (<repo>\crates\svipall-core)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 2.38s
+     Running tests\automatic.rs (C:/t\debug\deps\automatic-597a63a318f42590.exe)
+
+running 11 tests
+test a_failed_promoted_browser_does_not_backtrack_through_weaker_fingerprint_routes ... ok
+test a_fingerprint_wall_skips_weak_routes_without_moving_native_ahead_of_a_browser ... ok
+test automatic_identity_is_the_valid_default ... ok
+test generic_errors_and_native_walls_do_not_predict_emulated_fingerprint_failures ... ok
+test learned_routes_never_promote_native_or_cross_contexts ... ok
+test remembered_fingerprint_walls_do_not_restart_at_untried_weaker_routes ... ok
+test repeated_failures_skip_wasted_routes_but_keep_an_emulated_browser_probe ... ok
+test short_delivered_pages_clear_failures_without_being_promoted_as_full ... ok
+test route_keys_omit_queries_and_separate_exit_and_environment ... ok
+test traffic_limits_survive_reopen_and_do_not_extend_when_refused ... ok
+test concurrent_visits_cannot_overdraw_the_window ... ok
+
+test result: ok. 11 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.25s
+

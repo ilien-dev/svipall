@@ -1,0 +1,90 @@
+{
+  "common_useful_pairs": 109,
+  "common_useful": {
+    "auto": {
+      "total_seconds": 368.4131929,
+      "median_seconds": 1.0151219,
+      "per_round": {
+        "1": {
+          "pairs": 49,
+          "seconds": 214.3187163
+        },
+        "2": {
+          "pairs": 37,
+          "seconds": 94.2401947
+        },
+        "3": {
+          "pairs": 23,
+          "seconds": 59.854281900000004
+        }
+      }
+    },
+    "native": {
+      "total_seconds": 735.3258956,
+      "median_seconds": 3.024342,
+      "per_round": {
+        "1": {
+          "pairs": 49,
+          "seconds": 415.3887052
+        },
+        "2": {
+          "pairs": 37,
+          "seconds": 265.1293214
+        },
+        "3": {
+          "pairs": 23,
+          "seconds": 54.807869
+        }
+      }
+    }
+  },
+  "local_deferrals_by_round": {
+    "auto": {
+      "1": 36,
+      "2": 64,
+      "3": 88
+    },
+    "native": {
+      "1": 32,
+      "2": 60,
+      "3": 83
+    }
+  },
+  "native_fallback_calls": [
+    {
+      "target": "g2",
+      "round": 1,
+      "delivered": true,
+      "useful": true,
+      "seconds": 43.4103739
+    },
+    {
+      "target": "canadianinsider",
+      "round": 1,
+      "delivered": false,
+      "useful": false,
+      "seconds": 54.1593313
+    },
+    {
+      "target": "akamai-homedepot",
+      "round": 1,
+      "delivered": true,
+      "useful": false,
+      "seconds": 55.1632542
+    },
+    {
+      "target": "akamai-homedepot",
+      "round": 1,
+      "delivered": true,
+      "useful": false,
+      "seconds": 42.7163829
+    },
+    {
+      "target": "akamai-homedepot",
+      "round": 1,
+      "delivered": true,
+      "useful": false,
+      "seconds": 54.9898779
+    }
+  ]
+}

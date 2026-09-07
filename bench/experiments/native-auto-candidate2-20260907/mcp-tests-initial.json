@@ -1,0 +1,21 @@
+{
+  "exit_code": 101,
+  "started_unix": 1788749452.0604758,
+  "ended_unix": 1788749500.7661161,
+  "concurrency": 1,
+  "priority": "idle",
+  "public_comparison_active": true,
+  "source_before": {
+    "crates/svipall-core/src/automatic.rs": "b9ca2ead1872738a0ce9d7fe551cf5e3c76ea7a6abb502276437992c4cd64f63",
+    "crates/svipall-mcp/src/server.rs": "101beb2e7f6d49c2474646d0953e4850b316bf5ec451d915da85903a863a1e7f",
+    "crates/svipall-mcp/tests/automatic.rs": "12b5e68fb9f0a7770595f997d904f1e8590b59384e2c073da2b70d6e3be66c6a",
+    "crates/svipall-extract/src/prune.rs": "89cee95eb2c53f0532c261249a2b219b08972bc6eaaf68b101e213b0579f15b9"
+  },
+  "source_after": {
+    "crates/svipall-core/src/automatic.rs": "b9ca2ead1872738a0ce9d7fe551cf5e3c76ea7a6abb502276437992c4cd64f63",
+    "crates/svipall-mcp/src/server.rs": "101beb2e7f6d49c2474646d0953e4850b316bf5ec451d915da85903a863a1e7f",
+    "crates/svipall-mcp/tests/automatic.rs": "12b5e68fb9f0a7770595f997d904f1e8590b59384e2c073da2b70d6e3be66c6a",
+    "crates/svipall-extract/src/prune.rs": "89cee95eb2c53f0532c261249a2b219b08972bc6eaaf68b101e213b0579f15b9"
+  },
+  "source_stable": true
+}

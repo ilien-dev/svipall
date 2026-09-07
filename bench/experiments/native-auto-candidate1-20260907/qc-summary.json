@@ -1,0 +1,14 @@
+{
+  "passed": true,
+  "workspace_passed": 1179,
+  "workspace_failed": 0,
+  "workspace_ignored": 20,
+  "manual_automatic_passed": 7,
+  "core_automatic_passed": 9,
+  "report_and_controller_passed": 8,
+  "browser_probes_passed": 160,
+  "browser_probes_total": 160,
+  "extraction_corpus": "skipped: no corpus configured for this QC; later inspection found the local SIGIR-23 corpus",
+  "note": "The manual automatic browser tests were run separately with ignored tests included. First QC capture attempt stopped on Windows PowerShell native-stderr redirection; the complete rerun captured child streams outside PowerShell and passed.",
+  "log_sha256": "5dfb70598d77c9b3164c1deb65ba6d1e51f2be558354c61a39789ddc9c327835"
+}

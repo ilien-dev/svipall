@@ -1,0 +1,5 @@
+sedarplus repeat 1: delivered 0.64s (http)
+sedarplus repeat 2: delivered 0.85s (http)
+sedarplus repeat 3: delivered 1.22s (http)
+
+paired finished in 2.9s

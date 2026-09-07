@@ -1,0 +1,68 @@
+{
+  "calls": [
+    {
+      "target": "github-explore",
+      "modes": [
+        {
+          "mode": "main",
+          "characters": 6021,
+          "headings": 36,
+          "links": 32,
+          "sha256": "c252cd9b2dc7e6d8de78b8ad803eb76e2e8474db5fa7ea58928e73253e133ef9",
+          "equals_broad": false
+        },
+        {
+          "mode": "full",
+          "characters": 23860,
+          "headings": 50,
+          "links": 332,
+          "sha256": "2fcf2662af70d969238340d566d14de06ab74f4fc0165febdbd14de9e06a89d1",
+          "equals_broad": true
+        }
+      ]
+    },
+    {
+      "target": "indeed-jobs",
+      "modes": [
+        {
+          "mode": "main",
+          "characters": 14899,
+          "headings": 47,
+          "links": 19,
+          "sha256": "6e5e70f071e4ecd17aae4283c8abbec1aca01a35c27fc95f54983d3ef2a42643",
+          "equals_broad": false
+        },
+        {
+          "mode": "full",
+          "characters": 31356,
+          "headings": 58,
+          "links": 129,
+          "sha256": "efde391f5f66dd4477db5109aa3155b037e000d80b939596a7fcb7b52bfc608d",
+          "equals_broad": true
+        }
+      ]
+    },
+    {
+      "target": "google-search",
+      "modes": [
+        {
+          "mode": "main",
+          "characters": 7896,
+          "headings": 7,
+          "links": 19,
+          "sha256": "72155f33f57bffe87e26b88d16b73f3982a5e7d2175fffac58cb63f84c5cc2c0",
+          "equals_broad": true
+        },
+        {
+          "mode": "full",
+          "characters": 19007,
+          "headings": 7,
+          "links": 61,
+          "sha256": "77868889baa035356fc2c52c1c8a22893984a48a846dfa8fb25635455f4bce88",
+          "equals_broad": true
+        }
+      ]
+    }
+  ],
+  "binary_sha256": "37c380978db4402cd56b9d97abfbf9f1d7e474ea0e7fd108c8c45f030382669b"
+}

@@ -1,0 +1,5 @@
+nowsecure repeat 1: delivered 4.05s (browser)
+nowsecure repeat 2: delivered 3.80s (browser)
+nowsecure repeat 3: delivered 3.06s (browser)
+
+paired finished in 11.3s

@@ -1,0 +1,11 @@
+{
+  "reviewed_unix": 1788803311.5419223,
+  "allow_same_document_capture": true,
+  "local_regressions_reviewed": true,
+  "corpus_before_manifest_sha256": "8193cab19cbfb682014aafa52a9d9c804bfade11c9f8b91290d4b33403f7ed1c",
+  "local_regression_log_sha256": "022085548cb029cd97cb6baf890f8754de2a9a6d67f84479c85bed20d23d6700",
+  "local_before_sha256": "d166cf175356dabbbe5e044ab1e3ba3e6d9e9737e6876fc3802b8ec6ee1ba7af",
+  "local_after_sha256": "f1782090217f348b373e95f8056633bb424ff5bfc249eb56cddf9753ef676736",
+  "full_qc_complete": false,
+  "scheduling": "During candidate corpus accuracy scoring, after default timed CPU gate. No speed claims from concurrent work."
+}

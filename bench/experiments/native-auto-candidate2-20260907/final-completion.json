@@ -1,0 +1,35 @@
+{
+  "saved_unix": 1788811761.945247,
+  "state": "comparison_and_tested_improvement_loop_complete",
+  "completed_calls": 918,
+  "reviewed_fingerprints": 287,
+  "verification": {
+    "verified_calls": 918,
+    "verified_blocks": 306,
+    "reviewed_fingerprints": 287,
+    "raw_and_published_hashes_match": true,
+    "published_content_equals_redacted_original": true,
+    "known_exit_addresses_absent": true,
+    "frozen_source_archive_matches": true,
+    "binary_browser_runtime_match": true,
+    "protocol_and_targets_match": true,
+    "exact_schedule_order": true
+  },
+  "primary_useful": {
+    "auto": 130,
+    "native": 129
+  },
+  "secondary_available": {
+    "auto": 131,
+    "native": 136
+  },
+  "findings": "final-findings.md",
+  "decision": "Automatic favored for aggregate efficiency; useful delivery close without proven equivalence, native ahead in secondary availability. Practical stopping point limited to tested hypotheses and fixed constraints, not an absolute technical ceiling.",
+  "remaining_required_actions": [],
+  "limitations": [
+    "Recorded controller interruption; not uninterrupted",
+    "Shared cumulative admission and remote history",
+    "No causal final-patch public improvement established",
+    "Incomplete listings and blocked useful excerpts remain"
+  ]
+}

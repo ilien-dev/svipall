@@ -1,0 +1,5 @@
+instagram-post repeat 1: delivered 23.48s (warm)
+instagram-post repeat 2: delivered 23.30s (warm)
+instagram-post repeat 3: delivered 37.49s (warm)
+
+paired finished in 84.7s

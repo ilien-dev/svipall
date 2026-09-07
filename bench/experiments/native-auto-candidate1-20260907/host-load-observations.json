@@ -1,0 +1,46 @@
+{
+  "protocol": "Host load was not controlled; observations do not identify every background process.",
+  "events": [
+    {
+      "kind": "Additional local integration-test compilation",
+      "started_unix": 1788749452.0604758,
+      "ended_unix": 1788749500.7661161,
+      "exit_code": 101,
+      "outcome": "LLVM out of memory before integration tests; four other linker processes observed afterward",
+      "test_jobs": 1,
+      "priority": "idle",
+      "evidence": "../native-auto-candidate2-20260907/mcp-tests-initial.json"
+    },
+    {
+      "kind": "Retry local integration tests after other linker processes exited",
+      "started_unix": 1788749695.7854958,
+      "ended_unix": 1788749750.8185124,
+      "exit_code": 0,
+      "outcome": "7 passed including local browser checks",
+      "test_jobs": 1,
+      "priority": "idle",
+      "evidence": "../native-auto-candidate2-20260907/mcp-tests.json"
+    },
+    {
+      "kind": "Focused local core routing regression",
+      "started_unix": 1788799930.7195807,
+      "ended_unix": 1788799942.1983953,
+      "exit_code": 101,
+      "build_jobs": 1,
+      "priority": "idle",
+      "evidence": "../native-auto-candidate2-20260907/managed-routing-red.json",
+      "outcome": "Expected assertion failure before managed routing change"
+    },
+    {
+      "kind": "Focused local core routing regression",
+      "started_unix": 1788800015.2478528,
+      "ended_unix": 1788800018.2050424,
+      "exit_code": 0,
+      "build_jobs": 1,
+      "priority": "idle",
+      "evidence": "../native-auto-candidate2-20260907/managed-routing-green.json",
+      "outcome": "12 core routing/traffic tests passed"
+    }
+  ],
+  "additional_work": "Focused extractor and planner checks also ran with one job at idle priority; their logs are in the extraction and candidate-2 experiments."
+}

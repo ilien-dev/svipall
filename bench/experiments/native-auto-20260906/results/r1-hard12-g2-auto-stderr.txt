@@ -1,0 +1,5 @@
+g2 repeat 1: delivered 46.83s (warm)
+g2 repeat 2: failed 59.91s (stealth)
+g2 repeat 3: failed 59.49s (real)
+
+paired finished in 167.0s

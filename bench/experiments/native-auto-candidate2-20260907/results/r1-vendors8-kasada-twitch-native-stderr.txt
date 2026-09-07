@@ -1,0 +1,5 @@
+kasada-twitch repeat 1: delivered 12.71s (warm)
+kasada-twitch repeat 2: delivered 1.82s (warm)
+kasada-twitch repeat 3: delivered 3.13s (warm)
+
+paired finished in 18.1s

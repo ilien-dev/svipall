@@ -1,0 +1,5 @@
+stackoverflow repeat 1: delivered 2.37s (warm)
+stackoverflow repeat 2: delivered 2.71s (warm)
+stackoverflow repeat 3: failed 0.00s (-)
+
+paired finished in 5.4s

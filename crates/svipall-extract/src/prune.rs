@@ -130,6 +130,70 @@ fn class_bonus(el: ElementRef<'_>, thread: bool) -> f32 {
     }
 }
 
+/// A neutral wrapper around one heading is part of a prose-bearing record, even when all of
+/// that heading is a link. Recognize wrapper chains bottom-up and exempt them only where their
+/// parent also has substantial non-link text. Navigation and negatively named wrappers still
+/// face the ordinary pruning rules, as do their ancestors.
+fn record_headings(
+    root: NodeRef<'_, Node>,
+    doc: &super::content::stats::Doc,
+    thread: bool,
+) -> HashSet<ego_tree::NodeId> {
+    let mut heading_only = HashSet::new();
+    let mut keep = HashSet::new();
+    for edge in root.traverse() {
+        let Edge::Close(node) = edge else {
+            continue;
+        };
+        let Some(el) = ElementRef::wrap(node) else {
+            continue;
+        };
+        let Some(s) = doc.get(node.id()) else {
+            continue;
+        };
+        let name = el.value().name();
+        let navigation_role = matches!(
+            el.value().attr("role"),
+            Some("navigation" | "menu" | "menubar")
+        );
+        if matches!(name, "h1" | "h2" | "h3" | "h4" | "h5" | "h6") && s.blocks == 1 {
+            heading_only.insert(node.id());
+        } else if name == "div" && !navigation_role && class_bonus(el, thread) >= 0.0 {
+            let mut children = node.children().filter(|c| match c.value() {
+                Node::Text(t) => !t.trim().is_empty(),
+                Node::Comment(_) => false,
+                _ => true,
+            });
+            if children
+                .next()
+                .is_some_and(|c| heading_only.contains(&c.id()))
+                && children.next().is_none()
+            {
+                heading_only.insert(node.id());
+            }
+        }
+        if !matches!(name, "article" | "section" | "div" | "li" | "main")
+            || class_bonus(el, thread) < 0.0
+            || navigation_role
+            || s.blocks < 2
+            || s.text.saturating_sub(s.link_text) < 200
+            || s.link_density() > 0.5
+        {
+            continue;
+        }
+        for child in node.children().filter(|c| heading_only.contains(&c.id())) {
+            // A pure chain has exactly one heading block, so it cannot itself qualify as a
+            // prose-bearing parent. These disjoint chains are each visited once: O(n) overall.
+            for descendant in child.descendants() {
+                if heading_only.contains(&descendant.id()) {
+                    keep.insert(descendant.id());
+                }
+            }
+        }
+    }
+    keep
+}
+
 /// Score every container, then decide what to drop.
 ///
 /// The statistics come from `content::stats`, shared with every other heuristic that reads the
@@ -140,6 +204,7 @@ pub fn analyze(root: NodeRef<'_, Node>, opts: &PruneOpts) -> PruneReport {
     if root_text == 0 {
         return PruneReport::default();
     }
+    let record_headings = record_headings(root, &doc, opts.thread);
     // How much text lives inside page chrome. If nearly all of it does, the page *is* navigation.
     //
     // Both remaining passes count open ancestors as they walk rather than asking each node to look
@@ -203,7 +268,7 @@ pub fn analyze(root: NodeRef<'_, Node>, opts: &PruneOpts) -> PruneReport {
         let Some(s) = doc.get(node.id()) else {
             continue;
         };
-        if s.has_pre || s.has_data_table {
+        if s.has_pre || s.has_data_table || record_headings.contains(&node.id()) {
             continue;
         }
 

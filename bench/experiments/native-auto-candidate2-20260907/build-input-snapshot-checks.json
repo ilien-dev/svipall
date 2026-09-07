@@ -1,0 +1,16 @@
+{
+  "checked_unix": 1788799313.3583076,
+  "file_count": 422,
+  "required_present": [
+    "crates/svipall-dashboard/assets/index.html",
+    "crates/svipall-dashboard/assets/app.js",
+    "bench/fixtures/tells/index.html",
+    "skill/SKILL.md",
+    "scripts/qc.ps1",
+    "crates/svipall-extract/tests/listing_headings.rs"
+  ],
+  "prior_experiment_outputs_excluded": true,
+  "ignored_files_excluded": true,
+  "paired_tests_passed": 11,
+  "limitation": "Ignored generated ONNX models are outside this source snapshot; model QC is recorded separately."
+}

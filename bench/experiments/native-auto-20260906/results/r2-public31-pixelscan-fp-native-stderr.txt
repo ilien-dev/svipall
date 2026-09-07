@@ -1,0 +1,5 @@
+pixelscan-fp repeat 1: delivered 7.04s (warm)
+pixelscan-fp repeat 2: delivered 2.85s (warm)
+pixelscan-fp repeat 3: delivered 3.09s (warm)
+
+paired finished in 13.4s

@@ -1,0 +1,5 @@
+newsfilecorp repeat 1: delivered 0.48s (http)
+newsfilecorp repeat 2: delivered 0.73s (http)
+newsfilecorp repeat 3: delivered 7.31s (stealth)
+
+paired finished in 8.9s

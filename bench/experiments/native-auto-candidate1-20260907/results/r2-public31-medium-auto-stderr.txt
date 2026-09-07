@@ -1,0 +1,5 @@
+medium repeat 1: delivered 0.95s (http)
+medium repeat 2: delivered 0.11s (http)
+medium repeat 3: delivered 1.00s (http)
+
+paired finished in 2.3s

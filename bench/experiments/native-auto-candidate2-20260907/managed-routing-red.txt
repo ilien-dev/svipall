@@ -1,0 +1,24 @@
+   Compiling svipall-core v1.0.0 (<repo>\crates\svipall-core)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 10.98s
+     Running tests\automatic.rs (C:/t\debug\deps\automatic-597a63a318f42590.exe)
+
+running 1 test
+test a_managed_challenge_uses_headful_evidence_without_generalizing_to_interstitials ... FAILED
+
+failures:
+
+---- a_managed_challenge_uses_headful_evidence_without_generalizing_to_interstitials stdout ----
+
+thread 'a_managed_challenge_uses_headful_evidence_without_generalizing_to_interstitials' (38520) panicked at crates\svipall-core\tests\automatic.rs:99:5:
+assertion `left == right` failed
+  left: 1
+ right: 3
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+
+failures:
+    a_managed_challenge_uses_headful_evidence_without_generalizing_to_interstitials
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 11 filtered out; finished in 0.00s
+
+error: test failed, to rerun pass `-p svipall-core --test automatic`

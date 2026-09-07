@@ -1,0 +1,5 @@
+sannysoft repeat 1: delivered 0.40s (http)
+sannysoft repeat 2: delivered 0.70s (http)
+sannysoft repeat 3: delivered 1.00s (http)
+
+paired finished in 2.3s

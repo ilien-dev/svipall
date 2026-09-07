@@ -1,0 +1,5 @@
+glassdoor repeat 1: delivered 12.56s (real)
+glassdoor repeat 2: delivered 6.08s (real)
+glassdoor repeat 3: delivered 9.72s (real)
+
+paired finished in 29.0s

@@ -1,0 +1,5 @@
+cloudflare-crunchbase repeat 1: delivered 47.53s (warm)
+cloudflare-crunchbase repeat 2: delivered 37.52s (warm)
+cloudflare-crunchbase repeat 3: delivered 48.37s (warm)
+
+paired finished in 134.3s

@@ -1,0 +1,9 @@
+{
+  "exit_code": 0,
+  "clippy_exit_code": 0,
+  "tests_exit_code": 0,
+  "started_unix": 1788804618.2571335,
+  "ended_unix": 1788804627.0928292,
+  "corpus_binary_sha256": "0c9735bd860cadcc82dc7f097ab34de3b390fe548ed11b729bfd3ccbbfc76153",
+  "prototype_prune_sha256": "e994b334580400ceb1267886bef3584a0fdba1b0b2ce5ee85d73d2c6e8e3bb1c"
+}

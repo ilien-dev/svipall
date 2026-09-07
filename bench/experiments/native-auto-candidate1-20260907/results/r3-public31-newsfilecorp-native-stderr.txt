@@ -1,0 +1,5 @@
+newsfilecorp repeat 1: delivered 3.04s (warm)
+newsfilecorp repeat 2: delivered 1.70s (warm)
+newsfilecorp repeat 3: failed 2.37s (-)
+
+paired finished in 7.4s

@@ -1,0 +1,5 @@
+booking-search repeat 1: delivered 8.96s (stealth)
+booking-search repeat 2: delivered 4.98s (browser)
+booking-search repeat 3: delivered 3.34s (browser)
+
+paired finished in 17.7s

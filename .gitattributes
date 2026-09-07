@@ -10,3 +10,13 @@
 *.png binary
 *.ico binary
 *.onnx binary
+
+# Preserve captured experiment evidence and the bytes referenced by its hashes.
+bench/experiments/automatic-public-20260906/** -text whitespace=cr-at-eol
+bench/experiments/native-auto-20260906/** -text whitespace=cr-at-eol
+bench/experiments/native-auto-candidate1-20260907/** -text whitespace=cr-at-eol
+bench/experiments/native-auto-candidate2-20260907/** -text whitespace=cr-at-eol
+bench/experiments/native-auto-extraction-20260907/** -text whitespace=cr-at-eol
+bench/experiments/revalidation-20260906/** -text whitespace=cr-at-eol
+# Captured terminal output may contain trailing spaces and blank lines.
+bench/experiments/**/*.txt -whitespace

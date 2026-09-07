@@ -1,0 +1,326 @@
+{
+  "complete": false,
+  "calls": 612,
+  "expected_calls": 918,
+  "arms": {
+    "auto": {
+      "calls": 306,
+      "delivered": 191,
+      "seconds": 1044.7316824,
+      "median_seconds": 0.7348812499999999,
+      "successful_median_seconds": 0.9993321,
+      "seconds_per_delivery": 5.469799384293194,
+      "per_round": {
+        "1": {
+          "calls": 153,
+          "delivered": 106,
+          "seconds": 803.1845566,
+          "median_seconds": 0.8801774,
+          "successful_median_seconds": 1.0008473,
+          "seconds_per_delivery": 7.577212798113207
+        },
+        "2": {
+          "calls": 153,
+          "delivered": 85,
+          "seconds": 241.5471258,
+          "median_seconds": 0.4527483,
+          "successful_median_seconds": 0.9923097,
+          "seconds_per_delivery": 2.8417308917647057
+        },
+        "3": {
+          "calls": 0,
+          "delivered": 0,
+          "seconds": 0,
+          "median_seconds": null,
+          "successful_median_seconds": null,
+          "seconds_per_delivery": null
+        }
+      },
+      "audited_useful": 103,
+      "useful_content_available": 104,
+      "audited_useful_by_round": {
+        "1": {
+          "calls": 153,
+          "count": 58,
+          "seconds": 803.1845566,
+          "seconds_per_result": 13.848009596551723
+        },
+        "2": {
+          "calls": 153,
+          "count": 45,
+          "seconds": 241.5471258,
+          "seconds_per_result": 5.367713906666666
+        },
+        "3": {
+          "calls": 0,
+          "count": 0,
+          "seconds": 0,
+          "seconds_per_result": null
+        }
+      },
+      "useful_content_by_round": {
+        "1": {
+          "calls": 153,
+          "count": 58,
+          "seconds": 803.1845566,
+          "seconds_per_result": 13.848009596551723
+        },
+        "2": {
+          "calls": 153,
+          "count": 46,
+          "seconds": 241.5471258,
+          "seconds_per_result": 5.251024473913043
+        },
+        "3": {
+          "calls": 0,
+          "count": 0,
+          "seconds": 0,
+          "seconds_per_result": null
+        }
+      },
+      "by_order": {
+        "0": {
+          "calls": 153,
+          "count": 51,
+          "seconds": 693.7242784,
+          "seconds_per_result": 13.602436831372549
+        },
+        "1": {
+          "calls": 153,
+          "count": 52,
+          "seconds": 351.007404,
+          "seconds_per_result": 6.750142384615385
+        }
+      },
+      "seconds_per_audited_useful": 10.143026042718446,
+      "audit_verdicts": {
+        "useful": 104,
+        "unavailable": 113,
+        "diagnostic-only": 63,
+        "partial": 16,
+        "wall": 7,
+        "shell": 3
+      },
+      "stop_types": {
+        "response": 191,
+        "timeout": 2,
+        "local_deferral": 100,
+        "wall_or_error": 13
+      },
+      "native_attempts": 5,
+      "incomplete_content": 6
+    },
+    "native": {
+      "calls": 306,
+      "delivered": 194,
+      "seconds": 2023.9955654,
+      "median_seconds": 2.1598372,
+      "successful_median_seconds": 3.0395806,
+      "seconds_per_delivery": 10.432966831958764,
+      "per_round": {
+        "1": {
+          "calls": 153,
+          "delivered": 104,
+          "seconds": 1369.8055454,
+          "median_seconds": 3.024342,
+          "successful_median_seconds": 3.6248209,
+          "seconds_per_delivery": 13.171207167307692
+        },
+        "2": {
+          "calls": 153,
+          "delivered": 90,
+          "seconds": 654.19002,
+          "median_seconds": 1.7486907,
+          "successful_median_seconds": 2.5465816500000003,
+          "seconds_per_delivery": 7.268778
+        },
+        "3": {
+          "calls": 0,
+          "delivered": 0,
+          "seconds": 0,
+          "median_seconds": null,
+          "successful_median_seconds": null,
+          "seconds_per_delivery": null
+        }
+      },
+      "audited_useful": 98,
+      "useful_content_available": 104,
+      "audited_useful_by_round": {
+        "1": {
+          "calls": 153,
+          "count": 54,
+          "seconds": 1369.8055454,
+          "seconds_per_result": 25.36676935925926
+        },
+        "2": {
+          "calls": 153,
+          "count": 44,
+          "seconds": 654.19002,
+          "seconds_per_result": 14.867955
+        },
+        "3": {
+          "calls": 0,
+          "count": 0,
+          "seconds": 0,
+          "seconds_per_result": null
+        }
+      },
+      "useful_content_by_round": {
+        "1": {
+          "calls": 153,
+          "count": 57,
+          "seconds": 1369.8055454,
+          "seconds_per_result": 24.03167623508772
+        },
+        "2": {
+          "calls": 153,
+          "count": 47,
+          "seconds": 654.19002,
+          "seconds_per_result": 13.91893659574468
+        },
+        "3": {
+          "calls": 0,
+          "count": 0,
+          "seconds": 0,
+          "seconds_per_result": null
+        }
+      },
+      "by_order": {
+        "0": {
+          "calls": 153,
+          "count": 58,
+          "seconds": 1175.9305853,
+          "seconds_per_result": 20.274665263793104
+        },
+        "1": {
+          "calls": 153,
+          "count": 40,
+          "seconds": 848.0649801,
+          "seconds_per_result": 21.2016245025
+        }
+      },
+      "seconds_per_audited_useful": 20.653015973469387,
+      "audit_verdicts": {
+        "useful": 104,
+        "wall": 14,
+        "unavailable": 106,
+        "diagnostic-only": 63,
+        "partial": 18,
+        "shell": 1
+      },
+      "stop_types": {
+        "response": 194,
+        "timeout": 2,
+        "local_deferral": 92,
+        "wall_or_error": 18
+      },
+      "native_attempts": 0,
+      "incomplete_content": 6
+    }
+  },
+  "delivery_pairs": {
+    "pairs": 306,
+    "both": 178,
+    "auto_only": 13,
+    "native_only": 16,
+    "neither": 99,
+    "incomplete": 0
+  },
+  "audited_useful_pairs": {
+    "pairs": 306,
+    "both": 86,
+    "auto_only": 17,
+    "native_only": 12,
+    "neither": 191,
+    "incomplete": 0
+  },
+  "useful_content_pairs": {
+    "pairs": 306,
+    "both": 92,
+    "auto_only": 12,
+    "native_only": 12,
+    "neither": 190,
+    "incomplete": 0
+  },
+  "content_fingerprints": 224,
+  "labeled_fingerprints": 224,
+  "controller_seconds": 3543.9185540676117,
+  "production": {
+    "calls": 468,
+    "arms": {
+      "auto": {
+        "calls": 234,
+        "count": 103,
+        "seconds": 983.9271499,
+        "seconds_per_result": 9.552690775728156
+      },
+      "native": {
+        "calls": 234,
+        "count": 98,
+        "seconds": 1740.6918566,
+        "seconds_per_result": 17.762161802040815
+      }
+    },
+    "without_confirmed_local_deferrals": {
+      "calls": 254,
+      "primary_pairs": {
+        "pairs": 127,
+        "both": 86,
+        "auto_only": 15,
+        "native_only": 4,
+        "neither": 22,
+        "incomplete": 0
+      },
+      "available_content_pairs": {
+        "pairs": 127,
+        "both": 92,
+        "auto_only": 9,
+        "native_only": 4,
+        "neither": 22,
+        "incomplete": 0
+      }
+    }
+  },
+  "interruption": {
+    "reason": "The controller terminated on Windows PermissionError while atomically replacing progress.json. Its existing native child continued and completed all three calls. All original processes were confirmed stopped before recovery; no request was repeated.",
+    "affected_set": "vendors8",
+    "affected_target": "kasada-hyatt",
+    "logged_completed_calls_without_response": 0,
+    "additional_admissions_with_unknown_outcome": 0,
+    "excluded_calls_for_sensitivity": 12,
+    "sensitivity_delivery_pairs": {
+      "pairs": 300,
+      "both": 178,
+      "auto_only": 13,
+      "native_only": 16,
+      "neither": 93,
+      "incomplete": 0
+    },
+    "sensitivity_audited_useful_pairs": {
+      "pairs": 300,
+      "both": 86,
+      "auto_only": 17,
+      "native_only": 12,
+      "neither": 185,
+      "incomplete": 0
+    },
+    "sensitivity_arms": {
+      "auto": {
+        "calls": 300,
+        "delivered": 191,
+        "seconds": 1044.502323,
+        "median_seconds": 0.7750296999999999,
+        "successful_median_seconds": 0.9993321,
+        "seconds_per_delivery": 5.4685985497382195
+      },
+      "native": {
+        "calls": 300,
+        "delivered": 194,
+        "seconds": 1861.4575736,
+        "median_seconds": 2.1598372,
+        "successful_median_seconds": 3.0395806,
+        "seconds_per_delivery": 9.595142131958763
+      }
+    }
+  }
+}

@@ -1,0 +1,10 @@
+{
+  "scope": "Full QC of the narrow heading prototype and current routing/MCP changes, before broader prototype integration.",
+  "files": {
+    "qc-execution.json": "8e12cfba56e0b86b7f9181d63e7b6095f444f3a2008eb31e138f88b8db97f2a4",
+    "qc.txt": "ec48fd11d88d0058a694a737d5b851730f7a931e5b7f161022a9a2f7a9dda501",
+    "qc-source-before.json": "1f2f5424a82937caaeb89226da1f619e6f3dda0d998857a70d31c4d4a7cc96a0",
+    "qc-source-after.json": "1f2f5424a82937caaeb89226da1f619e6f3dda0d998857a70d31c4d4a7cc96a0"
+  },
+  "binary_sha256": "020a09b2d47234bbe09e88a4263689f2586439043d76c0f5959d576403bbea25"
+}

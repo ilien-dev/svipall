@@ -1,0 +1,5 @@
+tiktok-user repeat 1: failed 6.13s (-)
+tiktok-user repeat 2: failed 0.36s (-)
+tiktok-user repeat 3: failed 1.41s (-)
+
+paired finished in 8.4s

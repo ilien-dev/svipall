@@ -1,0 +1,7 @@
+
+running 1 test
+test two_useful_browser_observations_skip_failed_http_on_the_third_visit ... {"measurement":"local route learning; no public-site success claim","visits":[{"attempts":["http: 200 (4ms) -> cloudflare wall (just a moment)","browser: 200 (1965ms) OK"],"elapsed_ms":2839,"visit":1},{"attempts":["http: 200 (2ms) -> cloudflare wall (just a moment)","browser: 200 (1370ms) OK"],"elapsed_ms":2383,"visit":2},{"attempts":["browser: 200 (1412ms) OK"],"elapsed_ms":1465,"visit":3}]}
+ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 7.02s
+

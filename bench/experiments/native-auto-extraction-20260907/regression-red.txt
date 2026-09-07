@@ -1,0 +1,70 @@
+   Compiling syn v2.0.119
+   Compiling syn v3.0.4
+   Compiling synstructure v0.13.2
+   Compiling zerofrom-derive v0.1.7
+   Compiling zerofrom v0.1.8
+   Compiling yoke-derive v0.8.2
+   Compiling yoke v0.8.3
+   Compiling zerovec-derive v0.11.6
+   Compiling zerovec v0.11.8
+   Compiling displaydoc v0.2.7
+   Compiling serde_core v1.0.229
+   Compiling tinystr v0.8.4
+   Compiling icu_locale_core v2.3.0
+   Compiling zerotrie v0.2.5
+   Compiling potential_utf v0.1.6
+   Compiling phf_macros v0.11.3
+   Compiling icu_collections v2.3.0
+   Compiling phf v0.11.3
+   Compiling icu_provider v2.3.1
+   Compiling serde_derive v1.0.229
+   Compiling serde v1.0.229
+   Compiling memchr v2.8.3
+   Compiling log v0.4.34
+   Compiling getrandom v0.3.4
+   Compiling icu_normalizer v2.3.0
+   Compiling icu_properties v2.3.0
+   Compiling string_cache v0.8.9
+   Compiling cssparser-macros v0.6.1
+   Compiling cssparser v0.34.0
+   Compiling markup5ever v0.14.1
+   Compiling idna_adapter v1.2.2
+   Compiling aho-corasick v1.1.5
+   Compiling match_token v0.1.0
+   Compiling derive_more v0.99.20
+   Compiling once_cell v1.21.4
+   Compiling ahash v0.8.12
+   Compiling selectors v0.26.0
+   Compiling regex-automata v0.4.18
+   Compiling html5ever v0.29.1
+   Compiling idna v1.1.0
+   Compiling scraper v0.21.0
+   Compiling serde_json v1.0.151
+   Compiling url v2.5.8
+   Compiling regex v1.13.1
+   Compiling svipall-extract v1.0.0 (<repo>\crates\svipall-extract)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 39.95s
+     Running tests\listing_headings.rs (C:/t\debug\deps\listing_headings-495de767d3feed15.exe)
+
+running 3 tests
+test neutral_wrappers_do_not_remove_listing_titles_or_item_links ... FAILED
+test hidden_record_headings_stay_hidden_in_both_extraction_modes ... ok
+test linked_headings_do_not_restore_navigation_or_related_rails ... ok
+
+failures:
+
+---- neutral_wrappers_do_not_remove_listing_titles_or_item_links stdout ----
+
+thread 'neutral_wrappers_do_not_remove_listing_titles_or_item_links' (29188) panicked at crates\svipall-extract\tests\listing_headings.rs:40:9:
+assertion `left == right` failed: neutral wrapper depth 1 changed the extracted records
+  left: "Institute 1 is recruiting an engineer to develop reliable research software. The role includes maintaining data pipelines, reviewing experimental results, documenting reproducible methods, and working with researchers to publish useful findings. This is a permanent position with a defined technical remit.\n\nInstitute 2 is recruiting an engineer to develop reliable research software. The role includes maintaining data pipelines, reviewing experimental results, documenting reproducible methods, and working with researchers to publish useful findings. This is a permanent position with a defined technical remit.\n\nInstitute 3 is recruiting an engineer to develop reliable research software. The role includes maintaining data pipelines, reviewing experimental results, documenting reproducible methods, and working with researchers to publish useful findings. This is a permanent position with a defined technical remit.\n\nInstitute 4 is recruiting an engineer to develop reliable research software. The role includes maintaining data pipelines, reviewing experimental results, documenting reproducible methods, and working with researchers to publish useful findings. This is a permanent position with a defined technical remit.\n\nInstitute 5 is recruiting an engineer to develop reliable research software. The role includes maintaining data pipelines, reviewing experimental results, documenting reproducible methods, and working with researchers to publish useful findings. This is a permanent position with a defined technical remit."
+ right: "## [Research Engineer 1](https://records.test/items/1)\n\nInstitute 1 is recruiting an engineer to develop reliable research software. The role includes maintaining data pipelines, reviewing experimental results, documenting reproducible methods, and working with researchers to publish useful findings. This is a permanent position with a defined technical remit.\n\n## [Research Engineer 2](https://records.test/items/2)\n\nInstitute 2 is recruiting an engineer to develop reliable research software. The role includes maintaining data pipelines, reviewing experimental results, documenting reproducible methods, and working with researchers to publish useful findings. This is a permanent position with a defined technical remit.\n\n## [Research Engineer 3](https://records.test/items/3)\n\nInstitute 3 is recruiting an engineer to develop reliable research software. The role includes maintaining data pipelines, reviewing experimental results, documenting reproducible methods, and working with researchers to publish useful findings. This is a permanent position with a defined technical remit.\n\n## [Research Engineer 4](https://records.test/items/4)\n\nInstitute 4 is recruiting an engineer to develop reliable research software. The role includes maintaining data pipelines, reviewing experimental results, documenting reproducible methods, and working with researchers to publish useful findings. This is a permanent position with a defined technical remit.\n\n## [Research Engineer 5](https://records.test/items/5)\n\nInstitute 5 is recruiting an engineer to develop reliable research software. The role includes maintaining data pipelines, reviewing experimental results, documenting reproducible methods, and working with researchers to publish useful findings. This is a permanent position with a defined technical remit."
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+
+failures:
+    neutral_wrappers_do_not_remove_listing_titles_or_item_links
+
+test result: FAILED. 2 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+
+error: test failed, to rerun pass `-p svipall-extract --test listing_headings`

@@ -12,6 +12,7 @@ bench/experiments/*/source-before.zip
 .idea/
 .vscode/
 .DS_Store
+__pycache__/
 # Embedded models are reproduced by tools/models/export.py, not carried in the tree.
 crates/svipall-models/models/*.onnx
 crates/svipall-models/models/*.json

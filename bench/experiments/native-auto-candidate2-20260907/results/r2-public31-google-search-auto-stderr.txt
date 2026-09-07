@@ -1,0 +1,5 @@
+google-search repeat 1: delivered 4.65s (browser)
+google-search repeat 2: delivered 2.90s (browser)
+google-search repeat 3: delivered 2.38s (browser)
+
+paired finished in 10.3s

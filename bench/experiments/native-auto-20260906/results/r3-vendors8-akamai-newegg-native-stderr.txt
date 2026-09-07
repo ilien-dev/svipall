@@ -1,0 +1,5 @@
+akamai-newegg repeat 1: delivered 6.02s (warm)
+akamai-newegg repeat 2: delivered 5.17s (warm)
+akamai-newegg repeat 3: delivered 4.33s (warm)
+
+paired finished in 15.9s

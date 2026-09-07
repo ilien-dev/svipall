@@ -1,0 +1,2 @@
+ok   extraction: median F1 0.919 (floor 0.900), content loss 11.8% 
+             (ceiling 15.0%)

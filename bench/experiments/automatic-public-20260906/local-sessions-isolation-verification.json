@@ -1,0 +1,15 @@
+{
+  "command": [
+    "cargo",
+    "test",
+    "-p",
+    "svipall-mcp",
+    "--test",
+    "local_sessions",
+    "--",
+    "--nocapture",
+    "--test-threads=5"
+  ],
+  "exit_code": 0,
+  "seconds": 31.544882774353027
+}

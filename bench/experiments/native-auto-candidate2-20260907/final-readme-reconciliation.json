@@ -1,0 +1,16 @@
+{
+  "saved_unix": 1788811733.6075447,
+  "readme_sha256": "b9bf64d9cc36566051c450bd4d379ae9977535f4dffe0cd621dfc9cc2cbf933e",
+  "frozen_readme_sha256": "84ebb0b65d083cfd780e1de3fe9037f277be444f0fefcef7ae6fd016dadd3ffe",
+  "local_links_checked": 56,
+  "missing_local_targets": [],
+  "postfreeze_changed_inputs": [
+    "README.md",
+    "scripts/measure_automatic.py",
+    "scripts/test_measure_automatic.py"
+  ],
+  "expected_documentation_and_controller_only": true,
+  "published_files_scanned": 614,
+  "files_containing_known_exit_addresses": [],
+  "note": "Final documentation reconciliation after the completed frozen workload. Product source remains identical to the measured archive; the separately tested controller helper and README changed."
+}

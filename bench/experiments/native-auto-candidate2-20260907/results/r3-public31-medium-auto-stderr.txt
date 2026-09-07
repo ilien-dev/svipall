@@ -1,0 +1,5 @@
+medium repeat 1: failed 0.00s (-)
+medium repeat 2: failed 0.00s (-)
+medium repeat 3: failed 0.00s (-)
+
+paired finished in 0.2s

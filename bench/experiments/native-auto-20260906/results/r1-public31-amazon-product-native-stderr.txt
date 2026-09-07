@@ -1,0 +1,5 @@
+amazon-product repeat 1: failed 8.01s (warm)
+amazon-product repeat 2: failed 1.63s (warm)
+amazon-product repeat 3: failed 4.40s (warm)
+
+paired finished in 14.4s

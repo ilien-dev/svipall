@@ -1,0 +1,5 @@
+booking-search repeat 1: delivered 3.22s (http)
+booking-search repeat 2: delivered 0.92s (http)
+booking-search repeat 3: delivered 0.92s (http)
+
+paired finished in 5.3s

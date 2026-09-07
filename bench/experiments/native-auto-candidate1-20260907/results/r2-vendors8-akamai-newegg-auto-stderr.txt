@@ -1,0 +1,5 @@
+akamai-newegg repeat 1: delivered 1.45s (http)
+akamai-newegg repeat 2: delivered 0.17s (http)
+akamai-newegg repeat 3: delivered 1.00s (http)
+
+paired finished in 2.8s

@@ -1,0 +1,5 @@
+pixelscan-bot repeat 1: delivered 1.92s (http)
+pixelscan-bot repeat 2: delivered 0.99s (http)
+pixelscan-bot repeat 3: delivered 0.85s (http)
+
+paired finished in 3.9s

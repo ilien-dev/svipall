@@ -8,6 +8,11 @@ use svipall_mcp::{
     tools::WebFetchParams,
 };
 
+// These cases share the process-wide fixture home, including configuration and the directory
+// count asserted below. Another case's live browser must not be mistaken for a leaked profile.
+// The two-browser regression still launches its own pools concurrently while holding this guard.
+static LOCAL_BROWSER_CASES: tokio::sync::Mutex<()> = tokio::sync::Mutex::const_new(());
+
 fn article(title: &str, script: &str) -> Reply {
     Reply::html(&format!("<html><head><title>{title}</title></head><body><main><h1>{title}</h1><p>{}</p></main><script>{script}</script></body></html>",
         "A detailed account of the local experiment, with independent observations and useful information for its readers. ".repeat(12)))
@@ -16,6 +21,7 @@ fn article(title: &str, script: &str) -> Reply {
 
 #[tokio::test]
 async fn saved_policy_is_applied_without_restarting_or_mutating_inflight_calls() {
+    let _case = LOCAL_BROWSER_CASES.lock().await;
     let home = support::isolate();
     let server =
         SvipallServer::new(None, svipall_core::Config::default(), None).with_live_configuration();
@@ -48,6 +54,7 @@ async fn saved_policy_is_applied_without_restarting_or_mutating_inflight_calls()
 
 #[tokio::test]
 async fn stable_profile_warms_once_and_reuses_sdk_without_returning_cached_content() {
+    let _case = LOCAL_BROWSER_CASES.lock().await;
     support::isolate();
     for named in [true, false] {
         session_case(named).await;
@@ -102,6 +109,7 @@ async fn session_case(named: bool) {
 
 #[tokio::test]
 async fn native_mode_keeps_real_apis_and_workers_even_after_an_emulated_pool() {
+    let _case = LOCAL_BROWSER_CASES.lock().await;
     support::isolate();
     let site = Site::start(vec![("/", article("Native hardware", ""))]).await;
     let mut reports = Vec::new();
@@ -198,6 +206,7 @@ fn no_profile(seed: u64) -> PageOpts {
 /// of its own, and neither directory may outlive its browser.
 #[tokio::test]
 async fn browsers_without_a_profile_get_a_directory_each_and_leave_none_behind() {
+    let _case = LOCAL_BROWSER_CASES.lock().await;
     support::isolate();
     let a = BrowserPool::new(svipall_core::Config::default());
     let b = BrowserPool::new(svipall_core::Config::default());
@@ -245,6 +254,7 @@ async fn browsers_without_a_profile_get_a_directory_each_and_leave_none_behind()
 /// that opens one pool after another — fails to create the process singleton.
 #[tokio::test]
 async fn a_profile_is_free_the_moment_its_pool_has_shut_down() {
+    let _case = LOCAL_BROWSER_CASES.lock().await;
     let home = support::isolate();
     let dir = home.join("profiles").join("relaunch-at-once");
     for round in 0..3 {

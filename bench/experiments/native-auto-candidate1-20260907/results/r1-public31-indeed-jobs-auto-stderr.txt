@@ -1,0 +1,5 @@
+indeed-jobs repeat 1: delivered 7.01s (real)
+indeed-jobs repeat 2: delivered 14.80s (real)
+indeed-jobs repeat 3: delivered 9.60s (browser)
+
+paired finished in 31.9s

@@ -1,0 +1,5 @@
+medium repeat 1: delivered 23.22s (warm)
+medium repeat 2: failed 0.00s (-)
+medium repeat 3: failed 0.00s (-)
+
+paired finished in 23.6s

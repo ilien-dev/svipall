@@ -1,5 +1,58 @@
 # Changelog
 
+## Unreleased
+
+### The tool surface, rewritten for the model that reads it
+
+Claude Code shows a model only the tool *names* and the server's `instructions` when a session
+starts, loads a tool's description and schema the moment it is picked, and truncates descriptions
+and instructions at 2 KB. Measured on the built `tools/list`, the 29 definitions cost 36 176
+characters, about 9 000 tokens, and a third of that was schema furniture no client validates.
+Nine descriptions were one line each; three tools had parameters with no description at all;
+nothing said when to use `web_act` rather than `browser_open` + `browser_do`, or why a
+`solve_turnstile` token is rarely worth having.
+
+- **Every description now opens with what the tool does, says when to use it, names the sibling to
+  prefer for the neighbouring case, and ends with what comes back.** The pattern is the one the
+  best-regarded MCP servers converge on and Anthropic's own guidance asks for: a screenshot says
+  it cannot be clicked and points at `web_snapshot`; each token-returning solver points at
+  `solve_and_continue`; `web_status` and `web_log` say which is state and which is history.
+- **`instructions` is a task-to-tool map**, about 1 300 characters, since it is the one piece of
+  prose visible before a choice is made.
+- **Schemas are slimmed on the way out**: `$schema`, `title`, `"default": null`, `nullable`, the
+  integer `format` and `minimum: 0` are gone (`slim_schema`). Every parameter has a description; the
+  measurement essays that lived in three of them moved to code comments. `web_fetch` went from
+  8 116 to 5 864 characters with more said, not less.
+- **Annotations**: every tool declares `readOnlyHint` and `openWorldHint`, which is what a client
+  uses to decide whether to ask before running it.
+- **`actions` on `web_act` and `browser_do` is typed**: `do` is an enum of the fourteen verbs and
+  every field says which verb reads it, in place of `items: true` and a paragraph. A second blind
+  run, with the definitions loaded, named this the weakest point of the surface. `schema` on
+  `web_fetch` declares its two shapes, `"auto"` or an object, instead of no type at all.
+- **`web_screenshot` takes `mobile`**, as `web_fetch` already did; both blind runs asked for it.
+  **`web_fetch_many` and `web_crawl` take `schema` and `tables`**, so a listing spread over known
+  pages, or over pages nobody has enumerated, comes back as rows instead of prose to parse. A
+  crawl's `out_file` then holds one row per item, each carrying the `url` of its page.
+- **`web_snapshot` leaves nothing on the page.** A reference used to be stamped onto its element as
+  a `data-` attribute so a click could find it again: readable by any script on the page, and the
+  one thing the project's rule forbids at every tier. A reference is now the walk's own index and
+  nothing else; `web_act` and `browser_do` resolve it by running the same walk on the live page
+  and asking for that element's `:nth-child` path. A reference past the end of the page says so
+  and asks for a new snapshot. A page that changed underneath can still renumber, as it could
+  before: a snapshot is of the page as it was.
+- **`raw:` markup is no longer echoed back** as `url` and `final_url`, which sent the whole page
+  twice on top of the content and wrote it into the request log as an address.
+- **A cache hit honours what the call asked for.** The cache holds a page's markdown, and a hit
+  answered with it whatever the parameters said: `css_selector` was ignored, `extraction: text`
+  came back as markdown, and a stale copy revalidated with a 304 skipped `schema` and `tables`
+  too. A call that wants anything but the stored markdown now parses the page again.
+- **`web_diff` on a page never seen** answers `changed: null` with `first_seen: true`, not
+  `changed: true`. **`web_status`** drops `cache_cleared: null` and shows `soft_line` as 0.7
+  rather than an f32 printed through f64.
+- `crates/svipall-mcp/tests/tool_surface.rs` holds the shape: per-tool and whole-list budgets, no
+  boilerplate, every parameter described, every description naming its alternative, no vendor
+  names, and every family reachable from `instructions`.
+
 ## 1.0.0-rc.2 — 2026-09-06
 
 The first release, and a release candidate on purpose. The code below has been in the tree and

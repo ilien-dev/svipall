@@ -1,0 +1,357 @@
+{
+  "public31": [
+    {
+      "name": "sannysoft",
+      "url": "https://bot.sannysoft.com/",
+      "wall": "panel",
+      "expect": []
+    },
+    {
+      "name": "creepjs",
+      "url": "https://abrahamjuliot.github.io/creepjs/",
+      "wall": "panel",
+      "expect": []
+    },
+    {
+      "name": "browserleaks",
+      "url": "https://browserleaks.com/javascript",
+      "wall": "panel",
+      "expect": []
+    },
+    {
+      "name": "browserscan-bot",
+      "url": "https://www.browserscan.net/bot-detection",
+      "wall": "panel",
+      "expect": []
+    },
+    {
+      "name": "pixelscan-bot",
+      "url": "https://pixelscan.net/bot-check",
+      "wall": "panel",
+      "expect": []
+    },
+    {
+      "name": "pixelscan-fp",
+      "url": "https://pixelscan.net/fingerprint-check",
+      "wall": "panel",
+      "expect": []
+    },
+    {
+      "name": "tls-peet",
+      "url": "https://tls.peet.ws/api/all",
+      "wall": "tls",
+      "expect": []
+    },
+    {
+      "name": "browserleaks-tls",
+      "url": "https://tls.browserleaks.com/json",
+      "wall": "tls",
+      "expect": []
+    },
+    {
+      "name": "bot-incolumitas",
+      "url": "https://bot.incolumitas.com/",
+      "wall": "panel",
+      "expect": []
+    },
+    {
+      "name": "rebrowser-detector",
+      "url": "https://bot-detector.rebrowser.net/",
+      "wall": "panel",
+      "expect": []
+    },
+    {
+      "name": "nowsecure-cf",
+      "url": "https://nowsecure.nl/",
+      "wall": "turnstile",
+      "expect": []
+    },
+    {
+      "name": "crunchbase-cf",
+      "url": "https://www.crunchbase.com/",
+      "wall": "managed-challenge",
+      "expect": []
+    },
+    {
+      "name": "canadianinsider",
+      "url": "https://www.canadianinsider.com/",
+      "wall": "turnstile",
+      "expect": []
+    },
+    {
+      "name": "sedarplus",
+      "url": "https://www.sedarplus.ca/landingpage/",
+      "wall": "waf",
+      "expect": []
+    },
+    {
+      "name": "ceo-ca",
+      "url": "https://ceo.ca/scan",
+      "wall": "content",
+      "expect": []
+    },
+    {
+      "name": "stockwatch",
+      "url": "https://www.stockwatch.com/News/Search?hours=24&region=C",
+      "wall": "content",
+      "expect": []
+    },
+    {
+      "name": "newsfilecorp",
+      "url": "https://www.newsfilecorp.com/search?q=gold",
+      "wall": "content",
+      "expect": []
+    },
+    {
+      "name": "medium",
+      "url": "https://medium.com/",
+      "wall": "managed-challenge",
+      "expect": []
+    },
+    {
+      "name": "devto",
+      "url": "https://dev.to/",
+      "wall": "content",
+      "expect": []
+    },
+    {
+      "name": "reddit",
+      "url": "https://www.reddit.com/",
+      "wall": "content",
+      "expect": []
+    },
+    {
+      "name": "github-explore",
+      "url": "https://github.com/explore",
+      "wall": "content",
+      "expect": []
+    },
+    {
+      "name": "linkedin-jobs",
+      "url": "https://www.linkedin.com/jobs/search?keywords=engineer",
+      "wall": "content",
+      "expect": []
+    },
+    {
+      "name": "amazon-product",
+      "url": "https://www.amazon.com/dp/B08N5WRWNW",
+      "wall": "popular",
+      "expect": []
+    },
+    {
+      "name": "google-search",
+      "url": "https://www.google.com/search?q=anti-detect+browser",
+      "wall": "popular",
+      "expect": []
+    },
+    {
+      "name": "instagram-post",
+      "url": "https://www.instagram.com/p/CwgPe2erjLY/",
+      "wall": "popular",
+      "expect": []
+    },
+    {
+      "name": "tiktok-user",
+      "url": "https://www.tiktok.com/@tiktok",
+      "wall": "popular",
+      "expect": []
+    },
+    {
+      "name": "booking-search",
+      "url": "https://www.booking.com/searchresults.html?ss=Victoria%2C+BC",
+      "wall": "popular",
+      "expect": []
+    },
+    {
+      "name": "x-explore",
+      "url": "https://x.com/explore",
+      "wall": "popular",
+      "expect": []
+    },
+    {
+      "name": "indeed-jobs",
+      "url": "https://www.indeed.com/jobs?q=engineer",
+      "wall": "managed-challenge",
+      "expect": []
+    },
+    {
+      "name": "stackoverflow",
+      "url": "https://stackoverflow.com/questions/tagged/python",
+      "wall": "managed-challenge",
+      "expect": []
+    },
+    {
+      "name": "glassdoor",
+      "url": "https://www.glassdoor.com/Reviews/index.htm",
+      "wall": "captcha-delivery.com",
+      "expect": []
+    }
+  ],
+  "hard12": [
+    {
+      "name": "example",
+      "url": "https://example.com",
+      "wall": "none",
+      "expect": [
+        "Example Domain"
+      ]
+    },
+    {
+      "name": "hackernews",
+      "url": "https://news.ycombinator.com",
+      "wall": "none",
+      "expect": [
+        "comments",
+        "points"
+      ]
+    },
+    {
+      "name": "wikipedia",
+      "url": "https://en.wikipedia.org/wiki/Rust_(programming_language)",
+      "wall": "none",
+      "expect": [
+        "memory safety"
+      ]
+    },
+    {
+      "name": "nowsecure",
+      "url": "https://nowsecure.nl/",
+      "wall": "turnstile",
+      "expect": [
+        "NOWSECURE",
+        "OH YEAH"
+      ]
+    },
+    {
+      "name": "g2",
+      "url": "https://www.g2.com/products/notion/reviews",
+      "wall": "captcha-delivery.com",
+      "expect": [
+        "Notion"
+      ]
+    },
+    {
+      "name": "idealista",
+      "url": "https://www.idealista.com/venta-viviendas/madrid-madrid/",
+      "wall": "captcha-delivery.com",
+      "expect": [
+        "Madrid"
+      ]
+    },
+    {
+      "name": "amazon",
+      "url": "https://www.amazon.com/s?k=echo+dot",
+      "wall": "popular",
+      "expect": [
+        "Echo"
+      ]
+    },
+    {
+      "name": "newegg",
+      "url": "https://www.newegg.com/p/pl?d=gpu",
+      "wall": "bot-manager",
+      "expect": [
+        "GeForce",
+        "Radeon"
+      ]
+    },
+    {
+      "name": "zillow",
+      "url": "https://www.zillow.com/homes/for_sale/",
+      "wall": "press-and-hold",
+      "expect": [
+        "homes"
+      ]
+    },
+    {
+      "name": "crunchbase",
+      "url": "https://www.crunchbase.com/organization/anthropic",
+      "wall": "managed-challenge",
+      "expect": [
+        "Anthropic"
+      ]
+    },
+    {
+      "name": "indeed",
+      "url": "https://www.indeed.com/q-software-engineer-jobs.html",
+      "wall": "managed-challenge",
+      "expect": [
+        "jobs"
+      ]
+    },
+    {
+      "name": "stackoverflow",
+      "url": "https://stackoverflow.com/questions/tagged/rust",
+      "wall": "managed-challenge",
+      "expect": [
+        "questions"
+      ]
+    }
+  ],
+  "vendors8": [
+    {
+      "name": "kasada-hyatt",
+      "url": "https://www.hyatt.com/",
+      "wall": "kasada",
+      "expect": [
+        "Hyatt"
+      ]
+    },
+    {
+      "name": "kasada-twitch",
+      "url": "https://www.twitch.tv/directory",
+      "wall": "kasada",
+      "expect": [
+        "Twitch"
+      ]
+    },
+    {
+      "name": "akamai-newegg",
+      "url": "https://www.newegg.com/p/pl?d=ssd",
+      "wall": "akamai",
+      "expect": [
+        "Newegg"
+      ]
+    },
+    {
+      "name": "akamai-homedepot",
+      "url": "https://www.homedepot.com/b/Appliances/N-5yc1vZbv1w",
+      "wall": "akamai",
+      "expect": [
+        "Home Depot"
+      ]
+    },
+    {
+      "name": "datadome-g2",
+      "url": "https://www.g2.com/products/notion/reviews",
+      "wall": "captcha-delivery.com",
+      "expect": [
+        "Notion"
+      ]
+    },
+    {
+      "name": "datadome-idealista",
+      "url": "https://www.idealista.com/venta-viviendas/madrid-madrid/",
+      "wall": "captcha-delivery.com",
+      "expect": [
+        "Madrid"
+      ]
+    },
+    {
+      "name": "cloudflare-crunchbase",
+      "url": "https://www.crunchbase.com/organization/openai",
+      "wall": "managed-challenge",
+      "expect": [
+        "OpenAI"
+      ]
+    },
+    {
+      "name": "cloudflare-indeed",
+      "url": "https://www.indeed.com/q-rust-developer-jobs.html",
+      "wall": "managed-challenge",
+      "expect": [
+        "job"
+      ]
+    }
+  ]
+}

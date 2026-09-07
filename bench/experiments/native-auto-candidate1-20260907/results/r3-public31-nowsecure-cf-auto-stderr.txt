@@ -1,0 +1,5 @@
+nowsecure-cf repeat 1: delivered 3.31s (browser)
+nowsecure-cf repeat 2: delivered 1.54s (browser)
+nowsecure-cf repeat 3: delivered 2.26s (browser)
+
+paired finished in 7.5s

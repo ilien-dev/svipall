@@ -1,0 +1,3 @@
+   Compiling svipall-mcp v1.0.0-rc.2 (<repo>\crates\svipall-mcp)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 5.81s
+     Running tests\local_sessions.rs (C:/t\debug\deps\local_sessions-5181e20b316ce654.exe)

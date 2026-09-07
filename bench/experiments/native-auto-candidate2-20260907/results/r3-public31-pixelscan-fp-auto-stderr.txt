@@ -1,0 +1,5 @@
+pixelscan-fp repeat 1: failed 0.00s (-)
+pixelscan-fp repeat 2: failed 0.00s (-)
+pixelscan-fp repeat 3: failed 0.00s (-)
+
+paired finished in 0.2s
