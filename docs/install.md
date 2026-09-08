@@ -244,7 +244,6 @@ empty `~/.svipall/claude_strict`; delete the file to turn it off, no restart.
 sh install.sh --uninstall          # or: install.ps1 -Uninstall
 brew uninstall svipall
 scoop uninstall svipall
-winget uninstall ilien-dev.svipall
 ```
 
 That leaves `~/.svipall` alone on purpose: profiles, cookies, cache, learned tiers and the
