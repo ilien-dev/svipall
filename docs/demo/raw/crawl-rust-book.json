@@ -1,0 +1,20 @@
+{
+  "bytes": 23140,
+  "count": 6,
+  "coverage": 0.0,
+  "crawl_id": "5f675c240aea4ff7",
+  "domain": "doc.rust-lang.org",
+  "duplicates_skipped": 0,
+  "format": "csv",
+  "out_file": "C:\\Users\\jesus\\.svipall\\out\\rows.csv",
+  "pages_before_resume": 0,
+  "pending_links": 45,
+  "refused_without_asking": 0,
+  "rows": 6,
+  "skipped_by_robots": 0,
+  "skipped_unchanged": 0,
+  "start_url": "https://doc.rust-lang.org/book/",
+  "stopped_by": "max_pages",
+  "tokens_estimated": 28316,
+  "truncated": true
+}

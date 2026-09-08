@@ -16,7 +16,7 @@ Tracked Rust source, including tests and benchmarks, is about **66,000 lines of 
 | `svipall-models` | The embedded ONNX weights |
 | `svipall-solver` | Captcha job store and HTTP API |
 | `svipall-dashboard` | The human panel |
-| `svipall-mcp` | **The product**: MCP tools, browser pool, strategy loop, the HTTP API (`rest`), the job runner (`jobs`) and the progress sink both report through. Ships `svipall-mcp` (server) and `svipall` (CLI, which is also `svipall serve`) |
+| `svipall` | **The product**: MCP tools, browser pool, strategy loop, the HTTP API (`rest`), the job runner (`jobs`) and the progress sink both report through. Ships `svipall-mcp` (server) and `svipall` (CLI, which is also `svipall serve`) |
 
 Three invariants hold the whole thing together, and each is enforced by a test rather than by
 convention:

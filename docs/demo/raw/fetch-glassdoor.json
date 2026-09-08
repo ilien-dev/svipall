@@ -1,0 +1,25 @@
+{
+  "attempts": [
+    "http: 403 (142ms) -> cloudflare wall (cf_chl_opt)",
+    "browser: 200 (6259ms) OK"
+  ],
+  "chars": 10317,
+  "exit": null,
+  "final_url": "https://www.glassdoor.com.mx/Reviews/index.htm?countryRedirect=true",
+  "identity_used": "emulated",
+  "native_fallback": false,
+  "optimization": "high",
+  "optimization_traits": [
+    "headings_echo_the_body",
+    "link_dense"
+  ],
+  "quality": "thin",
+  "quality_reasons": [
+    "low_text_ratio"
+  ],
+  "status": 200,
+  "tier_used": "browser",
+  "title": "Empresas y evaluaciones | Glassdoor",
+  "tokens_estimated": 2580,
+  "url": "https://www.glassdoor.com/Reviews/index.htm"
+}

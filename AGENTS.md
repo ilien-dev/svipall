@@ -56,4 +56,5 @@ QC/CI enforce the same token estimate as CLAUDE.md via `scripts/check-claude-md.
 Release uses `target-cpu=native`: never ship it; ship `--profile dist` artifacts.
 `svipall-mcp`: stdio + dashboard 8787; `svipall`: CLI; `svipall doctor`: install diagnostics.
 Config: `~/.svipall/config.toml`; README documents `SVIPALL_*`.
-Install via `install.{sh,ps1}`, package managers, Docker or `plugins/svipall/` (version = crate).
+Install via `install.{sh,ps1}`, package managers, crates.io, Docker or `plugins/svipall/`.
+Release = a `main` merge bumping `[workspace.package] version`.

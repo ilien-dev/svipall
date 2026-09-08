@@ -62,9 +62,10 @@ pwsh scripts/qc.ps1 -Fix   # fmt + clippy --fix
 Linux starts Xvfb for tests that open a browser window. Each platform runs its applicable installer;
 file-size and plugin-manifest guards and the container
 build run on Linux. CI is triggered by pushes to `main`, pull requests and manual dispatch.
-Tagged releases build five targets, smoke-test each binary they are about to
-publish, attach `sha256sums.txt` with a GitHub build attestation, and push both container images to
-`ghcr.io`.
+Releases build five targets, smoke-test each binary they are about to
+publish, attach `sha256sums.txt` with a GitHub build attestation, publish the workspace to
+crates.io and the wrapper to npm, and push both container images to `ghcr.io`. See
+[Releasing](#releasing) for what starts one.
 
 Two steps are the ones that keep this project honest, and **both run offline**: `tells --assert`
 opens a page on loopback at five browser passes and fails if a checked probe detects a known
@@ -79,6 +80,48 @@ cargo run -p svipall-bench --release -- \
   micro [--assert] | tells [--assert] | fingerprint [--engine E] | extract [--corpus DIR] |
   evasion [--set hard12|public31|vendors8] [--runs N] [--exit URL] | h3 | h3-ref | cache
 ```
+
+### Releasing
+
+**A release is a merge to `main` that carries a new version.** Nothing else starts one, and no tag
+has to be pushed by hand.
+
+```bash
+scripts/sync-version.sh 1.0.0-rc.4   # or scripts/sync-version.ps1
+scripts/qc.sh                        # the version tests are part of it
+git commit -am "release: v1.0.0-rc.4"
+```
+
+`[workspace.package] version` in the root `Cargo.toml` is the only place the number is written by
+hand. `sync-version` copies it into every member manifest, every internal dependency line, the
+plugin manifest and the npm wrapper; `crates/svipall/tests/release_version.rs` fails the build
+when any of them drifts. Each of those files is a different way to be wrong: Claude Code silently
+keeps a cached plugin when `plugin.json` names a version it has already seen, the npm postinstall
+builds its download URL from its own version, and crates.io rejects a `path` dependency carrying no
+`version`.
+
+On a push to `main` the `version` job reads that number and asks one question: does a tag `v<it>`
+already exist? If it does — which is every ordinary push — the whole workflow stops there and costs
+nothing. If it does not, the release runs: five targets built and smoke-tested, the `.deb`, `.rpm`
+and package manifests rendered, the GitHub release published (which is what creates the tag, so a
+build that fails leaves none behind for the next run to trip over), then npm, crates.io and the two
+container images.
+
+npm and crates.io both publish over OIDC, with no stored secret: each registry was told on its own
+site that this repository and this workflow file may publish, and trades the token GitHub mints for
+a short-lived one. Both steps skip a version already on the registry, so re-running a release is
+safe. Publishing to crates.io is not reversible — there is no unpublish, only `yank` — which is why
+the crates go up one at a time, in dependency order, after the release itself exists.
+
+Every member is published except `bench`. That includes the two vendored forks, `svipall-cdp` and
+`svipall-quic`: crates.io resolves every dependency of a published crate, optional ones included,
+so `svipall` and `svipall-http` cannot exist there while either fork is missing. Their
+`UPSTREAM.md` is their readme for that reason.
+
+Pushing a tag still works and is the recovery path when a release has to be re-run from a commit
+that is no longer the head of `main`.
+
+---
 
 Contributions are taken under the **DCO** — no CLA, no copyright assignment. See
 [`CONTRIBUTING.md`](../CONTRIBUTING.md).
