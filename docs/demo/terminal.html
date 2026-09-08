@@ -1,0 +1,384 @@
+<!doctype html>
+<meta charset="utf-8" />
+<title>svipall — recorded output</title>
+<!--
+  The demo GIF's stage.
+
+  It is not a terminal emulator and does not pretend to be one. It is a
+  deterministic renderer: `__demo.render(t)` paints what the recorded session
+  looked like `t` milliseconds in, with no timers, no randomness and no
+  network, so recording frame N twice produces the same pixels twice.
+
+  Every command and every byte of output comes from transcript.json, which is
+  the captured stdout of a real run on one machine. Nothing here composes,
+  shortens or prettifies an output that svipall did not print.
+
+  The palette is the site's, verbatim: --color-panel is the surface the design
+  system reserves for recorded output, and --color-signal only reaches its
+  contrast target there.
+-->
+<style>
+  @font-face {
+    font-family: 'Commit Mono';
+    src: url('fonts/commitmono-400.woff2') format('woff2');
+    font-weight: 400;
+    font-display: block;
+  }
+  @font-face {
+    font-family: 'Commit Mono';
+    src: url('fonts/commitmono-700.woff2') format('woff2');
+    font-weight: 700;
+    font-display: block;
+  }
+  @font-face {
+    font-family: 'Archivo';
+    src: url('fonts/archivo-variable.woff2') format('woff2');
+    font-weight: 100 900;
+    font-display: block;
+  }
+
+  :root {
+    /* Primitives, verbatim from svipall-site/src/styles/tokens.css. */
+    --ds-ink-900: #0b1a2b;
+    --ds-bone-300: #ead9c4;
+    --ds-amber-500: #df8d27;
+    --ds-clay-400: #f2a68b;
+    --ds-clay-200: #fbcdba;
+    --ds-moss-300: #a9e0c4;
+
+    /* Aliases, the same jobs global.css gives them on a dark panel. */
+    --panel: var(--ds-ink-900);
+    --ink: var(--ds-bone-300);
+    --ink-secondary: color-mix(in srgb, var(--ds-bone-300) 80%, transparent);
+    --ink-muted: color-mix(in srgb, var(--ds-bone-300) 55%, transparent);
+    --ink-faint: color-mix(in srgb, var(--ds-bone-300) 34%, transparent);
+    --rule: color-mix(in srgb, var(--ds-bone-300) 16%, transparent);
+    --accent: var(--ds-clay-400);
+    --signal: var(--ds-amber-500);
+    --pass: var(--ds-moss-300);
+    /* The same value as the accent, which is what global.css says a fail is:
+       on this surface it is the thing the accent exists to point at. */
+    --fail: var(--ds-clay-400);
+
+    --mono: 'Commit Mono', 'SF Mono', Consolas, monospace;
+    --display: 'Archivo', 'Helvetica Neue', Arial, sans-serif;
+
+    /* The site's type steps, verbatim: --text-3xs, --text-2xs, --text-xs.
+       Three sizes, no fourth, and nothing between them that the design system
+       has not already declared. --leading-mono is 1.5 and 15px x 1.5 is 22. */
+    --size-annotation: 11px;
+    --size-label: 13px;
+    --size-output: 15px;
+    --line: 22px;
+    --pad: 26px;
+  }
+
+  * { box-sizing: border-box; }
+
+  html, body {
+    margin: 0;
+    padding: 0;
+    background: var(--panel);
+    -webkit-font-smoothing: antialiased;
+  }
+
+  #stage {
+    position: relative;
+    width: 960px;
+    height: 450px;
+    background: var(--panel);
+    display: grid;
+    grid-template-rows: 44px 1fr 32px;
+    overflow: hidden;
+  }
+
+  /* --- head ----------------------------------------------------------- */
+
+  .head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 var(--pad);
+    border-bottom: 1px solid var(--rule);
+    font-family: var(--mono);
+    font-size: var(--size-label);
+    line-height: 1;
+    color: var(--ink-muted);
+    user-select: none;
+  }
+
+  .head__name {
+    font-family: var(--display);
+    font-weight: 600;
+    letter-spacing: 0.01em;
+    color: var(--ink-secondary);
+  }
+
+  .head__left { display: flex; align-items: center; }
+  .head__right { display: flex; align-items: center; }
+
+  /* The bracket mark, the site's BracketLabel idiom: the string inside is
+     always one svipall actually prints. */
+  .tag { white-space: nowrap; }
+  .tag b { color: var(--ink-faint); font-weight: 400; }
+  .tag span { color: var(--signal); padding: 0 6px; }
+
+  .ticks { display: flex; gap: 5px; margin-left: 18px; }
+  .tick { width: 12px; height: 2px; background: var(--rule); }
+  .tick.on { background: var(--signal); }
+
+  /* --- screen --------------------------------------------------------- */
+
+  .screen {
+    padding: 18px var(--pad) 0;
+    font-family: var(--mono);
+    font-size: var(--size-output);
+    line-height: var(--line);
+    color: var(--ink);
+    overflow: hidden;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+  }
+
+  .row { min-height: var(--line); }
+
+  /* Every span on the screen is an <i>, so the tag has to be told it is not
+     emphasis. Recorded output is never italic. */
+  .screen i { font-style: normal; }
+
+  .prompt { color: var(--accent); }
+  .bin { color: var(--ink); font-weight: 700; }
+  .sub { color: var(--ink); }
+  .arg { color: var(--ink-secondary); }
+  .flag { color: var(--ink-muted); }
+  .pipe { color: var(--ink-faint); }
+  .jq { color: var(--ink-muted); }
+
+  .k { color: var(--ink-muted); }
+  .s { color: var(--ink); }
+  .n { color: var(--signal); }
+  .b { color: var(--accent); }
+  .p { color: var(--ink-faint); }
+  .ok { color: var(--pass); }
+  .no { color: var(--fail); }
+
+  .caret {
+    display: inline-block;
+    width: 9px;
+    height: 15px;
+    margin-bottom: -3px;
+    background: var(--signal);
+  }
+  .caret.off { background: transparent; }
+
+  .work { color: var(--ink-faint); }
+
+  /* --- foot ----------------------------------------------------------- */
+
+  .foot {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 var(--pad);
+    border-top: 1px solid var(--rule);
+    font-family: var(--mono);
+    font-size: var(--size-annotation);
+    line-height: 1;
+    color: var(--ink-faint);
+    user-select: none;
+  }
+</style>
+
+<div id="stage">
+  <div class="head">
+    <div class="head__left">
+      <span class="head__name">svipall</span>
+    </div>
+    <div class="head__right">
+      <span class="tag" id="tag"></span>
+      <span class="ticks" id="ticks"></span>
+    </div>
+  </div>
+  <div class="screen" id="screen"></div>
+  <div class="foot">
+    <span id="caption"></span>
+    <span id="claim"></span>
+  </div>
+</div>
+
+<script type="module">
+  const esc = (s) =>
+    s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+
+  /* ---- colouring ------------------------------------------------------
+     Presentation only. It re-colours the characters svipall printed; it never
+     adds, removes or reorders one. */
+
+  /* Words inside a string that carry a verdict. A 4xx and a named wall are the
+     failure the ladder is answering; 200 and OK are the answer. */
+  const VERDICT = [
+    [/\b(4\d\d|5\d\d)\b/g, 'no'],
+    [/(cloudflare wall|managed-challenge|cf_chl_opt|near-empty body)/g, 'no'],
+    [/\b200\b/g, 'ok'],
+    [/\bOK\b/g, 'ok'],
+  ];
+
+  /* Applied in order, and the order is what keeps it safe: no rule matches
+     anything an earlier rule inserted, so nothing is ever wrapped twice. */
+  const colourString = (raw) => {
+    let html = esc(raw);
+    for (const [re, cls] of VERDICT) {
+      html = html.replace(re, (m) => `<i class="${cls}">${m}</i>`);
+    }
+    return html;
+  };
+
+  /* One line of jq's pretty-printed JSON. Structural, not a parser: jq emits
+     one token shape per line and this reads exactly that shape. */
+  const colourJson = (line) => {
+    const indent = line.match(/^\s*/)[0];
+    let rest = line.slice(indent.length);
+    let out = indent;
+
+    const key = rest.match(/^"((?:[^"\\]|\\.)*)":\s*/);
+    if (key) {
+      out += `<i class="k">"${esc(key[1])}"</i><i class="p">:</i> `;
+      rest = rest.slice(key[0].length);
+    }
+
+    const trail = rest.endsWith(',') ? ',' : '';
+    if (trail) rest = rest.slice(0, -1);
+
+    if (rest.length > 1 && rest.startsWith('"') && rest.endsWith('"')) {
+      out += `<i class="s">"${colourString(rest.slice(1, -1))}"</i>`;
+    } else if (/^-?\d+(\.\d+)?$/.test(rest)) {
+      out += `<i class="n">${rest}</i>`;
+    } else if (rest === 'true' || rest === 'false' || rest === 'null') {
+      out += `<i class="b">${rest}</i>`;
+    } else {
+      out += `<i class="p">${esc(rest)}</i>`;
+    }
+
+    if (trail) out += '<i class="p">,</i>';
+    return out;
+  };
+
+  /* The command line. The binary is the only bold thing on the screen. */
+  const colourCmd = (cmd) => {
+    const [left, ...piped] = cmd.split(' | ');
+    let out = '';
+    left.split(' ').forEach((tok, i) => {
+      if (i) out += ' ';
+      if (i === 0) out += `<i class="bin">${esc(tok)}</i>`;
+      else if (i === 1 && !tok.startsWith('-')) out += `<i class="sub">${esc(tok)}</i>`;
+      else if (tok.startsWith('-')) out += `<i class="flag">${esc(tok)}</i>`;
+      else out += `<i class="arg">${esc(tok)}</i>`;
+    });
+    for (const p of piped) {
+      out += `<i class="pipe"> | </i><i class="jq">${esc(p)}</i>`;
+    }
+    return out;
+  };
+
+  /* ---- timeline -------------------------------------------------------
+     Every step is four phases with fixed durations, so the whole run is a pure
+     function of t. Typing speed comes from the command's own length: a long
+     command is not slower to read, only slower to type. */
+
+  const transcript = await (await fetch('transcript.json')).json();
+
+  const LEAD = 420;      /* before the first key */
+  const PER_CHAR = 24;   /* typing */
+  const ENTER = 180;     /* the beat between the last key and the newline */
+  const PER_LINE = 32;   /* output arriving */
+  const CUT = 130;       /* the dark between scenes */
+
+  const steps = transcript.steps.map((s) => {
+    const lines = s.out.split('\n');
+    return {
+      ...s,
+      lines,
+      type: Math.min(2000, Math.max(520, s.cmd.length * PER_CHAR)),
+      reveal: lines.length * PER_LINE,
+    };
+  });
+
+  let clock = LEAD;
+  for (const s of steps) {
+    s.t0 = clock;
+    s.tEnter = s.t0 + s.type;
+    s.tWork = s.tEnter + ENTER;
+    s.tReveal = s.tWork + s.work_ms;
+    s.tHold = s.tReveal + s.reveal;
+    clock = s.tHold + s.hold_ms + CUT;
+  }
+  const duration = clock;
+
+  const screen = document.getElementById('screen');
+  const tagEl = document.getElementById('tag');
+  const ticksEl = document.getElementById('ticks');
+  document.getElementById('caption').textContent = transcript.meta.caption;
+  document.getElementById('claim').textContent = transcript.meta.claim;
+
+  ticksEl.innerHTML = steps.map(() => '<span class="tick"></span>').join('');
+  const ticks = [...ticksEl.children];
+
+  const row = (html) => `<div class="row">${html}</div>`;
+
+  /* A caret on a 1000ms cycle and a working mark of three filling dots. Both
+     are derived from t, never from a timer. */
+  const caret = (t) =>
+    t % 1000 < 620 ? '<span class="caret"></span>' : '<span class="caret off"></span>';
+
+  const working = (dt) => {
+    const n = 1 + (Math.floor(dt / 230) % 3);
+    return `<i class="work">${'·'.repeat(n)}</i>`;
+  };
+
+  const render = (t) => {
+    t = Math.max(0, Math.min(duration - 1, t));
+
+    let idx = 0;
+    for (let i = 0; i < steps.length; i += 1) if (t >= steps[i].t0) idx = i;
+    const s = steps[idx];
+
+    ticks.forEach((el, i) => el.classList.toggle('on', i <= idx));
+    tagEl.innerHTML = `<b>[</b><span>${esc(s.tag)}</span><b>]</b>`;
+
+    const out = [];
+    const typed =
+      t < s.tEnter ? Math.floor(((t - s.t0) / s.type) * s.cmd.length) : s.cmd.length;
+    const cmd = s.cmd.slice(0, Math.max(0, typed));
+
+    out.push(row(`<i class="prompt">$ </i>${colourCmd(cmd)}${t < s.tWork ? caret(t) : ''}`));
+
+    if (t >= s.tWork) {
+      out.push(row(''));
+      if (t < s.tReveal) {
+        out.push(row(working(t - s.tWork)));
+      } else {
+        const shown = Math.min(
+          s.lines.length,
+          Math.floor((t - s.tReveal) / PER_LINE) + 1,
+        );
+        for (let i = 0; i < shown; i += 1) out.push(row(colourJson(s.lines[i])));
+        if (shown === s.lines.length && t >= s.tHold) {
+          out.push(row(''));
+          out.push(row(`<i class="prompt">$ </i>${caret(t)}`));
+        }
+      }
+    }
+
+    screen.innerHTML = out.join('');
+  };
+
+  await document.fonts.ready;
+    /* One instant per scene, for the contact sheet the recorder can dump. */
+  window.__demo = {
+    render,
+    duration,
+    stills: steps.map((s) => s.tHold + 260),
+  };
+  render(0);
+  document.documentElement.dataset.ready = '1';
+</script>

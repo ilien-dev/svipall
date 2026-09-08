@@ -1,0 +1,11 @@
+{
+  "features": [
+    "impersonate",
+    "onnx-grid",
+    "onnx-detect",
+    "onnx-segment"
+  ],
+  "impersonation": true,
+  "target": "x86_64-pc-windows-msvc",
+  "version": "1.0.0-rc.3"
+}

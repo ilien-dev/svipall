@@ -37,7 +37,7 @@ preserved. The saved reference binary is the authoritative baseline, not the mov
 516 core unit tests passed, 11 core integration tests passed. Invalid-status and UTF-8 regressions
 are covered. Configuration overlays validate before replacing the saved settings.
 
-`cargo test -p svipall-mcp --test local_sessions -- --test-threads=1 --nocapture`: real Chrome
+`cargo test -p svipall --test local_sessions -- --test-threads=1 --nocapture`: real Chrome
 loopback tests passed for native/emulated worker agreement and both named/automatic profile reuse.
 The fixture's SDK sends the returning request to a new endpoint; the response and hit counts prove
 the old document survived and fresh data was fetched. A live-policy test was added afterward and

@@ -46,11 +46,12 @@ never by breaking access controls. Everything runs here.
   the runs that improved nothing.
 - **No third-party services, no remote deploy.** No API keys, no paid solvers, no geolocation.
   No vendor brand names in code; name protocols by endpoint.
-- **English only.** **This file is size-guarded**; trim, don't expand.
+- **English only.** **Size-guarded file**; trim, don't expand.
 
 ## Build / run / ship
 `cargo build --release` (cmake, nasm, perl, llvm; short `CARGO_TARGET_DIR` on Windows) is
 `target-cpu=native`: **never ship it**, artifacts are `--profile dist`. `svipall-mcp` over stdio +
 dashboard 8787; `svipall` is the CLI; `svipall doctor` reports an install. Config
-`~/.svipall/config.toml`, `SVIPALL_*` env vars in the README. Installs: `install.{sh,ps1}`, package
-managers, Docker, or the plugin in `plugins/svipall/` (version = the crate's).
+`~/.svipall/config.toml`; `SVIPALL_*` in the README. Installs: `install.{sh,ps1}`, package
+managers, crates.io, Docker, `plugins/svipall/`. Release = a `main` merge bumping
+`[workspace.package] version`.

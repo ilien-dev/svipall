@@ -11,19 +11,48 @@ has never once run green is the machinery, and it now has more of it than rc.2 d
 
 ### The build that could not link, and the test that will not let it happen again
 
-`local-models` joined `svipall-mcp`'s default features in the rc.2 release commit itself. `bench`
-took `svipall-mcp` with its defaults, and cargo unifies features across every package the build
+`local-models` joined the top crate's default features in the rc.2 release commit itself. `bench`
+took that crate with its defaults, and cargo unifies features across every package the build
 selects — and the release job names binaries, not a package, so it selects the workspace. The
 `--no-default-features --features impersonate` the three model-free targets are built with was
 therefore true of the flag and false of the graph: `dep:ort` came back in through `bench`, and
 those targets died on `undefined symbol: __isoc23_strtoll` out of `libort_sys`, plus an
 `ort-sys: no prebuilt binaries available for target x86_64-apple-darwin` on the Intel Mac.
 
-`bench` now takes `svipall-mcp` with `default-features = false`, and asks for inference by name in
+`bench` now takes `svipall` with `default-features = false`, and asks for inference by name in
 its own `onnx` feature, which is what `bench micro`'s model budgets needed all along.
-`crates/svipall-mcp/tests/release_build.rs` asserts that no workspace member takes `svipall-mcp`
+`crates/svipall/tests/release_build.rs` asserts that no workspace member takes `svipall`
 with its defaults, offline and in `qc`, because this failure is invisible on a machine that builds
 with the defaults on — which is every developer machine.
+
+### A release is a merge, and the tag is the last thing that happens
+
+`1.0.0-rc.2` is a tag with nothing under it. That shape is now impossible: the release workflow runs
+on a push to `main`, reads `[workspace.package] version`, and does nothing at all unless that
+version has no tag yet. The tag itself is created by the GitHub release, at the end — so a build
+that fails leaves none behind, and the same commit pushed again is still a release waiting to
+happen. Pushing a tag by hand still works and is the recovery path.
+
+`[workspace.package] version` is now the only place the number is written by hand. Every member
+inherits it, `scripts/sync-version` copies it into the plugin manifest, the npm wrapper and every
+internal dependency line, and `crates/svipall/tests/release_version.rs` fails the build when any
+of them drifts. `qc --fix` runs the sync beside the plugin-skill copy it already ran.
+
+### The workspace is on crates.io
+
+Every crate except the benchmark harness is published, over OIDC and with no stored secret, the
+same mechanism the npm job uses. `cargo install svipall` is a supported way in, and — like any
+source build — it carries no captcha models: the weights are exported at release time and are not
+in the crate, so image challenges go to the human dashboard and `svipall doctor` reports
+`no_models`. `svipall-extract` is the one worth depending on alone, under `MIT OR Apache-2.0`.
+
+The two vendored forks, `svipall-cdp` and `svipall-quic`, go up under their own names because
+crates.io resolves every dependency of a published crate, optional ones included: `svipall` and
+`svipall-http` cannot exist there while either is missing. Publishing is permanent — there is no
+unpublish, only `yank` — so the crates go up one at a time, in dependency order, after the release
+exists, and a version already on the registry is skipped rather than reported. CI packages all nine
+manifests on every run, because a metadata error found on release day is found after the crates
+before it are already permanent.
 
 ### Routing that learns which way in worked here
 
@@ -204,7 +233,7 @@ nothing said when to use `web_act` rather than `browser_open` + `browser_do`, or
 - **`web_diff` on a page never seen** answers `changed: null` with `first_seen: true`, not
   `changed: true`. **`web_status`** drops `cache_cleared: null` and shows `soft_line` as 0.7
   rather than an f32 printed through f64.
-- `crates/svipall-mcp/tests/tool_surface.rs` holds the shape: per-tool and whole-list budgets, no
+- `crates/svipall/tests/tool_surface.rs` holds the shape: per-tool and whole-list budgets, no
   boilerplate, every parameter described, every description naming its alternative, no vendor
   names, and every family reachable from `instructions`.
 

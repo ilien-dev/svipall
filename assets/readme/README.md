@@ -14,7 +14,7 @@ These are generated PNGs with a flat vector aesthetic, not editable SVG sources.
 
 - [Wall classifier](../../crates/svipall-core/src/classify.rs): `none`, `login` and `softnotfound` are real serialized values.
 - [Quality](../../crates/svipall-core/src/quality/mod.rs): `full`, `partial` and `thin` describe delivered content. Labels do not remove documents or escalate the ladder.
-- [Ladder](../../crates/svipall-core/src/ladder.rs) and [server](../../crates/svipall-mcp/src/server.rs): the diagram simplifies automatic mode. The configured tier cap and wall-specific routing still apply. The local solver/human line describes challenge handling, not a universal remedy for every failed request.
+- [Ladder](../../crates/svipall-core/src/ladder.rs) and [server](../../crates/svipall/src/server.rs): the diagram simplifies automatic mode. The configured tier cap and wall-specific routing still apply. The local solver/human line describes challenge handling, not a universal remedy for every failed request.
 - [Sessions](../../crates/svipall-core/src/session.rs): cookies, machine identity and exit form a session; failures affect retirement.
 - These illustrations make no competitor-exclusivity or performance claims. The README comparison retains its own sources and qualifications.
 

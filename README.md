@@ -34,6 +34,11 @@
   <a href="docs/faq.md"><b>FAQ</b></a>
 </p>
 
+<p align="center">
+  <a href="docs/demo/"><img src="docs/demo/svipall.gif" width="960" alt="Six commands and the output they printed: the tier ladder answering a Cloudflare wall with a browser, search without an API key, a schema induced from a listing, a crawl written to CSV, and 160 of 160 automation-tell probes clean."></a><br>
+  <sub>Replayed from real runs on one machine. <a href="docs/demo/">How it was recorded, and the raw captures</a>.</sub>
+</p>
+
 ---
 
 **Local processing. No third-party API keys. No paid captcha services. No telemetry.**
@@ -120,6 +125,7 @@ brew install ilien-dev/svipall/svipall               # macOS, Linux
 scoop bucket add svipall https://github.com/ilien-dev/scoop-svipall && scoop install svipall
 docker pull ghcr.io/ilien-dev/svipall:1.0.0-rc       # use a published version tag; see container notes
 npx --yes svipall doctor                             # if node is already there
+cargo install svipall                            # builds from source, so no captcha models
 ```
 
 The installers verify checksums where they can, and a mismatch stops the install. A missing

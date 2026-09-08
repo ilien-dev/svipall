@@ -1,0 +1,381 @@
+{
+  "attempts": [
+    "http: 200 (290ms) OK"
+  ],
+  "exit": null,
+  "extracted": {
+    "count": 30,
+    "items": [
+      {
+        "rank": "1.",
+        "sitebit": "(google.com)",
+        "sitestr": "google.com",
+        "title": "1.",
+        "titleline": "Eiffel Tower employees strike after female staff removed (google.com)",
+        "url": "https://www.google.com/url?q=https://amp.dw.com/en/eiffel-tower-closed-strike-women-hindu/a-79152603ste-ferme-ce-lundi_64758503.html",
+        "url_2": "https://news.ycombinator.com/vote?id=49606046&how=up&goto=newest",
+        "url_3": "https://news.ycombinator.com/from?site=google.com"
+      },
+      {
+        "rank": "2.",
+        "sitebit": "(nature.com)",
+        "sitestr": "nature.com",
+        "title": "2.",
+        "titleline": "Magic-mushroom compound blocks a side effect of chemotherapy in mice (nature.com)",
+        "url": "https://www.nature.com/articles/d41586-026-02744-6",
+        "url_2": "https://news.ycombinator.com/vote?id=49606037&how=up&goto=newest",
+        "url_3": "https://news.ycombinator.com/from?site=nature.com"
+      },
+      {
+        "rank": "3.",
+        "sitebit": "(rmondello.com)",
+        "sitestr": "rmondello.com",
+        "title": "3.",
+        "titleline": "Switching Password Managers in 2026 (rmondello.com)",
+        "url": "https://rmondello.com/2026/09/07/switching-password-managers-2026/",
+        "url_2": "https://news.ycombinator.com/vote?id=49606033&how=up&goto=newest",
+        "url_3": "https://news.ycombinator.com/from?site=rmondello.com"
+      },
+      {
+        "rank": "4.",
+        "sitebit": "(arxiv.org)",
+        "sitestr": "arxiv.org",
+        "title": "4.",
+        "titleline": "CivBench: A Long-Horizon Benchmark for Tool-Mediated Agents in Civilization VI (arxiv.org)",
+        "url": "https://arxiv.org/abs/2609.02459",
+        "url_2": "https://news.ycombinator.com/vote?id=49606031&how=up&goto=newest",
+        "url_3": "https://news.ycombinator.com/from?site=arxiv.org"
+      },
+      {
+        "rank": "5.",
+        "sitebit": "(therobotreport.com)",
+        "sitestr": "therobotreport.com",
+        "title": "5.",
+        "titleline": "Agility Robotics reports $1.8M revenue ahead of humanoid SPAC (therobotreport.com)",
+        "url": "https://www.therobotreport.com/agility-robotics-reports-18m-revenue-ahead-of-humanoid-spac/",
+        "url_2": "https://news.ycombinator.com/vote?id=49606022&how=up&goto=newest",
+        "url_3": "https://news.ycombinator.com/from?site=therobotreport.com"
+      },
+      {
+        "rank": "6.",
+        "sitebit": "(generals.lol)",
+        "sitestr": "generals.lol",
+        "title": "6.",
+        "titleline": "Generals – Conquer the live world map (generals.lol)",
+        "url": "https://generals.lol/",
+        "url_2": "https://news.ycombinator.com/vote?id=49606019&how=up&goto=newest",
+        "url_3": "https://news.ycombinator.com/from?site=generals.lol"
+      },
+      {
+        "rank": "7.",
+        "sitebit": "(theconversation.com)",
+        "sitestr": "theconversation.com",
+        "title": "7.",
+        "titleline": "Do tech billionaires dream of shared abundance? We should probably just tax them (theconversation.com)",
+        "url": "https://theconversation.com/do-tech-billionaires-dream-of-shared-abundance-we-should-probably-just-tax-them-286658",
+        "url_2": "https://news.ycombinator.com/vote?id=49606010&how=up&goto=newest",
+        "url_3": "https://news.ycombinator.com/from?site=theconversation.com"
+      },
+      {
+        "rank": "8.",
+        "sitebit": "(duckdns.org)",
+        "sitestr": "duckdns.org",
+        "title": "8.",
+        "titleline": "Show HN: Typebook engage yourself in reading by painstakingly writing every word (duckdns.org)",
+        "url": "https://typebook.duckdns.org/",
+        "url_2": "https://news.ycombinator.com/vote?id=49606006&how=up&goto=newest",
+        "url_3": "https://news.ycombinator.com/from?site=duckdns.org"
+      },
+      {
+        "rank": "9.",
+        "sitebit": "(web.mit.edu)",
+        "sitestr": "web.mit.edu",
+        "title": "9.",
+        "titleline": "Robot-Use Agents (web.mit.edu)",
+        "url": "https://web.mit.edu/phillipi/www/writing/robot-use-agents.html",
+        "url_2": "https://news.ycombinator.com/vote?id=49606001&how=up&goto=newest",
+        "url_3": "https://news.ycombinator.com/from?site=web.mit.edu"
+      },
+      {
+        "rank": "10.",
+        "sitebit": "(autistici.org)",
+        "sitestr": "autistici.org",
+        "title": "10.",
+        "titleline": "Autistici.org Domain Taken Down (autistici.org)",
+        "url": "https://autistici.org/",
+        "url_2": "https://news.ycombinator.com/vote?id=49605983&how=up&goto=newest",
+        "url_3": "https://news.ycombinator.com/from?site=autistici.org"
+      },
+      {
+        "rank": "11.",
+        "sitebit": "(figma.com)",
+        "sitestr": "figma.com",
+        "title": "11.",
+        "titleline": "Web Import Master: rebuild a live web page as a Figma design with auto layout (figma.com)",
+        "url": "https://www.figma.com/community/plugin/1630132577257927426",
+        "url_2": "https://news.ycombinator.com/vote?id=49605973&how=up&goto=newest",
+        "url_3": "https://news.ycombinator.com/from?site=figma.com"
+      },
+      {
+        "rank": "12.",
+        "sitebit": "(mattmahoney.net)",
+        "sitestr": "mattmahoney.net",
+        "title": "12.",
+        "titleline": "Fx2-Cmix-Transformer (mattmahoney.net)",
+        "url": "https://mattmahoney.net/dc/text.html#0969",
+        "url_2": "https://news.ycombinator.com/vote?id=49605959&how=up&goto=newest",
+        "url_3": "https://news.ycombinator.com/from?site=mattmahoney.net"
+      },
+      {
+        "rank": "13.",
+        "sitebit": "(helpnetsecurity.com)",
+        "sitestr": "helpnetsecurity.com",
+        "title": "13.",
+        "titleline": "ToolHive Is Open-Source (helpnetsecurity.com)",
+        "url": "https://www.helpnetsecurity.com/2026/09/07/toolhive-open-source-mcp-server-security/",
+        "url_2": "https://news.ycombinator.com/vote?id=49605950&how=up&goto=newest",
+        "url_3": "https://news.ycombinator.com/from?site=helpnetsecurity.com"
+      },
+      {
+        "rank": "14.",
+        "sitebit": "(honeylabs.net)",
+        "sitestr": "honeylabs.net",
+        "title": "14.",
+        "titleline": "AI crawler user-agents are being spoofed to reach cloud metadata endpoints (honeylabs.net)",
+        "url": "https://honeylabs.net/blog/spoofed-ai-crawlers-one-client",
+        "url_2": "https://news.ycombinator.com/vote?id=49605924&how=up&goto=newest",
+        "url_3": "https://news.ycombinator.com/from?site=honeylabs.net"
+      },
+      {
+        "rank": "15.",
+        "sitebit": "(medium.com/gurvinder372)",
+        "sitestr": "medium.com/gurvinder372",
+        "title": "15.",
+        "titleline": "Where Good Decisions Don't Add Up (medium.com/gurvinder372)",
+        "url": "https://medium.com/@gurvinder372/article-11-where-good-decisions-dont-add-up-e3a3714792dc",
+        "url_2": "https://news.ycombinator.com/vote?id=49605922&how=up&goto=newest",
+        "url_3": "https://news.ycombinator.com/from?site=medium.com/gurvinder372"
+      },
+      {
+        "rank": "16.",
+        "sitebit": "(nyu.edu)",
+        "sitestr": "nyu.edu",
+        "title": "16.",
+        "titleline": "Navier-Stokes – Tristan Buckmaster [pdf] (nyu.edu)",
+        "url": "https://cims.nyu.edu/~tristanb/statement.pdf",
+        "url_2": "https://news.ycombinator.com/vote?id=49605915&how=up&goto=newest",
+        "url_3": "https://news.ycombinator.com/from?site=nyu.edu"
+      },
+      {
+        "rank": "17.",
+        "sitebit": "(ams.org)",
+        "sitestr": "ams.org",
+        "title": "17.",
+        "titleline": "Famous Unsolved Math Problems as Homework(2015) (ams.org)",
+        "url": "https://blogs.ams.org/matheducation/2015/05/01/famous-unsolved-math-problems-as-homework/",
+        "url_2": "https://news.ycombinator.com/vote?id=49605910&how=up&goto=newest",
+        "url_3": "https://news.ycombinator.com/from?site=ams.org"
+      },
+      {
+        "rank": "18.",
+        "sitebit": "(theguardian.com)",
+        "sitestr": "theguardian.com",
+        "title": "18.",
+        "titleline": "'Global reckoning for big tech': Australia to force opt-out of social algs (theguardian.com)",
+        "url": "https://www.theguardian.com/australia-news/2026/sep/08/australia-social-media-algorithm-switch-off-opt-out-digital-duty-of-care",
+        "url_2": "https://news.ycombinator.com/vote?id=49605874&how=up&goto=newest",
+        "url_3": "https://news.ycombinator.com/from?site=theguardian.com"
+      },
+      {
+        "rank": "19.",
+        "sitebit": "(echohive.ai)",
+        "sitestr": "echohive.ai",
+        "title": "19.",
+        "titleline": "An AI that talks like a friend, jumps in, interrupts and keeps the convo going (echohive.ai)",
+        "url": "https://www.echohive.ai/deep-talk-buddy",
+        "url_2": "https://news.ycombinator.com/vote?id=49605869&how=up&goto=newest",
+        "url_3": "https://news.ycombinator.com/from?site=echohive.ai"
+      },
+      {
+        "rank": "20.",
+        "sitebit": "(labguysworld.com)",
+        "sitestr": "labguysworld.com",
+        "title": "20.",
+        "titleline": "Electrostatic Cathode Ray Tube Project 1 (2014) (labguysworld.com)",
+        "url": "https://labguysworld.com/Project_ESCRTs_001.htm",
+        "url_2": "https://news.ycombinator.com/vote?id=49605836&how=up&goto=newest",
+        "url_3": "https://news.ycombinator.com/from?site=labguysworld.com"
+      },
+      {
+        "rank": "21.",
+        "sitebit": "(github.com/tauricresearch)",
+        "sitestr": "github.com/tauricresearch",
+        "title": "21.",
+        "titleline": "Multi-Agents LLM Financial Trading Framework (github.com/tauricresearch)",
+        "url": "https://github.com/TauricResearch/TradingAgents",
+        "url_2": "https://news.ycombinator.com/vote?id=49605822&how=up&goto=newest",
+        "url_3": "https://news.ycombinator.com/from?site=github.com/tauricresearch"
+      },
+      {
+        "rank": "22.",
+        "sitebit": "(eggs.help)",
+        "sitestr": "eggs.help",
+        "title": "22.",
+        "titleline": "I scraped 10,555 ivf rounds rounds from forum posts around the world (eggs.help)",
+        "url": "https://eggs.help/",
+        "url_2": "https://news.ycombinator.com/vote?id=49605821&how=up&goto=newest",
+        "url_3": "https://news.ycombinator.com/from?site=eggs.help"
+      },
+      {
+        "rank": "23.",
+        "sitebit": "(usemy.cloud)",
+        "sitestr": "usemy.cloud",
+        "title": "23.",
+        "titleline": "Clean Web-to-Markdown: Fast HTML Extraction for LLMs and RAG (usemy.cloud)",
+        "url": "https://markdown.usemy.cloud/",
+        "url_2": "https://news.ycombinator.com/vote?id=49605796&how=up&goto=newest",
+        "url_3": "https://news.ycombinator.com/from?site=usemy.cloud"
+      },
+      {
+        "rank": "24.",
+        "sitebit": "(earlyradiohistory.us)",
+        "sitestr": "earlyradiohistory.us",
+        "title": "24.",
+        "titleline": "What may happen in the next hundred years?(1900) (earlyradiohistory.us)",
+        "url": "https://earlyradiohistory.us/1900next.htm",
+        "url_2": "https://news.ycombinator.com/vote?id=49605786&how=up&goto=newest",
+        "url_3": "https://news.ycombinator.com/from?site=earlyradiohistory.us"
+      },
+      {
+        "rank": "25.",
+        "sitebit": "(pm.gov.au)",
+        "sitestr": "pm.gov.au",
+        "title": "25.",
+        "titleline": "My Feed, My Way (pm.gov.au)",
+        "url": "https://www.pm.gov.au/media/my-feed-my-way",
+        "url_2": "https://news.ycombinator.com/vote?id=49605782&how=up&goto=newest",
+        "url_3": "https://news.ycombinator.com/from?site=pm.gov.au"
+      },
+      {
+        "rank": "26.",
+        "sitebit": "(omgubuntu.co.uk)",
+        "sitestr": "omgubuntu.co.uk",
+        "title": "26.",
+        "titleline": "KDE's new Photos app offers a sleek alternative to Gwenview (omgubuntu.co.uk)",
+        "url": "https://www.omgubuntu.co.uk/2026/09/kde-photos-app-replace-gwenview",
+        "url_2": "https://news.ycombinator.com/vote?id=49605770&how=up&goto=newest",
+        "url_3": "https://news.ycombinator.com/from?site=omgubuntu.co.uk"
+      },
+      {
+        "rank": "27.",
+        "sitebit": "(mistral.ai)",
+        "sitestr": "mistral.ai",
+        "title": "27.",
+        "titleline": "Mistral raises €3B to make sovereign, open-weight AI the technology frontier (mistral.ai)",
+        "url": "https://mistral.ai/news/mistral-makes-sovereign-open-weight-ai-to-frontier/",
+        "url_2": "https://news.ycombinator.com/vote?id=49605767&how=up&goto=newest",
+        "url_3": "https://news.ycombinator.com/from?site=mistral.ai"
+      },
+      {
+        "rank": "28.",
+        "sitebit": "(iamdevloper.io)",
+        "sitestr": "iamdevloper.io",
+        "title": "28.",
+        "titleline": "The 100x Engineer Certification (iamdevloper.io)",
+        "url": "https://100x.iamdevloper.io/",
+        "url_2": "https://news.ycombinator.com/vote?id=49605762&how=up&goto=newest",
+        "url_3": "https://news.ycombinator.com/from?site=iamdevloper.io"
+      },
+      {
+        "rank": "29.",
+        "sitebit": null,
+        "sitestr": null,
+        "title": "29.",
+        "titleline": "Ask HN: Best Platforms to Orchestrate Agents",
+        "url": "https://news.ycombinator.com/item?id=49605756",
+        "url_2": "https://news.ycombinator.com/vote?id=49605756&how=up&goto=newest",
+        "url_3": null
+      },
+      {
+        "rank": "30.",
+        "sitebit": "(planetscale.com)",
+        "sitestr": "planetscale.com",
+        "title": "30.",
+        "titleline": "How One Connection Kills a Database (planetscale.com)",
+        "url": "https://planetscale.com/blog/debugging-live-database-connections",
+        "url_2": "https://news.ycombinator.com/vote?id=49605737&how=up&goto=newest",
+        "url_3": "https://news.ycombinator.com/from?site=planetscale.com"
+      }
+    ],
+    "name": "induced"
+  },
+  "extracted_count": 30,
+  "final_url": "https://news.ycombinator.com/newest",
+  "identity_used": "emulated",
+  "induced_schema": {
+    "base_selector": "tr.athing.submission",
+    "fields": [
+      {
+        "name": "title",
+        "selector": "td.title",
+        "type": "text"
+      },
+      {
+        "name": "rank",
+        "selector": "span.rank",
+        "type": "text"
+      },
+      {
+        "absolute": true,
+        "attribute": "href",
+        "name": "url_2",
+        "selector": "td.votelinks a",
+        "type": "attribute"
+      },
+      {
+        "name": "titleline",
+        "selector": "span.titleline",
+        "type": "text"
+      },
+      {
+        "absolute": true,
+        "attribute": "href",
+        "name": "url",
+        "selector": "span.titleline a",
+        "type": "attribute"
+      },
+      {
+        "name": "sitebit",
+        "selector": "span.comhead.sitebit",
+        "type": "text"
+      },
+      {
+        "absolute": true,
+        "attribute": "href",
+        "name": "url_3",
+        "selector": "span.comhead.sitebit a",
+        "type": "attribute"
+      },
+      {
+        "name": "sitestr",
+        "selector": "span.sitestr",
+        "type": "text"
+      }
+    ],
+    "margin": 1.0,
+    "matched": 30
+  },
+  "native_fallback": false,
+  "optimization": "ordinary",
+  "optimization_traits": [
+    "link_dense"
+  ],
+  "quality": "thin",
+  "quality_reasons": [
+    "not_prose"
+  ],
+  "status": 200,
+  "tier_used": "http",
+  "title": "New Links | Hacker News",
+  "url": "https://news.ycombinator.com/newest"
+}
