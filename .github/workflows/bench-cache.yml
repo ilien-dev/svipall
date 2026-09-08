@@ -46,6 +46,11 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # The source change every real release carries. A cache measurement taken on an unchanged
+      # tree is an upper bound nobody will ever see.
+      - name: Touch a core source file
+        run: echo "// bench ${{ github.run_id }}" >> crates/svipall-core/src/lib.rs
+
       - uses: dtolnay/rust-toolchain@stable
         with:
           targets: ${{ matrix.target }}
