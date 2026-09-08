@@ -1,0 +1,124 @@
+# Keeps a `dist`-profile dependency cache alive on `main`, so a release does not start from zero.
+#
+# This job exists because of two GitHub rules that only bite together:
+#
+#   1. A run can restore caches from its own ref or from the DEFAULT branch, and from nowhere
+#      else — a cache written under one tag is unreadable from the next one. So the cache a
+#      release reads has to have been written by a run on `main`.
+#   2. GitHub deletes any cache entry not read for 7 days. Releases are weeks apart, so a cache
+#      written by the previous release would be long gone by the next one.
+#
+# Nothing else on `main` writes one: ci.yml builds `debug`, which shares no artefact with `dist`.
+#
+# Measured on this repository, warm against cold, with a source change in between:
+#   x86_64-pc-windows-msvc   22.4 min -> 14.9 min
+#   aarch64-apple-darwin     20.1 min -> 13.0 min
+# Those two are the whole point. Linux finishes in ~11 min cold, already under what Windows
+# becomes warm, and every extra cached platform spends a 10 GB budget these two need: the Windows
+# entry alone is 980 MB and the macOS one 626 MB.
+#
+# If this workflow ever stops running, nothing breaks — releases quietly go back to taking about
+# eight minutes longer. That is the failure mode worth knowing about, because it is silent.
+name: cache-warm
+
+on:
+  # Monday and Thursday: the longest gap is four days, comfortably inside the 7-day expiry with
+  # room for one skipped run.
+  schedule:
+    - cron: "0 5 * * 1,4"
+  # A dependency change invalidates the cache's key, so refresh it the moment one lands rather
+  # than letting the next release pay for it.
+  push:
+    branches: [main]
+    paths:
+      - "Cargo.lock"
+      - "Cargo.toml"
+      - "crates/*/Cargo.toml"
+  workflow_dispatch:
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  warm:
+    name: warm ${{ matrix.target }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-latest
+            target: x86_64-pc-windows-msvc
+            models: true
+          - os: macos-latest
+            target: aarch64-apple-darwin
+            models: true
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+
+      # The keys and the paths have to match release.yml exactly or this warms nothing. Windows
+      # writes to the short target dir BoringSSL needs under MAX_PATH, and rust-cache only prunes
+      # a target dir inside the workspace — so it is named through `cache-directories` instead,
+      # and `cache-targets: false` stops it saving the empty workspace one.
+      - name: Short target dir (Windows)
+        if: runner.os == 'Windows'
+        shell: bash
+        run: echo 'CARGO_TARGET_DIR=C:\t' >> "$GITHUB_ENV"
+
+      - uses: Swatinem/rust-cache@v2
+        if: matrix.target == 'x86_64-pc-windows-msvc'
+        with:
+          key: rel-win
+          cache-targets: "false"
+          cache-all-crates: "true"
+          cache-directories: 'C:\t'
+
+      - uses: Swatinem/rust-cache@v2
+        if: matrix.target == 'aarch64-apple-darwin'
+        with:
+          key: rel-macarm
+          cache-all-crates: "true"
+
+      # windows-latest already ships cmake, Strawberry Perl, LLVM and nasm; installing them again
+      # cost 4.4 min of the release and made the build itself slower.
+      - name: BoringSSL build dependencies (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          foreach ($t in 'cmake','perl','clang','nasm') {
+            $c = Get-Command $t -ErrorAction SilentlyContinue
+            if (-not $c) { throw "windows-latest no longer ships $t; restore the choco install step" }
+            Write-Host "$t -> $($c.Source)"
+          }
+
+      - name: BoringSSL build dependencies (macOS)
+        if: runner.os == 'macOS'
+        run: brew install cmake pkg-config llvm
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      # The same features the release builds, because a cache built from a different feature set
+      # is a cache the release cannot use.
+      - name: Export embedded models
+        if: matrix.models
+        shell: bash
+        run: |
+          python -m pip install --quiet torch torchvision --index-url https://download.pytorch.org/whl/cpu
+          python -m pip install --quiet onnx
+          python tools/models/export.py
+
+      - name: Build
+        shell: bash
+        env:
+          RUSTFLAGS: -C target-cpu=x86-64-v2
+        run: |
+          case "${{ matrix.target }}" in aarch64-*) RUSTFLAGS= ;; esac
+          cargo build --no-default-features --profile dist --target ${{ matrix.target }} \
+            --bin svipall-mcp --bin svipall \
+            --features impersonate,onnx-ocr,onnx-grid,onnx-audio,onnx-detect,onnx-segment,onnx-zeroshot

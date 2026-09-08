@@ -5,6 +5,12 @@
 #   docker build -t svipall .                          # full: browser, models, every tier
 #   docker build -t svipall:slim --build-arg FLAVOR=slim .   # http tier only, no browser
 #
+# FLAVOR=slim here builds the http tier from source, which is what you want locally on a tree that
+# has no published artefact. The PUBLISHED slim image is built by Dockerfile.slim instead, from the
+# release tarball, because compiling the same program twice only creates a way for the image and
+# the download to disagree. Keep the two in step: this file is the definition, that one is the
+# packaging.
+#
 #   docker run -i --rm -v svipall-home:/data svipall                     # MCP over stdio
 #   docker run --rm -p 8787:8787 -v svipall-home:/data svipall           # dashboard reachable
 #   docker run --rm -v svipall-home:/data svipall svipall fetch https://example.com
@@ -123,6 +129,10 @@ USER svipall
 
 # ---------------------------------------------------------------------------------------------
 FROM runtime-${FLAVOR}
+# How the MCP Registry proves this image is ours: it reads this annotation off the published
+# manifest and compares it to `name` in server.json. Both flavours carry it, because both are
+# published under the same repository and either tag may end up in server.json.
+LABEL io.modelcontextprotocol.server.name="dev.ilien.svipall/mcp"
 VOLUME ["/data"]
 # 8787 is the dashboard and solver API; 8788 is the REST API, which stays off unless
 # SVIPALL_REST_PORT says otherwise.
