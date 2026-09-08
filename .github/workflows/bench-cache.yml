@@ -1,4 +1,12 @@
-# Throwaway, round 2: does a warm cache actually move the dist build, and which cache.
+# Throwaway, round 4. Round 2 measured nothing: rust-cache's own log showed it saving the
+# workspace `target` directory while the build wrote to the short CARGO_TARGET_DIR the project
+# needs for BoringSSL under MAX_PATH. Its README is explicit that the `workspaces` target is
+# "relative to the $workspace", so a directory outside it is not expressible there — the
+# documented escape hatch is `cache-directories`. Linux and macOS have no MAX_PATH problem and
+# simply drop the custom target dir, which lets rust-cache prune the way it was designed to.
+#
+# sccache never had this problem: it caches compiler invocations, not a directory. Its round 2
+# entries are valid, so its warm numbers are measurable on this run.
 name: bench-cache
 
 on:
@@ -6,6 +14,10 @@ on:
     branches: ["perf/**"]
     paths: [".github/workflows/bench-cache.yml"]
   workflow_dispatch:
+
+concurrency:
+  group: bench-cache
+  cancel-in-progress: true
 
 env:
   CARGO_TERM_COLOR: always
@@ -18,36 +30,37 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - id: win-rustcache
+          - id: win-cachedirs
             os: windows-latest
             target: x86_64-pc-windows-msvc
             models: true
-            cache: rust-cache
+            cache: cache-directories
+          - id: linux-default
+            os: ubuntu-22.04
+            target: x86_64-unknown-linux-gnu
+            models: false
+            cache: rust-cache-default
+          - id: mac-default
+            os: macos-latest
+            target: aarch64-apple-darwin
+            models: true
+            cache: rust-cache-default
+          # Populated correctly in round 2, so these two are WARM on this run.
           - id: win-sccache
             os: windows-latest
             target: x86_64-pc-windows-msvc
             models: true
             cache: sccache
-          - id: linux-rustcache
-            os: ubuntu-22.04
-            target: x86_64-unknown-linux-gnu
-            models: false
-            cache: rust-cache
           - id: linux-sccache
             os: ubuntu-22.04
             target: x86_64-unknown-linux-gnu
             models: false
             cache: sccache
-          - id: mac-rustcache
-            os: macos-latest
-            target: aarch64-apple-darwin
-            models: true
-            cache: rust-cache
     steps:
       - uses: actions/checkout@v4
 
-      # The source change every real release carries. A cache measurement taken on an unchanged
-      # tree is an upper bound nobody will ever see.
+      # The source change every real release carries. A hit rate measured on an unchanged tree is
+      # an upper bound nobody will ever see.
       - name: Touch a core source file
         run: echo "// bench ${{ github.run_id }}" >> crates/svipall-core/src/lib.rs
 
@@ -55,22 +68,25 @@ jobs:
         with:
           targets: ${{ matrix.target }}
 
+      # Windows only, and only because BoringSSL's nested build paths pass MAX_PATH otherwise.
+      # Everywhere else cargo's default `target/` is what rust-cache knows how to find and prune.
       - name: Short target dir (Windows)
         if: runner.os == 'Windows'
         shell: bash
         run: echo 'CARGO_TARGET_DIR=C:\t' >> "$GITHUB_ENV"
 
-      - name: Target dir (POSIX)
-        if: runner.os != 'Windows'
-        shell: bash
-        run: echo "CARGO_TARGET_DIR=$GITHUB_WORKSPACE/t" >> "$GITHUB_ENV"
-
-      # Keyed by the variant so the two strategies never read each other's entries.
       - uses: Swatinem/rust-cache@v2
-        if: matrix.cache == 'rust-cache'
+        if: matrix.cache == 'cache-directories'
         with:
-          key: bench-${{ matrix.id }}
-          cache-targets: "true"
+          key: bench4-${{ matrix.id }}
+          cache-targets: "false"
+          cache-all-crates: "true"
+          cache-directories: 'C:\t'
+
+      - uses: Swatinem/rust-cache@v2
+        if: matrix.cache == 'rust-cache-default'
+        with:
+          key: bench4-${{ matrix.id }}
           cache-all-crates: "true"
 
       - uses: mozilla-actions/sccache-action@v0.0.9
@@ -89,11 +105,7 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y build-essential cmake perl pkg-config libclang-dev nasm
 
-      - name: Toolchain deps (Windows)
-        if: runner.os == 'Windows'
-        run: choco install cmake strawberryperl pkgconfiglite llvm nasm -y
-        shell: cmd
-
+      # Round 1 proved windows-latest already carries cmake, Strawberry Perl, LLVM and nasm.
       - name: Toolchain deps (macOS)
         if: runner.os == 'macOS'
         run: brew install cmake pkg-config llvm
