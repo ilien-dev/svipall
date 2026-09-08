@@ -1,7 +1,11 @@
 name: release
 
+# A release is a merge to main that carries a new version, and nothing else. Pushing the tag by
+# hand still works — it is the recovery path when a release has to be re-run — but nobody has to
+# remember it: the `version` job below decides, and everything downstream waits on that decision.
 on:
   push:
+    branches: [main]
     tags: ["v*"]
   workflow_dispatch:
 
@@ -9,45 +13,70 @@ env:
   CARGO_TERM_COLOR: always
 
 jobs:
-  # One version, asserted in one place. Four files claim it — the crate, the plugin manifest, the
-  # npm wrapper and the tag — and each one is a different way to be wrong: Claude Code silently
-  # keeps a cached plugin when `plugin.json` repeats a version it has already seen, and the npm
-  # postinstall builds its download URL from its own version, so a package one behind fetches an
-  # archive that does not exist.
+  # One version, decided in one place. `[workspace.package] version` in the root manifest is the
+  # only place the number is written by hand; `scripts/sync-version` copies it into the plugin
+  # manifest, the npm wrapper and every internal dependency line, and `release_version.rs` fails
+  # the build when any of them drifts. This job is the last check, and the trigger.
+  #
+  # Each of those files is a different way to be wrong: Claude Code silently keeps a cached plugin
+  # when `plugin.json` repeats a version it has already seen, and the npm postinstall builds its
+  # download URL from its own version, so a package one behind fetches an archive that does not
+  # exist.
+  #
+  # The tag is not pushed here. `action-gh-release` creates it from this commit when the release
+  # is published, so a build that fails leaves no tag behind — and this job, run again, still sees
+  # a version that has not shipped.
   version:
     name: version
     runs-on: ubuntu-latest
     outputs:
       version: ${{ steps.v.outputs.version }}
       prerelease: ${{ steps.v.outputs.prerelease }}
+      publish: ${{ steps.v.outputs.publish }}
     steps:
       - uses: actions/checkout@v4
+        # The whole tag list: whether this version has already shipped is the question this job
+        # exists to answer, and a shallow clone cannot answer it.
+        with:
+          fetch-depth: 0
       - id: v
         shell: bash
         run: |
-          crate=$(grep -m1 '^version' crates/svipall-mcp/Cargo.toml | cut -d'"' -f2)
-          plugin=$(python3 -c "import json;print(json.load(open('plugins/svipall/.claude-plugin/plugin.json'))['version'])")
-          npm=$(python3 -c "import json;print(json.load(open('packaging/npm/package.json'))['version'])")
-          for pair in "plugin.json:$plugin" "npm/package.json:$npm"; do
-            if [ "${pair#*:}" != "$crate" ]; then
-              echo "the crate says $crate, ${pair%%:*} says ${pair#*:}" >&2
-              exit 1
-            fi
-          done
-          if [ "${GITHUB_REF_TYPE}" = "tag" ] && [ "${GITHUB_REF_NAME#v}" != "$crate" ]; then
-            echo "tag ${GITHUB_REF_NAME} does not match version $crate" >&2
-            exit 1
-          fi
+          # `--check` prints the version and fails when any file that repeats it is behind. The
+          # sync script is what writes them, so this is the same implementation, not a second one.
+          crate=$(python3 scripts/sync_version.py . --check)
           # A semver pre-release is anything with a hyphen. It decides two things: GitHub marks the
           # release as a pre-release, and the moving container tags stay where they are.
           case "$crate" in *-*) pre=true ;; *) pre=false ;; esac
-          echo "version=$crate" >> "$GITHUB_OUTPUT"
-          echo "prerelease=$pre" >> "$GITHUB_OUTPUT"
-          echo "version $crate, prerelease $pre"
+
+          if [ "${GITHUB_REF_TYPE}" = "tag" ]; then
+            # The manual path. A tag that disagrees with the tree would publish artefacts named
+            # after one version out of a checkout of another.
+            if [ "${GITHUB_REF_NAME#v}" != "$crate" ]; then
+              echo "tag ${GITHUB_REF_NAME} does not match version $crate" >&2
+              exit 1
+            fi
+            publish=true
+          elif git rev-parse -q --verify "refs/tags/v$crate" >/dev/null; then
+            # Every other push to main. Most of them do not change the version, and a release that
+            # already shipped must not be built a second time: the artefacts would be new files
+            # under a tag whose checksums are already published in five package manifests.
+            publish=false
+          else
+            publish=true
+          fi
+
+          {
+            echo "version=$crate"
+            echo "prerelease=$pre"
+            echo "publish=$publish"
+          } >> "$GITHUB_OUTPUT"
+          echo "version $crate, prerelease $pre, publish $publish"
 
   build:
     name: ${{ matrix.target }}
     needs: version
+    if: needs.version.outputs.publish == 'true'
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
@@ -94,16 +123,56 @@ jobs:
         with:
           targets: ${{ matrix.target }}
 
+      # Restore only, never save. A cache written under a tag is unreadable from every other tag,
+      # so saving here would spend the 10 GB budget on entries nothing can ever read.
+      # `cache-warm.yml` writes them on `main`, which is the one scope a tag run can read.
+      # Warm against cold, with a source change in between: Windows 22.4 -> 14.9 min, macOS arm
+      # 20.1 -> 13.0. Only these two, because Linux at ~11 min cold already finishes under what
+      # Windows becomes warm, and the two entries that matter are 980 MB and 626 MB.
+      #
+      # Windows cannot use the plain form: the build writes to the short CARGO_TARGET_DIR that
+      # BoringSSL needs under MAX_PATH, and rust-cache only knows how to prune a target dir inside
+      # the workspace — pointed at the default it silently caches the registry and no compiled
+      # artefact at all. `cache-directories` names the real one.
+      - uses: Swatinem/rust-cache@v2
+        if: matrix.target == 'x86_64-pc-windows-msvc'
+        with:
+          key: rel-win
+          save-if: "false"
+          cache-targets: "false"
+          cache-all-crates: "true"
+          cache-directories: 'C:\t'
+
+      - uses: Swatinem/rust-cache@v2
+        if: matrix.target == 'aarch64-apple-darwin'
+        with:
+          key: rel-macarm
+          save-if: "false"
+          cache-all-crates: "true"
+
       - name: BoringSSL build dependencies (Linux)
         if: runner.os == 'Linux'
         run: |
           sudo apt-get update
           sudo apt-get install -y build-essential cmake perl pkg-config libclang-dev nasm
 
+      # windows-latest already ships all four, so this asserts rather than installs. Measured over
+      # three repetitions each: with the `choco install` the job's median was 26.8 min
+      # (25.5-27.1), without it 22.4 (21.9-22.5). Half of that is the two and a half minutes choco
+      # spends, and the other half is the build itself getting faster — Chocolatey's LLVM and Perl
+      # shadow the ones the image already carries, and the build is slower with them.
+      #
+      # It throws rather than falling back, because the day the runner image drops one of these
+      # the failure must be this line and not a mystery half an hour later.
       - name: BoringSSL build dependencies (Windows)
         if: runner.os == 'Windows'
-        run: choco install cmake strawberryperl pkgconfiglite llvm nasm -y
-        shell: cmd
+        shell: pwsh
+        run: |
+          foreach ($t in 'cmake','perl','clang','nasm') {
+            $c = Get-Command $t -ErrorAction SilentlyContinue
+            if (-not $c) { throw "windows-latest no longer ships $t; restore the choco install step" }
+            Write-Host "$t -> $($c.Source)"
+          }
 
       - name: BoringSSL build dependencies (macOS)
         if: runner.os == 'macOS'
@@ -132,7 +201,7 @@ jobs:
         env:
           RUSTFLAGS: -C target-cpu=x86-64-v2
           # Keep BoringSSL's nested build paths under Windows MAX_PATH.
-          CARGO_TARGET_DIR: ${{ runner.os == 'Windows' && 'C:\t' || './t' }}
+          CARGO_TARGET_DIR: ${{ runner.os == 'Windows' && 'C:\t' || (matrix.target == 'aarch64-apple-darwin' && './target' || './t') }}
         run: |
           # Empty, not unset: unsetting it hands the build back to .cargo/config.toml and
           # its `target-cpu=native`, which `ring` rejects on aarch64 apple targets.
@@ -159,7 +228,7 @@ jobs:
         if: runner.os == 'macOS'
         shell: bash
         env:
-          CARGO_TARGET_DIR: ./t
+          CARGO_TARGET_DIR: ${{ matrix.target == 'aarch64-apple-darwin' && './target' || './t' }}
         run: |
           codesign --force --sign - "$CARGO_TARGET_DIR/${{ matrix.target }}/dist/svipall"
           codesign --force --sign - "$CARGO_TARGET_DIR/${{ matrix.target }}/dist/svipall-mcp"
@@ -171,7 +240,7 @@ jobs:
         if: matrix.target != 'x86_64-apple-darwin'
         shell: bash
         env:
-          CARGO_TARGET_DIR: ${{ runner.os == 'Windows' && 'C:\t' || './t' }}
+          CARGO_TARGET_DIR: ${{ runner.os == 'Windows' && 'C:\t' || (matrix.target == 'aarch64-apple-darwin' && './target' || './t') }}
         run: |
           bin="$CARGO_TARGET_DIR/${{ matrix.target }}/dist/svipall${{ matrix.ext }}"
           "$bin" --version
@@ -195,7 +264,7 @@ jobs:
         if: contains(matrix.target, 'linux')
         shell: bash
         env:
-          CARGO_TARGET_DIR: ./t
+          CARGO_TARGET_DIR: ${{ matrix.target == 'aarch64-apple-darwin' && './target' || './t' }}
         run: |
           docker run --rm -v "$PWD/t/${{ matrix.target }}/dist:/x" debian:bookworm-slim             /x/svipall --version
 
@@ -207,7 +276,7 @@ jobs:
       - name: Package
         shell: bash
         env:
-          CARGO_TARGET_DIR: ${{ runner.os == 'Windows' && 'C:\t' || './t' }}
+          CARGO_TARGET_DIR: ${{ runner.os == 'Windows' && 'C:\t' || (matrix.target == 'aarch64-apple-darwin' && './target' || './t') }}
           VERSION: ${{ needs.version.outputs.version }}
         run: |
           mkdir -p out
@@ -242,7 +311,7 @@ jobs:
   packages:
     name: packages
     needs: [version, build]
-    if: startsWith(github.ref, 'refs/tags/v')
+    if: needs.version.outputs.publish == 'true'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -260,14 +329,29 @@ jobs:
           VERSION: ${{ needs.version.outputs.version }}
         run: bash scripts/render-packaging.sh "$VERSION" artifacts/sha256sums.txt packaging/dist
 
+      # Both tools used to be compiled from source here, on the critical path, on every release.
+      # cargo-deb publishes binaries, so it is a download. cargo-generate-rpm publishes none, so it
+      # stays a compile — but one whose result is worth keeping between releases.
+      #
+      # This job cannot start before the *whole* build matrix finishes, because `needs` waits on
+      # every leg of a matrix and there is no way to depend on one target. Pulling the Linux leg
+      # out into its own job would let the packages build during the Windows compile, and it would
+      # cost sixty duplicated lines of build steps to save about two minutes. Not taken.
+      - uses: taiki-e/install-action@v2
+        with:
+          tool: cargo-deb
+      - uses: actions/cache@v4
+        with:
+          path: ~/.cargo/bin/cargo-generate-rpm
+          key: cargo-generate-rpm-v0.21.0
+
       # amd64 only, and said out loud rather than left to be discovered: arm64 users get the
       # tarball and install.sh, which is what they were going to use anyway.
       - name: Build .deb and .rpm (amd64)
         env:
           VERSION: ${{ needs.version.outputs.version }}
         run: |
-          cargo install cargo-deb --locked
-          cargo install cargo-generate-rpm --locked
+          command -v cargo-generate-rpm >/dev/null || cargo install cargo-generate-rpm --locked
           mkdir -p packaging/staging
           tar -xzf "artifacts/svipall-$VERSION-x86_64-unknown-linux-gnu.tar.gz" -C packaging/staging
           # Neither format takes a semver pre-release as it is written. RPM rejects the hyphen
@@ -275,8 +359,8 @@ jobs:
           # candidate would never be offered the release. `~` is the character both use for
           # "sorts before", which is what a pre-release is.
           PKGVER="${VERSION//-/\~}"
-          cargo deb -p svipall-mcp --no-build --no-strip --deb-version "$PKGVER" --output packaging/dist/
-          cargo generate-rpm -p crates/svipall-mcp --output packaging/dist/ -s "version = \"$PKGVER\""
+          cargo deb -p svipall --no-build --no-strip --deb-version "$PKGVER" --output packaging/dist/
+          cargo generate-rpm -p crates/svipall --output packaging/dist/ -s "version = \"$PKGVER\""
 
       # Only the manifests. They live beside the .deb and the .rpm, and the first release bundled
       # all of it into a 282 MB "manifests" tarball that duplicated both packages.
@@ -298,7 +382,7 @@ jobs:
   publish:
     name: publish
     needs: [version, build, packages]
-    if: startsWith(github.ref, 'refs/tags/v')
+    if: needs.version.outputs.publish == 'true'
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -323,6 +407,7 @@ jobs:
           subject-path: "artifacts/svipall-*"
       - uses: softprops/action-gh-release@v2
         with:
+          tag_name: v${{ needs.version.outputs.version }}
           files: |
             artifacts/svipall-*.tar.gz
             artifacts/svipall-*.zip
@@ -344,7 +429,7 @@ jobs:
   npm:
     name: npm
     needs: [version, publish]
-    if: startsWith(github.ref, 'refs/tags/v')
+    if: needs.version.outputs.publish == 'true'
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -375,14 +460,85 @@ jobs:
           fi
           npm publish --tag "$tag" --access public
 
+  # crates.io, over OIDC and with no stored secret, the same mechanism as the npm job above:
+  # crates.io was told on its own site that this repository and this workflow file may publish, and
+  # `crates-io-auth-action` trades the token GitHub mints for a short-lived one.
+  #
+  # Published in dependency order, one crate at a time, because publishing is permanent — there is
+  # no unpublish, only `yank` — and a run that dies halfway must be re-runnable. A crate already on
+  # the registry is skipped rather than reported: that is the normal outcome of a re-run.
+  #
+  # `svipall-cdp` and `svipall-quic` go up because they have to. They are vendored forks and
+  # nothing about that changes here, but crates.io resolves every dependency of a published crate,
+  # optional ones included, so `svipall` and `svipall-http` cannot exist on the registry while
+  # either fork is missing from it. `UPSTREAM.md` is their readme for exactly that reason.
+  #
+  # `bench` is the one member that stays off: it is a harness for this repository, it carries 45 MB
+  # of corpora, and `publish = false` in its manifest is what says so.
+  crates:
+    name: crates.io
+    needs: [version, publish]
+    if: needs.version.outputs.publish == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+
+      # The verification build is a real build: `svipall-http` compiles BoringSSL like every other
+      # job here does.
+      - name: BoringSSL build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential cmake perl pkg-config libclang-dev nasm
+
+      - uses: rust-lang/crates-io-auth-action@v1
+        id: auth
+
+      # `ubuntu-latest`, and default features, on purpose. The release artefacts for Linux are
+      # built on 22.04 without the model features so they start on Debian 12; this is not an
+      # artefact, it is cargo proving each crate compiles from the archive it is about to upload,
+      # so it runs where the ONNX Runtime binaries `ort` downloads actually link.
+      #
+      # What that means for a user: `cargo install svipall` builds from source and carries no
+      # embedded models — the weights are exported at release time and are not in the crate. Image
+      # captchas go to the human dashboard there, exactly as `svipall doctor` reports `no_models`
+      # for the Linux and x86_64 macOS artefacts. docs/install.md says so.
+      - name: Publish
+        env:
+          CARGO_REGISTRY_TOKEN: ${{ steps.auth.outputs.token }}
+          VERSION: ${{ needs.version.outputs.version }}
+        run: |
+          # Dependency order, written out rather than derived: `cargo publish --workspace` would
+          # order these itself, and would also stop at the first crate already on the registry.
+          crates="svipall-extract svipall-cdp svipall-quic svipall-models svipall-core"
+          crates="$crates svipall-solver svipall-dashboard svipall-http svipall"
+          # crates.io refuses a request with no User-Agent, and it refuses it with a 403 that
+          # reads exactly like "this crate is not published".
+          agent="svipall-release (github.com/${GITHUB_REPOSITORY})"
+          for crate in $crates; do
+            if curl -sSf -A "$agent" "https://crates.io/api/v1/crates/$crate/$VERSION" >/dev/null 2>&1; then
+              echo "$crate@$VERSION is already published; nothing to do"
+              continue
+            fi
+            echo "publishing $crate@$VERSION"
+            cargo publish -p "$crate"
+          done
+
   # One architecture per runner, each on its own hardware. The previous shape asked one amd64
   # runner to build arm64 through QEMU, and a Rust build with BoringSSL and fat LTO under emulation
   # ran past thirty minutes without finishing while the native amd64 half took eight. Each job here
   # pushes an untagged image by digest; `image-manifest` below is what turns the digests into a tag.
+  # It does not wait on `build`, because it never used one artefact from it: this job checks out
+  # the source and compiles its own. The edge cost 11 minutes of wall clock for a dependency that
+  # did not exist. `image-manifest` below still gates the tags, so a build that fails publishes
+  # untagged digests and nothing a user can pull.
   image:
     name: image ${{ matrix.flavor }} ${{ matrix.arch }}
-    needs: [version, build]
-    if: startsWith(github.ref, 'refs/tags/v')
+    needs: [version]
+    if: needs.version.outputs.publish == 'true'
     runs-on: ${{ matrix.os }}
     permissions:
       contents: read
@@ -399,12 +555,6 @@ jobs:
             arch: amd64
             os: ubuntu-22.04
           - flavor: full
-            arch: arm64
-            os: ubuntu-22.04-arm
-          - flavor: slim
-            arch: amd64
-            os: ubuntu-22.04
-          - flavor: slim
             arch: arm64
             os: ubuntu-22.04-arm
     steps:
@@ -433,11 +583,75 @@ jobs:
           path: /tmp/digests/*
           if-no-files-found: error
 
+  # `slim` is the http tier and nothing else, which is exactly what the portable Linux artefact
+  # already is. This job puts that binary in a container instead of compiling the same program a
+  # second time: 9.9 min becomes 0.5, and the image and the tarball can no longer disagree about
+  # what `svipall` is. The artefact links glibc 2.35 and this image carries a newer one, so it is
+  # more portable than what the Dockerfile built here, not less — and `Runs on an older
+  # distribution` in the build job already proves that binary starts on bookworm.
+  #
+  # Unlike `image` it does wait on `build`, because it genuinely consumes an artefact from it.
+  image-slim:
+    name: image slim ${{ matrix.arch }}
+    needs: [version, build]
+    if: needs.version.outputs.publish == 'true'
+    runs-on: ${{ matrix.os }}
+    permissions:
+      contents: read
+      packages: write
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: amd64
+            os: ubuntu-22.04
+            target: x86_64-unknown-linux-gnu
+          - arch: arm64
+            os: ubuntu-22.04-arm
+            target: aarch64-unknown-linux-gnu
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - uses: actions/download-artifact@v4
+        with:
+          name: svipall-${{ matrix.target }}
+          path: a
+      - name: Unpack the published binaries
+        shell: bash
+        env:
+          VERSION: ${{ needs.version.outputs.version }}
+        run: |
+          mkdir -p bin
+          tar -xzf "a/svipall-$VERSION-${{ matrix.target }}.tar.gz" -C bin svipall svipall-mcp
+          ls -la bin
+      - id: build
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: Dockerfile.slim
+          platforms: linux/${{ matrix.arch }}
+          outputs: type=image,name=ghcr.io/${{ github.repository }},push-by-digest=true,name-canonical=true,push=true
+      - name: Export digest
+        shell: bash
+        run: |
+          mkdir -p /tmp/digests
+          echo "${{ steps.build.outputs.digest }}" > "/tmp/digests/${{ matrix.arch }}"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: digest-slim-${{ matrix.arch }}
+          path: /tmp/digests/*
+          if-no-files-found: error
+
   # The tags, made from whatever architectures that flavour produced.
   image-manifest:
     name: image manifest (${{ matrix.flavor }})
-    needs: [version, image]
-    if: startsWith(github.ref, 'refs/tags/v')
+    needs: [version, image, image-slim]
+    if: needs.version.outputs.publish == 'true'
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -483,3 +697,70 @@ jobs:
           echo "creating$tags from$refs"
           docker buildx imagetools create $tags $refs
           docker buildx imagetools inspect "$repo:${{ needs.version.outputs.version }}${{ matrix.suffix }}"
+
+  # The MCP Registry. It stores metadata and nothing else: every package `server.json` names has to
+  # be on its own registry first, and the registry proves each one is ours by finding the server
+  # name inside the published artefact — `mcpName` in the npm package, the
+  # `io.modelcontextprotocol.server.name` annotation on the image, a visible `mcp-name:` line in the
+  # crate's README. `registry_manifest.rs` keeps those three in step with `server.json` offline;
+  # this job is where they meet what actually published.
+  #
+  # Authentication is DNS, not GitHub: the name is `dev.ilien.svipall/mcp`, and only DNS auth grants
+  # a subdomain of the domain it verifies. `MCP_PRIVATE_KEY` is the Ed25519 key whose public half is
+  # the `v=MCPv1` TXT record on ilien.dev.
+  #
+  # Last, deliberately. A published version is immutable and the registry has no unpublish, so this
+  # runs after every artefact it points at exists, and never before.
+  mcp-registry:
+    name: mcp registry
+    needs: [version, npm, crates, image-manifest]
+    if: needs.version.outputs.publish == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - name: Everything server.json points at exists
+        env:
+          VERSION: ${{ needs.version.outputs.version }}
+        run: |
+          # The registry's own message for a package it cannot find is "Registry validation failed
+          # for package", which does not say which one. These do.
+          missing=0
+          if ! curl -fsS "https://registry.npmjs.org/svipall/$VERSION" >/dev/null; then
+            echo "svipall@$VERSION is not on npm" >&2
+            missing=1
+          fi
+          # `crates` runs before this, but a crates.io publish is not readable the instant it
+          # returns and the registry reads the index, not the response. Publishing metadata that
+          # points at a version crates.io cannot serve yet is a permanent record of a package
+          # nobody can install, so this waits for it rather than assuming.
+          for _ in $(seq 12); do
+            curl -fsS "https://crates.io/api/v1/crates/svipall/$VERSION" >/dev/null && break
+            sleep 10
+          done
+          if ! curl -fsS "https://crates.io/api/v1/crates/svipall/$VERSION" >/dev/null; then
+            echo "svipall $VERSION is not on crates.io two minutes after the crates job" >&2
+            missing=1
+          fi
+          [ "$missing" = 0 ] || exit 1
+      - name: Install mcp-publisher
+        run: |
+          curl -fsSL "https://github.com/modelcontextprotocol/registry/releases/latest/download/mcp-publisher_linux_amd64.tar.gz" \
+            | tar xz mcp-publisher
+      - name: Publish
+        env:
+          VERSION: ${{ needs.version.outputs.version }}
+          MCP_PRIVATE_KEY: ${{ secrets.MCP_PRIVATE_KEY }}
+        run: |
+          # Re-running a release must not fail it. The registry refuses a version it already holds,
+          # and the search endpoint reports the latest one, which after a publish is this one.
+          published=$(curl -fsS \
+            "https://registry.modelcontextprotocol.io/v0.1/servers?search=dev.ilien.svipall/mcp&limit=1" \
+            | python3 -c "import json,sys; s=json.load(sys.stdin)['servers']; print(s[0]['server']['version'] if s else '')")
+          if [ "$published" = "$VERSION" ]; then
+            echo "dev.ilien.svipall/mcp $VERSION is already published; nothing to do"
+            exit 0
+          fi
+          ./mcp-publisher login dns --domain ilien.dev --private-key "$MCP_PRIVATE_KEY"
+          ./mcp-publisher publish
