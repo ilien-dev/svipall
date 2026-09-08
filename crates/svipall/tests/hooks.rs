@@ -5,7 +5,7 @@
 //! silent unless the operator turned it on, and it never denies anything it was not asked about.
 
 use serde_json::json;
-use svipall_mcp::hooks;
+use svipall::hooks;
 
 fn event(tool: &str) -> serde_json::Value {
     json!({

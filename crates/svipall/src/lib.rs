@@ -1,4 +1,4 @@
-//! svipall-mcp library re-exports.
+//! svipall library re-exports.
 
 pub mod audio;
 pub mod behavior;

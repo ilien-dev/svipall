@@ -8,13 +8,13 @@
 //!
 //! Cargo resolves features per package, then unifies them across every package it selects. The
 //! release job names binaries, not a package, so the whole workspace is selected — and a member
-//! that depends on `svipall-mcp` with its defaults on drags `local-models`, and therefore
+//! that depends on `svipall` with its defaults on drags `local-models`, and therefore
 //! `dep:ort`, back into the same build. This is not hypothetical: it is why the `v1.0.0-rc.2`
 //! release failed on three targets with `undefined symbol: __isoc23_strtoll` out of
 //! `libort_sys`, hours after `local-models` joined `default`.
 //!
 //! A member that wants inference asks for it by feature (`bench`'s own `onnx` names
-//! `svipall-mcp/onnx-detect` and `onnx-segment` outright). Nobody gets it by default.
+//! `svipall/onnx-detect` and `onnx-segment` outright). Nobody gets it by default.
 
 use std::fs;
 use std::path::{Path, PathBuf};
@@ -23,7 +23,7 @@ fn workspace_root() -> PathBuf {
     Path::new(env!("CARGO_MANIFEST_DIR"))
         .parent()
         .and_then(Path::parent)
-        .expect("crates/svipall-mcp sits two levels under the workspace root")
+        .expect("crates/svipall sits two levels under the workspace root")
         .to_path_buf()
 }
 
@@ -44,17 +44,18 @@ fn members(root: &Path) -> Vec<String> {
         .collect()
 }
 
-/// Every dependency line naming `svipall-mcp`, whichever table it sits in.
+/// Every dependency line naming `svipall`, whichever table it sits in. The name is a prefix
+/// of every other crate here, so it is matched with its separator rather than on its own.
 fn mcp_dependency_lines(manifest: &str) -> Vec<&str> {
     manifest
         .lines()
         .map(str::trim)
-        .filter(|line| line.starts_with("svipall-mcp") && line.contains('='))
+        .filter(|line| line.starts_with("svipall =") || line.starts_with("svipall="))
         .collect()
 }
 
 #[test]
-fn no_workspace_member_takes_svipall_mcp_with_its_defaults() {
+fn no_workspace_member_takes_svipall_with_its_defaults() {
     let root = workspace_root();
     let members = members(&root);
     assert!(
@@ -63,7 +64,7 @@ fn no_workspace_member_takes_svipall_mcp_with_its_defaults() {
     );
 
     for member in members {
-        if member == "crates/svipall-mcp" {
+        if member == "crates/svipall" {
             continue;
         }
         let manifest_path = root.join(&member).join("Cargo.toml");
@@ -73,7 +74,7 @@ fn no_workspace_member_takes_svipall_mcp_with_its_defaults() {
         for line in mcp_dependency_lines(&manifest) {
             assert!(
                 line.contains("default-features = false"),
-                "{member} depends on svipall-mcp with its default features, which turns on \
+                "{member} depends on svipall with its default features, which turns on \
                  local-models and so ort for the whole workspace build. The release job builds \
                  three targets without ort and they will not link. Ask for the features you \
                  need by name.\n    {line}"
@@ -86,7 +87,7 @@ fn no_workspace_member_takes_svipall_mcp_with_its_defaults() {
 #[test]
 fn local_models_is_a_default_and_pulls_ort() {
     let manifest = fs::read_to_string(Path::new(env!("CARGO_MANIFEST_DIR")).join("Cargo.toml"))
-        .expect("svipall-mcp Cargo.toml");
+        .expect("svipall Cargo.toml");
     assert!(
         manifest.contains(r#"default = ["impersonate", "local-models"]"#),
         "if local-models leaves the defaults, the invariant next door is no longer needed"

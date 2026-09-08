@@ -2,7 +2,7 @@
 mod support;
 use serde_json::{json, Value};
 use support::{Reply, Site};
-use svipall_mcp::{
+use svipall::{
     browser::{BrowserPool, BrowserTier, PageOpts},
     server::SvipallServer,
     tools::WebFetchParams,
@@ -30,7 +30,7 @@ async fn saved_policy_is_applied_without_restarting_or_mutating_inflight_calls()
     assert!(std::sync::Arc::ptr_eq(&first, &same));
     let original = first.config().warm_wait_ms;
     first
-        .status_json(svipall_mcp::tools::WebStatusParams {
+        .status_json(svipall::tools::WebStatusParams {
             configure: Some(json!({"warm_wait_ms":original + 1})),
             ..Default::default()
         })
@@ -179,7 +179,7 @@ async fn native_mode_keeps_real_apis_and_workers_even_after_an_emulated_pool() {
 }
 
 fn scratch_dirs() -> Vec<String> {
-    std::fs::read_dir(svipall_mcp::browser::sessions_dir())
+    std::fs::read_dir(svipall::browser::sessions_dir())
         .map(|d| {
             d.flatten()
                 .map(|e| e.file_name().to_string_lossy().to_string())

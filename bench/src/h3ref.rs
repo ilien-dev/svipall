@@ -65,7 +65,7 @@ fn server_config(ca: &quiche::selfsigned::SelfSigned) -> Result<quiche::Config> 
 /// name it has never seen, and its own rule is never to open a first connection over QUIC), and the
 /// SPKI pin accepts this one certificate rather than turning certificate checking off.
 fn launch_chrome(port: u16, ca: &quiche::selfsigned::SelfSigned) -> Result<Child> {
-    let exe = svipall_mcp::browser::managed_browser().ok_or_else(|| {
+    let exe = svipall::browser::managed_browser().ok_or_else(|| {
         anyhow!("no managed Chrome for Testing under ~/.svipall/browser/cft; run a browser-tier fetch once to provision one")
     })?;
     // The pin is computed from the certificate we just made, so the two can never drift — which

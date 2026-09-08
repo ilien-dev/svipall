@@ -12,8 +12,8 @@ use crate::targets::{public_verdict, Set, Target, Verdict};
 use serde_json::Value;
 use std::collections::BTreeMap;
 use std::time::Instant;
-use svipall_mcp::server::SvipallServer;
-use svipall_mcp::tools::WebFetchParams;
+use svipall::server::SvipallServer;
+use svipall::tools::WebFetchParams;
 
 /// The server every run drives.
 ///

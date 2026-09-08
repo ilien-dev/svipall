@@ -1,7 +1,7 @@
 //! svipall-solver — captcha job store and HTTP API shared by the MCP server.
 //!
 //! Provides the job queue, SQLite persistence and the HTTP endpoints (legacy `in.php`/`res.php`
-//! plus `createTask`/`getTaskResult`). Actual solving lives in `svipall-mcp` (browser token
+//! plus `createTask`/`getTaskResult`). Actual solving lives in `svipall` (browser token
 //! extraction, local OCR, human dashboard); this crate only stores and serves jobs.
 
 pub mod api;

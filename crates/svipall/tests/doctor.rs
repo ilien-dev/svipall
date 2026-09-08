@@ -5,7 +5,7 @@
 //! against this machine, because a test that passes only where a browser happens to be installed
 //! tells you nothing about the machine the installer actually lands on.
 
-use svipall_mcp::doctor::{self, Facts};
+use svipall::doctor::{self, Facts};
 
 /// Facts from a machine where everything is in place. Each test spoils exactly one of them.
 fn healthy() -> Facts {

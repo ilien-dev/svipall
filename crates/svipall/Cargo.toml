@@ -1,16 +1,37 @@
 [package]
-name = "svipall-mcp"
-version = "1.0.0-rc.3"
+name = "svipall"
+version.workspace = true
+repository.workspace = true
 edition = "2021"
 license = "AGPL-3.0-only"
-description = "MCP server for svipall: web exploration with a real tier ladder and local captcha solving"
+description = "Local-first web scraping past anti-bot walls, with an MCP server, a CLI and captcha solving that runs on your machine"
+# crates.io renders this README, and the MCP Registry reads the rendered HTML to prove the crate is
+# ours: the `mcp-name:` line in it is the whole verification. Naming it here is what publishes it.
+readme = "README.md"
+keywords = ["mcp", "scraping", "crawler", "captcha", "browser"]
+categories = ["command-line-utilities", "web-programming"]
+
+# Both binaries have to be named, because neither is named after the package any more. `svipall-mcp`
+# is the MCP server every client config invokes and `svipall` is the CLI; the crate that carries
+# them is the product, so it is called after the product.
+[lib]
+name = "svipall"
+path = "src/lib.rs"
+
+[[bin]]
+name = "svipall-mcp"
+path = "src/main.rs"
+
+[[bin]]
+name = "svipall"
+path = "src/bin/svipall.rs"
 
 [dependencies]
-svipall-core = { path = "../svipall-core" }
-svipall-http = { path = "../svipall-http", default-features = false }
-svipall-solver = { path = "../svipall-solver" }
-svipall-dashboard = { path = "../svipall-dashboard" }
-svipall-models = { path = "../svipall-models" }
+svipall-core = { path = "../svipall-core", version = "1.0.0-rc.3" }
+svipall-http = { path = "../svipall-http", version = "1.0.0-rc.3", default-features = false }
+svipall-solver = { path = "../svipall-solver", version = "1.0.0-rc.3" }
+svipall-dashboard = { path = "../svipall-dashboard", version = "1.0.0-rc.3" }
+svipall-models = { path = "../svipall-models", version = "1.0.0-rc.3" }
 tokio = { workspace = true }
 axum = { workspace = true }
 serde = { workspace = true }

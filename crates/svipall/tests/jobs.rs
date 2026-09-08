@@ -15,10 +15,10 @@ use axum::http::{Request, StatusCode};
 use serde_json::{json, Value};
 use std::sync::Arc;
 use support::{Reply, Site};
-use svipall_mcp::jobs::{JobKind, JobRunner};
-use svipall_mcp::rest;
-use svipall_mcp::server::SvipallServer;
-use svipall_mcp::tools::WebCrawlParams;
+use svipall::jobs::{JobKind, JobRunner};
+use svipall::rest;
+use svipall::server::SvipallServer;
+use svipall::tools::WebCrawlParams;
 use tower::ServiceExt;
 
 const KEY: &str = "a-key-that-is-long-enough";

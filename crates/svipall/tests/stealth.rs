@@ -1,6 +1,6 @@
 //! Network checks that the browser tiers do not announce themselves.
 //!
-//! Ignored by default; run with `cargo test -p svipall-mcp --test stealth -- --ignored`.
+//! Ignored by default; run with `cargo test -p svipall --test stealth -- --ignored`.
 //!
 //! Every assertion here corresponds to something that was actually measured failing before the
 //! stealth rewrite, against bot.sannysoft.com on the `stealth` tier:
@@ -13,7 +13,7 @@
 mod support;
 
 use serde_json::Value;
-use svipall_mcp::browser::{BrowserPool, BrowserTier, PageOpts};
+use svipall::browser::{BrowserPool, BrowserTier, PageOpts};
 
 async fn probe(js: &str) -> Value {
     let cfg = svipall_core::Config::default();
@@ -99,8 +99,8 @@ async fn canvas_noise_is_deterministic_within_a_page() {
 #[tokio::test]
 #[ignore = "network + browser"]
 async fn a_real_page_yields_a_usable_snapshot() {
-    use svipall_mcp::server::SvipallServer;
-    use svipall_mcp::tools::WebSnapshotParams;
+    use svipall::server::SvipallServer;
+    use svipall::tools::WebSnapshotParams;
 
     let s = SvipallServer::new(None, svipall_core::Config::default(), None);
     if !s.pool().available() {
@@ -135,8 +135,8 @@ async fn a_real_page_yields_a_usable_snapshot() {
 #[tokio::test]
 #[ignore = "network + browser"]
 async fn show_a_snapshot() {
-    use svipall_mcp::server::SvipallServer;
-    use svipall_mcp::tools::WebSnapshotParams;
+    use svipall::server::SvipallServer;
+    use svipall::tools::WebSnapshotParams;
     let s = SvipallServer::new(None, svipall_core::Config::default(), None);
     if !s.pool().available() {
         return;
@@ -161,13 +161,13 @@ async fn show_a_snapshot() {
 #[tokio::test]
 #[ignore = "network + browser"]
 async fn a_page_that_renders_from_json_gives_up_its_endpoint() {
-    use svipall_mcp::server::SvipallServer;
+    use svipall::server::SvipallServer;
     let s = SvipallServer::new(None, svipall_core::Config::default(), None);
     if !s.pool().available() {
         return;
     }
     let out = s
-        .capture_json(svipall_mcp::tools::WebCaptureParams {
+        .capture_json(svipall::tools::WebCaptureParams {
             // A page that deliberately renders from AJAX, so a zero here is a real failure rather
             // than a server-rendered site having nothing to capture.
             url: "https://quotes.toscrape.com/scroll".into(),
@@ -196,14 +196,14 @@ async fn a_page_that_renders_from_json_gives_up_its_endpoint() {
 #[ignore = "needs a real browser"]
 async fn an_isolated_fetch_leaves_no_profile_behind() {
     let before = count_once_profiles();
-    let server = svipall_mcp::server::SvipallServer::with_store(
+    let server = svipall::server::SvipallServer::with_store(
         None,
         svipall_core::Config::default(),
         None,
         None,
     );
     let _ = server
-        .fetch_json(svipall_mcp::tools::WebFetchParams {
+        .fetch_json(svipall::tools::WebFetchParams {
             url: "https://example.com/".into(),
             mode: Some("browser".into()),
             isolated: Some(true),
@@ -218,7 +218,7 @@ async fn an_isolated_fetch_leaves_no_profile_behind() {
 }
 
 fn count_once_profiles() -> usize {
-    std::fs::read_dir(svipall_mcp::browser::sessions_dir())
+    std::fs::read_dir(svipall::browser::sessions_dir())
         .map(|d| {
             d.flatten()
                 .filter(|e| e.file_name().to_string_lossy().starts_with("once-"))
@@ -245,7 +245,7 @@ async fn a_feed_that_loads_on_scroll_is_read_whole_when_asked() {
 </script></body></html>"#;
     let site = Site::start(vec![("/", Reply::html(page))]).await;
     support::isolate();
-    let s = svipall_mcp::server::SvipallServer::with_store(
+    let s = svipall::server::SvipallServer::with_store(
         None,
         svipall_core::Config::default(),
         None,
@@ -254,7 +254,7 @@ async fn a_feed_that_loads_on_scroll_is_read_whole_when_asked() {
             .map(std::sync::Arc::new),
     );
     let out = s
-        .fetch_json(svipall_mcp::tools::WebFetchParams {
+        .fetch_json(svipall::tools::WebFetchParams {
             url: site.url("/"),
             scroll: Some("auto".into()),
             max_tier: Some("browser".into()),
@@ -318,7 +318,7 @@ async fn a_browser_page_reports_the_documents_response_headers() {
         visible: false,
     };
     let (_pooled, page) = pool.page(&opts).await.expect("open page");
-    let mut watch = svipall_mcp::wire::DocumentWatch::start(&page)
+    let mut watch = svipall::wire::DocumentWatch::start(&page)
         .await
         .expect("start the document watch");
     pool.navigate(&page, &site.url("/"))
@@ -410,13 +410,13 @@ async fn a_snapshot_reference_clicks_the_right_element_and_leaves_no_trace() {
 </main></body></html>"#;
     let site = Site::start(vec![("/", Reply::html(page))]).await;
     support::isolate();
-    let s = svipall_mcp::server::SvipallServer::new(None, svipall_core::Config::default(), None);
+    let s = svipall::server::SvipallServer::new(None, svipall_core::Config::default(), None);
     if !s.pool().available() {
         eprintln!("no browser available; skipping");
         return;
     }
     let snap = s
-        .snapshot_json(svipall_mcp::tools::WebSnapshotParams {
+        .snapshot_json(svipall::tools::WebSnapshotParams {
             url: site.url("/"),
             find: Some("Second".into()),
             max_depth: None,
@@ -437,7 +437,7 @@ async fn a_snapshot_reference_clicks_the_right_element_and_leaves_no_trace() {
     assert!(reference.starts_with('e'), "{reference}");
 
     let out = s
-        .act_json(svipall_mcp::tools::WebActParams {
+        .act_json(svipall::tools::WebActParams {
             url: site.url("/"),
             actions: vec![
                 serde_json::json!({"do": "click", "ref": reference}),

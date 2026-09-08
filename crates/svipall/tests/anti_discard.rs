@@ -17,10 +17,10 @@
 mod support;
 
 use support::{Reply, Site};
+use svipall::quality_cli::Example;
+use svipall::server::SvipallServer;
+use svipall::tools::WebFetchParams;
 use svipall_core::quality::substance::Label;
-use svipall_mcp::quality_cli::Example;
-use svipall_mcp::server::SvipallServer;
-use svipall_mcp::tools::WebFetchParams;
 
 /// The answer nothing else on the web says, so finding it in the response proves the page came
 /// back rather than something like it.
@@ -86,9 +86,9 @@ fn install_a_classifier(home: &std::path::Path) {
             .replace(":", "-")
     ));
     std::fs::write(&set, body).expect("write training set");
-    svipall_mcp::quality_cli::train(&set, &home.join("models"), 40, 0.5).expect("train");
+    svipall::quality_cli::train(&set, &home.join("models"), 40, 0.5).expect("train");
     assert!(
-        svipall_mcp::substance::available(),
+        svipall::substance::available(),
         "the model was written where svipall does not look for it"
     );
 }

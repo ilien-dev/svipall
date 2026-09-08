@@ -1,7 +1,7 @@
 //! Local proxy fixtures exercise public-domain policy without contacting external sites.
 mod support;
 use support::{Reply, Site};
-use svipall_mcp::{server::SvipallServer, tools::WebFetchParams};
+use svipall::{server::SvipallServer, tools::WebFetchParams};
 
 fn cfg() -> svipall_core::Config {
     support::isolate();
@@ -128,7 +128,7 @@ async fn a_visit_limit_keeps_unrequested_crawl_pages_pending() {
     }
     svipall_core::store::ROUTES.insert("crawl-limit.test", &site.url(""));
     let out = server
-        .crawl_json(svipall_mcp::tools::WebCrawlParams {
+        .crawl_json(svipall::tools::WebCrawlParams {
             url: root.into(),
             max_pages: Some(1),
             robots: Some("ignore".into()),
@@ -247,7 +247,7 @@ async fn short_success_never_triggers_privacy_fallback() {
 #[tokio::test]
 #[ignore = "launches a real local browser against a loopback proxy"]
 async fn native_is_last_and_an_opt_out_prevents_its_launch() {
-    use svipall_mcp::browser::{BrowserPool, BrowserTier, PageOpts};
+    use svipall::browser::{BrowserPool, BrowserTier, PageOpts};
     let config = svipall_core::Config {
         request_limit: 12,
         max_tier: "browser".into(),

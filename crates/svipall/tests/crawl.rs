@@ -8,9 +8,9 @@ mod support;
 use serde_json::Value;
 use std::sync::Arc;
 use support::{Reply, Site};
-use svipall_mcp::progress::{CrawlEvent, EventKind, ProgressSink};
-use svipall_mcp::server::SvipallServer;
-use svipall_mcp::tools::WebCrawlParams;
+use svipall::progress::{CrawlEvent, EventKind, ProgressSink};
+use svipall::server::SvipallServer;
+use svipall::tools::WebCrawlParams;
 
 /// A database file both "runs" share, deleted when the guard drops.
 struct Db(std::path::PathBuf);

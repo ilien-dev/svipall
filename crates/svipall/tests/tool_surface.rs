@@ -9,7 +9,7 @@ mod support;
 
 use rmcp::{model::Tool, ServerHandler};
 use serde_json::Value;
-use svipall_mcp::server::SvipallServer;
+use svipall::server::SvipallServer;
 
 fn server() -> SvipallServer {
     support::isolate();
