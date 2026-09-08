@@ -2,7 +2,7 @@
 use crate::targets::{historical_verdict, Set};
 use serde_json::json;
 use std::time::{Instant, SystemTime, UNIX_EPOCH};
-use svipall_mcp::{server::SvipallServer, tools::WebFetchParams};
+use svipall::{server::SvipallServer, tools::WebFetchParams};
 
 pub async fn run(args: &[String]) -> anyhow::Result<usize> {
     let flag = |name| crate::flag(args, name);

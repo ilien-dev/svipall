@@ -1,7 +1,7 @@
 //! A failed native attempt must still disclose the privacy exposure and retain the earlier page.
 mod support;
 use support::{Reply, Site};
-use svipall_mcp::{server::SvipallServer, tools::WebFetchParams};
+use svipall::{server::SvipallServer, tools::WebFetchParams};
 
 #[tokio::test]
 #[ignore = "opens a local browser; one fixture renderer stalls until the fetch deadline"]

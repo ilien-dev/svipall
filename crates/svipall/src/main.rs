@@ -2,8 +2,8 @@
 
 use rmcp::{transport::stdio, ServiceExt};
 use std::sync::Arc;
-use svipall_mcp::server::SvipallServer;
-use svipall_mcp::solver_engine::Solved;
+use svipall::server::SvipallServer;
+use svipall::solver_engine::Solved;
 use svipall_solver::{db, queue};
 use tracing_subscriber::EnvFilter;
 
@@ -22,7 +22,7 @@ async fn main() -> anyhow::Result<()> {
         .with_writer(std::io::stderr)
         .init();
     svipall_core::ensure_dirs();
-    svipall_mcp::provision::ensure_browser(&mut cfg).await?;
+    svipall::provision::ensure_browser(&mut cfg).await?;
     svipall_core::evict_old_profiles();
 
     // Tokenised dashboard URL, surfaced through web_status so the operator can find it.
@@ -80,7 +80,7 @@ async fn main() -> anyhow::Result<()> {
     if rest_port != 0 {
         let (rest, bind) = (server.clone(), cfg.rest_bind.clone());
         tokio::spawn(async move {
-            if let Err(e) = svipall_mcp::rest::serve(rest, &bind, rest_port).await {
+            if let Err(e) = svipall::rest::serve(rest, &bind, rest_port).await {
                 tracing::warn!("rest api failed: {}", e);
             }
         });

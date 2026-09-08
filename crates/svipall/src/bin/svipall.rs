@@ -11,8 +11,8 @@
 //! report of a block.
 
 use serde_json::{json, Value};
-use svipall_mcp::server::SvipallServer;
-use svipall_mcp::tools::*;
+use svipall::server::SvipallServer;
+use svipall::tools::*;
 
 const USAGE: &str = "\
 svipall — local-first web scraping, from a shell
@@ -96,7 +96,7 @@ async fn main() {
     if matches!(args[0].as_str(), "--version" | "-V" | "version") {
         println!(
             "{}",
-            serde_json::to_string_pretty(&svipall_mcp::doctor::version_json()).unwrap_or_default()
+            serde_json::to_string_pretty(&svipall::doctor::version_json()).unwrap_or_default()
         );
         std::process::exit(0);
     }
@@ -104,7 +104,7 @@ async fn main() {
     // no browser pool and reads no cache. Straight from stdin to stdout.
     if args[0] == "hook" {
         let event = args.get(1).map(String::as_str).unwrap_or_default();
-        match svipall_mcp::hooks::run(event) {
+        match svipall::hooks::run(event) {
             Ok(value) => {
                 println!("{}", serde_json::to_string(&value).unwrap_or_default());
                 std::process::exit(0);
@@ -143,14 +143,14 @@ async fn main() {
 
 async fn run(args: &[String]) -> anyhow::Result<Value> {
     if args[0] == "config" {
-        return svipall_mcp::settings::run(&args[1..]);
+        return svipall::settings::run(&args[1..]);
     }
     let mut cfg = svipall_core::config::load_in(&svipall_core::config::home_dir())?;
     if !matches!(
         args[0].as_str(),
         "browser" | "doctor" | "status" | "quality" | "solver"
     ) {
-        svipall_mcp::provision::ensure_browser(&mut cfg).await?;
+        svipall::provision::ensure_browser(&mut cfg).await?;
     }
     svipall_core::ensure_dirs();
     // The page cache and the notes; without it everything still works, just without memory.
@@ -248,9 +248,9 @@ async fn run(args: &[String]) -> anyhow::Result<Value> {
             let fetcher = server.fetcher();
             let out = match engine.as_deref() {
                 Some("all" | "merge") => {
-                    svipall_mcp::search::search_all(fetcher.as_ref(), &query, 10).await
+                    svipall::search::search_all(fetcher.as_ref(), &query, 10).await
                 }
-                e => svipall_mcp::search::search(fetcher.as_ref(), &query, 10, e).await,
+                e => svipall::search::search(fetcher.as_ref(), &query, 10, e).await,
             };
             Ok(json!({
                 "query": query,
@@ -371,7 +371,7 @@ async fn run(args: &[String]) -> anyhow::Result<Value> {
                 let db = jobs
                     .as_ref()
                     .ok_or_else(|| anyhow::anyhow!("no job database to put the pages in"))?;
-                return svipall_mcp::quality_cli::ask(
+                return svipall::quality_cli::ask(
                     store,
                     db,
                     flags.number("count").unwrap_or(20),
@@ -386,7 +386,7 @@ async fn run(args: &[String]) -> anyhow::Result<Value> {
                     let store = server
                         .store()
                         .ok_or_else(|| anyhow::anyhow!("no cache to read a history from"))?;
-                    svipall_mcp::quality_cli::export_training(
+                    svipall::quality_cli::export_training(
                         store,
                         jobs.as_ref(),
                         std::path::Path::new(&out),
@@ -397,7 +397,7 @@ async fn run(args: &[String]) -> anyhow::Result<Value> {
                     let input = flags
                         .value("in")
                         .ok_or_else(|| anyhow::anyhow!("train needs --in FILE.jsonl"))?;
-                    svipall_mcp::quality_cli::train(
+                    svipall::quality_cli::train(
                         std::path::Path::new(&input),
                         std::path::Path::new(&out),
                         flags.number("epochs").unwrap_or(30),
@@ -414,7 +414,7 @@ async fn run(args: &[String]) -> anyhow::Result<Value> {
         }
         "status" => server.status_json(serde_json::from_value(json!({}))?).await,
         // Reads this machine rather than a page, which is why it takes the config and nothing else.
-        "doctor" => Ok(svipall_mcp::doctor::report(&cfg)),
+        "doctor" => Ok(svipall::doctor::report(&cfg)),
         "serve" => {
             // The one command whose object is about itself rather than about a page, and the one
             // that answers when it *stops* rather than when it starts. Handled here rather than in
@@ -429,10 +429,10 @@ async fn run(args: &[String]) -> anyhow::Result<Value> {
                     8788
                 });
             let bind = flags.value("bind").unwrap_or_else(|| cfg.rest_bind.clone());
-            svipall_mcp::rest::serve(server.clone(), &bind, port).await?;
+            svipall::rest::serve(server.clone(), &bind, port).await?;
             Ok(json!({
                 "served": format!("http://{bind}:{port}/v1/"),
-                "routes": svipall_mcp::rest::ROUTES.len(),
+                "routes": svipall::rest::ROUTES.len(),
                 "stopped": "ctrl-c",
             }))
         }

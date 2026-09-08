@@ -20,8 +20,8 @@ use axum::http::{Request, StatusCode};
 use serde_json::{json, Value};
 use std::sync::Arc;
 use support::{Reply, Site};
-use svipall_mcp::rest;
-use svipall_mcp::server::SvipallServer;
+use svipall::rest;
+use svipall::server::SvipallServer;
 use tower::ServiceExt;
 
 const KEY: &str = "a-key-that-is-long-enough";
@@ -47,8 +47,8 @@ fn app() -> axum::Router {
 }
 
 /// A runner that is built but never started: these tests drive routes, not jobs.
-fn runner(s: SvipallServer) -> svipall_mcp::jobs::JobRunner {
-    svipall_mcp::jobs::JobRunner::new(s, 2)
+fn runner(s: SvipallServer) -> svipall::jobs::JobRunner {
+    svipall::jobs::JobRunner::new(s, 2)
 }
 
 /// A request with everything a legitimate local client sends, and nothing a browser page would.
@@ -355,7 +355,7 @@ async fn the_same_fetch_through_http_and_through_the_seam_return_the_same_object
     // one of the three ways to drive svipall is telling a different story about the same page.
     let site = Site::start(vec![("/a", Reply::page("Alpha", &[]))]).await;
     let direct = server()
-        .fetch_json(svipall_mcp::tools::WebFetchParams {
+        .fetch_json(svipall::tools::WebFetchParams {
             url: site.url("/a"),
             ..Default::default()
         })

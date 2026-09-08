@@ -21,7 +21,7 @@ use serde_json::{json, Map, Value};
 use std::io::{Read, Write};
 use std::net::{Ipv4Addr, SocketAddr, TcpListener};
 use std::time::{Duration, Instant};
-use svipall_mcp::browser::{BrowserPool, BrowserTier, PageOpts};
+use svipall::browser::{BrowserPool, BrowserTier, PageOpts};
 
 /// The probe page. Embedded rather than read at runtime so the benchmark has no working directory
 /// to get wrong and no file to lose.

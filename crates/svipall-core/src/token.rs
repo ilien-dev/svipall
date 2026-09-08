@@ -56,7 +56,7 @@ mod tests {
     #[test]
     fn an_empty_secret_matches_an_empty_offer_which_is_why_callers_must_refuse_one() {
         // Documented rather than defended here: the arithmetic is right and the policy belongs to
-        // the caller. `svipall_mcp::rest::require_key` and the dashboard both refuse an empty
+        // the caller. `svipall::rest::require_key` and the dashboard both refuse an empty
         // secret before reaching this function, and each has its own test for that.
         assert!(token_matches("", Some(&String::new())));
     }

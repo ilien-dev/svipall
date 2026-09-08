@@ -10,8 +10,8 @@ mod support;
 
 use serde_json::Value;
 use support::{Reply, Site};
-use svipall_mcp::server::SvipallServer;
-use svipall_mcp::tools::WebFetchParams;
+use svipall::server::SvipallServer;
+use svipall::tools::WebFetchParams;
 
 fn server() -> SvipallServer {
     support::isolate();
@@ -340,7 +340,7 @@ async fn a_note_survives_the_session_that_wrote_it() {
     let first =
         SvipallServer::with_store(None, svipall_core::Config::default(), None, Some(store()));
     first
-        .notes_json(svipall_mcp::tools::WebNotesParams {
+        .notes_json(svipall::tools::WebNotesParams {
             action: Some("set".into()),
             key: Some("shop/last_id".into()),
             value: Some("4820".into()),
@@ -351,7 +351,7 @@ async fn a_note_survives_the_session_that_wrote_it() {
     let second =
         SvipallServer::with_store(None, svipall_core::Config::default(), None, Some(store()));
     let got = second
-        .notes_json(svipall_mcp::tools::WebNotesParams {
+        .notes_json(svipall::tools::WebNotesParams {
             action: Some("get".into()),
             key: Some("shop/last_id".into()),
             value: None,
@@ -366,7 +366,7 @@ async fn a_note_survives_the_session_that_wrote_it() {
 async fn a_note_nobody_wrote_is_reported_as_absent_rather_than_empty() {
     // "" is something somebody stored; not found is a question nobody has answered.
     let out = server()
-        .notes_json(svipall_mcp::tools::WebNotesParams {
+        .notes_json(svipall::tools::WebNotesParams {
             action: Some("get".into()),
             key: Some("never/written".into()),
             value: None,
@@ -397,7 +397,7 @@ async fn every_fetch_leaves_a_line_the_operator_can_read_back() {
     server.fetch_json(http(&site.url("/wall"))).await;
 
     let out = server
-        .log_json(svipall_mcp::tools::WebLogParams {
+        .log_json(svipall::tools::WebLogParams {
             view: Some("recent".into()),
             domain: None,
             since_secs: Some(3600),
@@ -453,7 +453,7 @@ async fn a_watch_reports_a_change_the_second_time_and_not_the_first() {
     let url = site.url("/");
 
     server
-        .watch_json(svipall_mcp::tools::WebWatchParams {
+        .watch_json(svipall::tools::WebWatchParams {
             action: Some("add".into()),
             url: Some(url.clone()),
             interval_secs: Some(60),
@@ -464,7 +464,7 @@ async fn a_watch_reports_a_change_the_second_time_and_not_the_first() {
         .expect("added");
 
     let first = server
-        .watch_json(svipall_mcp::tools::WebWatchParams {
+        .watch_json(svipall::tools::WebWatchParams {
             action: Some("check".into()),
             url: Some(url.clone()),
             interval_secs: None,
@@ -476,7 +476,7 @@ async fn a_watch_reports_a_change_the_second_time_and_not_the_first() {
     assert_eq!(first["results"][0]["changed"], false, "{first}");
 
     let second = server
-        .watch_json(svipall_mcp::tools::WebWatchParams {
+        .watch_json(svipall::tools::WebWatchParams {
             action: Some("check".into()),
             url: Some(url.clone()),
             interval_secs: None,
@@ -491,7 +491,7 @@ async fn a_watch_reports_a_change_the_second_time_and_not_the_first() {
     );
 
     let listed = server
-        .watch_json(svipall_mcp::tools::WebWatchParams {
+        .watch_json(svipall::tools::WebWatchParams {
             action: Some("list".into()),
             url: None,
             interval_secs: None,
@@ -517,7 +517,7 @@ async fn adding_a_page_already_watched_keeps_what_it_has_learned() {
         Some(store.clone()),
     );
     let url = site.url("/");
-    let add = |interval| svipall_mcp::tools::WebWatchParams {
+    let add = |interval| svipall::tools::WebWatchParams {
         action: Some("add".into()),
         url: Some(url.clone()),
         interval_secs: Some(interval),
@@ -526,7 +526,7 @@ async fn adding_a_page_already_watched_keeps_what_it_has_learned() {
     };
     server.watch_json(add(60)).await.expect("added");
     server
-        .watch_json(svipall_mcp::tools::WebWatchParams {
+        .watch_json(svipall::tools::WebWatchParams {
             action: Some("check".into()),
             url: Some(url.clone()),
             interval_secs: None,
@@ -538,7 +538,7 @@ async fn adding_a_page_already_watched_keeps_what_it_has_learned() {
     server.watch_json(add(86_400)).await.expect("re-added");
 
     let listed = server
-        .watch_json(svipall_mcp::tools::WebWatchParams {
+        .watch_json(svipall::tools::WebWatchParams {
             action: Some("list".into()),
             url: None,
             interval_secs: None,
@@ -767,7 +767,7 @@ async fn a_diff_with_nothing_to_compare_does_not_claim_a_change() {
     // unknown, which is null, next to `first_seen`.
     let s = server();
     let v = s
-        .diff_json(svipall_mcp::tools::WebDiffParams {
+        .diff_json(svipall::tools::WebDiffParams {
             url: "https://never-seen.test/page".into(),
             refetch: Some(false),
         })
@@ -869,7 +869,7 @@ async fn a_watch_on_a_selector_ignores_changes_elsewhere_on_the_page() {
     let url = url::Url::from_file_path(&file).unwrap().to_string();
 
     let add = s
-        .watch_json(svipall_mcp::tools::WebWatchParams {
+        .watch_json(svipall::tools::WebWatchParams {
             action: Some("add".into()),
             url: Some(url.clone()),
             interval_secs: Some(60),
@@ -882,7 +882,7 @@ async fn a_watch_on_a_selector_ignores_changes_elsewhere_on_the_page() {
 
     async fn check(s: &SvipallServer, url: &str) -> Value {
         let v = s
-            .watch_json(svipall_mcp::tools::WebWatchParams {
+            .watch_json(svipall::tools::WebWatchParams {
                 action: Some("check".into()),
                 url: Some(url.to_string()),
                 interval_secs: None,
@@ -913,7 +913,7 @@ async fn a_watch_on_a_selector_ignores_changes_elsewhere_on_the_page() {
 /// before anything is written.
 #[tokio::test]
 async fn a_pool_of_exits_is_stored_with_its_countries_and_removed_whole() {
-    use svipall_mcp::tools::WebRouteParams;
+    use svipall::tools::WebRouteParams;
     let s = server();
     let bad = s
         .route_json(WebRouteParams {
@@ -1834,7 +1834,7 @@ async fn web_status_reports_the_budget_and_clear_budget_empties_it() {
     );
 
     let after = s
-        .status_json(svipall_mcp::tools::WebStatusParams {
+        .status_json(svipall::tools::WebStatusParams {
             clear_budget: Some(domain.into()),
             ..Default::default()
         })

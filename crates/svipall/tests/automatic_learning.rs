@@ -1,7 +1,7 @@
 //! Controlled learning measurement; every network connection terminates on loopback.
 mod support;
 use support::{Reply, Site};
-use svipall_mcp::{server::SvipallServer, tools::WebFetchParams};
+use svipall::{server::SvipallServer, tools::WebFetchParams};
 
 #[tokio::test]
 #[ignore = "measures three visits using a real local browser"]

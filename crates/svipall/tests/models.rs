@@ -81,15 +81,15 @@ fn quadrant_png(size: u32) -> Vec<u8> {
 fn the_grid_classifier_runs_a_real_session_and_scores_bright_tiles_as_bright() {
     let _guard = HOME.lock().unwrap();
     let _home = home_with(&["grid"]);
-    assert!(svipall_mcp::grid::available());
-    let cfg = svipall_mcp::grid::load_config().unwrap();
+    assert!(svipall::grid::available());
+    let cfg = svipall::grid::load_config().unwrap();
     assert_eq!(cfg.classes, vec!["dark", "bright"]);
     let tiles = vec![png(16, 255), png(16, 0), png(16, 200)];
-    let bright = svipall_mcp::grid::classify(&tiles, 1).unwrap();
+    let bright = svipall::grid::classify(&tiles, 1).unwrap();
     assert!(bright[0] > 0.95, "white tile: {bright:?}");
     assert!(bright[1] < 0.05, "black tile: {bright:?}");
     assert!(bright[2] > 0.7, "light grey tile: {bright:?}");
-    let picked = svipall_mcp::grid::select(&bright, cfg.threshold);
+    let picked = svipall::grid::select(&bright, cfg.threshold);
     assert_eq!(
         picked,
         vec![0, 2],
@@ -103,7 +103,7 @@ fn the_grid_classifier_runs_a_real_session_and_scores_bright_tiles_as_bright() {
 fn a_swapped_model_file_is_picked_up_without_a_restart() {
     let _guard = HOME.lock().unwrap();
     let home = home_with(&["grid"]);
-    let first = svipall_mcp::grid::classify(&[png(16, 255)], 1).unwrap();
+    let first = svipall::grid::classify(&[png(16, 255)], 1).unwrap();
     assert!(first[0] > 0.95);
     // Swap the classes around by rewriting the sidecar and replacing the graph with one whose
     // planes are the other way round — here, simply the same graph but read as class 0.
@@ -113,7 +113,7 @@ fn a_swapped_model_file_is_picked_up_without_a_restart() {
     std::thread::sleep(std::time::Duration::from_millis(1100));
     std::fs::write(models.join("grid.onnx"), &bytes).unwrap();
     // Same graph, so the same answer — but through a reload, which must not fail.
-    let again = svipall_mcp::grid::classify(&[png(16, 255)], 1).unwrap();
+    let again = svipall::grid::classify(&[png(16, 255)], 1).unwrap();
     assert!((again[0] - first[0]).abs() < 1e-6);
     std::env::remove_var("SVIPALL_HOME");
 }
@@ -123,13 +123,13 @@ fn a_swapped_model_file_is_picked_up_without_a_restart() {
 fn the_segmenter_runs_a_real_session_and_marks_the_cells_the_mask_touches() {
     let _guard = HOME.lock().unwrap();
     let _home = home_with(&["segment"]);
-    assert!(svipall_mcp::segment::available());
+    assert!(svipall::segment::available());
     // A white top-left quarter over a 4x4 grid is exactly the four top-left cells.
-    let mut cells = svipall_mcp::segment::cells(&quadrant_png(64), 1, 4, 4).unwrap();
+    let mut cells = svipall::segment::cells(&quadrant_png(64), 1, 4, 4).unwrap();
     cells.sort_unstable();
     assert_eq!(cells, vec![0, 1, 4, 5]);
     // The dark class is everything else.
-    let mut dark = svipall_mcp::segment::cells(&quadrant_png(64), 0, 4, 4).unwrap();
+    let mut dark = svipall::segment::cells(&quadrant_png(64), 0, 4, 4).unwrap();
     dark.sort_unstable();
     assert_eq!(dark.len(), 12);
     assert!(!dark.contains(&0) && !dark.contains(&5));
@@ -147,27 +147,27 @@ fn the_embedded_models_when_present_keep_their_sidecars_contract() {
     std::env::set_var("SVIPALL_HOME", &dir);
     #[cfg(feature = "onnx-detect")]
     if svipall_models::detect().is_some() {
-        assert!(svipall_mcp::detect::available());
-        let cfg = svipall_mcp::detect::load_config().unwrap();
+        assert!(svipall::detect::available());
+        let cfg = svipall::detect::load_config().unwrap();
         assert!(cfg.classes.iter().any(|c| c == "bus"));
         // A flat grey picture holds nothing; the detector must say so rather than hallucinate.
-        let dets = svipall_mcp::detect::detect(&png(320, 128), 0).unwrap();
+        let dets = svipall::detect::detect(&png(320, 128), 0).unwrap();
         assert!(dets.len() < 5, "{} boxes on a blank picture", dets.len());
-        let s = svipall_mcp::detect::strongest(&png(320, 128), 0).unwrap();
+        let s = svipall::detect::strongest(&png(320, 128), 0).unwrap();
         assert!((0.0..=1.0).contains(&s));
         // And the classifier stands on the detector when there is no classifier.
-        assert!(svipall_mcp::grid::available());
-        let g = svipall_mcp::grid::load_config().unwrap();
+        assert!(svipall::grid::available());
+        let g = svipall::grid::load_config().unwrap();
         assert!(g.multilabel);
         assert_eq!(g.classes, cfg.classes);
     }
     #[cfg(feature = "onnx-segment")]
     if svipall_models::segment().is_some() {
-        assert!(svipall_mcp::segment::available());
-        let cfg = svipall_mcp::segment::load_config().unwrap();
+        assert!(svipall::segment::available());
+        let cfg = svipall::segment::load_config().unwrap();
         assert_eq!(cfg.classes[0], "background");
         assert!(cfg.classes.iter().any(|c| c == "bus"));
-        let cells = svipall_mcp::segment::cells(&png(320, 128), 0, 4, 4).unwrap();
+        let cells = svipall::segment::cells(&png(320, 128), 0, 4, 4).unwrap();
         assert_eq!(cells.len(), 16, "a blank picture is all background");
     }
     std::env::remove_var("SVIPALL_HOME");

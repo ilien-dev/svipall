@@ -6,8 +6,8 @@
 mod support;
 
 use serde_json::{json, Value};
-use svipall_mcp::server::SvipallServer;
-use svipall_mcp::tools::{
+use svipall::server::SvipallServer;
+use svipall::tools::{
     WebCrawlParams, WebDiffParams, WebFetchParams, WebMapParams, WebRouteParams, WebSearchParams,
     WebSiteSearchParams, WebWatchParams,
 };
