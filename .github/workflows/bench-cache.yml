@@ -1,4 +1,4 @@
-# Throwaway, round 4. Round 2 measured nothing: rust-cache's own log showed it saving the
+# Throwaway, rounds 4 and 5. Round 5 is this file re-run: the caches round 4 wrote are now warm. Round 2 measured nothing: rust-cache's own log showed it saving the
 # workspace `target` directory while the build wrote to the short CARGO_TARGET_DIR the project
 # needs for BoringSSL under MAX_PATH. Its README is explicit that the `workspaces` target is
 # "relative to the $workspace", so a directory outside it is not expressible there — the

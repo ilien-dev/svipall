@@ -1,0 +1,295 @@
+# Throwaway, round 5: the whole release pipeline in its proposed shape, measured end to end.
+# It publishes nothing - no tag, no ghcr push, no npm - because the only question here is the
+# wall clock of the critical path.
+#
+# Every change in it is one this branch measured:
+#   - no choco install: windows-latest already carries cmake, Strawberry Perl, LLVM and nasm,
+#     and round 1 logged their paths and built with them (2.2-2.9 min).
+#   - Defender exclusions on Windows.
+#   - image does not wait on build: it never used one artefact from it (11 min of nothing).
+#   - slim images are the published Linux binary, not a second compilation of it
+#     (9.9 min -> 0.5 min, verified running on trixie).
+#   - packages is split: deb/rpm need only the Linux tarball, ready while Windows still builds.
+#   - the dist profile is untouched: round 1 showed fat/thin/cgu16 all inside 0.2 min.
+name: bench-release
+
+on:
+  push:
+    branches: ["perf/**"]
+    paths: [".github/workflows/bench-release.yml"]
+  workflow_dispatch:
+
+concurrency:
+  group: bench-release
+  cancel-in-progress: true
+
+env:
+  CARGO_TERM_COLOR: always
+  VERSION: 0.0.0-bench
+
+jobs:
+  version:
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "version 0.0.0-bench"
+
+  build:
+    name: ${{ matrix.target }}
+    needs: version
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-latest
+            target: x86_64-pc-windows-msvc
+            ext: .exe
+            models: true
+          - os: macos-latest
+            target: x86_64-apple-darwin
+            ext: ""
+            models: false
+          - os: macos-latest
+            target: aarch64-apple-darwin
+            ext: ""
+            models: true
+          - os: ubuntu-22.04
+            target: x86_64-unknown-linux-gnu
+            ext: ""
+            models: false
+          - os: ubuntu-22.04-arm
+            target: aarch64-unknown-linux-gnu
+            ext: ""
+            models: false
+    steps:
+      - uses: actions/checkout@v4
+
+      # No Defender exclusions. It is the obvious thing to try and it does not work here: three
+      # repetitions each put nochoco at a median of 22.4 min (21.9-22.5) and nochoco+exclusions at
+      # 22.8 (19.9-22.9). The median moved the wrong way, so the one fast run was an outlier.
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+
+      - name: BoringSSL build dependencies (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential cmake perl pkg-config libclang-dev nasm
+
+      # No choco: windows-latest ships cmake, Strawberry Perl, LLVM and nasm already. Asserted
+      # rather than assumed, because the day the image drops one of them this must fail loudly
+      # instead of quietly falling back to a slower path.
+      - name: BoringSSL build dependencies (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          foreach ($t in 'cmake','perl','clang','nasm') {
+            $c = Get-Command $t -ErrorAction SilentlyContinue
+            if (-not $c) { throw "windows-latest no longer ships $t; restore the choco step" }
+            Write-Host "$t -> $($c.Source)"
+          }
+
+      - name: BoringSSL build dependencies (macOS)
+        if: runner.os == 'macOS'
+        run: brew install cmake pkg-config llvm
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Export embedded models
+        if: matrix.models
+        shell: bash
+        run: |
+          python -m pip install --quiet torch torchvision --index-url https://download.pytorch.org/whl/cpu
+          python -m pip install --quiet onnx
+          python tools/models/export.py
+
+      - name: Build
+        shell: bash
+        env:
+          RUSTFLAGS: -C target-cpu=x86-64-v2
+          CARGO_TARGET_DIR: ${{ runner.os == 'Windows' && 'C:\t' || './t' }}
+        run: |
+          case "${{ matrix.target }}" in aarch64-*) RUSTFLAGS= ;; esac
+          if [ "${{ matrix.models }}" = "true" ]; then
+            feats="--features impersonate,onnx-ocr,onnx-grid,onnx-audio,onnx-detect,onnx-segment,onnx-zeroshot"
+          else
+            feats="--features impersonate"
+          fi
+          s=$(date +%s)
+          cargo build --no-default-features --profile dist --target ${{ matrix.target }} \
+            --bin svipall-mcp --bin svipall $feats
+          echo "### build ${{ matrix.target }}: $(( $(date +%s) - s ))s" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Stage Windows runtime
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          ./scripts/stage-windows-runtime.ps1 -Directory 'C:/t/${{ matrix.target }}/dist'
+          ./scripts/test-windows-runtime.ps1 -Directory 'C:/t/${{ matrix.target }}/dist'
+
+      - name: Ad-hoc codesign (macOS)
+        if: runner.os == 'macOS'
+        shell: bash
+        env:
+          CARGO_TARGET_DIR: ./t
+        run: |
+          codesign --force --sign - "$CARGO_TARGET_DIR/${{ matrix.target }}/dist/svipall"
+          codesign --force --sign - "$CARGO_TARGET_DIR/${{ matrix.target }}/dist/svipall-mcp"
+
+      - name: Smoke test
+        if: matrix.target != 'x86_64-apple-darwin'
+        shell: bash
+        env:
+          CARGO_TARGET_DIR: ${{ runner.os == 'Windows' && 'C:\t' || './t' }}
+        run: |
+          bin="$CARGO_TARGET_DIR/${{ matrix.target }}/dist/svipall${{ matrix.ext }}"
+          "$bin" --version
+          "$bin" --version | grep -q '"target": "${{ matrix.target }}"'
+          "$bin" doctor | tee doctor.json
+          if [ "${{ matrix.models }}" = "true" ]; then
+            grep -q '"detect"' doctor.json
+            grep -q '"segment"' doctor.json
+          else
+            grep -q '"no_models"' doctor.json
+          fi
+
+      - name: Runs on an older distribution
+        if: contains(matrix.target, 'linux')
+        shell: bash
+        run: docker run --rm -v "$PWD/t/${{ matrix.target }}/dist:/x" debian:bookworm-slim /x/svipall --version
+
+      - name: Package
+        shell: bash
+        env:
+          CARGO_TARGET_DIR: ${{ runner.os == 'Windows' && 'C:\t' || './t' }}
+        run: |
+          mkdir -p out
+          cp "$CARGO_TARGET_DIR/${{ matrix.target }}/dist/svipall-mcp${{ matrix.ext }}" out/
+          cp "$CARGO_TARGET_DIR/${{ matrix.target }}/dist/svipall${{ matrix.ext }}" out/
+          cp README.md LICENSE skill/SKILL.md out/
+          if [ "${{ runner.os }}" = "Windows" ]; then
+            cp "$CARGO_TARGET_DIR/${{ matrix.target }}/dist/"*.dll out/
+            cp "$CARGO_TARGET_DIR/${{ matrix.target }}/dist/windows-runtime.json" out/
+          fi
+          cd out
+          name="svipall-$VERSION-${{ matrix.target }}"
+          files="svipall-mcp${{ matrix.ext }} svipall${{ matrix.ext }} README.md LICENSE SKILL.md"
+          if [ "${{ runner.os }}" = "Windows" ]; then
+            7z a -tzip "$name.zip" $files *.dll windows-runtime.json
+          else
+            tar -czf "$name.tar.gz" $files
+          fi
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: svipall-${{ matrix.target }}
+          path: |
+            out/*.tar.gz
+            out/*.zip
+          if-no-files-found: error
+
+  # Needs the Linux tarball and nothing else, so it runs while Windows is still compiling.
+  linux-packages:
+    needs: build
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: actions/download-artifact@v4
+        with:
+          name: svipall-x86_64-unknown-linux-gnu
+          path: artifacts
+      # cargo-deb publishes release binaries; cargo-generate-rpm does not, so that one is a
+      # compile whose result is worth keeping between releases.
+      - uses: taiki-e/install-action@v2
+        with:
+          tool: cargo-deb
+      - uses: actions/cache@v4
+        with:
+          path: ~/.cargo/bin/cargo-generate-rpm
+          key: cargo-generate-rpm-v0.21.0
+      - name: Build deb and rpm
+        run: |
+          s=$(date +%s)
+          command -v cargo-generate-rpm >/dev/null || cargo install cargo-generate-rpm --locked
+          mkdir -p packaging/staging packaging/dist
+          tar -xzf "artifacts/svipall-$VERSION-x86_64-unknown-linux-gnu.tar.gz" -C packaging/staging
+          PKGVER=$(echo "$VERSION" | tr '-' '~')
+          cargo deb -p svipall-mcp --no-build --no-strip --deb-version "$PKGVER" --output packaging/dist/
+          cargo generate-rpm -p crates/svipall-mcp --output packaging/dist/ -s "version = \"$PKGVER\""
+          echo "### linux-packages: $(( $(date +%s) - s ))s" >> "$GITHUB_STEP_SUMMARY"
+
+  # Needs every checksum, so this one genuinely waits for the slowest platform.
+  manifests:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+          merge-multiple: true
+      - run: |
+          s=$(date +%s)
+          cd artifacts && sha256sum svipall-*.tar.gz svipall-*.zip > sha256sums.txt && cd ..
+          bash scripts/render-packaging.sh "$VERSION" artifacts/sha256sums.txt packaging/dist
+          echo "### manifests: $(( $(date +%s) - s ))s" >> "$GITHUB_STEP_SUMMARY"
+
+  # No needs on build: this never used an artefact from it.
+  image-full:
+    name: image full ${{ matrix.arch }}
+    needs: version
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: amd64
+            os: ubuntu-22.04
+          - arch: arm64
+            os: ubuntu-22.04-arm
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+      - run: |
+          s=$(date +%s)
+          docker buildx build --load --build-arg FLAVOR=full -t svipall:full .
+          echo "### image full ${{ matrix.arch }}: $(( $(date +%s) - s ))s" >> "$GITHUB_STEP_SUMMARY"
+
+  # The published binary in a container, rather than a second compilation of it.
+  image-slim:
+    name: image slim ${{ matrix.arch }}
+    needs: build
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: amd64
+            os: ubuntu-22.04
+            target: x86_64-unknown-linux-gnu
+          - arch: arm64
+            os: ubuntu-22.04-arm
+            target: aarch64-unknown-linux-gnu
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: svipall-${{ matrix.target }}
+          path: a
+      - run: |
+          s=$(date +%s)
+          mkdir -p bin
+          tar -xzf "a/svipall-$VERSION-${{ matrix.target }}.tar.gz" -C bin svipall svipall-mcp
+          docker buildx build --load -f .github/bench/Dockerfile.artifact -t svipall:slim .
+          docker run --rm svipall:slim svipall --version
+          echo "### image slim ${{ matrix.arch }}: $(( $(date +%s) - s ))s" >> "$GITHUB_STEP_SUMMARY"
+
+  publish:
+    needs: [build, linux-packages, manifests, image-full, image-slim]
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "everything the real publish job waits on is done"
