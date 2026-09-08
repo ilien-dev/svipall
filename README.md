@@ -802,21 +802,25 @@ headroom for exactly that reason; the structural checks are exact and cannot fla
 
 | Check | Measured | Budget |
 |---|---|---|
-| `classify` a 200 KB page | 196 µs | 400 µs |
-| `quality::assess` | 45 µs | 250 µs |
-| `parse_page`, text + title | 2.28 ms | 14 ms |
-| `parse_page`, everything | 6.01 ms | 20 ms |
-| Markdown, voted | 5.34 ms | 8 ms |
-| `template::strip` | 213 µs | 2 ms |
-| `induce` a schema from a listing | 2.40 ms | 60 ms |
-| `bm25_filter`, full page | 1.86 ms | 3 ms |
-| `budget::take`, full page | 225 µs | 4 ms |
-| `simhash`, full page | 698 µs | 5 ms |
-| `cache::find_near` over 300 pages | 722 ns | 2 ms |
+| `classify` a 200 KB page | 163 µs | 400 µs |
+| `quality::assess` | 43.29 µs | 250 µs |
+| `parse_page`, text + title | 2.2 ms | 14 ms |
+| `parse_page`, everything | 5.92 ms | 20 ms |
+| Markdown, voted | 5.22 ms | 8 ms |
+| `template::strip` | 279 µs | 2 ms |
+| `induce` a schema from a listing | 2.35 ms | 60 ms |
+| `bm25_filter`, full page | 1.88 ms | 3 ms |
+| `budget::take`, full page | 254 µs | 4 ms |
+| `simhash`, full page | 700 µs | 5 ms |
+| `cache::find_near` over 300 pages | 718 ns | 2 ms |
 | **DOM parses** for text + title + markdown + links + metadata | **1** | exactly 1 |
 | **Disk reads** across 10,000 domain-state lookups | **0** | exactly 0 |
 | **Reputation-ledger writes** across 10,000 charges | **0** | at most 1 |
 | Pruning kept the article, the code and the table; dropped the nav and the sidebar | pass | exact |
+
+Measured column from `bench/experiments/cpu-budgets-20260907/micro.txt`, one Windows machine,
+2026-09-07. CPU timings depend on the machine; the budget column does not, and
+`cargo run -p svipall-bench --release -- micro --assert` is what CI enforces.
 
 ---
 
