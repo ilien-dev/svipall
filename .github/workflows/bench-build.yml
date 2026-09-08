@@ -1,0 +1,198 @@
+# Throwaway. Measures one `cargo build --profile dist` per variant so the release pipeline's
+# shape is decided by numbers rather than by guesswork. Deleted before this branch merges.
+name: bench-build
+
+on:
+  workflow_dispatch:
+    inputs:
+      round:
+        description: which variant set to run
+        required: true
+        default: "1"
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  build:
+    name: ${{ matrix.id }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # --- Windows: the critical path, 22 min of cargo today ---
+          - id: win-base
+            os: windows-latest
+            target: x86_64-pc-windows-msvc
+            models: true
+            choco: true
+            defender: false
+            profile: base
+          - id: win-nochoco
+            os: windows-latest
+            target: x86_64-pc-windows-msvc
+            models: true
+            choco: false
+            defender: false
+            profile: base
+          - id: win-defender
+            os: windows-latest
+            target: x86_64-pc-windows-msvc
+            models: true
+            choco: true
+            defender: true
+            profile: base
+          # Fat LTO still merges every bitcode module; codegen-units only splits the codegen that
+          # follows the merge. If that is parallel, this is free wall clock at no runtime cost.
+          - id: win-fat-cgu16
+            os: windows-latest
+            target: x86_64-pc-windows-msvc
+            models: true
+            choco: true
+            defender: false
+            profile: fat-cgu16
+          - id: win-thin
+            os: windows-latest
+            target: x86_64-pc-windows-msvc
+            models: true
+            choco: true
+            defender: false
+            profile: thin
+          # --- macOS arm: 19.5 min ---
+          - id: mac-base
+            os: macos-latest
+            target: aarch64-apple-darwin
+            models: true
+            choco: false
+            defender: false
+            profile: base
+          - id: mac-fat-cgu16
+            os: macos-latest
+            target: aarch64-apple-darwin
+            models: true
+            choco: false
+            defender: false
+            profile: fat-cgu16
+          # --- Linux: 9 min, and the one the container images repeat ---
+          - id: linux-base
+            os: ubuntu-22.04
+            target: x86_64-unknown-linux-gnu
+            models: false
+            choco: false
+            defender: false
+            profile: base
+          - id: linux-fat-cgu16
+            os: ubuntu-22.04
+            target: x86_64-unknown-linux-gnu
+            models: false
+            choco: false
+            defender: false
+            profile: fat-cgu16
+          - id: linux-thin
+            os: ubuntu-22.04
+            target: x86_64-unknown-linux-gnu
+            models: false
+            choco: false
+            defender: false
+            profile: thin
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Defender exclusion (Windows)
+        if: matrix.defender
+        shell: pwsh
+        run: |
+          Add-MpPreference -ExclusionPath 'C:\t'
+          Add-MpPreference -ExclusionPath "$env:USERPROFILE\.cargo"
+          Add-MpPreference -ExclusionProcess 'rustc.exe','cargo.exe','link.exe','cl.exe'
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+
+      - name: Toolchain deps (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential cmake perl pkg-config libclang-dev nasm
+
+      - name: Toolchain deps (Windows, choco)
+        if: matrix.choco
+        run: choco install cmake strawberryperl pkgconfiglite llvm nasm -y
+        shell: cmd
+
+      # The claim under test: windows-latest already ships cmake, perl, llvm and nasm, so the
+      # 2.3 minutes choco spends re-installing them buys nothing.
+      - name: Toolchain deps (Windows, preinstalled)
+        if: runner.os == 'Windows' && !matrix.choco
+        shell: pwsh
+        run: |
+          foreach ($t in 'cmake','perl','clang','nasm') {
+            $c = Get-Command $t -ErrorAction SilentlyContinue
+            if ($c) { Write-Host "$t -> $($c.Source)" } else { Write-Host "MISSING $t" }
+          }
+
+      - name: Toolchain deps (macOS)
+        if: runner.os == 'macOS'
+        run: brew install cmake pkg-config llvm
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Export embedded models
+        if: matrix.models
+        shell: bash
+        run: |
+          s=$(date +%s)
+          python -m pip install --quiet torch torchvision --index-url https://download.pytorch.org/whl/cpu
+          python -m pip install --quiet onnx
+          python tools/models/export.py
+          echo "models_seconds=$(( $(date +%s) - s ))" >> "$GITHUB_ENV"
+
+      - name: Patch the dist profile
+        shell: bash
+        run: |
+          case "${{ matrix.profile }}" in
+            fat-cgu16) sed -i.bak 's/^codegen-units = 1$/codegen-units = 16/' Cargo.toml ;;
+            thin) sed -i.bak -e 's/^codegen-units = 1$/codegen-units = 16/' -e 's/^lto = "fat"$/lto = "thin"/' Cargo.toml ;;
+          esac
+          sed -n '/\[profile.dist\]/,/^$/p' Cargo.toml
+
+      - name: Build
+        id: build
+        shell: bash
+        env:
+          RUSTFLAGS: -C target-cpu=x86-64-v2
+          CARGO_TARGET_DIR: ${{ runner.os == 'Windows' && 'C:\t' || './t' }}
+        run: |
+          case "${{ matrix.target }}" in aarch64-*) RUSTFLAGS= ;; esac
+          if [ "${{ matrix.models }}" = "true" ]; then
+            feats="--features impersonate,onnx-ocr,onnx-grid,onnx-audio,onnx-detect,onnx-segment,onnx-zeroshot"
+          else
+            feats="--features impersonate"
+          fi
+          s=$(date +%s)
+          cargo build --no-default-features --profile dist --target ${{ matrix.target }} \
+            --bin svipall-mcp --bin svipall $feats --timings=html,json
+          d=$(( $(date +%s) - s ))
+          echo "build_seconds=$d" >> "$GITHUB_OUTPUT"
+          echo "### ${{ matrix.id }}: build ${d}s ($((d/60))m$((d%60))s), models ${models_seconds:-0}s" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Collect timings
+        if: always()
+        shell: bash
+        env:
+          CARGO_TARGET_DIR: ${{ runner.os == 'Windows' && 'C:\t' || './t' }}
+        run: |
+          mkdir -p timings
+          cp "$CARGO_TARGET_DIR"/cargo-timings/* timings/ 2>/dev/null || true
+          ls -la timings
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: timings-${{ matrix.id }}
+          path: timings
+          if-no-files-found: warn
