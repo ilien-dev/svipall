@@ -3,12 +3,9 @@
 name: bench-build
 
 on:
+  push:
+    branches: ["perf/**"]
   workflow_dispatch:
-    inputs:
-      round:
-        description: which variant set to run
-        required: true
-        default: "1"
 
 env:
   CARGO_TERM_COLOR: always
