@@ -313,7 +313,7 @@ and Linux arm64** with a `sha256sums.txt` and a GitHub build attestation, and pu
 | **Search without a key** | `web_search` scrapes DuckDuckGo, Bing and Brave; `engine="all"` merges them by agreement |
 | **Let the agent click things** | `web_snapshot` (roles + refs, a fraction of the tokens) then `web_act` — click, type, scroll, wait, all through human-like input |
 | **Attempt a browser challenge** | Automatic routing can escalate to a patient browser tier; unresolved challenges and detected blocks are reported, but the remote cause is not always identifiable |
-| **Attempt a captcha locally** | Nine strategies, model support where available and a phone-friendly human dashboard. No paid solver; local budgets and remote restrictions still apply |
+| **Attempt a captcha locally** | Fifteen widget families and eleven answer modalities, model support where available and a phone-friendly human dashboard. No paid solver; local budgets and remote restrictions still apply |
 | **Log in once and stay in** | `web_login` opens a real window; you sign in; the cookies are kept in a profile you can export |
 | **Watch a page** | `web_watch` checks the whole page or one CSS region while the server runs; saved selector fingerprints can help recover some redesigns |
 | **Read PDFs and Office files** | docx, xlsx, pptx, odt, epub, rtf, csv and pdf come back as Markdown, from the web or from `file://` |
