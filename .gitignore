@@ -16,3 +16,11 @@ __pycache__/
 # Embedded models are reproduced by tools/models/export.py, not carried in the tree.
 crates/svipall-models/models/*.onnx
 crates/svipall-models/models/*.json
+
+# Extraction corpora. Third-party, large, and fetched on demand by
+# scripts/fetch-*.sh. Never committed: WCXB is 193 MB, DAnIEL 176 MB and the
+# TeCo forum archive unpacks to 13 GB.
+/wcxb-corpus/
+/daniel-corpus/
+/teco-corpus/
+/extraction-corpus/

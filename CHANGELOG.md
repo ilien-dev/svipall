@@ -97,9 +97,10 @@ ever been tagged. This is what it produces.
   and `WebSearch` in favour of the svipall tool that does the same job. Registered by the plugin
   from the start and **inert** until `~/.svipall/claude_strict` exists, so installing the plugin
   changes nothing about how anybody's fetches behave.
-- **Package manager manifests** for Homebrew, Scoop, winget and the AUR, plus `.deb`, `.rpm` and an
-  npm wrapper — all rendered from the release's own `sha256sums.txt` by
-  `scripts/render-packaging.sh`, so no checksum is ever typed twice.
+- **Package manager manifests**, plus `.deb`, `.rpm` and an npm wrapper — all rendered from the
+  release's own `sha256sums.txt` by `scripts/render-packaging.sh`, so no checksum is ever typed
+  twice. Homebrew and Scoop are published and installable. The winget and AUR manifests are
+  rendered but not submitted, so neither is an install channel yet.
 - **`docs/install.md`**, written to be executed by an agent rather than read, and
   **`GET-STARTED.md`** for somebody who has never installed anything from a terminal.
 
