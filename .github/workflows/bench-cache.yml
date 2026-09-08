@@ -1,0 +1,128 @@
+# Throwaway, round 2: does a warm cache actually move the dist build, and which cache.
+name: bench-cache
+
+on:
+  push:
+    branches: ["perf/**"]
+    paths: [".github/workflows/bench-cache.yml"]
+  workflow_dispatch:
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  build:
+    name: ${{ matrix.id }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - id: win-rustcache
+            os: windows-latest
+            target: x86_64-pc-windows-msvc
+            models: true
+            cache: rust-cache
+          - id: win-sccache
+            os: windows-latest
+            target: x86_64-pc-windows-msvc
+            models: true
+            cache: sccache
+          - id: linux-rustcache
+            os: ubuntu-22.04
+            target: x86_64-unknown-linux-gnu
+            models: false
+            cache: rust-cache
+          - id: linux-sccache
+            os: ubuntu-22.04
+            target: x86_64-unknown-linux-gnu
+            models: false
+            cache: sccache
+          - id: mac-rustcache
+            os: macos-latest
+            target: aarch64-apple-darwin
+            models: true
+            cache: rust-cache
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+
+      - name: Short target dir (Windows)
+        if: runner.os == 'Windows'
+        shell: bash
+        run: echo 'CARGO_TARGET_DIR=C:\t' >> "$GITHUB_ENV"
+
+      - name: Target dir (POSIX)
+        if: runner.os != 'Windows'
+        shell: bash
+        run: echo "CARGO_TARGET_DIR=$GITHUB_WORKSPACE/t" >> "$GITHUB_ENV"
+
+      # Keyed by the variant so the two strategies never read each other's entries.
+      - uses: Swatinem/rust-cache@v2
+        if: matrix.cache == 'rust-cache'
+        with:
+          key: bench-${{ matrix.id }}
+          cache-targets: "true"
+          cache-all-crates: "true"
+
+      - uses: mozilla-actions/sccache-action@v0.0.9
+        if: matrix.cache == 'sccache'
+
+      - name: sccache env
+        if: matrix.cache == 'sccache'
+        shell: bash
+        run: |
+          echo "SCCACHE_GHA_ENABLED=true" >> "$GITHUB_ENV"
+          echo "RUSTC_WRAPPER=sccache" >> "$GITHUB_ENV"
+
+      - name: Toolchain deps (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential cmake perl pkg-config libclang-dev nasm
+
+      - name: Toolchain deps (Windows)
+        if: runner.os == 'Windows'
+        run: choco install cmake strawberryperl pkgconfiglite llvm nasm -y
+        shell: cmd
+
+      - name: Toolchain deps (macOS)
+        if: runner.os == 'macOS'
+        run: brew install cmake pkg-config llvm
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Export embedded models
+        if: matrix.models
+        shell: bash
+        run: |
+          python -m pip install --quiet torch torchvision --index-url https://download.pytorch.org/whl/cpu
+          python -m pip install --quiet onnx
+          python tools/models/export.py
+
+      - name: Build
+        shell: bash
+        env:
+          RUSTFLAGS: -C target-cpu=x86-64-v2
+        run: |
+          case "${{ matrix.target }}" in aarch64-*) RUSTFLAGS= ;; esac
+          if [ "${{ matrix.models }}" = "true" ]; then
+            feats="--features impersonate,onnx-ocr,onnx-grid,onnx-audio,onnx-detect,onnx-segment,onnx-zeroshot"
+          else
+            feats="--features impersonate"
+          fi
+          s=$(date +%s)
+          cargo build --no-default-features --profile dist --target ${{ matrix.target }} \
+            --bin svipall-mcp --bin svipall $feats
+          d=$(( $(date +%s) - s ))
+          echo "### ${{ matrix.id }}: ${d}s ($((d/60))m$((d%60))s)" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: sccache stats
+        if: matrix.cache == 'sccache'
+        shell: bash
+        run: sccache --show-stats | tee -a "$GITHUB_STEP_SUMMARY"
