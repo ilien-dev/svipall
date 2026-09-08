@@ -1,0 +1,102 @@
+//! What the release job builds, asserted where it is cheap to assert.
+//!
+//! Three of the five release targets are built without the model features, because the ONNX
+//! Runtime binaries `ort` downloads will not link there: x86_64 macOS has no build published at
+//! the pinned version, and the Linux artefacts are built on 22.04 so they start on Debian 12.
+//! `.github/workflows/release.yml` expresses that as `--no-default-features --features
+//! impersonate`, and that flag is only as good as the feature graph behind it.
+//!
+//! Cargo resolves features per package, then unifies them across every package it selects. The
+//! release job names binaries, not a package, so the whole workspace is selected — and a member
+//! that depends on `svipall-mcp` with its defaults on drags `local-models`, and therefore
+//! `dep:ort`, back into the same build. This is not hypothetical: it is why the `v1.0.0-rc.2`
+//! release failed on three targets with `undefined symbol: __isoc23_strtoll` out of
+//! `libort_sys`, hours after `local-models` joined `default`.
+//!
+//! A member that wants inference asks for it by feature (`bench`'s own `onnx` names
+//! `svipall-mcp/onnx-detect` and `onnx-segment` outright). Nobody gets it by default.
+
+use std::fs;
+use std::path::{Path, PathBuf};
+
+fn workspace_root() -> PathBuf {
+    Path::new(env!("CARGO_MANIFEST_DIR"))
+        .parent()
+        .and_then(Path::parent)
+        .expect("crates/svipall-mcp sits two levels under the workspace root")
+        .to_path_buf()
+}
+
+/// The `members = [...]` list of the virtual workspace manifest, as written.
+fn members(root: &Path) -> Vec<String> {
+    let manifest = fs::read_to_string(root.join("Cargo.toml")).expect("workspace Cargo.toml");
+    let list = manifest
+        .split_once("members = [")
+        .expect("the workspace declares members")
+        .1
+        .split_once(']')
+        .expect("the members list closes")
+        .0;
+    list.lines()
+        .filter_map(|line| line.trim().trim_end_matches(',').strip_prefix('"'))
+        .filter_map(|line| line.strip_suffix('"'))
+        .map(str::to_string)
+        .collect()
+}
+
+/// Every dependency line naming `svipall-mcp`, whichever table it sits in.
+fn mcp_dependency_lines(manifest: &str) -> Vec<&str> {
+    manifest
+        .lines()
+        .map(str::trim)
+        .filter(|line| line.starts_with("svipall-mcp") && line.contains('='))
+        .collect()
+}
+
+#[test]
+fn no_workspace_member_takes_svipall_mcp_with_its_defaults() {
+    let root = workspace_root();
+    let members = members(&root);
+    assert!(
+        members.iter().any(|m| m == "bench"),
+        "bench is a workspace member and not under crates/; if that changed, this test is stale"
+    );
+
+    for member in members {
+        if member == "crates/svipall-mcp" {
+            continue;
+        }
+        let manifest_path = root.join(&member).join("Cargo.toml");
+        let manifest = fs::read_to_string(&manifest_path)
+            .unwrap_or_else(|e| panic!("{}: {e}", manifest_path.display()));
+
+        for line in mcp_dependency_lines(&manifest) {
+            assert!(
+                line.contains("default-features = false"),
+                "{member} depends on svipall-mcp with its default features, which turns on \
+                 local-models and so ort for the whole workspace build. The release job builds \
+                 three targets without ort and they will not link. Ask for the features you \
+                 need by name.\n    {line}"
+            );
+        }
+    }
+}
+
+/// The reason the rule above exists, stated where a reader of the rule will look for it.
+#[test]
+fn local_models_is_a_default_and_pulls_ort() {
+    let manifest = fs::read_to_string(Path::new(env!("CARGO_MANIFEST_DIR")).join("Cargo.toml"))
+        .expect("svipall-mcp Cargo.toml");
+    assert!(
+        manifest.contains(r#"default = ["impersonate", "local-models"]"#),
+        "if local-models leaves the defaults, the invariant next door is no longer needed"
+    );
+    for feature in ["onnx-grid", "onnx-detect", "onnx-segment"] {
+        assert!(
+            manifest
+                .lines()
+                .any(|l| l.trim_start().starts_with(feature) && l.contains("dep:ort")),
+            "{feature} is expected to be one of the features that pulls ort"
+        );
+    }
+}

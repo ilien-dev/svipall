@@ -7,7 +7,10 @@ license = "AGPL-3.0-only"
 [dependencies]
 svipall-core = { path = "../crates/svipall-core" }
 svipall-http = { path = "../crates/svipall-http" }
-svipall-mcp = { path = "../crates/svipall-mcp" }
+# Default features off deliberately: `local-models` is one of svipall-mcp's defaults, and cargo
+# unifies features across every package the release job selects, so taking them here would link
+# ort into the three targets that are built without it. `onnx` below asks for what `micro` needs.
+svipall-mcp = { path = "../crates/svipall-mcp", default-features = false, features = ["impersonate"] }
 anyhow = { workspace = true }
 tokio = { version = "1.53", features = ["full"] }
 serde_json = "1.0"
