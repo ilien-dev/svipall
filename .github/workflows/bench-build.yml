@@ -5,7 +5,12 @@ name: bench-build
 on:
   push:
     branches: ["perf/**"]
+    paths: [".github/workflows/bench-build.yml"]
   workflow_dispatch:
+
+concurrency:
+  group: bench-build
+  cancel-in-progress: true
 
 env:
   CARGO_TERM_COLOR: always
@@ -172,7 +177,7 @@ jobs:
           fi
           s=$(date +%s)
           cargo build --no-default-features --profile dist --target ${{ matrix.target }} \
-            --bin svipall-mcp --bin svipall $feats --timings=html,json
+            --bin svipall-mcp --bin svipall $feats --timings
           d=$(( $(date +%s) - s ))
           echo "build_seconds=$d" >> "$GITHUB_OUTPUT"
           echo "### ${{ matrix.id }}: build ${d}s ($((d/60))m$((d%60))s), models ${models_seconds:-0}s" >> "$GITHUB_STEP_SUMMARY"
