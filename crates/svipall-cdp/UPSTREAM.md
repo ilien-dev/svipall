@@ -19,7 +19,7 @@ and no benefit.
    than a line number, so they survive ordinary churn.
 3. `cargo test -p svipall-cdp` — the patches have unit tests that fail loudly if one was missed.
 4. `cargo test --workspace`, then the browser suites by hand:
-   `cargo test -p svipall-mcp --test stealth -- --ignored`.
+   `cargo test -p svipall --test stealth -- --ignored`.
 5. `cargo run -p svipall-bench --release -- fingerprint` and compare against `bench/baseline/`.
 
 ## What was removed from the copy

@@ -16,7 +16,7 @@ npx --yes svipall fetch https://example.com
 As an MCP server:
 
 ```bash
-claude mcp add svipall -- npx --yes svipall-mcp
+claude mcp add svipall -- npx --yes --package=svipall svipall-mcp
 ```
 
 Platforms with a build: Linux x86-64 and arm64, macOS Intel and Apple silicon, Windows x86-64. On
