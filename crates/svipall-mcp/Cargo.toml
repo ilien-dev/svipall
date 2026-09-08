@@ -1,6 +1,6 @@
 [package]
 name = "svipall-mcp"
-version = "1.0.0-rc.2"
+version = "1.0.0-rc.3"
 edition = "2021"
 license = "AGPL-3.0-only"
 description = "MCP server for svipall: web exploration with a real tier ladder and local captcha solving"
