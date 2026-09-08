@@ -5,11 +5,11 @@
 # Every change in it is one this branch measured:
 #   - no choco install: windows-latest already carries cmake, Strawberry Perl, LLVM and nasm,
 #     and round 1 logged their paths and built with them (2.2-2.9 min).
-#   - Defender exclusions on Windows.
 #   - image does not wait on build: it never used one artefact from it (11 min of nothing).
 #   - slim images are the published Linux binary, not a second compilation of it
 #     (9.9 min -> 0.5 min, verified running on trixie).
-#   - packages is split: deb/rpm need only the Linux tarball, ready while Windows still builds.
+#   - packages installs cargo-deb rather than compiling it, and keeps the compiled
+#     cargo-generate-rpm in a cache.
 #   - the dist profile is untouched: round 1 showed fat/thin/cgu16 all inside 0.2 min.
 name: bench-release
 
@@ -71,6 +71,26 @@ jobs:
         with:
           targets: ${{ matrix.target }}
 
+      # Only the two platforms that decide the critical path. Linux at ~11 min already finishes
+      # well under whatever Windows becomes, and every cached platform spends the 10 GB budget
+      # the two that matter need. Windows cannot use the plain form: the build writes to the
+      # short CARGO_TARGET_DIR that BoringSSL needs under MAX_PATH, and rust-cache only knows how
+      # to prune a target dir inside the workspace, so it silently caches nothing but the
+      # registry. `cache-directories` is the documented way to name one elsewhere.
+      - uses: Swatinem/rust-cache@v2
+        if: matrix.target == 'x86_64-pc-windows-msvc'
+        with:
+          key: rel-win
+          cache-targets: "false"
+          cache-all-crates: "true"
+          cache-directories: 'C:\t'
+
+      - uses: Swatinem/rust-cache@v2
+        if: matrix.target == 'aarch64-apple-darwin'
+        with:
+          key: rel-macarm
+          cache-all-crates: "true"
+
       - name: BoringSSL build dependencies (Linux)
         if: runner.os == 'Linux'
         run: |
@@ -110,7 +130,7 @@ jobs:
         shell: bash
         env:
           RUSTFLAGS: -C target-cpu=x86-64-v2
-          CARGO_TARGET_DIR: ${{ runner.os == 'Windows' && 'C:\t' || './t' }}
+          CARGO_TARGET_DIR: ${{ runner.os == 'Windows' && 'C:\t' || (matrix.target == 'aarch64-apple-darwin' && './target' || './t') }}
         run: |
           case "${{ matrix.target }}" in aarch64-*) RUSTFLAGS= ;; esac
           if [ "${{ matrix.models }}" = "true" ]; then
@@ -134,7 +154,7 @@ jobs:
         if: runner.os == 'macOS'
         shell: bash
         env:
-          CARGO_TARGET_DIR: ./t
+          CARGO_TARGET_DIR: ${{ matrix.target == 'aarch64-apple-darwin' && './target' || './t' }}
         run: |
           codesign --force --sign - "$CARGO_TARGET_DIR/${{ matrix.target }}/dist/svipall"
           codesign --force --sign - "$CARGO_TARGET_DIR/${{ matrix.target }}/dist/svipall-mcp"
@@ -143,7 +163,7 @@ jobs:
         if: matrix.target != 'x86_64-apple-darwin'
         shell: bash
         env:
-          CARGO_TARGET_DIR: ${{ runner.os == 'Windows' && 'C:\t' || './t' }}
+          CARGO_TARGET_DIR: ${{ runner.os == 'Windows' && 'C:\t' || (matrix.target == 'aarch64-apple-darwin' && './target' || './t') }}
         run: |
           bin="$CARGO_TARGET_DIR/${{ matrix.target }}/dist/svipall${{ matrix.ext }}"
           "$bin" --version
@@ -164,7 +184,7 @@ jobs:
       - name: Package
         shell: bash
         env:
-          CARGO_TARGET_DIR: ${{ runner.os == 'Windows' && 'C:\t' || './t' }}
+          CARGO_TARGET_DIR: ${{ runner.os == 'Windows' && 'C:\t' || (matrix.target == 'aarch64-apple-darwin' && './target' || './t') }}
         run: |
           mkdir -p out
           cp "$CARGO_TARGET_DIR/${{ matrix.target }}/dist/svipall-mcp${{ matrix.ext }}" out/
@@ -218,8 +238,8 @@ jobs:
           mkdir -p packaging/staging packaging/dist
           tar -xzf "artifacts/svipall-$VERSION-x86_64-unknown-linux-gnu.tar.gz" -C packaging/staging
           PKGVER=$(echo "$VERSION" | tr '-' '~')
-          cargo deb -p svipall-mcp --no-build --no-strip --deb-version "$PKGVER" --output packaging/dist/
-          cargo generate-rpm -p crates/svipall-mcp --output packaging/dist/ -s "version = \"$PKGVER\""
+          cargo deb -p svipall --no-build --no-strip --deb-version "$PKGVER" --output packaging/dist/
+          cargo generate-rpm -p crates/svipall --output packaging/dist/ -s "version = \"$PKGVER\""
           echo "### linux-packages: $(( $(date +%s) - s ))s" >> "$GITHUB_STEP_SUMMARY"
 
   # Needs every checksum, so this one genuinely waits for the slowest platform.
