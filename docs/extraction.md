@@ -23,7 +23,7 @@ are reported because the study's own §4.4 shows the per-page distribution is po
 mean falling barely inside the interquartile range — a single statistic here misleads either way.
 
 On WCXB, which labels pages by type, Svipall scores **0.806** on the development set and **0.870**
-on the held-out set, which places it third of fourteen on that benchmark's published leaderboard.
+on the held-out set.
 
 On DAnIEL, five languages, ROUGE-LSum mean — with the share of pages the extractor essentially
 failed on, which is the column the multilingual study leads with:

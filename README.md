@@ -530,8 +530,7 @@ phrases, written by the corpus author:
 | WCXB held-out, 505 pages | **93.3%** | 11.3% | 0.870 |
 | WCXB dev, 1,476 pages | **86.3%** | 13.1% | 0.806 |
 
-0.870 on the held-out set places Svipall **third of fourteen** on that benchmark's published
-leaderboard. Five languages on DAnIEL, the remaining losses traced phrase by phrase, and the three
+0.870 on the held-out set, over 505 pages. Five languages on DAnIEL, the remaining losses traced phrase by phrase, and the three
 experiments that were tried against them and *rejected* are all in
 [`docs/extraction.md`](docs/extraction.md) — with the reason each one stayed out.
 
@@ -1744,8 +1743,9 @@ real browser/device characteristics. There is no Svipall telemetry or cloud sync
 <summary><b>Will it get past Cloudflare / DataDome / Akamai / PerimeterX?</b></summary>
 
 Sometimes, and the [Proof](#proof-every-number-with-the-command-that-reproduces-it) section says
-which historical configurations passed and how often, with the raw logs committed. Turnstile cleared
-in all recorded runs of those two baseline lists — 1.5–2.1 s on `hard12`, 1.7–2.4 s on `public31`.
+which historical configurations passed and how often, with the raw logs committed. On `public31`,
+Turnstile cleared on the `real` tier at nowsecure-cf in 2.7, 1.7 and 1.7 seconds, and did not clear
+at canadianinsider, which stayed gated on `http` in all three runs.
 Other outcomes varied across visits. The recorded DataDome browser visits returned a blocked-visitor
 interstitial, while bare HTTP on the same address received a different challenge: those observations
 do not isolate the cause to the IP address. `web_route` can try an exit you supply, without guaranteeing
