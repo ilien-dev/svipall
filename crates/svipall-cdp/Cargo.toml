@@ -1,11 +1,16 @@
 [package]
 name = "svipall-cdp"
-version = "1.0.0"
+version.workspace = true
+repository.workspace = true
 edition = "2021"
 rust-version = "1.70"
 description = "Vendored CDP client for svipall: chromiumoxide 0.7.0 with the automation residue patched out"
 license = "MIT OR Apache-2.0"
-publish = false
+# UPSTREAM.md is the front page on purpose: the first thing to know about this crate is that
+# it is somebody else's, and which commit of it.
+readme = "UPSTREAM.md"
+keywords = ["chrome", "cdp", "devtools", "browser", "automation"]
+categories = ["web-programming", "api-bindings"]
 
 [lib]
 path = "src/lib.rs"

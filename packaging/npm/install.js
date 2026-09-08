@@ -1,7 +1,9 @@
 // Download the release build for this platform.
 //
 // npm is not how this is built; it is how a lot of people already run an MCP server, and `npx
-// svipall-mcp` is the cheapest possible answer to "how do I try this". So the package carries no
+// --yes --package=svipall svipall-mcp` is the cheapest possible answer to "how do I try this" —
+// `--package` because the bin is not named after the package, and bare `npx svipall-mcp` would
+// resolve a package nobody publishes. So the package carries no
 // code of its own: it fetches the same archive install.sh does, checks it against the same
 // published sha256sums.txt, and unpacks it next to these two shims.
 const fs = require('node:fs');
