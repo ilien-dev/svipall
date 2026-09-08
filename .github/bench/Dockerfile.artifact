@@ -1,0 +1,18 @@
+# Round 3 candidate: the `slim` image is the http tier and nothing else, which is exactly the
+# binary the release already built and published. Compiling it a second time inside a container
+# produces the same program from the same source; the only difference is the glibc it links, and
+# the portable Linux artefact links an older one than this image carries.
+FROM debian:trixie-slim
+RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
+COPY bin/svipall-mcp bin/svipall /usr/local/bin/
+COPY docker-entrypoint.sh /usr/local/bin/
+ENV SVIPALL_HOME=/data
+ENV SVIPALL_DASHBOARD_PORT=8787
+RUN chmod +x /usr/local/bin/svipall /usr/local/bin/svipall-mcp /usr/local/bin/docker-entrypoint.sh \
+    && useradd --create-home --uid 1000 svipall && mkdir -p /data && chown svipall /data
+USER svipall
+VOLUME ["/data"]
+EXPOSE 8787 8788
+ENTRYPOINT ["docker-entrypoint.sh"]
+CMD ["svipall-mcp"]
