@@ -82,5 +82,13 @@ jobs:
             echo "dev.ilien.svipall/mcp $VERSION is already published; nothing to do"
             exit 0
           fi
-          ./mcp-publisher login dns --domain ilien.dev --private-key "$MCP_PRIVATE_KEY"
+          # A pasted secret keeps its trailing newline, and mcp-publisher rejects the whole key on
+          # that one byte. What is left must be the 32-byte Ed25519 seed in hex; the key itself is
+          # never printed.
+          key=$(printf '%s' "$MCP_PRIVATE_KEY" | tr -d '[:space:]')
+          if ! [[ "$key" =~ ^[0-9a-fA-F]{64}$ ]]; then
+            echo "MCP_PRIVATE_KEY is not 64 hex characters once whitespace is removed (${#key} left)" >&2
+            exit 1
+          fi
+          ./mcp-publisher login dns --domain ilien.dev --private-key "$key"
           ./mcp-publisher publish
