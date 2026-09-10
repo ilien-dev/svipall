@@ -26,7 +26,7 @@ time is in the output itself, where the tool prints it — `browser: 200 (6259ms
 | `raw/*.json` | stdout of the real runs, verbatim. `content` (the page body) is stripped; nothing else is. |
 | `build-transcript.mjs` | Splices a jq filter into each command line and runs that same filter over that capture. The command and its output cannot drift apart. |
 | `transcript.json` | Generated. What the recorder reads. |
-| `terminal.html` | The stage. A pure function of time: `__demo.render(t)`. Palette and faces are the site's, from `svipall-site/src/styles/tokens.css`. |
+| `terminal.html` | The stage. A pure function of time: `__demo.render(t)`. Palette (the dark theme) and faces are the site's, from `svipall-site/src/styles/tokens.css`. |
 | `gif.mjs` | PNG reader and GIF89a encoder. Says in its header why it exists. |
 | `record.mjs` | Drives Chrome over CDP, one screenshot per frame, then encodes. |
 
