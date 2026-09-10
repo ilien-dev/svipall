@@ -45,7 +45,7 @@ table says which and why.
 | Windows | `irm https://raw.githubusercontent.com/ilien-dev/svipall/main/install.ps1 \| iex` |
 | Debian / Ubuntu | download `svipall_<version>_amd64.deb` from the release, then `sudo dpkg -i` it |
 | Fedora / RHEL | download `svipall-<version>.x86_64.rpm` from the release, then `sudo rpm -i` it |
-| Prefers containers | `docker pull ghcr.io/ilien-dev/svipall:latest`, or the version tag while the newest release is a pre-release |
+| Prefers containers | `docker pull ghcr.io/ilien-dev/svipall:latest` |
 | macOS or Linux, has Homebrew | `brew install ilien-dev/svipall/svipall` |
 | Windows, has Scoop | `scoop bucket add svipall https://github.com/ilien-dev/scoop-svipall` then `scoop install svipall` |
 | Node is already there | `npx --yes svipall doctor` — downloads the same release build on first use |
@@ -214,8 +214,8 @@ claude mcp add svipall -- docker run -i --rm -v svipall-home:/data ghcr.io/ilien
 
 `-i` keeps stdin open for MCP, and `-v svipall-home:/data` is what makes it remember anything.
 Two moving tags, both built for amd64 and arm64: `latest` (browser and models) and `slim` (the http
-tier only). A pre-release does not move either of them, so when the newest release is a candidate,
-pull its version tag instead — `ghcr.io/ilien-dev/svipall:1.0.0-rc`, and `:1.0.0-rc-slim`.
+tier only). Only a stable release moves them; to try a pre-release, pull its version tag —
+`ghcr.io/ilien-dev/svipall:<version>`, and `:<version>-slim`.
 
 ---
 
