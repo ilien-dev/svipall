@@ -1,5 +1,29 @@
 # Changelog
 
+## 1.0.0 — 2026-09-10
+
+**The first stable release, and the same program as `1.0.0-rc.3`.** Nothing that ships changed
+between the two; what changed is the machinery that ships it, which rc.3 was the first to run end
+to end — and which failed twice doing it.
+
+- **The first version on the MCP Registry.** rc.3's `crates.io` job asked crates.io for an OIDC
+  token before checking whether anything was missing, got `No Trusted Publishing config found`
+  with all nine crates already published, and the registry job that waits on it never ran. The job
+  now lists what is missing first and asks for a credential only then. It publishes with a
+  `CARGO_REGISTRY_TOKEN` repository secret when there is one — the only route that can publish a
+  crate crates.io has never seen — and over OIDC when there is not;
+  `scripts/crates-trusted-publishing.sh` is the one-time setup for the latter.
+- **The first version to move `latest`.** npm's `latest` and the image's `latest` and `slim` follow
+  stable releases only, so every candidate before this one left them behind: npm stayed on
+  `1.0.0-rc` and the image had neither tag, although the plugin's setup pulls `:latest`. Every
+  later pre-release — rc, beta, alpha — goes under its version tag and npm's `next`, and
+  `only_a_stable_release_moves_latest` holds that.
+- **rc.3's first run built every binary and died in `packages`.** Its artifact download took
+  everything in the run, including the `.dockerbuild` records the image jobs upload, which
+  `download-artifact` cannot extract. Every download now names what it takes, by test.
+- **CI keeps one run per pull request.** A newer push, the merge or closing the pull request cancels
+  the run it superseded; pushes to `main` never cancel each other.
+
 ## 1.0.0-rc.3 — 2026-09-07
 
 **`1.0.0-rc.2` was tagged and never published.** Its release workflow ran twice and failed both

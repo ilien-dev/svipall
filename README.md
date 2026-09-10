@@ -72,12 +72,9 @@ The [comparison table](#how-svipall-compares) describes other projects' document
 
 ## Install
 
-**Source and release scope (checked 2026-09-07):** this README describes the current development
-tree. The latest published [GitHub release](https://github.com/ilien-dev/svipall/releases) and
-[npm package](https://www.npmjs.com/package/svipall) are `1.0.0-rc`, predating the current automatic
-routing work and its measurements. Installing that release does not install the changes measured
-in the 2026-09-07 comparison. Use the matching source snapshot for those results and run `svipall doctor` to
-inspect an installed build's capabilities.
+Every channel below installs the latest [release](https://github.com/ilien-dev/svipall/releases),
+built from the tree this README describes. `svipall doctor` reports what an installed build can do
+on the machine it is on.
 
 The [README factual audit](bench/experiments/native-auto-candidate2-20260907/readme-factual-audit.md)
 records the source checks, documentation corrections and limits of this review.
@@ -123,7 +120,7 @@ Or a package manager, or the container image:
 ```bash
 brew install ilien-dev/svipall/svipall               # macOS, Linux
 scoop bucket add svipall https://github.com/ilien-dev/scoop-svipall && scoop install svipall
-docker pull ghcr.io/ilien-dev/svipall:1.0.0-rc       # use a published version tag; see container notes
+docker pull ghcr.io/ilien-dev/svipall:latest         # or :slim, the http tier only; see container notes
 npx --yes svipall doctor                             # if node is already there
 cargo install svipall                            # builds from source, so no captcha models
 ```
