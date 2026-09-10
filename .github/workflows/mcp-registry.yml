@@ -1,0 +1,86 @@
+name: mcp-registry
+
+# The MCP Registry. It stores metadata and nothing else: every package `server.json` names has to
+# be on its own registry first, and the registry proves each one is ours by finding the server
+# name inside the published artefact — `mcpName` in the npm package, the
+# `io.modelcontextprotocol.server.name` annotation on the image, a visible `mcp-name:` line in the
+# crate's README. `registry_manifest.rs` keeps those three in step with `server.json` offline;
+# this is where they meet what actually published.
+#
+# Authentication is DNS, not GitHub: the name is `dev.ilien.svipall/mcp`, and only DNS auth grants
+# a subdomain of the domain it verifies. `MCP_PRIVATE_KEY` is the Ed25519 key whose public half is
+# the `v=MCPv1` TXT record on ilien.dev.
+#
+# Its own workflow so it can be sent again. `release.yml` calls it last, after every artefact it
+# points at exists. When that call fails, re-running the release reuses the release's own copy of
+# this file, and `main` will not release a tagged version twice; dispatching this one from `main`
+# submits the `server.json` there, once its checks pass.
+on:
+  workflow_call:
+    secrets:
+      MCP_PRIVATE_KEY:
+        required: true
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  publish:
+    name: mcp registry
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # The version `server.json` names, which `sync_version.py --check` holds to the workspace.
+      - id: v
+        run: echo "version=$(python3 scripts/sync_version.py . --check)" >> "$GITHUB_OUTPUT"
+
+      - name: Everything server.json points at exists
+        env:
+          VERSION: ${{ steps.v.outputs.version }}
+        run: |
+          # The registry's own message for a package it cannot find is "Registry validation failed
+          # for package", which does not say which one. These do.
+          missing=0
+          if ! curl -fsS "https://registry.npmjs.org/svipall/$VERSION" >/dev/null; then
+            echo "svipall@$VERSION is not on npm" >&2
+            missing=1
+          fi
+          # A crates.io publish is not readable the instant it returns and the registry reads the
+          # index, not the response. Publishing metadata that points at a version crates.io cannot
+          # serve yet is a permanent record of a package nobody can install, so this waits.
+          # crates.io answers a request with no User-Agent with a 403 that reads exactly like "not
+          # published": that is how 1.0.0's first submission never happened.
+          agent="svipall-release (github.com/${GITHUB_REPOSITORY})"
+          for _ in $(seq 12); do
+            curl -fsS -A "$agent" "https://crates.io/api/v1/crates/svipall/$VERSION" >/dev/null && break
+            sleep 10
+          done
+          if ! curl -fsS -A "$agent" "https://crates.io/api/v1/crates/svipall/$VERSION" >/dev/null; then
+            echo "svipall $VERSION is not on crates.io after two minutes" >&2
+            missing=1
+          fi
+          [ "$missing" = 0 ] || exit 1
+
+      - name: Install mcp-publisher
+        run: |
+          curl -fsSL "https://github.com/modelcontextprotocol/registry/releases/latest/download/mcp-publisher_linux_amd64.tar.gz" \
+            | tar xz mcp-publisher
+
+      - name: Publish
+        env:
+          VERSION: ${{ steps.v.outputs.version }}
+          MCP_PRIVATE_KEY: ${{ secrets.MCP_PRIVATE_KEY }}
+        run: |
+          # Sending it again must not fail. The registry refuses a version it already holds, and
+          # the search endpoint reports the latest one, which after a publish is this one.
+          published=$(curl -fsS \
+            "https://registry.modelcontextprotocol.io/v0.1/servers?search=dev.ilien.svipall/mcp&limit=1" \
+            | python3 -c "import json,sys; s=json.load(sys.stdin)['servers']; print(s[0]['server']['version'] if s else '')")
+          if [ "$published" = "$VERSION" ]; then
+            echo "dev.ilien.svipall/mcp $VERSION is already published; nothing to do"
+            exit 0
+          fi
+          ./mcp-publisher login dns --domain ilien.dev --private-key "$MCP_PRIVATE_KEY"
+          ./mcp-publisher publish
