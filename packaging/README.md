@@ -69,6 +69,12 @@ only at publish time. It does.
 Once a release has published through it, delete any granular access token still on the account:
 nothing needs one any more.
 
+crates.io works the same way, per crate, and `scripts/crates-trusted-publishing.sh` configures all
+of them in one run: it asks for a token with the **`trusted-publishing`** scope, creates only the
+configurations that are missing, and is safe to run again when a crate joins the workspace. Delete
+the token afterwards. The `crates` job asks for a token only when a crate is actually missing from
+the registry, so a re-run after a partial release does not depend on it.
+
 ## The MCP Registry
 
 `server.json` in the repository root is the submission, and the `mcp-registry` job in `release.yml`

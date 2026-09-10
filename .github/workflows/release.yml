@@ -33,6 +33,7 @@ jobs:
       version: ${{ steps.v.outputs.version }}
       prerelease: ${{ steps.v.outputs.prerelease }}
       publish: ${{ steps.v.outputs.publish }}
+      moving: ${{ steps.v.outputs.moving }}
     steps:
       - uses: actions/checkout@v4
         # The whole tag list: whether this version has already shipped is the question this job
@@ -45,9 +46,14 @@ jobs:
           # `--check` prints the version and fails when any file that repeats it is behind. The
           # sync script is what writes them, so this is the same implementation, not a second one.
           crate=$(python3 scripts/sync_version.py . --check)
-          # A semver pre-release is anything with a hyphen. It decides two things: GitHub marks the
-          # release as a pre-release, and the moving container tags stay where they are.
+          # A semver pre-release is anything with a hyphen, and GitHub marks the release as one.
           case "$crate" in *-*) pre=true ;; *) pre=false ;; esac
+          # The moving tags — `latest` on npm and the image, `slim` — promise the newest thing a
+          # user can install. A pre-release leaves them alone only once a stable release exists to
+          # hold them; before that it is the newest thing, and leaving them behind kept npm's
+          # `latest` on 1.0.0-rc after rc.3 shipped, and gave the image no `latest` at all.
+          stable=$(git tag -l 'v[0-9]*' | grep -v -- '-' | head -n 1 || true)
+          if [ "$pre" = false ] || [ -z "$stable" ]; then moving=true; else moving=false; fi
 
           if [ "${GITHUB_REF_TYPE}" = "tag" ]; then
             # The manual path. A tag that disagrees with the tree would publish artefacts named
@@ -70,8 +76,9 @@ jobs:
             echo "version=$crate"
             echo "prerelease=$pre"
             echo "publish=$publish"
+            echo "moving=$moving"
           } >> "$GITHUB_OUTPUT"
-          echo "version $crate, prerelease $pre, publish $publish"
+          echo "version $crate, prerelease $pre, publish $publish, moving $moving"
 
   build:
     name: ${{ matrix.target }}
@@ -519,9 +526,11 @@ jobs:
             echo "svipall@$VERSION is already published; nothing to do"
             exit 0
           fi
-          tag=latest
-          if [ "${{ needs.version.outputs.prerelease }}" = "true" ]; then
-            tag=next
+          # `version` decides whether this one takes `latest`. A pre-release that does not waits
+          # under `next`; npm refuses a pre-release with no `--tag` at all.
+          tag=next
+          if [ "${{ needs.version.outputs.moving }}" = "true" ]; then
+            tag=latest
           fi
           npm publish --tag "$tag" --access public
 
@@ -559,8 +568,33 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y build-essential cmake perl pkg-config libclang-dev nasm
 
+      # What is not on the registry yet, in dependency order. A re-run usually finds nothing, and
+      # then needs no token: rc.3's re-run died here asking for one it had no use for.
+      - name: Missing crates
+        id: missing
+        env:
+          VERSION: ${{ needs.version.outputs.version }}
+        run: |
+          # Dependency order, written out rather than derived: `cargo publish --workspace` would
+          # order these itself, and would also stop at the first crate already on the registry.
+          crates="svipall-extract svipall-cdp svipall-quic svipall-models svipall-core"
+          crates="$crates svipall-solver svipall-dashboard svipall-http svipall"
+          # crates.io refuses a request with no User-Agent, and it refuses it with a 403 that
+          # reads exactly like "this crate is not published".
+          agent="svipall-release (github.com/${GITHUB_REPOSITORY})"
+          missing=""
+          for crate in $crates; do
+            if curl -sSf -A "$agent" "https://crates.io/api/v1/crates/$crate/$VERSION" >/dev/null 2>&1; then
+              echo "$crate@$VERSION is already published; nothing to do"
+            else
+              missing="$missing $crate"
+            fi
+          done
+          echo "crates=${missing# }" >> "$GITHUB_OUTPUT"
+
       - uses: rust-lang/crates-io-auth-action@v1
         id: auth
+        if: steps.missing.outputs.crates != ''
 
       # `ubuntu-latest`, and default features, on purpose. The release artefacts for Linux are
       # built on 22.04 without the model features so they start on Debian 12; this is not an
@@ -572,23 +606,13 @@ jobs:
       # captchas go to the human dashboard there, exactly as `svipall doctor` reports `no_models`
       # for the Linux and x86_64 macOS artefacts. docs/install.md says so.
       - name: Publish
+        if: steps.missing.outputs.crates != ''
         env:
           CARGO_REGISTRY_TOKEN: ${{ steps.auth.outputs.token }}
-          VERSION: ${{ needs.version.outputs.version }}
+          CRATES: ${{ steps.missing.outputs.crates }}
         run: |
-          # Dependency order, written out rather than derived: `cargo publish --workspace` would
-          # order these itself, and would also stop at the first crate already on the registry.
-          crates="svipall-extract svipall-cdp svipall-quic svipall-models svipall-core"
-          crates="$crates svipall-solver svipall-dashboard svipall-http svipall"
-          # crates.io refuses a request with no User-Agent, and it refuses it with a 403 that
-          # reads exactly like "this crate is not published".
-          agent="svipall-release (github.com/${GITHUB_REPOSITORY})"
-          for crate in $crates; do
-            if curl -sSf -A "$agent" "https://crates.io/api/v1/crates/$crate/$VERSION" >/dev/null 2>&1; then
-              echo "$crate@$VERSION is already published; nothing to do"
-              continue
-            fi
-            echo "publishing $crate@$VERSION"
+          for crate in $CRATES; do
+            echo "publishing $crate"
             cargo publish -p "$crate"
           done
 
@@ -743,15 +767,14 @@ jobs:
           pattern: digest-${{ matrix.flavor }}-*
           path: /tmp/digests
           merge-multiple: true
-      # A moving tag is a promise that whoever pulls it gets the release. A pre-release is by
-      # definition not that, so it publishes its own version tag and leaves `latest` and `slim`
-      # pointing wherever they already pointed.
+      # A moving tag is a promise that whoever pulls it gets the newest release; `version` decides
+      # whether this is it. When it is not, the version tag alone and `latest` stays put.
       - name: Create the manifest
         shell: bash
         run: |
           repo="ghcr.io/${{ github.repository }}"
           tags="-t $repo:${{ needs.version.outputs.version }}${{ matrix.suffix }}"
-          if [ "${{ needs.version.outputs.prerelease }}" != "true" ]; then
+          if [ "${{ needs.version.outputs.moving }}" = "true" ]; then
             tags="$tags -t $repo:${{ matrix.moving }}"
           fi
           refs=""
