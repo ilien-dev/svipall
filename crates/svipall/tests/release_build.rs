@@ -119,9 +119,7 @@ fn job<'a>(workflow: &'a str, name: &str) -> Option<&'a str> {
 /// cannot extract: that is how the first `1.0.0-rc.3` run died in `packages`, every binary built.
 #[test]
 fn every_artifact_download_names_what_it_takes() {
-    let workflow = fs::read_to_string(workspace_root().join(".github/workflows/release.yml"))
-        .expect("release.yml")
-        .replace("\r\n", "\n");
+    let workflow = release_yml();
     let lines: Vec<&str> = workflow.lines().collect();
     let mut seen = 0;
     for (i, line) in lines.iter().enumerate() {
@@ -149,6 +147,122 @@ fn every_artifact_download_names_what_it_takes() {
         seen > 0,
         "release.yml downloads no artefacts; this test is stale"
     );
+}
+
+fn release_yml() -> String {
+    fs::read_to_string(workspace_root().join(".github/workflows/release.yml"))
+        .expect("release.yml")
+        .replace("\r\n", "\n")
+}
+
+/// `latest` on npm and `latest`/`slim` on the image move for a stable release only. Every
+/// pre-release — `-rc`, `-beta`, `-alpha`, anything with a hyphen — waits under its version tag
+/// and npm's `next`, however old `latest` is: the operator's decision, not a rule to relax.
+#[test]
+fn only_a_stable_release_moves_latest() {
+    let workflow = release_yml();
+    assert!(
+        !workflow.contains("outputs.moving"),
+        "no second notion of `moving`: `prerelease` decides"
+    );
+    let npm = job(&workflow, "npm").expect("an `npm` job");
+    assert!(
+        npm.contains("tag=latest")
+            && npm.contains("if [ \"${{ needs.version.outputs.prerelease }}\" = \"true\" ]")
+            && npm.contains("tag=next"),
+        "npm publishes a pre-release under `next`, and only a stable one under `latest`"
+    );
+    let image = job(&workflow, "image-manifest").expect("an `image-manifest` job");
+    assert!(
+        image.contains("if [ \"${{ needs.version.outputs.prerelease }}\" != \"true\" ]"),
+        "the image's moving tags follow stable releases only"
+    );
+}
+
+/// A re-run with every crate already on crates.io died asking for a token it did not need.
+#[test]
+fn crates_asks_for_a_token_only_when_a_crate_is_missing() {
+    let workflow = release_yml();
+    let crates = job(&workflow, "crates").expect("a `crates` job");
+    let auth = crates
+        .split("\n      - ")
+        .find(|step| step.contains("crates-io-auth-action"))
+        .expect("the crates job authenticates");
+    assert!(
+        auth.contains(
+            "if: steps.missing.outputs.crates != '' && steps.missing.outputs.stored != 'true'"
+        ),
+        "OIDC must wait on a missing crate, and step aside for a stored token:\n{auth}"
+    );
+}
+
+/// A stored `CARGO_REGISTRY_TOKEN` publishes whatever is missing, a crate crates.io has never seen
+/// included, which OIDC cannot. It reaches only the two steps that need it.
+#[test]
+fn a_stored_registry_token_publishes_without_oidc() {
+    let workflow = release_yml();
+    let crates = job(&workflow, "crates").expect("a `crates` job");
+    let steps: Vec<&str> = crates.split("\n      - ").collect();
+    let with_secret: Vec<&&str> = steps
+        .iter()
+        .filter(|s| s.contains("secrets.CARGO_REGISTRY_TOKEN"))
+        .collect();
+    assert_eq!(
+        with_secret.len(),
+        2,
+        "the secret belongs to `Missing crates` and `Publish` alone"
+    );
+    let publish = steps
+        .iter()
+        .find(|s| s.starts_with("name: Publish"))
+        .expect("a Publish step");
+    assert!(
+        publish.contains("secrets.CARGO_REGISTRY_TOKEN || steps.auth.outputs.token"),
+        "Publish must prefer the stored token and fall back to OIDC:\n{publish}"
+    );
+    assert!(
+        !crates.lines().any(|l| l.starts_with("    env:")),
+        "no job-level env: every step would see the secret"
+    );
+}
+
+/// Every crate the workspace publishes, as `cargo metadata` would list it. The trusted publishing
+/// script reads the same list rather than keeping its own.
+#[test]
+fn trusted_publishing_setup_covers_every_published_crate() {
+    let root = workspace_root();
+    let script = fs::read_to_string(root.join("scripts/crates-trusted-publishing.sh"))
+        .expect("scripts/crates-trusted-publishing.sh");
+    for needle in [
+        "cargo metadata",
+        "/api/v1/trusted_publishing/github_configs",
+        "\"workflow_filename\": \"release.yml\"",
+        "read -rs",
+    ] {
+        assert!(script.contains(needle), "the script lacks {needle}");
+    }
+    // The `crates="..."` lines of the publish step, in the order they are written.
+    let workflow = release_yml();
+    let listed: Vec<&str> = job(&workflow, "crates")
+        .expect("a `crates` job")
+        .lines()
+        .filter_map(|l| l.trim().strip_prefix("crates=\""))
+        .flat_map(|l| l.trim_end_matches('"').split_whitespace())
+        .filter(|c| *c != "$crates")
+        .collect();
+    for member in members(&root) {
+        let manifest = fs::read_to_string(root.join(&member).join("Cargo.toml")).expect(&member);
+        let name = manifest
+            .lines()
+            .find_map(|l| l.trim().strip_prefix("name = \""))
+            .and_then(|l| l.strip_suffix('"'))
+            .expect("a package name");
+        assert_eq!(
+            listed.contains(&name),
+            !manifest.contains("publish = false"),
+            "{name}: release.yml's crate list and `publish` in its manifest disagree"
+        );
+    }
 }
 
 /// The tap and the bucket follow every release by themselves. Left to a person, they stayed on
