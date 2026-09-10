@@ -789,69 +789,15 @@ jobs:
           docker buildx imagetools create $tags $refs
           docker buildx imagetools inspect "$repo:${{ needs.version.outputs.version }}${{ matrix.suffix }}"
 
-  # The MCP Registry. It stores metadata and nothing else: every package `server.json` names has to
-  # be on its own registry first, and the registry proves each one is ours by finding the server
-  # name inside the published artefact — `mcpName` in the npm package, the
-  # `io.modelcontextprotocol.server.name` annotation on the image, a visible `mcp-name:` line in the
-  # crate's README. `registry_manifest.rs` keeps those three in step with `server.json` offline;
-  # this job is where they meet what actually published.
-  #
-  # Authentication is DNS, not GitHub: the name is `dev.ilien.svipall/mcp`, and only DNS auth grants
-  # a subdomain of the domain it verifies. `MCP_PRIVATE_KEY` is the Ed25519 key whose public half is
-  # the `v=MCPv1` TXT record on ilien.dev.
-  #
-  # Last, deliberately. A published version is immutable and the registry has no unpublish, so this
-  # runs after every artefact it points at exists, and never before.
+  # The MCP Registry, last, deliberately: a published version is immutable and the registry has no
+  # unpublish, so this runs after every artefact `server.json` points at exists. The steps live in
+  # `mcp-registry.yml`, which can also be dispatched by hand when this call fails.
   mcp-registry:
     name: mcp registry
     needs: [version, npm, crates, image-manifest]
     if: needs.version.outputs.publish == 'true'
-    runs-on: ubuntu-latest
     permissions:
       contents: read
-    steps:
-      - uses: actions/checkout@v4
-      - name: Everything server.json points at exists
-        env:
-          VERSION: ${{ needs.version.outputs.version }}
-        run: |
-          # The registry's own message for a package it cannot find is "Registry validation failed
-          # for package", which does not say which one. These do.
-          missing=0
-          if ! curl -fsS "https://registry.npmjs.org/svipall/$VERSION" >/dev/null; then
-            echo "svipall@$VERSION is not on npm" >&2
-            missing=1
-          fi
-          # `crates` runs before this, but a crates.io publish is not readable the instant it
-          # returns and the registry reads the index, not the response. Publishing metadata that
-          # points at a version crates.io cannot serve yet is a permanent record of a package
-          # nobody can install, so this waits for it rather than assuming.
-          for _ in $(seq 12); do
-            curl -fsS "https://crates.io/api/v1/crates/svipall/$VERSION" >/dev/null && break
-            sleep 10
-          done
-          if ! curl -fsS "https://crates.io/api/v1/crates/svipall/$VERSION" >/dev/null; then
-            echo "svipall $VERSION is not on crates.io two minutes after the crates job" >&2
-            missing=1
-          fi
-          [ "$missing" = 0 ] || exit 1
-      - name: Install mcp-publisher
-        run: |
-          curl -fsSL "https://github.com/modelcontextprotocol/registry/releases/latest/download/mcp-publisher_linux_amd64.tar.gz" \
-            | tar xz mcp-publisher
-      - name: Publish
-        env:
-          VERSION: ${{ needs.version.outputs.version }}
-          MCP_PRIVATE_KEY: ${{ secrets.MCP_PRIVATE_KEY }}
-        run: |
-          # Re-running a release must not fail it. The registry refuses a version it already holds,
-          # and the search endpoint reports the latest one, which after a publish is this one.
-          published=$(curl -fsS \
-            "https://registry.modelcontextprotocol.io/v0.1/servers?search=dev.ilien.svipall/mcp&limit=1" \
-            | python3 -c "import json,sys; s=json.load(sys.stdin)['servers']; print(s[0]['server']['version'] if s else '')")
-          if [ "$published" = "$VERSION" ]; then
-            echo "dev.ilien.svipall/mcp $VERSION is already published; nothing to do"
-            exit 0
-          fi
-          ./mcp-publisher login dns --domain ilien.dev --private-key "$MCP_PRIVATE_KEY"
-          ./mcp-publisher publish
+    uses: ./.github/workflows/mcp-registry.yml
+    secrets:
+      MCP_PRIVATE_KEY: ${{ secrets.MCP_PRIVATE_KEY }}

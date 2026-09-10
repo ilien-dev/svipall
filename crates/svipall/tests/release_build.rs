@@ -265,6 +265,60 @@ fn trusted_publishing_setup_covers_every_published_crate() {
     }
 }
 
+/// crates.io answers a request with no User-Agent with a 403 that reads like "not published":
+/// 1.0.0's registry check took nine published crates for missing that way and never submitted.
+#[test]
+fn every_crates_io_request_carries_a_user_agent() {
+    let dir = workspace_root().join(".github/workflows");
+    let mut seen = 0;
+    for entry in fs::read_dir(&dir).expect(".github/workflows") {
+        let path = entry.expect("a workflow").path();
+        let text = fs::read_to_string(&path)
+            .expect("workflow")
+            .replace("\r\n", "\n");
+        for (i, line) in text.lines().enumerate() {
+            if line.contains("curl ") && line.contains("crates.io/api") {
+                seen += 1;
+                assert!(
+                    line.contains(" -A "),
+                    "{}:{} asks crates.io without a User-Agent:\n{line}",
+                    path.display(),
+                    i + 1
+                );
+            }
+        }
+    }
+    assert!(
+        seen > 0,
+        "no workflow asks crates.io anything; this test is stale"
+    );
+}
+
+/// A release that publishes everything but the registry entry has no way back through
+/// `release.yml`: its re-run reuses the broken file, and `main` will not release a tagged
+/// version twice. The entry lives in its own workflow, which the release calls and a person can
+/// dispatch.
+#[test]
+fn the_mcp_registry_entry_can_be_sent_on_its_own() {
+    let root = workspace_root();
+    let own = fs::read_to_string(root.join(".github/workflows/mcp-registry.yml"))
+        .expect("mcp-registry.yml")
+        .replace("\r\n", "\n");
+    for needle in ["workflow_call:", "workflow_dispatch:", "MCP_PRIVATE_KEY"] {
+        assert!(own.contains(needle), "mcp-registry.yml lacks {needle}");
+    }
+    let workflow = release_yml();
+    let call = job(&workflow, "mcp-registry").expect("release.yml keeps an `mcp-registry` job");
+    assert!(
+        call.contains("uses: ./.github/workflows/mcp-registry.yml"),
+        "release.yml must call mcp-registry.yml rather than repeat it"
+    );
+    assert!(
+        !call.contains("secrets: inherit"),
+        "pass MCP_PRIVATE_KEY by name, not every secret"
+    );
+}
+
 /// The tap and the bucket follow every release by themselves. Left to a person, they stayed on
 /// the first release while npm, crates.io and the image moved on.
 #[test]
