@@ -4,7 +4,15 @@ on:
   push:
     branches: [main]
   pull_request:
+    # `closed` only so a merge cancels the run it made redundant; that run builds nothing.
+    types: [opened, synchronize, reopened, closed]
   workflow_dispatch:
+
+# A pull request keeps one run: a newer push, the merge or closing it cancels the one before, and
+# the push to `main` tests the merged tree. Every other run is its own group and is never cancelled.
+concurrency:
+  group: ci-${{ github.event.pull_request.number || github.run_id }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 env:
   CARGO_TERM_COLOR: always
@@ -15,6 +23,7 @@ env:
 jobs:
   qc:
     name: qc (${{ matrix.os }})
+    if: github.event.action != 'closed'
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
