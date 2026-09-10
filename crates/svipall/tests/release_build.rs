@@ -294,6 +294,27 @@ fn every_crates_io_request_carries_a_user_agent() {
     );
 }
 
+/// A pasted secret keeps its trailing newline, and `mcp-publisher` rejects the key on that byte
+/// alone (`invalid byte: U+000A`): the first dispatch of 1.0.0's entry. The key is stripped of
+/// whitespace, checked for shape, and only then handed over.
+#[test]
+fn the_registry_key_is_read_without_its_whitespace() {
+    let own = fs::read_to_string(workspace_root().join(".github/workflows/mcp-registry.yml"))
+        .expect("mcp-registry.yml")
+        .replace("\r\n", "\n");
+    for needle in [
+        "tr -d '[:space:]'",
+        "[0-9a-fA-F]{64}",
+        "--private-key \"$key\"",
+    ] {
+        assert!(own.contains(needle), "mcp-registry.yml lacks {needle}");
+    }
+    assert!(
+        !own.contains("--private-key \"$MCP_PRIVATE_KEY\""),
+        "the raw secret must not reach mcp-publisher"
+    );
+}
+
 /// A release that publishes everything but the registry entry has no way back through
 /// `release.yml`: its re-run reuses the broken file, and `main` will not release a tagged
 /// version twice. The entry lives in its own workflow, which the release calls and a person can
