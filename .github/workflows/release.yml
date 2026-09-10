@@ -418,6 +418,67 @@ jobs:
           generate_release_notes: true
           prerelease: ${{ needs.version.outputs.prerelease == 'true' }}
 
+  # The Homebrew tap and the Scoop bucket, pushed the moment the release exists. Each is its own
+  # repository, so this needs a credential this workflow does not have by default: one deploy key
+  # per repository, write access to that repository and nothing else. The private half is a secret
+  # here, the public half a deploy key there; packaging/README.md has the commands.
+  #
+  # `needs: publish`, because both manifests point at release assets: landing first would ship a
+  # formula whose download is a 404. Re-running is safe; an unchanged manifest commits nothing.
+  tap-bucket:
+    name: ${{ matrix.repo }}
+    needs: [version, packages, publish]
+    if: needs.version.outputs.publish == 'true'
+    runs-on: ubuntu-latest
+    permissions: {}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - repo: ilien-dev/homebrew-svipall
+            from: homebrew/svipall.rb
+            to: Formula/svipall.rb
+            key: HOMEBREW_TAP_DEPLOY_KEY
+          - repo: ilien-dev/scoop-svipall
+            from: scoop/svipall.json
+            to: bucket/svipall.json
+            key: SCOOP_BUCKET_DEPLOY_KEY
+    steps:
+      # Without the key, checkout falls back to the workflow token, reads the public repository and
+      # fails on push with a 403 that names neither the secret nor the fix.
+      - name: The deploy key is set
+        env:
+          KEY: ${{ secrets[matrix.key] }}
+        run: |
+          [ -n "$KEY" ] || { echo "::error::secret ${{ matrix.key }} is not set; see packaging/README.md"; exit 1; }
+      - uses: actions/download-artifact@v4
+        with:
+          name: packages
+          path: packages
+      - uses: actions/checkout@v4
+        with:
+          repository: ${{ matrix.repo }}
+          ssh-key: ${{ secrets[matrix.key] }}
+          path: channel
+      - name: Commit and push
+        env:
+          VERSION: ${{ needs.version.outputs.version }}
+        run: |
+          mkdir -p manifests
+          tar -xzf packages/packaging-manifests.tar.gz -C manifests "${{ matrix.from }}"
+          mkdir -p "channel/$(dirname "${{ matrix.to }}")"
+          cp "manifests/${{ matrix.from }}" "channel/${{ matrix.to }}"
+          cd channel
+          git add "${{ matrix.to }}"
+          if git diff --cached --quiet; then
+            echo "${{ matrix.repo }} already carries svipall $VERSION; nothing to do"
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -m "svipall $VERSION"
+          git push
+
   # npm, over OIDC and with no stored secret. `id-token: write` is the whole mechanism: npm trades
   # the token GitHub mints for a short-lived publish credential, having been told on npmjs.com that
   # this repository and this workflow file may do it. It also generates a provenance attestation by

@@ -101,3 +101,58 @@ fn local_models_is_a_default_and_pulls_ort() {
         );
     }
 }
+
+/// One job of `release.yml`, from its `  name:` line to the next line at the same indent.
+fn job<'a>(workflow: &'a str, name: &str) -> Option<&'a str> {
+    let start = workflow.find(&format!("\n  {name}:\n"))? + 1;
+    let body = &workflow[start..];
+    let end = body
+        .match_indices("\n  ")
+        .map(|(i, _)| i)
+        .find(|&i| !body[i + 3..].starts_with(' '))
+        .unwrap_or(body.len());
+    Some(&body[..end])
+}
+
+/// The tap and the bucket follow every release by themselves. Left to a person, they stayed on
+/// the first release while npm, crates.io and the image moved on.
+#[test]
+fn every_release_pushes_the_tap_and_the_bucket() {
+    let root = workspace_root();
+    // A Windows checkout is CRLF; the job is found by its lines.
+    let read = |p: &str| {
+        fs::read_to_string(root.join(p))
+            .expect(p)
+            .replace("\r\n", "\n")
+    };
+    let workflow = read(".github/workflows/release.yml");
+    let render = read("scripts/render-packaging.sh");
+    let job = job(&workflow, "tap-bucket").expect("release.yml has a `tap-bucket` job");
+
+    // The manifests point at release assets, so they must not land before the release exists.
+    let needs = job.lines().find(|l| l.trim_start().starts_with("needs:"));
+    assert!(
+        needs.is_some_and(|l| l.contains("publish")),
+        "tap-bucket must wait on `publish`"
+    );
+    for (repo, from, to) in [
+        (
+            "ilien-dev/homebrew-svipall",
+            "homebrew/svipall.rb",
+            "Formula/svipall.rb",
+        ),
+        (
+            "ilien-dev/scoop-svipall",
+            "scoop/svipall.json",
+            "bucket/svipall.json",
+        ),
+    ] {
+        assert!(
+            render.contains(&format!("\"$out/{from}\"")),
+            "render-packaging.sh no longer writes {from}"
+        );
+        for needle in [repo, from, to] {
+            assert!(job.contains(needle), "tap-bucket does not mention {needle}");
+        }
+    }
+}

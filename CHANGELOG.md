@@ -38,6 +38,10 @@ inherits it, `scripts/sync-version` copies it into the plugin manifest, the npm 
 internal dependency line, and `crates/svipall/tests/release_version.rs` fails the build when any
 of them drifts. `qc --fix` runs the sync beside the plugin-skill copy it already ran.
 
+The Homebrew tap and the Scoop bucket now follow each release by themselves: the `tap-bucket` job
+pushes the rendered formula and manifest the moment the release exists, through one deploy key
+per repository that can touch nothing else. Until now a person copied them, and both were still on `1.0.0-rc`.
+
 ### The workspace is on crates.io
 
 Every crate except the benchmark harness is published, over OIDC and with no stored secret, the
