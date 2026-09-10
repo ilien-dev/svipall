@@ -135,17 +135,22 @@ README, and neither is on the critical path.
 
 ## Publishing a release into the tap and the bucket
 
-Once a release has published:
+The `tap-bucket` job in `release.yml` does it, right after the release publishes: it commits the
+rendered `Formula/svipall.rb` and `bucket/svipall.json` and pushes. Its credential is one deploy
+key per repository, so the worst a leaked key can do is write to that one repository. Once each:
 
 ```bash
-scripts/render-packaging.sh <version>
-cp packaging/dist/homebrew/svipall.rb   ../homebrew-svipall/Formula/
-cp packaging/dist/scoop/svipall.json    ../scoop-svipall/bucket/
+ssh-keygen -t ed25519 -N "" -C release -f tap && ssh-keygen -t ed25519 -N "" -C release -f bucket
+gh repo deploy-key add tap.pub    -R ilien-dev/homebrew-svipall --allow-write -t svipall-release
+gh repo deploy-key add bucket.pub -R ilien-dev/scoop-svipall    --allow-write -t svipall-release
+gh secret set HOMEBREW_TAP_DEPLOY_KEY  -R ilien-dev/svipall < tap
+gh secret set SCOOP_BUCKET_DEPLOY_KEY  -R ilien-dev/svipall < bucket
+rm tap tap.pub bucket bucket.pub
 ```
 
-then commit and push each. Automating the push needs a token with write access to a repository that
-is not this one, which is a decision with a blast radius, so it is deliberately not wired up: the
-workflow renders the manifests and a person moves them.
+Rotating one is the same three lines for that repository, after deleting its old deploy key. By
+hand, for a release the job missed: `scripts/render-packaging.sh <version>`, then copy both files
+from `packaging/dist/` into the two repositories and push.
 
 ## The container image is private until you say otherwise
 
