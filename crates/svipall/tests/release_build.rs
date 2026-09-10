@@ -114,6 +114,43 @@ fn job<'a>(workflow: &'a str, name: &str) -> Option<&'a str> {
     Some(&body[..end])
 }
 
+/// Every download names what it takes. With neither `name` nor `pattern` it takes every artefact
+/// in the run, and the image jobs leave `.dockerbuild` records there that `download-artifact`
+/// cannot extract: that is how the first `1.0.0-rc.3` run died in `packages`, every binary built.
+#[test]
+fn every_artifact_download_names_what_it_takes() {
+    let workflow = fs::read_to_string(workspace_root().join(".github/workflows/release.yml"))
+        .expect("release.yml")
+        .replace("\r\n", "\n");
+    let lines: Vec<&str> = workflow.lines().collect();
+    let mut seen = 0;
+    for (i, line) in lines.iter().enumerate() {
+        if !line.contains("uses: actions/download-artifact") {
+            continue;
+        }
+        seen += 1;
+        let indent = line.len() - line.trim_start().len();
+        // The step's own keys sit deeper than its `- uses:` line, up to the next step.
+        let step: Vec<&str> = lines[i + 1..]
+            .iter()
+            .take_while(|l| l.trim().is_empty() || l.len() - l.trim_start().len() > indent)
+            .copied()
+            .collect();
+        assert!(
+            step.iter().any(|l| {
+                let l = l.trim_start();
+                l.starts_with("name:") || l.starts_with("pattern:")
+            }),
+            "release.yml:{} downloads every artefact in the run; give it a `name` or a `pattern`",
+            i + 1
+        );
+    }
+    assert!(
+        seen > 0,
+        "release.yml downloads no artefacts; this test is stale"
+    );
+}
+
 /// The tap and the bucket follow every release by themselves. Left to a person, they stayed on
 /// the first release while npm, crates.io and the image moved on.
 #[test]
