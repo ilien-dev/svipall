@@ -119,9 +119,7 @@ fn job<'a>(workflow: &'a str, name: &str) -> Option<&'a str> {
 /// cannot extract: that is how the first `1.0.0-rc.3` run died in `packages`, every binary built.
 #[test]
 fn every_artifact_download_names_what_it_takes() {
-    let workflow = fs::read_to_string(workspace_root().join(".github/workflows/release.yml"))
-        .expect("release.yml")
-        .replace("\r\n", "\n");
+    let workflow = release_yml();
     let lines: Vec<&str> = workflow.lines().collect();
     let mut seen = 0;
     for (i, line) in lines.iter().enumerate() {
@@ -149,6 +147,94 @@ fn every_artifact_download_names_what_it_takes() {
         seen > 0,
         "release.yml downloads no artefacts; this test is stale"
     );
+}
+
+fn release_yml() -> String {
+    fs::read_to_string(workspace_root().join(".github/workflows/release.yml"))
+        .expect("release.yml")
+        .replace("\r\n", "\n")
+}
+
+/// A pre-release left npm's `latest` on `1.0.0-rc` after `1.0.0-rc.3` shipped, and no image had a
+/// `latest` at all, because every release so far is a pre-release. A moving tag stays put for a
+/// pre-release only once a stable release exists to hold it; `version` decides that, once.
+#[test]
+fn a_pre_release_moves_latest_until_a_stable_release_exists() {
+    let workflow = release_yml();
+    let version = job(&workflow, "version").expect("a `version` job");
+    assert!(
+        version.contains("moving: ${{ steps.v.outputs.moving }}"),
+        "`version` must export `moving`"
+    );
+    assert!(
+        version.contains("git tag -l"),
+        "`moving` is read from the tags"
+    );
+    for name in ["npm", "image-manifest"] {
+        let job = job(&workflow, name).unwrap_or_else(|| panic!("a `{name}` job"));
+        assert!(
+            job.contains("needs.version.outputs.moving"),
+            "`{name}` must move its tag on `moving`"
+        );
+        assert!(
+            !job.contains("needs.version.outputs.prerelease"),
+            "`{name}` still decides its tag on `prerelease`"
+        );
+    }
+}
+
+/// A re-run with every crate already on crates.io died asking for a token it did not need.
+#[test]
+fn crates_asks_for_a_token_only_when_a_crate_is_missing() {
+    let workflow = release_yml();
+    let crates = job(&workflow, "crates").expect("a `crates` job");
+    let auth = crates
+        .split("\n      - ")
+        .find(|step| step.contains("crates-io-auth-action"))
+        .expect("the crates job authenticates");
+    assert!(
+        auth.contains("if: steps.missing.outputs.crates != ''"),
+        "authentication must wait on a missing crate:\n{auth}"
+    );
+}
+
+/// Every crate the workspace publishes, as `cargo metadata` would list it. The trusted publishing
+/// script reads the same list rather than keeping its own.
+#[test]
+fn trusted_publishing_setup_covers_every_published_crate() {
+    let root = workspace_root();
+    let script = fs::read_to_string(root.join("scripts/crates-trusted-publishing.sh"))
+        .expect("scripts/crates-trusted-publishing.sh");
+    for needle in [
+        "cargo metadata",
+        "/api/v1/trusted_publishing/github_configs",
+        "\"workflow_filename\": \"release.yml\"",
+        "read -rs",
+    ] {
+        assert!(script.contains(needle), "the script lacks {needle}");
+    }
+    // The `crates="..."` lines of the publish step, in the order they are written.
+    let workflow = release_yml();
+    let listed: Vec<&str> = job(&workflow, "crates")
+        .expect("a `crates` job")
+        .lines()
+        .filter_map(|l| l.trim().strip_prefix("crates=\""))
+        .flat_map(|l| l.trim_end_matches('"').split_whitespace())
+        .filter(|c| *c != "$crates")
+        .collect();
+    for member in members(&root) {
+        let manifest = fs::read_to_string(root.join(&member).join("Cargo.toml")).expect(&member);
+        let name = manifest
+            .lines()
+            .find_map(|l| l.trim().strip_prefix("name = \""))
+            .and_then(|l| l.strip_suffix('"'))
+            .expect("a package name");
+        assert_eq!(
+            listed.contains(&name),
+            !manifest.contains("publish = false"),
+            "{name}: release.yml's crate list and `publish` in its manifest disagree"
+        );
+    }
 }
 
 /// The tap and the bucket follow every release by themselves. Left to a person, they stayed on
