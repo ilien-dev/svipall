@@ -316,8 +316,11 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
+      # The archives, by pattern. The image jobs finish first and leave `.dockerbuild` records in
+      # the run that this action cannot extract; taking everything is how rc.3's first run died.
       - uses: actions/download-artifact@v4
         with:
+          pattern: svipall-*
           path: artifacts
           merge-multiple: true
       - name: Checksums
@@ -391,6 +394,7 @@ jobs:
     steps:
       - uses: actions/download-artifact@v4
         with:
+          pattern: svipall-*
           path: artifacts
           merge-multiple: true
       - name: Checksums
