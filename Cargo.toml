@@ -18,7 +18,7 @@ resolver = "2"
 # wrapper and the internal dependency lines below, and `release_version.rs` fails the build if any
 # of them drifts. The release workflow turns this number into the tag.
 [workspace.package]
-version = "1.0.0-rc.3"
+version = "1.0.0"
 repository = "https://github.com/ilien-dev/svipall"
 
 # Portable release artifacts. The local `release` profile inherits `target-cpu=native` from
@@ -59,10 +59,10 @@ reqwest = { version = "0.12", default-features = false, features = [
     "macos-system-configuration",
 ] }
 # The CDP client is vendored: see crates/svipall-cdp/PATCHES.md for what was changed and why.
-svipall-cdp = { path = "crates/svipall-cdp", version = "1.0.0-rc.3" }
+svipall-cdp = { path = "crates/svipall-cdp", version = "1.0.0" }
 # The extraction engine, split out under MIT OR Apache-2.0 so it can be depended on outside this
 # workspace. `svipall-core` re-exports it as `extraction`, so every existing path still resolves.
-svipall-extract = { path = "crates/svipall-extract", version = "1.0.0-rc.3" }
+svipall-extract = { path = "crates/svipall-extract", version = "1.0.0" }
 rusqlite = { version = "0.32", features = ["bundled"] }
 chrono = { version = "0.4", features = ["serde"] }
 uuid = { version = "1.0", features = ["v4", "serde"] }
