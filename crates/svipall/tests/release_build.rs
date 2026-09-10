@@ -155,32 +155,28 @@ fn release_yml() -> String {
         .replace("\r\n", "\n")
 }
 
-/// A pre-release left npm's `latest` on `1.0.0-rc` after `1.0.0-rc.3` shipped, and no image had a
-/// `latest` at all, because every release so far is a pre-release. A moving tag stays put for a
-/// pre-release only once a stable release exists to hold it; `version` decides that, once.
+/// `latest` on npm and `latest`/`slim` on the image move for a stable release only. Every
+/// pre-release — `-rc`, `-beta`, `-alpha`, anything with a hyphen — waits under its version tag
+/// and npm's `next`, however old `latest` is: the operator's decision, not a rule to relax.
 #[test]
-fn a_pre_release_moves_latest_until_a_stable_release_exists() {
+fn only_a_stable_release_moves_latest() {
     let workflow = release_yml();
-    let version = job(&workflow, "version").expect("a `version` job");
     assert!(
-        version.contains("moving: ${{ steps.v.outputs.moving }}"),
-        "`version` must export `moving`"
+        !workflow.contains("outputs.moving"),
+        "no second notion of `moving`: `prerelease` decides"
     );
+    let npm = job(&workflow, "npm").expect("an `npm` job");
     assert!(
-        version.contains("git tag -l"),
-        "`moving` is read from the tags"
+        npm.contains("tag=latest")
+            && npm.contains("if [ \"${{ needs.version.outputs.prerelease }}\" = \"true\" ]")
+            && npm.contains("tag=next"),
+        "npm publishes a pre-release under `next`, and only a stable one under `latest`"
     );
-    for name in ["npm", "image-manifest"] {
-        let job = job(&workflow, name).unwrap_or_else(|| panic!("a `{name}` job"));
-        assert!(
-            job.contains("needs.version.outputs.moving"),
-            "`{name}` must move its tag on `moving`"
-        );
-        assert!(
-            !job.contains("needs.version.outputs.prerelease"),
-            "`{name}` still decides its tag on `prerelease`"
-        );
-    }
+    let image = job(&workflow, "image-manifest").expect("an `image-manifest` job");
+    assert!(
+        image.contains("if [ \"${{ needs.version.outputs.prerelease }}\" != \"true\" ]"),
+        "the image's moving tags follow stable releases only"
+    );
 }
 
 /// A re-run with every crate already on crates.io died asking for a token it did not need.
