@@ -33,7 +33,6 @@ jobs:
       version: ${{ steps.v.outputs.version }}
       prerelease: ${{ steps.v.outputs.prerelease }}
       publish: ${{ steps.v.outputs.publish }}
-      moving: ${{ steps.v.outputs.moving }}
     steps:
       - uses: actions/checkout@v4
         # The whole tag list: whether this version has already shipped is the question this job
@@ -46,14 +45,11 @@ jobs:
           # `--check` prints the version and fails when any file that repeats it is behind. The
           # sync script is what writes them, so this is the same implementation, not a second one.
           crate=$(python3 scripts/sync_version.py . --check)
-          # A semver pre-release is anything with a hyphen, and GitHub marks the release as one.
+          # A semver pre-release is anything with a hyphen: -rc, -beta, -alpha. It decides two
+          # things: GitHub marks the release as a pre-release, and the moving tags — `latest` on
+          # npm, `latest` and `slim` on the image — stay where they are. Only a stable release
+          # moves them, even while every release before it was a pre-release.
           case "$crate" in *-*) pre=true ;; *) pre=false ;; esac
-          # The moving tags — `latest` on npm and the image, `slim` — promise the newest thing a
-          # user can install. A pre-release leaves them alone only once a stable release exists to
-          # hold them; before that it is the newest thing, and leaving them behind kept npm's
-          # `latest` on 1.0.0-rc after rc.3 shipped, and gave the image no `latest` at all.
-          stable=$(git tag -l 'v[0-9]*' | grep -v -- '-' | head -n 1 || true)
-          if [ "$pre" = false ] || [ -z "$stable" ]; then moving=true; else moving=false; fi
 
           if [ "${GITHUB_REF_TYPE}" = "tag" ]; then
             # The manual path. A tag that disagrees with the tree would publish artefacts named
@@ -76,9 +72,8 @@ jobs:
             echo "version=$crate"
             echo "prerelease=$pre"
             echo "publish=$publish"
-            echo "moving=$moving"
           } >> "$GITHUB_OUTPUT"
-          echo "version $crate, prerelease $pre, publish $publish, moving $moving"
+          echo "version $crate, prerelease $pre, publish $publish"
 
   build:
     name: ${{ matrix.target }}
@@ -526,11 +521,11 @@ jobs:
             echo "svipall@$VERSION is already published; nothing to do"
             exit 0
           fi
-          # `version` decides whether this one takes `latest`. A pre-release that does not waits
-          # under `next`; npm refuses a pre-release with no `--tag` at all.
-          tag=next
-          if [ "${{ needs.version.outputs.moving }}" = "true" ]; then
-            tag=latest
+          # A pre-release goes under `next` and never touches `latest`; npm refuses a pre-release
+          # with no `--tag` at all.
+          tag=latest
+          if [ "${{ needs.version.outputs.prerelease }}" = "true" ]; then
+            tag=next
           fi
           npm publish --tag "$tag" --access public
 
@@ -774,14 +769,15 @@ jobs:
           pattern: digest-${{ matrix.flavor }}-*
           path: /tmp/digests
           merge-multiple: true
-      # A moving tag is a promise that whoever pulls it gets the newest release; `version` decides
-      # whether this is it. When it is not, the version tag alone and `latest` stays put.
+      # A moving tag is a promise that whoever pulls it gets the release. A pre-release is by
+      # definition not that, so it publishes its own version tag and leaves `latest` and `slim`
+      # pointing wherever they already pointed.
       - name: Create the manifest
         shell: bash
         run: |
           repo="ghcr.io/${{ github.repository }}"
           tags="-t $repo:${{ needs.version.outputs.version }}${{ matrix.suffix }}"
-          if [ "${{ needs.version.outputs.moving }}" = "true" ]; then
+          if [ "${{ needs.version.outputs.prerelease }}" != "true" ]; then
             tags="$tags -t $repo:${{ matrix.moving }}"
           fi
           refs=""
