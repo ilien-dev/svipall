@@ -73,12 +73,19 @@ jobs:
           VERSION: ${{ steps.v.outputs.version }}
           MCP_PRIVATE_KEY: ${{ secrets.MCP_PRIVATE_KEY }}
         run: |
-          # Sending it again must not fail. The registry refuses a version it already holds, and
-          # the search endpoint reports the latest one, which after a publish is this one.
-          published=$(curl -fsS \
-            "https://registry.modelcontextprotocol.io/v0.1/servers?search=dev.ilien.svipall/mcp&limit=1" \
-            | python3 -c "import json,sys; s=json.load(sys.stdin)['servers']; print(s[0]['server']['version'] if s else '')")
-          if [ "$published" = "$VERSION" ]; then
+          # Sending it again must not fail: the registry refuses a version it already holds. Asked
+          # by name, not through `?search=`, which finds nothing for the full name even once it is
+          # published. A server with no entry yet is a 404, which is an empty list here.
+          published=$( (curl -sS \
+            "https://registry.modelcontextprotocol.io/v0.1/servers/dev.ilien.svipall%2Fmcp/versions" || true) \
+            | python3 -c "
+          import json, sys
+          try:
+              servers = json.load(sys.stdin).get('servers') or []
+          except ValueError:
+              servers = []
+          print(any(s['server']['version'] == sys.argv[1] for s in servers))" "$VERSION")
+          if [ "$published" = "True" ]; then
             echo "dev.ilien.svipall/mcp $VERSION is already published; nothing to do"
             exit 0
           fi
