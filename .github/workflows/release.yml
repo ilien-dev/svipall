@@ -45,8 +45,10 @@ jobs:
           # `--check` prints the version and fails when any file that repeats it is behind. The
           # sync script is what writes them, so this is the same implementation, not a second one.
           crate=$(python3 scripts/sync_version.py . --check)
-          # A semver pre-release is anything with a hyphen. It decides two things: GitHub marks the
-          # release as a pre-release, and the moving container tags stay where they are.
+          # A semver pre-release is anything with a hyphen: -rc, -beta, -alpha. It decides two
+          # things: GitHub marks the release as a pre-release, and the moving tags — `latest` on
+          # npm, `latest` and `slim` on the image — stay where they are. Only a stable release
+          # moves them, even while every release before it was a pre-release.
           case "$crate" in *-*) pre=true ;; *) pre=false ;; esac
 
           if [ "${GITHUB_REF_TYPE}" = "tag" ]; then
@@ -519,15 +521,20 @@ jobs:
             echo "svipall@$VERSION is already published; nothing to do"
             exit 0
           fi
+          # A pre-release goes under `next` and never touches `latest`; npm refuses a pre-release
+          # with no `--tag` at all.
           tag=latest
           if [ "${{ needs.version.outputs.prerelease }}" = "true" ]; then
             tag=next
           fi
           npm publish --tag "$tag" --access public
 
-  # crates.io, over OIDC and with no stored secret, the same mechanism as the npm job above:
-  # crates.io was told on its own site that this repository and this workflow file may publish, and
-  # `crates-io-auth-action` trades the token GitHub mints for a short-lived one.
+  # crates.io, with a stored token when the repository has one and over OIDC when it does not.
+  # `CARGO_REGISTRY_TOKEN` (scopes `publish-new` and `publish-update`, crates `svipall*`) publishes
+  # anything, a crate the registry has never seen included; OIDC cannot, because trusted publishing
+  # is configured on a crate that already exists. Without the secret, `crates-io-auth-action` trades
+  # the token GitHub mints for a short-lived one, and `scripts/crates-trusted-publishing.sh` is the
+  # one-time setup that makes crates.io accept it.
   #
   # Published in dependency order, one crate at a time, because publishing is permanent — there is
   # no unpublish, only `yank` — and a run that dies halfway must be re-runnable. A crate already on
@@ -559,8 +566,37 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y build-essential cmake perl pkg-config libclang-dev nasm
 
+      # What is not on the registry yet, in dependency order. A re-run usually finds nothing, and
+      # then needs no token: rc.3's re-run died here asking for one it had no use for.
+      - name: Missing crates
+        id: missing
+        env:
+          VERSION: ${{ needs.version.outputs.version }}
+          # Only whether it is set leaves this step; `if:` cannot read `secrets`, and a job-level
+          # env would hand the token to every step in the job.
+          STORED: ${{ secrets.CARGO_REGISTRY_TOKEN }}
+        run: |
+          if [ -n "$STORED" ]; then echo "stored=true" >> "$GITHUB_OUTPUT"; fi
+          # Dependency order, written out rather than derived: `cargo publish --workspace` would
+          # order these itself, and would also stop at the first crate already on the registry.
+          crates="svipall-extract svipall-cdp svipall-quic svipall-models svipall-core"
+          crates="$crates svipall-solver svipall-dashboard svipall-http svipall"
+          # crates.io refuses a request with no User-Agent, and it refuses it with a 403 that
+          # reads exactly like "this crate is not published".
+          agent="svipall-release (github.com/${GITHUB_REPOSITORY})"
+          missing=""
+          for crate in $crates; do
+            if curl -sSf -A "$agent" "https://crates.io/api/v1/crates/$crate/$VERSION" >/dev/null 2>&1; then
+              echo "$crate@$VERSION is already published; nothing to do"
+            else
+              missing="$missing $crate"
+            fi
+          done
+          echo "crates=${missing# }" >> "$GITHUB_OUTPUT"
+
       - uses: rust-lang/crates-io-auth-action@v1
         id: auth
+        if: steps.missing.outputs.crates != '' && steps.missing.outputs.stored != 'true'
 
       # `ubuntu-latest`, and default features, on purpose. The release artefacts for Linux are
       # built on 22.04 without the model features so they start on Debian 12; this is not an
@@ -572,23 +608,13 @@ jobs:
       # captchas go to the human dashboard there, exactly as `svipall doctor` reports `no_models`
       # for the Linux and x86_64 macOS artefacts. docs/install.md says so.
       - name: Publish
+        if: steps.missing.outputs.crates != ''
         env:
-          CARGO_REGISTRY_TOKEN: ${{ steps.auth.outputs.token }}
-          VERSION: ${{ needs.version.outputs.version }}
+          CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN || steps.auth.outputs.token }}
+          CRATES: ${{ steps.missing.outputs.crates }}
         run: |
-          # Dependency order, written out rather than derived: `cargo publish --workspace` would
-          # order these itself, and would also stop at the first crate already on the registry.
-          crates="svipall-extract svipall-cdp svipall-quic svipall-models svipall-core"
-          crates="$crates svipall-solver svipall-dashboard svipall-http svipall"
-          # crates.io refuses a request with no User-Agent, and it refuses it with a 403 that
-          # reads exactly like "this crate is not published".
-          agent="svipall-release (github.com/${GITHUB_REPOSITORY})"
-          for crate in $crates; do
-            if curl -sSf -A "$agent" "https://crates.io/api/v1/crates/$crate/$VERSION" >/dev/null 2>&1; then
-              echo "$crate@$VERSION is already published; nothing to do"
-              continue
-            fi
-            echo "publishing $crate@$VERSION"
+          for crate in $CRATES; do
+            echo "publishing $crate"
             cargo publish -p "$crate"
           done
 
