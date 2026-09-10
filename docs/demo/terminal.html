@@ -13,9 +13,9 @@
   the captured stdout of a real run on one machine. Nothing here composes,
   shortens or prettifies an output that svipall did not print.
 
-  The palette is the site's, verbatim: --color-panel is the surface the design
-  system reserves for recorded output, and --color-signal only reaches its
-  contrast target there.
+  The palette is the site's dark theme, verbatim from
+  svipall-site/src/styles/tokens.css: the stage is a cell on the navy ground,
+  the ink warms toward the logo's bone, and the amber is the one accent.
 -->
 <style>
   @font-face {
@@ -38,27 +38,30 @@
   }
 
   :root {
-    /* Primitives, verbatim from svipall-site/src/styles/tokens.css. */
-    --ds-ink-900: #0b1a2b;
-    --ds-bone-300: #ead9c4;
-    --ds-amber-500: #df8d27;
-    --ds-clay-400: #f2a68b;
-    --ds-clay-200: #fbcdba;
-    --ds-moss-300: #a9e0c4;
+    /* Primitives: the dark theme's values in svipall-site tokens.css. */
+    --ds-ink-950: #efe7da;
+    --ds-ink-600: #dad5ca;
+    --ds-ink-500: #c1beb7;
+    --ds-field-100: #0b1a2b;
+    --ds-field-000: #122539;
+    --ds-amber-400: #ffb03a;
+    --ds-green-700: #5cd6a0;
+    --ds-red-700: #fe775f;
 
-    /* Aliases, the same jobs global.css gives them on a dark panel. */
-    --panel: var(--ds-ink-900);
-    --ink: var(--ds-bone-300);
-    --ink-secondary: color-mix(in srgb, var(--ds-bone-300) 80%, transparent);
-    --ink-muted: color-mix(in srgb, var(--ds-bone-300) 55%, transparent);
-    --ink-faint: color-mix(in srgb, var(--ds-bone-300) 34%, transparent);
-    --rule: color-mix(in srgb, var(--ds-bone-300) 16%, transparent);
-    --accent: var(--ds-clay-400);
-    --signal: var(--ds-amber-500);
-    --pass: var(--ds-moss-300);
-    /* The same value as the accent, which is what global.css says a fail is:
-       on this surface it is the thing the accent exists to point at. */
-    --fail: var(--ds-clay-400);
+    /* Aliases, the jobs the site gives them in its dark theme. */
+    --panel: var(--ds-field-000);
+    --ink: var(--ds-ink-950);
+    --ink-secondary: var(--ds-ink-600);
+    --ink-muted: var(--ds-ink-500);
+    /* The one value the site does not declare: punctuation, pipes and the
+       working dots sit a step under --ink-muted so the words carry the line. */
+    --ink-faint: color-mix(in srgb, var(--ds-ink-500) 60%, var(--panel));
+    --rule: rgba(239, 231, 218, 0.38);
+    --accent: var(--ds-amber-400);
+    /* In the dark theme --color-mark and --color-accent are the same amber. */
+    --signal: var(--ds-amber-400);
+    --pass: var(--ds-green-700);
+    --fail: var(--ds-red-700);
 
     --mono: 'Commit Mono', 'SF Mono', Consolas, monospace;
     --display: 'Archivo', 'Helvetica Neue', Arial, sans-serif;
@@ -184,7 +187,7 @@
     font-family: var(--mono);
     font-size: var(--size-annotation);
     line-height: 1;
-    color: var(--ink-faint);
+    color: var(--ink-muted);
     user-select: none;
   }
 </style>

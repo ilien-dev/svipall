@@ -1,7 +1,7 @@
 <p align="center">
   <picture>
     <source media="(prefers-color-scheme: dark)" srcset="assets/brand/svipall-lockup-dark.svg">
-    <img src="assets/brand/svipall-lockup.svg" alt="svipall — local-first web scraping and browsing MCP server for AI agents" width="440">
+    <img src="assets/brand/svipall-lockup.svg" alt="Svipall — local-first web scraping and browsing MCP server for AI agents" width="400">
   </picture>
 </p>
 
@@ -15,12 +15,12 @@
 </p>
 
 <p align="center">
-  <a href="https://www.rust-lang.org"><img alt="Rust" src="https://img.shields.io/badge/Rust-stable-A7472C?style=flat-square&labelColor=0B1A2B"></a>
-  <a href="#license"><img alt="License: AGPL-3.0" src="https://img.shields.io/badge/License-AGPL--3.0-EAD9C4?style=flat-square&labelColor=0B1A2B"></a>
-  <a href="#mcp-tools"><img alt="MCP" src="https://img.shields.io/badge/MCP-29%20tools-DF8D27?style=flat-square&labelColor=0B1A2B"></a>
-  <a href="docs/development.md"><img alt="Recorded test results" src="https://img.shields.io/badge/tests-results%20recorded-EAD9C4?style=flat-square&labelColor=0B1A2B"></a>
-  <a href="docs/proof.md"><img alt="Benchmarks" src="https://img.shields.io/badge/benchmarks-published%2C%20failures%20included-A7472C?style=flat-square&labelColor=0B1A2B"></a>
-  <a href="docs/privacy.md"><img alt="No telemetry" src="https://img.shields.io/badge/telemetry-none-3F7D63?style=flat-square&labelColor=0B1A2B"></a>
+  <a href="https://www.rust-lang.org"><img alt="Rust" src="https://img.shields.io/badge/Rust-stable-983E25?style=flat-square&labelColor=0B1A2B"></a>
+  <a href="#license"><img alt="License: AGPL-3.0" src="https://img.shields.io/badge/License-AGPL--3.0-DCE3EB?style=flat-square&labelColor=0B1A2B"></a>
+  <a href="#mcp-tools"><img alt="MCP" src="https://img.shields.io/badge/MCP-29%20tools-FFB03A?style=flat-square&labelColor=0B1A2B"></a>
+  <a href="docs/development.md"><img alt="Recorded test results" src="https://img.shields.io/badge/tests-results%20recorded-DCE3EB?style=flat-square&labelColor=0B1A2B"></a>
+  <a href="docs/proof.md"><img alt="Benchmarks" src="https://img.shields.io/badge/benchmarks-published%2C%20failures%20included-983E25?style=flat-square&labelColor=0B1A2B"></a>
+  <a href="docs/privacy.md"><img alt="No telemetry" src="https://img.shields.io/badge/telemetry-none-0C6244?style=flat-square&labelColor=0B1A2B"></a>
 </p>
 
 <p align="center">
@@ -232,11 +232,7 @@ are described under [Privacy and safety](docs/privacy.md).
 
 ## How it works, in plain words
 
-<p align="center">
-  <img src="assets/readme/request-ladder.png" alt="The automatic ladder offers http, browser, stealth, real and warm. Any tier can return Markdown and metadata. The successful starting tier is remembered per domain; wall classification can jump tiers or stop. Unresolved challenges can use local solving or the human dashboard." width="880" loading="lazy">
-</p>
-
-*The diagram shows the emulated tiers. The current automatic policy can promote a supported
+*The steps below describe the emulated tiers. The current automatic policy can promote a supported
 emulated route and append one eligible native fallback. Wall verdicts can end the attempt;
 content-quality labels alone do not trigger escalation.*
 
