@@ -193,8 +193,40 @@ fn crates_asks_for_a_token_only_when_a_crate_is_missing() {
         .find(|step| step.contains("crates-io-auth-action"))
         .expect("the crates job authenticates");
     assert!(
-        auth.contains("if: steps.missing.outputs.crates != ''"),
-        "authentication must wait on a missing crate:\n{auth}"
+        auth.contains(
+            "if: steps.missing.outputs.crates != '' && steps.missing.outputs.stored != 'true'"
+        ),
+        "OIDC must wait on a missing crate, and step aside for a stored token:\n{auth}"
+    );
+}
+
+/// A stored `CARGO_REGISTRY_TOKEN` publishes whatever is missing, a crate crates.io has never seen
+/// included, which OIDC cannot. It reaches only the two steps that need it.
+#[test]
+fn a_stored_registry_token_publishes_without_oidc() {
+    let workflow = release_yml();
+    let crates = job(&workflow, "crates").expect("a `crates` job");
+    let steps: Vec<&str> = crates.split("\n      - ").collect();
+    let with_secret: Vec<&&str> = steps
+        .iter()
+        .filter(|s| s.contains("secrets.CARGO_REGISTRY_TOKEN"))
+        .collect();
+    assert_eq!(
+        with_secret.len(),
+        2,
+        "the secret belongs to `Missing crates` and `Publish` alone"
+    );
+    let publish = steps
+        .iter()
+        .find(|s| s.starts_with("name: Publish"))
+        .expect("a Publish step");
+    assert!(
+        publish.contains("secrets.CARGO_REGISTRY_TOKEN || steps.auth.outputs.token"),
+        "Publish must prefer the stored token and fall back to OIDC:\n{publish}"
+    );
+    assert!(
+        !crates.lines().any(|l| l.starts_with("    env:")),
+        "no job-level env: every step would see the secret"
     );
 }
 

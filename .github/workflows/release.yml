@@ -534,9 +534,12 @@ jobs:
           fi
           npm publish --tag "$tag" --access public
 
-  # crates.io, over OIDC and with no stored secret, the same mechanism as the npm job above:
-  # crates.io was told on its own site that this repository and this workflow file may publish, and
-  # `crates-io-auth-action` trades the token GitHub mints for a short-lived one.
+  # crates.io, with a stored token when the repository has one and over OIDC when it does not.
+  # `CARGO_REGISTRY_TOKEN` (scopes `publish-new` and `publish-update`, crates `svipall*`) publishes
+  # anything, a crate the registry has never seen included; OIDC cannot, because trusted publishing
+  # is configured on a crate that already exists. Without the secret, `crates-io-auth-action` trades
+  # the token GitHub mints for a short-lived one, and `scripts/crates-trusted-publishing.sh` is the
+  # one-time setup that makes crates.io accept it.
   #
   # Published in dependency order, one crate at a time, because publishing is permanent — there is
   # no unpublish, only `yank` — and a run that dies halfway must be re-runnable. A crate already on
@@ -574,7 +577,11 @@ jobs:
         id: missing
         env:
           VERSION: ${{ needs.version.outputs.version }}
+          # Only whether it is set leaves this step; `if:` cannot read `secrets`, and a job-level
+          # env would hand the token to every step in the job.
+          STORED: ${{ secrets.CARGO_REGISTRY_TOKEN }}
         run: |
+          if [ -n "$STORED" ]; then echo "stored=true" >> "$GITHUB_OUTPUT"; fi
           # Dependency order, written out rather than derived: `cargo publish --workspace` would
           # order these itself, and would also stop at the first crate already on the registry.
           crates="svipall-extract svipall-cdp svipall-quic svipall-models svipall-core"
@@ -594,7 +601,7 @@ jobs:
 
       - uses: rust-lang/crates-io-auth-action@v1
         id: auth
-        if: steps.missing.outputs.crates != ''
+        if: steps.missing.outputs.crates != '' && steps.missing.outputs.stored != 'true'
 
       # `ubuntu-latest`, and default features, on purpose. The release artefacts for Linux are
       # built on 22.04 without the model features so they start on Debian 12; this is not an
@@ -608,7 +615,7 @@ jobs:
       - name: Publish
         if: steps.missing.outputs.crates != ''
         env:
-          CARGO_REGISTRY_TOKEN: ${{ steps.auth.outputs.token }}
+          CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN || steps.auth.outputs.token }}
           CRATES: ${{ steps.missing.outputs.crates }}
         run: |
           for crate in $CRATES; do
