@@ -82,8 +82,9 @@ missing from the registry:
 
 ## The MCP Registry
 
-`server.json` in the repository root is the submission, and the `mcp-registry` job in `release.yml`
-sends it. The registry stores **metadata only**: it does not host a byte of this project. What it
+`server.json` in the repository root is the submission, and `.github/workflows/mcp-registry.yml`
+sends it: `release.yml` calls it last, and when that call fails, dispatching it from `main`
+(`gh workflow run mcp-registry.yml`) sends the entry for the version `main` carries. The registry stores **metadata only**: it does not host a byte of this project. What it
 does is check, for every package `server.json` names, that the artefact on that package's own
 registry carries the server's name — which is how it knows the submission is ours and not somebody
 claiming our name.
