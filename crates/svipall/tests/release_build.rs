@@ -315,6 +315,24 @@ fn the_registry_key_is_read_without_its_whitespace() {
     );
 }
 
+/// The registry's `?search=` finds nothing for the full name `dev.ilien.svipall/mcp`, even with
+/// 1.0.0 published, so a second send would have been refused as a duplicate instead of skipped.
+/// The server's own versions endpoint answers exactly.
+#[test]
+fn the_registry_is_asked_for_this_server_by_name() {
+    let own = fs::read_to_string(workspace_root().join(".github/workflows/mcp-registry.yml"))
+        .expect("mcp-registry.yml")
+        .replace("\r\n", "\n");
+    assert!(
+        own.contains("/v0.1/servers/dev.ilien.svipall%2Fmcp/versions"),
+        "mcp-registry.yml must read the server's own versions"
+    );
+    assert!(
+        !own.contains("servers?search="),
+        "`?search=` does not find the full name"
+    );
+}
+
 /// A release that publishes everything but the registry entry has no way back through
 /// `release.yml`: its re-run reuses the broken file, and `main` will not release a tagged
 /// version twice. The entry lives in its own workflow, which the release calls and a person can
