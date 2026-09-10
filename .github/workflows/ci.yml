@@ -77,15 +77,15 @@ jobs:
 
       - name: clippy (onnx features)
         run: |
-          cargo clippy -p svipall-mcp --all-targets --features onnx-ocr -- -D warnings
-          cargo clippy -p svipall-mcp --all-targets --features onnx-grid -- -D warnings
-          cargo clippy -p svipall-mcp --all-targets --features onnx-audio -- -D warnings
-          cargo clippy -p svipall-mcp --all-targets --features onnx-detect -- -D warnings
-          cargo clippy -p svipall-mcp --all-targets --features onnx-segment -- -D warnings
-          cargo clippy -p svipall-mcp --all-targets --features onnx-zeroshot -- -D warnings
+          cargo clippy -p svipall --all-targets --features onnx-ocr -- -D warnings
+          cargo clippy -p svipall --all-targets --features onnx-grid -- -D warnings
+          cargo clippy -p svipall --all-targets --features onnx-audio -- -D warnings
+          cargo clippy -p svipall --all-targets --features onnx-detect -- -D warnings
+          cargo clippy -p svipall --all-targets --features onnx-segment -- -D warnings
+          cargo clippy -p svipall --all-targets --features onnx-zeroshot -- -D warnings
 
       - name: clippy (http3)
-        run: cargo clippy -p svipall-mcp --all-targets --features http3 -- -D warnings
+        run: cargo clippy -p svipall --all-targets --features http3 -- -D warnings
 
       - name: clippy (no impersonation fallback)
         run: cargo clippy --workspace --all-targets --no-default-features -- -D warnings
@@ -100,7 +100,7 @@ jobs:
       # A real ONNX Runtime session over the fixture graphs in tests/fixtures/models. Without
       # this step the inference modules were lint-checked and executed by nobody.
       - name: tests (onnx models)
-        run: cargo test -p svipall-mcp --features onnx-grid,onnx-segment,onnx-detect --test models
+        run: cargo test -p svipall --features onnx-grid,onnx-segment,onnx-detect --test models
 
       # CPU budgets and the exact structural counts: one DOM parse per page, no disk reads on a
       # cache lookup, pruning that removes the navigation and keeps the article. No network, and
@@ -135,11 +135,23 @@ jobs:
           python3 -c "import json,sys; json.load(open('plugins/svipall/.claude-plugin/plugin.json'))"
           python3 -c "import json,sys; json.load(open('plugins/svipall/hooks/hooks.json'))"
           python3 -c "import json,sys; json.load(open('plugins/svipall/.mcp.json'))"
-          crate=$(grep -m1 '^version' crates/svipall-mcp/Cargo.toml | cut -d'"' -f2)
-          plugin=$(python3 -c "import json; print(json.load(open('plugins/svipall/.claude-plugin/plugin.json'))['version'])")
-          test "$crate" = "$plugin" || { echo "crate $crate != plugin $plugin"; exit 1; }
+          # The version, in every file that repeats it. `--check` is the sync script refusing to
+          # write: same implementation, so CI cannot disagree with what a `--fix` run would do.
+          python3 scripts/sync_version.py . --check
           # Every hook the plugin registers has to be a command this binary answers to.
           grep -q '"svipall hook claude-web"' plugins/svipall/hooks/hooks.json
+
+      # The nine manifests, as crates.io will read them on release day. A path dependency with no
+      # version, a `readme` naming a file that is not there, a category slug the registry does not
+      # know — each is a release that dies after the crates published before it are permanent.
+      # `--no-verify` because the jobs around this one already compile the workspace; the question
+      # here is whether the manifests are publishable.
+      - name: crates.io metadata
+        if: runner.os == 'Linux'
+        shell: bash
+        # `--exclude svipall-bench`: `--workspace` packages a `publish = false` member too, and
+        # that one is 40 MB of corpora nothing here needs to see.
+        run: cargo package --workspace --exclude svipall-bench --no-verify --allow-dirty
 
       # The installers, run against the binaries this job just built. An installer that is only
       # ever exercised on release day is an installer nobody tested — the same argument the

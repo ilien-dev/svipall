@@ -2,7 +2,7 @@
 //!
 //! The dashboard exposes captcha jobs, which carry the URLs svipall is visiting and, for image
 //! captchas, the challenge bitmap. That is private to the operator, so every data route is gated
-//! by a per-run token and the server is expected to bind loopback (see `svipall-mcp::run_dashboard`).
+//! by a per-run token and the server is expected to bind loopback (see `svipall::run_dashboard`).
 //! The HTML shell itself is public: it holds no data and needs to load before it can ask for the
 //! token from the query string.
 

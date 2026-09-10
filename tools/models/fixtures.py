@@ -6,7 +6,7 @@ takes, with an answer that can be asserted by construction:
   grid.onnx     [1,3,H,W] -> [1,2]        class 1 is "bright": the mean pixel value.
   segment.onnx  [1,3,H,W] -> [1,2,H,W]    plane 1 is "bright": each pixel's mean over channels.
 
-Written to `crates/svipall-mcp/tests/fixtures/models/`. Run once; the files are committed.
+Written to `crates/svipall/tests/fixtures/models/`. Run once; the files are committed.
 """
 
 import json
@@ -45,7 +45,7 @@ def segment(size):
 
 
 def main():
-    out = pathlib.Path("crates/svipall-mcp/tests/fixtures/models")
+    out = pathlib.Path("crates/svipall/tests/fixtures/models")
     out.mkdir(parents=True, exist_ok=True)
     size = 16
     m = grid(size)

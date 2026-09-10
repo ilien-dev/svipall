@@ -3900,120 +3900,8 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "13c2bddecc57b384dee18652358fb23172facb8a2c51ccc10d74c157bdea3292"
 
 [[package]]
-name = "svipall-bench"
-version = "1.0.0"
-dependencies = [
- "anyhow",
- "async-trait",
- "flate2",
- "image",
- "regex",
- "scraper",
- "serde_json",
- "svipall-core",
- "svipall-http",
- "svipall-mcp",
- "svipall-models",
- "svipall-quic",
- "tokio",
- "tracing-subscriber",
-]
-
-[[package]]
-name = "svipall-cdp"
-version = "1.0.0"
-dependencies = [
- "async-tungstenite",
- "base64 0.22.1",
- "cfg-if",
- "chromiumoxide_cdp",
- "chromiumoxide_types",
- "dunce",
- "fnv",
- "futures",
- "futures-timer",
- "pin-project-lite",
- "reqwest",
- "serde",
- "serde_json",
- "thiserror 1.0.69",
- "tokio",
- "tracing",
- "url",
- "which",
- "winreg",
-]
-
-[[package]]
-name = "svipall-core"
-version = "1.0.0"
-dependencies = [
- "anydoc",
- "anyhow",
- "dirs",
- "flate2",
- "pdf-extract",
- "quick-xml 0.37.5",
- "regex",
- "rusqlite",
- "serde",
- "serde_json",
- "sha2",
- "svipall-extract",
- "tokio",
- "toml",
- "tracing",
- "url",
- "uuid",
-]
-
-[[package]]
-name = "svipall-dashboard"
-version = "1.0.0"
-dependencies = [
- "axum",
- "serde_json",
- "svipall-core",
- "svipall-solver",
- "tokio",
- "tower",
-]
-
-[[package]]
-name = "svipall-extract"
-version = "1.0.0"
-dependencies = [
- "ego-tree",
- "regex",
- "scraper",
- "serde",
- "serde_json",
- "url",
-]
-
-[[package]]
-name = "svipall-http"
-version = "1.0.0"
-dependencies = [
- "anyhow",
- "async-trait",
- "brotli",
- "flate2",
- "reqwest",
- "serde_json",
- "svipall-core",
- "svipall-quic",
- "tokio",
- "tracing",
- "url",
- "wreq",
- "wreq-util",
- "zstd",
-]
-
-[[package]]
-name = "svipall-mcp"
-version = "1.0.0-rc.2"
+name = "svipall"
+version = "1.0.0-rc.3"
 dependencies = [
  "anyhow",
  "axum",
@@ -4047,12 +3935,124 @@ dependencies = [
 ]
 
 [[package]]
+name = "svipall-bench"
+version = "1.0.0-rc.3"
+dependencies = [
+ "anyhow",
+ "async-trait",
+ "flate2",
+ "image",
+ "regex",
+ "scraper",
+ "serde_json",
+ "svipall",
+ "svipall-core",
+ "svipall-http",
+ "svipall-models",
+ "svipall-quic",
+ "tokio",
+ "tracing-subscriber",
+]
+
+[[package]]
+name = "svipall-cdp"
+version = "1.0.0-rc.3"
+dependencies = [
+ "async-tungstenite",
+ "base64 0.22.1",
+ "cfg-if",
+ "chromiumoxide_cdp",
+ "chromiumoxide_types",
+ "dunce",
+ "fnv",
+ "futures",
+ "futures-timer",
+ "pin-project-lite",
+ "reqwest",
+ "serde",
+ "serde_json",
+ "thiserror 1.0.69",
+ "tokio",
+ "tracing",
+ "url",
+ "which",
+ "winreg",
+]
+
+[[package]]
+name = "svipall-core"
+version = "1.0.0-rc.3"
+dependencies = [
+ "anydoc",
+ "anyhow",
+ "dirs",
+ "flate2",
+ "pdf-extract",
+ "quick-xml 0.37.5",
+ "regex",
+ "rusqlite",
+ "serde",
+ "serde_json",
+ "sha2",
+ "svipall-extract",
+ "tokio",
+ "toml",
+ "tracing",
+ "url",
+ "uuid",
+]
+
+[[package]]
+name = "svipall-dashboard"
+version = "1.0.0-rc.3"
+dependencies = [
+ "axum",
+ "serde_json",
+ "svipall-core",
+ "svipall-solver",
+ "tokio",
+ "tower",
+]
+
+[[package]]
+name = "svipall-extract"
+version = "1.0.0-rc.3"
+dependencies = [
+ "ego-tree",
+ "regex",
+ "scraper",
+ "serde",
+ "serde_json",
+ "url",
+]
+
+[[package]]
+name = "svipall-http"
+version = "1.0.0-rc.3"
+dependencies = [
+ "anyhow",
+ "async-trait",
+ "brotli",
+ "flate2",
+ "reqwest",
+ "serde_json",
+ "svipall-core",
+ "svipall-quic",
+ "tokio",
+ "tracing",
+ "url",
+ "wreq",
+ "wreq-util",
+ "zstd",
+]
+
+[[package]]
 name = "svipall-models"
-version = "1.0.0"
+version = "1.0.0-rc.3"
 
 [[package]]
 name = "svipall-quic"
-version = "1.0.0"
+version = "1.0.0-rc.3"
 dependencies = [
  "brotli",
  "btls-sys",
@@ -4070,7 +4070,7 @@ dependencies = [
 
 [[package]]
 name = "svipall-solver"
-version = "1.0.0"
+version = "1.0.0-rc.3"
 dependencies = [
  "anyhow",
  "axum",

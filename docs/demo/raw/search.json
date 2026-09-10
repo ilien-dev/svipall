@@ -1,0 +1,57 @@
+{
+  "count": 10,
+  "engine": "ddg-html",
+  "query": "rust cdp stealth automation",
+  "results": [
+    {
+      "snippet": "Stealth Chromium automation from Rust over the Chrome DevTools Protocol (via chromiumoxide). It drives CloakHQ's custom, source-patched Chromium binary — the \"cloak\" lives in that binary's 71 compile-level fingerprint patches; this crate is the Rust orchestration (download, verify, stealth args, spawn + connect) that activates them, replacing the upstream Python/JS wrappers.",
+      "title": "GitHub - enowdev/cloak-cdp: Unofficial Rust port of CloakBrowser ...",
+      "url": "https://github.com/enowdev/cloak-cdp"
+    },
+    {
+      "snippet": "Stealth browser automation library for Rust with Web Bot Authsupport. Custom CDP + WebDriver + BiDi backends — zero external browser-automation dependencies.",
+      "title": "GitHub - ZENG3LD/dig2browser: Stealth browser automation for Rust ...",
+      "url": "https://github.com/ZENG3LD/dig2browser"
+    },
+    {
+      "snippet": "cloak-cdp is an unofficial Rust port of CloakBrowser, providing stealth Chromium automation via the Chrome DevTools Protocol. It downloads and verifies a source-patched Chromium binary at runtime, enabling fingerprint spoofing like navigator.webdriver hiding, canvas/WebGL noise, and WebRTC IP leak prevention.",
+      "title": "cloak-cdp — enowxlabs",
+      "url": "https://enowxlabs.com/work/cloak-cdp"
+    },
+    {
+      "snippet": "The stealth driver keeps automation behavior consistent with regular browser sessions, removes CDP automation leaks, and can add human-like interaction timing. Most tools only do one or the other.",
+      "title": "CloakBrowser — Stealth Chromium for Developers and Automation",
+      "url": "https://cloakbrowser.dev/"
+    },
+    {
+      "snippet": "Anti-detection browser automation library for Rust with CDP stealth features",
+      "title": "stygian-browser — Rust web dev library // Lib.rs",
+      "url": "https://lib.rs/crates/stygian-browser"
+    },
+    {
+      "snippet": "Eoka Stealth browser automation for Rust — a Puppeteer/Playwright alternative that bypasses bot detection. Eoka is a minimal, fast headless Chrome library built from scratch. Unlike Selenium or chromiumoxide, it uses a custom CDP implementation with stealth filtering to avoid detection by Cloudflare, DataDome, PerimeterX, and other anti-bot ...",
+      "title": "eoka - Rust - Docs.rs",
+      "url": "https://docs.rs/eoka/latest/eoka/"
+    },
+    {
+      "snippet": "Stealth browser automation library for Rust with Web Bot Auth support. Custom CDP + WebDriver + BiDi backends — zero external browser-automation dependencies. Multi-browser support: Chrome, Edge, Firefox. Built-in anti-detection with 16 stealth scripts, cookie management (Chrome DPAPI + Firefox plaintext), and agent-friendly DevTools access. Why",
+      "title": "dig2browser — Rust utility // Lib.rs",
+      "url": "https://lib.rs/crates/dig2browser"
+    },
+    {
+      "snippet": "zendriver-rsis an async-first browser-automation library for Rust with a coherent stealth identity and explicit anti-detection controls, on by default. It drives a real Chrome instance over the Chrome DevTools Protocol(CDP) directly — no WebDriver shim, no Selenium grid, no JSON wire — and ships with anti-detection patches that pass mainstream fingerprint checks (e.g. sannysoft ...",
+      "title": "Introduction - zendriver-rs",
+      "url": "https://turtiesocks.github.io/zendriver-rs/"
+    },
+    {
+      "snippet": "Expand description §stygian-browser §stygian-browser High-performance, anti-detection browser automation library for Rust. Built on the Chrome DevTools Protocolvia chromiumoxidewith comprehensive stealth features for bypassing modern anti-bot systems: Cloudflare, DataDome, PerimeterX, Akamai. §Features Feature",
+      "title": "stygian_browser - Rust - Docs.rs",
+      "url": "https://docs.rs/stygian-browser"
+    },
+    {
+      "snippet": "Pricing Obscura Low-footprint scraping, agent automation, stealth browsing Rust binary with CDP, V8, and built-in anti-detect features Open-Source Headless Chrome Full Chromium parity and widest site compatibility",
+      "title": "Obscura Review: Stealthy Alternative to Headless Chrome",
+      "url": "https://www.toolhunter.cc/tools/obscura"
+    }
+  ]
+}

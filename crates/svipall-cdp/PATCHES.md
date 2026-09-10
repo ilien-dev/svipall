@@ -9,7 +9,7 @@ named functions, not line numbers.
 Worker attachment reads that value before the legacy process-wide fallback. An empty script
 explicitly selects native workers. This keeps different persistent profile seeds consistent with
 their own document, and allows a native-hardware pool after an emulated pool in the same process.
-`svipall-mcp/tests/local_sessions.rs` probes document/worker agreement and native WebGL accessors.
+`svipall/tests/local_sessions.rs` probes document/worker agreement and native WebGL accessors.
 
 ---
 

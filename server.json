@@ -1,0 +1,46 @@
+{
+  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
+  "name": "dev.ilien.svipall/mcp",
+  "title": "Svipall",
+  "description": "Read any page past its anti-bot wall, crawl sites, search without an API key, solve captchas locally",
+  "version": "1.0.0-rc.3",
+  "websiteUrl": "https://github.com/ilien-dev/svipall",
+  "repository": {
+    "url": "https://github.com/ilien-dev/svipall",
+    "source": "github",
+    "id": "1355441824"
+  },
+  "packages": [
+    {
+      "registryType": "npm",
+      "registryBaseUrl": "https://registry.npmjs.org",
+      "identifier": "svipall",
+      "version": "1.0.0-rc.3",
+      "runtimeHint": "npx",
+      "runtimeArguments": [
+        { "type": "named", "name": "--yes" },
+        { "type": "named", "name": "--package", "value": "svipall" },
+        { "type": "positional", "valueHint": "binary", "value": "svipall-mcp" }
+      ],
+      "transport": { "type": "stdio" }
+    },
+    {
+      "registryType": "oci",
+      "identifier": "ghcr.io/ilien-dev/svipall:1.0.0-rc.3",
+      "runtimeHint": "docker",
+      "runtimeArguments": [
+        { "type": "named", "name": "--rm" },
+        { "type": "named", "name": "--interactive" },
+        { "type": "named", "name": "--volume", "value": "svipall:/data" }
+      ],
+      "transport": { "type": "stdio" }
+    },
+    {
+      "registryType": "cargo",
+      "registryBaseUrl": "https://crates.io",
+      "identifier": "svipall",
+      "version": "1.0.0-rc.3",
+      "transport": { "type": "stdio" }
+    }
+  ]
+}

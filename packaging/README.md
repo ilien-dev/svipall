@@ -40,7 +40,7 @@ What does need review is `homebrew-core` or Scoop's own `main` bucket, and neith
 
 | Channel | What it needs |
 |---|---|
-| npm | An npmjs.com account. `npm publish` from `packaging/npm/`, and `npx --yes svipall-mcp` is then the cheapest MCP configuration there is: nothing installed first |
+| npm | An npmjs.com account. `npm publish` from `packaging/npm/`, and `npx --yes --package=svipall svipall-mcp` is then the cheapest MCP configuration there is: nothing installed first |
 
 **On an account whose second factor is a passkey, `--otp` does not apply** — that flag takes a TOTP
 code, and the CLI cannot run a WebAuthn ceremony. npm falls back to a browser flow and prints a URL
@@ -69,6 +69,60 @@ only at publish time. It does.
 Once a release has published through it, delete any granular access token still on the account:
 nothing needs one any more.
 
+## The MCP Registry
+
+`server.json` in the repository root is the submission, and the `mcp-registry` job in `release.yml`
+sends it. The registry stores **metadata only**: it does not host a byte of this project. What it
+does is check, for every package `server.json` names, that the artefact on that package's own
+registry carries the server's name — which is how it knows the submission is ours and not somebody
+claiming our name.
+
+| Package | Where the name has to be | Written in |
+|---|---|---|
+| npm | `mcpName` | `packaging/npm/package.json` |
+| oci | `LABEL io.modelcontextprotocol.server.name` | `Dockerfile` |
+| cargo | a **visible** `mcp-name:` line | `crates/svipall/README.md` |
+
+`registry_manifest.rs` asserts all three against `server.json` offline, so a rename fails `qc`
+rather than a release. The cargo one is the trap it exists for: crates.io strips HTML comments when
+it renders a README, so the `<!-- mcp-name: … -->` form the registry's own documentation shows for
+PyPI and NuGet leaves the validator nothing to find.
+
+**The name is `dev.ilien.svipall/mcp`, and it is permanent.** The registry has no rename and no
+unpublish; a different name is a second server, forever. It also decides the authentication: only
+DNS authentication grants a *subdomain* of the domain it verifies, so `.well-known` HTTP auth — which
+grants the bare domain alone — cannot publish this name.
+
+### The one secret, and the record it answers to
+
+Unlike every other channel here, this one needs a stored secret. Generate the key once:
+
+```bash
+openssl genpkey -algorithm Ed25519 -out key.pem
+openssl pkey -in key.pem -pubout -outform DER | tail -c 32 | base64   # the TXT record's p=
+openssl pkey -in key.pem -noout -text | grep -A3 "priv:" | tail -n +2 | tr -d ' :\n'   # MCP_PRIVATE_KEY
+```
+
+Then, once each:
+
+| Where | What |
+|---|---|
+| DNS for `ilien.dev` | a TXT record on the apex: `v=MCPv1; k=ed25519; p=<public key>` |
+| Repository secrets | `MCP_PRIVATE_KEY` = the hex private key |
+
+Keep `key.pem` off this machine's repositories and out of the release. Rotating it is a new TXT
+record and a new secret; it does not touch anything already published.
+
+### What the job refuses to do
+
+It runs last, after `npm`, `crates` and `image-manifest`, and it checks that `svipall@<version>` is
+on npm and `svipall <version>` is on crates.io before it authenticates. A submission naming a
+version a registry cannot serve is a permanent record of a package nobody can install, and the
+registry's own error for it — "Registry validation failed for package" — does not say which one.
+
+Re-running a release is safe: the job asks the registry what it already holds and does nothing when
+that is this version.
+
 ### Somebody else has to say yes
 
 | Channel | What it needs |
@@ -81,17 +135,22 @@ README, and neither is on the critical path.
 
 ## Publishing a release into the tap and the bucket
 
-Once a release has published:
+The `tap-bucket` job in `release.yml` does it, right after the release publishes: it commits the
+rendered `Formula/svipall.rb` and `bucket/svipall.json` and pushes. Its credential is one deploy
+key per repository, so the worst a leaked key can do is write to that one repository. Once each:
 
 ```bash
-scripts/render-packaging.sh <version>
-cp packaging/dist/homebrew/svipall.rb   ../homebrew-svipall/Formula/
-cp packaging/dist/scoop/svipall.json    ../scoop-svipall/bucket/
+ssh-keygen -t ed25519 -N "" -C release -f tap && ssh-keygen -t ed25519 -N "" -C release -f bucket
+gh repo deploy-key add tap.pub    -R ilien-dev/homebrew-svipall --allow-write -t svipall-release
+gh repo deploy-key add bucket.pub -R ilien-dev/scoop-svipall    --allow-write -t svipall-release
+gh secret set HOMEBREW_TAP_DEPLOY_KEY  -R ilien-dev/svipall < tap
+gh secret set SCOOP_BUCKET_DEPLOY_KEY  -R ilien-dev/svipall < bucket
+rm tap tap.pub bucket bucket.pub
 ```
 
-then commit and push each. Automating the push needs a token with write access to a repository that
-is not this one, which is a decision with a blast radius, so it is deliberately not wired up: the
-workflow renders the manifests and a person moves them.
+Rotating one is the same three lines for that repository, after deleting its old deploy key. By
+hand, for a release the job missed: `scripts/render-packaging.sh <version>`, then copy both files
+from `packaging/dist/` into the two repositories and push.
 
 ## The container image is private until you say otherwise
 

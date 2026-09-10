@@ -24,3 +24,7 @@ crates/svipall-models/models/*.json
 /daniel-corpus/
 /teco-corpus/
 /extraction-corpus/
+
+# The demo GIF is committed; the frames it is built from are not.
+docs/demo/.frames/
+docs/demo/.stills/

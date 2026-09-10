@@ -49,6 +49,7 @@ table says which and why.
 | macOS or Linux, has Homebrew | `brew install ilien-dev/svipall/svipall` |
 | Windows, has Scoop | `scoop bucket add svipall https://github.com/ilien-dev/scoop-svipall` then `scoop install svipall` |
 | Node is already there | `npx --yes svipall doctor` — downloads the same release build on first use |
+| Rust toolchain is already there | `cargo install svipall` — builds from source, and so carries no captcha models |
 
 **winget and the AUR are not published yet.** Their manifests exist and are rendered from each
 release by `scripts/render-packaging.sh`, but each needs a one-time step outside the repository
@@ -116,6 +117,13 @@ Three ways a source build differs from a release one:
   needs Python, torch and onnx. Without them, image challenges go to the human dashboard instead of
   being answered. `svipall doctor` says which build you have.
 
+`cargo install svipall` is the same source build with the clone done for you, and it inherits
+that last point without a way around it: the weights are exported at release time and are not
+inside the published crate, so an installation from crates.io answers image challenges through the
+human dashboard and reports `no_models`. Every crate of the workspace is published there except
+the benchmark harness; `svipall-extract` is the one worth depending on by itself, under
+`MIT OR Apache-2.0` rather than the workspace's AGPL.
+
 No BoringSSL toolchain at all? `cargo build --release --no-default-features` drops to reqwest and
 loses the browser-grade TLS fingerprint. `svipall doctor` reports it as `no_impersonation`.
 
@@ -164,6 +172,15 @@ claude mcp add svipall -- svipall-mcp
 
 If `svipall-mcp` is not on the PATH of whatever launched Claude Code, use the absolute path:
 `claude mcp add -s user svipall -- /absolute/path/to/svipall-mcp`.
+
+The npm route installs nothing on the PATH, so there it is npx that has to find the binary:
+
+```bash
+claude mcp add svipall -- npx --yes --package=svipall svipall-mcp
+```
+
+`--package` is not optional. The package is `svipall` and the binary is `svipall-mcp`, and npx
+given a bare `svipall-mcp` looks for a **package** by that name, which nobody publishes.
 
 ### Claude Desktop, Cursor, and any other MCP client
 
