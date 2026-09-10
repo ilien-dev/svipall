@@ -7,7 +7,7 @@ $env:SVIPALL_BROWSER = $manifest.browser
 $env:SVIPALL_HOME = Join-Path $rootPath ('state/manual-network-' + [Guid]::NewGuid().ToString('N'))
 New-Item -ItemType Directory -Path $env:SVIPALL_HOME | Out-Null
 $checks = @(
-    @{name='stealth';args=@('test','-p','svipall-mcp','--test','stealth','--','--ignored','--test-threads=1','--nocapture')},
+    @{name='stealth';args=@('test','-p','svipall','--test','stealth','--','--ignored','--test-threads=1','--nocapture')},
     @{name='fingerprint';args=@('test','-p','svipall-http','--test','fingerprint','--','--ignored','--test-threads=1','--nocapture')},
     @{name='http3';args=@('test','-p','svipall-http','--features','http3','--test','h3','--','--ignored','--test-threads=1','--nocapture')}
 )

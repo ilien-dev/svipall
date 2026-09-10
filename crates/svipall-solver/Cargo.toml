@@ -1,12 +1,13 @@
 [package]
 name = "svipall-solver"
-version = "1.0.0"
+version.workspace = true
+repository.workspace = true
 edition = "2021"
 license = "AGPL-3.0-only"
 description = "Captcha job store and HTTP API for svipall (in.php/res.php + createTask/getTaskResult)"
 
 [dependencies]
-svipall-core = { path = "../svipall-core" }
+svipall-core = { path = "../svipall-core", version = "1.0.0-rc.3" }
 tokio = { workspace = true }
 axum = { workspace = true }
 serde = { workspace = true }

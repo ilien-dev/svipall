@@ -1,0 +1,57 @@
+{
+  "meta": {
+    "recorded": "2026-09-08",
+    "caption": "replayed from raw/, captured on one machine, no proxy",
+    "claim": "no api key · no third-party solver · nothing leaves the machine"
+  },
+  "steps": [
+    {
+      "tag": "impersonate",
+      "cmd": "svipall --version | jq '{features:(.features|join(\", \")), impersonation, target, version}'",
+      "out": "{\n  \"features\": \"impersonate, onnx-grid, onnx-detect, onnx-segment\",\n  \"impersonation\": true,\n  \"target\": \"x86_64-pc-windows-msvc\",\n  \"version\": \"1.0.0-rc.3\"\n}",
+      "source": "docs/demo/raw/version.json",
+      "work_ms": 480,
+      "hold_ms": 900
+    },
+    {
+      "tag": "tier_used: browser",
+      "cmd": "svipall fetch https://www.glassdoor.com/Reviews/index.htm --cache bypass | jq '{status,tier_used,attempts}'",
+      "out": "{\n  \"status\": 200,\n  \"tier_used\": \"browser\",\n  \"attempts\": [\n    \"http: 403 (142ms) -> cloudflare wall (cf_chl_opt)\",\n    \"browser: 200 (6259ms) OK\"\n  ]\n}",
+      "source": "docs/demo/raw/fetch-glassdoor.json",
+      "work_ms": 1100,
+      "hold_ms": 1700
+    },
+    {
+      "tag": "engine: ddg-html",
+      "cmd": "svipall search \"rust cdp stealth automation\" | jq '{engine, results:(.results|length), top:.results[0].title}'",
+      "out": "{\n  \"engine\": \"ddg-html\",\n  \"results\": 10,\n  \"top\": \"GitHub - enowdev/cloak-cdp: Unofficial Rust port of CloakBrowser ...\"\n}",
+      "source": "docs/demo/raw/search.json",
+      "work_ms": 850,
+      "hold_ms": 1400
+    },
+    {
+      "tag": "induced_schema",
+      "cmd": "svipall fetch https://news.ycombinator.com/newest --schema auto --cache bypass | jq '{base:.induced_schema.base_selector, fields:([.induced_schema.fields[].name]|join(\",\")), rows:.extracted.count}'",
+      "out": "{\n  \"base\": \"tr.athing.submission\",\n  \"fields\": \"title,rank,url_2,titleline,url,sitebit,url_3,sitestr\",\n  \"rows\": 30\n}",
+      "source": "docs/demo/raw/schema-hn.json",
+      "work_ms": 950,
+      "hold_ms": 1700
+    },
+    {
+      "tag": "format: csv",
+      "cmd": "svipall crawl https://doc.rust-lang.org/book/ --pages 6 --depth 2 --out rows.csv | jq '{rows, stopped_by, pending_links, tokens_estimated}'",
+      "out": "{\n  \"rows\": 6,\n  \"stopped_by\": \"max_pages\",\n  \"pending_links\": 45,\n  \"tokens_estimated\": 28316\n}",
+      "source": "docs/demo/raw/crawl-rust-book.json",
+      "work_ms": 1050,
+      "hold_ms": 1450
+    },
+    {
+      "tag": "160 / 160",
+      "cmd": "svipall-bench tells | jq '{passed, failures, tiers:([.probes[].tier]|unique|join(\", \"))}'",
+      "out": "{\n  \"passed\": 160,\n  \"failures\": 0,\n  \"tiers\": \"browser, browser (reused), real, stealth, warm\"\n}",
+      "source": "docs/demo/raw/tells.json",
+      "work_ms": 850,
+      "hold_ms": 2100
+    }
+  ]
+}

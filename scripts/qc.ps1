@@ -20,6 +20,7 @@ if ($Fix) {
   # The plugin's copy of the skill. Mechanical, so it belongs with the other mechanical fixes; the
   # test that compares them is what makes forgetting this a failure rather than a surprise.
   Step 'sync plugin skill'    { & (Join-Path $PSScriptRoot 'sync-plugin.ps1') }
+  Step 'sync version'         { & (Join-Path $PSScriptRoot 'sync-version.ps1') }
 }
 
 # Formatting must be clean.
@@ -28,21 +29,21 @@ Step 'rustfmt --check'        { cargo fmt --all --check }
 # svipall-cdp is vendored upstream code and caps its own clippy lints in its Cargo.toml; only the
 # patches we wrote there opt back in. See crates/svipall-cdp/PATCHES.md.
 Step 'clippy (default)'       { cargo clippy --workspace --exclude svipall-cdp --all-targets -- -D warnings }
-Step 'clippy (onnx-ocr)'      { cargo clippy -p svipall-mcp --all-targets --features onnx-ocr -- -D warnings }
-Step 'clippy (onnx-grid)'     { cargo clippy -p svipall-mcp --all-targets --features onnx-grid -- -D warnings }
-Step 'clippy (onnx-audio)'    { cargo clippy -p svipall-mcp --all-targets --features onnx-audio -- -D warnings }
-Step 'clippy (onnx-detect)'   { cargo clippy -p svipall-mcp --all-targets --features onnx-detect -- -D warnings }
-Step 'clippy (onnx-segment)'  { cargo clippy -p svipall-mcp --all-targets --features onnx-segment -- -D warnings }
-Step 'clippy (onnx-zeroshot)' { cargo clippy -p svipall-mcp --all-targets --features onnx-zeroshot -- -D warnings }
+Step 'clippy (onnx-ocr)'      { cargo clippy -p svipall --all-targets --features onnx-ocr -- -D warnings }
+Step 'clippy (onnx-grid)'     { cargo clippy -p svipall --all-targets --features onnx-grid -- -D warnings }
+Step 'clippy (onnx-audio)'    { cargo clippy -p svipall --all-targets --features onnx-audio -- -D warnings }
+Step 'clippy (onnx-detect)'   { cargo clippy -p svipall --all-targets --features onnx-detect -- -D warnings }
+Step 'clippy (onnx-segment)'  { cargo clippy -p svipall --all-targets --features onnx-segment -- -D warnings }
+Step 'clippy (onnx-zeroshot)' { cargo clippy -p svipall --all-targets --features onnx-zeroshot -- -D warnings }
 # The QUIC stack is off by default, so nothing else in this list ever compiles it.
-Step 'clippy (http3)' { cargo clippy -p svipall-mcp --all-targets --features http3 -- -D warnings }
+Step 'clippy (http3)' { cargo clippy -p svipall --all-targets --features http3 -- -D warnings }
 # Tests are the contract (TDD): they must pass.
 Step 'tests'                  { cargo test --workspace }
 # The h3 engine and the shape of the QUIC handshake it produces, offline.
 Step 'tests (http3)'          { cargo test -p svipall-http --features http3 --test h3 }
 # The inference paths, executed: a real ONNX Runtime session over hand-built fixture graphs, and
 # over the embedded models when the build carries them. Lint-only coverage let a model path rot.
-Step 'tests (onnx models)'    { cargo test -p svipall-mcp --features onnx-grid,onnx-segment,onnx-detect --test models }
+Step 'tests (onnx models)'    { cargo test -p svipall --features onnx-grid,onnx-segment,onnx-detect --test models }
 # Unused dependencies (install once: cargo install cargo-machete).
 if (Get-Command cargo-machete -ErrorAction SilentlyContinue) {
   Step 'cargo-machete'        { cargo machete }

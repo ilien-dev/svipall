@@ -3,8 +3,8 @@
 use crate::targets::Set;
 use serde_json::{json, Value};
 use std::{sync::Arc, time::Instant};
+use svipall::{server::SvipallServer, tools::WebFetchParams};
 use svipall_core::{cache::Store, Config};
-use svipall_mcp::{server::SvipallServer, tools::WebFetchParams};
 
 fn parameters(arm: &str, url: &str, timeout: u64) -> anyhow::Result<(Config, WebFetchParams)> {
     anyhow::ensure!(
@@ -163,7 +163,7 @@ mod tests {
     #[tokio::test]
     async fn continuations_recover_the_tail_without_another_transport() {
         let store = std::sync::Arc::new(svipall_core::cache::Store::open_memory().unwrap());
-        let server = svipall_mcp::server::SvipallServer::with_store(
+        let server = svipall::server::SvipallServer::with_store(
             None,
             svipall_core::Config::default(),
             None,

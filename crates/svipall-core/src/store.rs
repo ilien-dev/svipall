@@ -178,8 +178,8 @@ pub fn set_proxy_region(proxy: &str, country: &str) -> bool {
 
 /// Proxy for a domain, inheriting from parent domains (`a.b.example.com` -> `example.com`).
 ///
-/// This lookup existed twice, character for character, in `svipall-mcp::server` and
-/// `svipall-mcp::solver_engine`, each with its own read of the file.
+/// This lookup existed twice, character for character, in `svipall::server` and
+/// `svipall::solver_engine`, each with its own read of the file.
 pub fn route_for(domain: &str) -> Option<String> {
     let routes = ROUTES.snapshot();
     let mut d = domain;

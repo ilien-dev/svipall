@@ -1,13 +1,19 @@
 [package]
 name = "svipall-bench"
-version = "1.0.0"
+version.workspace = true
+repository.workspace = true
 edition = "2021"
 license = "AGPL-3.0-only"
+# A harness for this repository, not a library: 45 MB of corpora and nothing outside can run it.
+publish = false
 
 [dependencies]
-svipall-core = { path = "../crates/svipall-core" }
-svipall-http = { path = "../crates/svipall-http" }
-svipall-mcp = { path = "../crates/svipall-mcp" }
+svipall-core = { path = "../crates/svipall-core", version = "1.0.0-rc.3" }
+svipall-http = { path = "../crates/svipall-http", version = "1.0.0-rc.3" }
+# Default features off deliberately: `local-models` is one of svipall's defaults, and cargo
+# unifies features across every package the release job selects, so taking them here would link
+# ort into the three targets that are built without it. `onnx` below asks for what `micro` needs.
+svipall = { path = "../crates/svipall", version = "1.0.0-rc.3", default-features = false, features = ["impersonate"] }
 anyhow = { workspace = true }
 tokio = { version = "1.53", features = ["full"] }
 serde_json = "1.0"
@@ -22,16 +28,16 @@ flate2 = { version = "1.0", default-features = false, features = ["rust_backend"
 image = { version = "0.25", optional = true }
 # The QUIC stack, so `bench h3-ref` can run a server a real Chrome will handshake with. The same
 # vendored copy the engine uses, so what it measures is what ships.
-svipall-quic = { path = "../crates/svipall-quic", optional = true }
-svipall-models = { path = "../crates/svipall-models", optional = true }
+svipall-quic = { path = "../crates/svipall-quic", version = "1.0.0-rc.3", optional = true }
+svipall-models = { path = "../crates/svipall-models", version = "1.0.0-rc.3", optional = true }
 
 [features]
 # The QUIC engine, so `bench h3` and `bench evasion --http3` can measure it. Off by default, as
 # it is everywhere else.
-http3 = ["svipall-http/http3", "svipall-mcp/http3", "dep:svipall-quic"]
+http3 = ["svipall-http/http3", "svipall/http3", "dep:svipall-quic"]
 # The model budgets in `micro` need the inference paths compiled in; the models themselves are
 # whatever `svipall-models` embedded at build time.
-onnx = ["svipall-mcp/onnx-detect", "svipall-mcp/onnx-segment", "dep:image", "dep:svipall-models"]
+onnx = ["svipall/onnx-detect", "svipall/onnx-segment", "dep:image", "dep:svipall-models"]
 
 [package.metadata.cargo-machete]
 # `svipall-quic` is used as `quiche::` — that is the library name its manifest keeps, so the

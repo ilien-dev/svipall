@@ -4,9 +4,13 @@
 # name `quiche` so the upstream source, which is `use crate::` throughout, needs no rewriting.
 [package]
 name = "svipall-quic"
-version = "1.0.0"
+version.workspace = true
+repository.workspace = true
 edition = "2021"
 license = "BSD-2-Clause"
+readme = "UPSTREAM.md"
+keywords = ["quic", "http3", "tls", "boringssl"]
+categories = ["network-programming", "web-programming"]
 description = "QUIC and HTTP/3 for svipall: quiche, on the BoringSSL the http tier already links"
 
 [lib]

@@ -146,10 +146,10 @@ pub fn run(assert: bool) -> usize {
 
     // Only when a model is installed. There is none embedded, so on most machines this simply
     // does not appear rather than measuring an absence.
-    if svipall_mcp::substance::available() {
+    if svipall::substance::available() {
         budgets.push(Budget {
             name: "substance::assess / 200KB",
-            measured: time(20, || svipall_mcp::substance::assess(&text)),
+            measured: time(20, || svipall::substance::assess(&text)),
             limit: Duration::from_millis(3),
         });
     }
@@ -309,14 +309,14 @@ pub fn run(assert: bool) -> usize {
         if svipall_models::detect().is_some() {
             budgets.push(Budget {
                 name: "detect / 320px picture (embedded)",
-                measured: time(5, || svipall_mcp::detect::detect(&picture, 0)),
+                measured: time(5, || svipall::detect::detect(&picture, 0)),
                 limit: Duration::from_millis(120),
             });
         }
         if svipall_models::segment().is_some() {
             budgets.push(Budget {
                 name: "segment / 320px picture (embedded)",
-                measured: time(5, || svipall_mcp::segment::cells(&picture, 0, 4, 4)),
+                measured: time(5, || svipall::segment::cells(&picture, 0, 4, 4)),
                 limit: Duration::from_millis(250),
             });
         }

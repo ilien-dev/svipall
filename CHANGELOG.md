@@ -1,6 +1,194 @@
 # Changelog
 
-## Unreleased
+## 1.0.0-rc.3 — 2026-09-07
+
+**`1.0.0-rc.2` was tagged and never published.** Its release workflow ran twice and failed both
+times: three of the five targets — `x86_64-apple-darwin`, `x86_64-unknown-linux-gnu` and
+`aarch64-unknown-linux-gnu` — would not link, so no archive, no package and no image was ever
+produced under that version. `v1.0.0-rc` remains the only release anyone can install. The cause was
+still in the tree until this tag, which is why this is a third candidate rather than `1.0.0`: what
+has never once run green is the machinery, and it now has more of it than rc.2 did.
+
+### The build that could not link, and the test that will not let it happen again
+
+`local-models` joined the top crate's default features in the rc.2 release commit itself. `bench`
+took that crate with its defaults, and cargo unifies features across every package the build
+selects — and the release job names binaries, not a package, so it selects the workspace. The
+`--no-default-features --features impersonate` the three model-free targets are built with was
+therefore true of the flag and false of the graph: `dep:ort` came back in through `bench`, and
+those targets died on `undefined symbol: __isoc23_strtoll` out of `libort_sys`, plus an
+`ort-sys: no prebuilt binaries available for target x86_64-apple-darwin` on the Intel Mac.
+
+`bench` now takes `svipall` with `default-features = false`, and asks for inference by name in
+its own `onnx` feature, which is what `bench micro`'s model budgets needed all along.
+`crates/svipall/tests/release_build.rs` asserts that no workspace member takes `svipall`
+with its defaults, offline and in `qc`, because this failure is invisible on a machine that builds
+with the defaults on — which is every developer machine.
+
+### A release is a merge, and the tag is the last thing that happens
+
+`1.0.0-rc.2` is a tag with nothing under it. That shape is now impossible: the release workflow runs
+on a push to `main`, reads `[workspace.package] version`, and does nothing at all unless that
+version has no tag yet. The tag itself is created by the GitHub release, at the end — so a build
+that fails leaves none behind, and the same commit pushed again is still a release waiting to
+happen. Pushing a tag by hand still works and is the recovery path.
+
+`[workspace.package] version` is now the only place the number is written by hand. Every member
+inherits it, `scripts/sync-version` copies it into the plugin manifest, the npm wrapper and every
+internal dependency line, and `crates/svipall/tests/release_version.rs` fails the build when any
+of them drifts. `qc --fix` runs the sync beside the plugin-skill copy it already ran.
+
+The Homebrew tap and the Scoop bucket now follow each release by themselves: the `tap-bucket` job
+pushes the rendered formula and manifest the moment the release exists, through one deploy key
+per repository that can touch nothing else. Until now a person copied them, and both were still on `1.0.0-rc`.
+
+### The workspace is on crates.io
+
+Every crate except the benchmark harness is published, over OIDC and with no stored secret, the
+same mechanism the npm job uses. `cargo install svipall` is a supported way in, and — like any
+source build — it carries no captcha models: the weights are exported at release time and are not
+in the crate, so image challenges go to the human dashboard and `svipall doctor` reports
+`no_models`. `svipall-extract` is the one worth depending on alone, under `MIT OR Apache-2.0`.
+
+The two vendored forks, `svipall-cdp` and `svipall-quic`, go up under their own names because
+crates.io resolves every dependency of a published crate, optional ones included: `svipall` and
+`svipall-http` cannot exist there while either is missing. Publishing is permanent — there is no
+unpublish, only `yank` — so the crates go up one at a time, in dependency order, after the release
+exists, and a version already on the registry is skipped rather than reported. CI packages all nine
+manifests on every run, because a metadata error found on release day is found after the crates
+before it are already permanent.
+
+### Routing that learns which way in worked here
+
+The ladder used to try the same tiers in the same order on every site. `core::automatic` now scores
+each route by what it delivered on this machine, halving that weight every twelve hours and
+expiring it after a day, promotes an emulated winner after two supporting observations, and skips a
+route that has refused twice for thirty minutes. It stores a SHA-256 digest of (origin, first path
+segment, exit, environment) — never a URL, a query value or proxy credentials — and generates no
+exploration traffic of its own.
+
+`browser_identity` defaults to `auto`: emulated routes first, and at most one native attempt,
+always last. That fallback is refused outright for named profiles, isolated visits, mobile
+requests, non-`GET` methods and forced tiers, and pauses itself when it fails repeatedly. Privacy
+stays a constraint rather than a score delivery can outweigh.
+
+`core::traffic` adds a transactional SQLite ledger, so visit admission, pacing and holds survive
+across processes and restarts. A reservation is taken before any network work; a refused call does
+not extend a cooldown, and a concurrent success cannot shorten a server's `Retry-After`.
+
+Native mode builds a real browser rather than undoing individual JS patches afterwards, so
+`--disable-ipc-flooding-protection`, `IsolateOrigins`, `site-per-process` and client-side phishing
+detection are no longer switched off where a visitor would have them. `fetch_in_document` refetches
+same-origin HTML through the page's own fetch, keeping its SDK and in-memory state alive. The
+vendored CDP grows one deviation — `worker_init_script` is carried per browser instead of per
+process, which is what lets an emulated pool and a native pool disagree in the same process without
+either contradicting its own workers, recorded in `crates/svipall-cdp/PATCHES.md`.
+
+**No public-site delivery rate is claimed for `auto`**, because none was measured for it. The
+`local-20260905` figures below describe different policies and must not be read as automatic-mode
+results.
+
+### What the local comparison measured, published whole
+
+`bench/experiments/` now carries the raw responses rather than a summary of them.
+
+- **`local-20260905`** — a paired before/after comparison: 27 runs, 918 samples, three arms across
+  three rounds, frozen executable and browser hashes, target orders audited. Native mode raises
+  `hard12` delivery from 9/12 and 8/12 to **11/12** on both visits, and the repeatable substantive
+  recoveries are G2, Idealista and Crunchbase. The record also carries what went the other way: the
+  default's Zillow regression, six challenge renewals that recovered nothing, zero live document
+  reuses, and a content audit that disqualifies the Home Depot cells its own scoring rule had
+  counted as delivered.
+- **`auto-20260905`** — the automatic policy verified offline: full QC, 1,177 test executions, 160
+  automation probes, eight browser fixtures.
+- **`cpu-budgets-20260907`** — the CPU budget table had no log behind its `Measured` column. It now
+  has one, and the column names the machine and the date it was taken on, because a CPU timing
+  depends on the machine and the table never said so. The budget column is the part that does not
+  move, and `bench micro --assert` is what holds it.
+
+Absolute home paths were replaced by `<repo>` and `<home>` before publication, which both protocols
+record; no measurement, verdict or hash changed, and the recorded SHA-256 values still verify.
+
+### The extraction corpora, run rather than cited
+
+`bench extract` was run against WCXB, DAnIEL and TECO and the raw output committed, so the figures
+`README.md` and `docs/extraction.md` publish have a log somebody else can check. Every figure they
+already stated reproduces: WCXB held-out **93.3% recall, 11.3% leak, 0.870 F1** over 505 pages;
+WCXB development **0.806** over 1,476; the forum detector at precision **1.000**; DAnIEL over five
+languages with **0.608** as its worst; TECO at **P 0.727, R 0.747, F1 0.676**, with cross-page
+template removal firing on 2 of 11 armed sites, saving 3.4% and costing one labelled word. TECO's
+licence requires published results, so this is also that. The three corpora are fetched on demand
+and gitignored — WCXB is 193 MB, DAnIEL 176 MB, and the TECO forum archive unpacks to 13 GB.
+
+**Four claims the runs did not back, corrected rather than left standing:**
+
+- *"third of fourteen on that benchmark's published leaderboard."* The harness scores Svipall; it
+  does not rank it against other people's submissions, and nothing here computes a placement.
+- *"Turnstile cleared in all recorded runs … 1.5–2.1 s on hard12, 1.7–2.4 s on public31."*
+  `bench/baseline/public31.txt` records `nowsecure-cf` clearing on the real tier in 2.7, 1.7 and
+  1.7 seconds, and `canadianinsider` staying gated on http in all three runs. No tracked log
+  carries `hard12` Turnstile timings at all.
+- **The winget and AUR manifests were announced as package manager support** without saying neither
+  is submitted, four lines before `docs/install.md` offered `winget uninstall` for a channel nobody
+  could have installed from.
+- *"Nine local strategies."* Nothing counts nine: the captcha table lists eleven, `WIDGETS` declares
+  fifteen widget families and `Modality` has twelve variants, eleven of which reach the live page
+  loop. The two counts the source supports are the ones now stated.
+
+### Packaging
+
+- **The Windows archives shipped without four Visual Studio runtime DLLs** an import audit found
+  they depended on. Release packaging stages the redistributables beside the binaries and
+  `install.ps1` copies their hash-checked manifest, so a loaded-module check proves the MCP process
+  uses its own artefact directory rather than whatever the machine happens to have.
+- **The installers no longer ask a separate browser-download question.** Provisioning happens when a
+  request needs it; `browser_auto_install = false` turns it off.
+- **A browser launched with no profile now gets a directory of its own.** Every profile-less browser
+  was sent to one shared temporary directory, and Chrome refuses to start on a directory another
+  instance holds (`ProcessSingleton`, exit 21). Each now gets a `scratch-*` directory under
+  `sessions/` that goes when it does, and shutting a pool down waits for the process to leave, so
+  "close, then open again" is a sequence rather than a race.
+- **Headful Chrome on a Linux session with no display** exited within two seconds and the attempt
+  line said only "launching browser". The pool now refuses before launching, in words, when neither
+  `DISPLAY` nor `WAYLAND_DISPLAY` is set; attempt lines carry the whole error chain; and the Linux
+  CI job holds an Xvfb display, as the Windows and macOS runners already hold a desktop session.
+- `pkgconfiglite` is gone from the Windows dependency step: nothing built there uses pkg-config, and
+  it downloads over plain HTTP with no checksum, which Chocolatey refused once already.
+- The brand marks and the readme diagrams live under `assets/brand/` and `assets/readme/`. The
+  diagrams previously sat outside the repository and the README pointed at nothing.
+- **npm publishes over OIDC**, with no stored secret.
+- A build-cache defect that shipped silently: `svipall-models/build.rs` read an
+  `env!("CARGO_MANIFEST_DIR")` path captured under the workspace's previous name, so `doctor`
+  reported inference enabled with no embedded weights. It reads Cargo's runtime environment now,
+  and a regression asserts that assets present at build time are actually embedded.
+
+### The README, cut to its first minute
+
+It was 1,863 lines, and four sections were 59% of it: somebody arriving at this repository scrolled
+past 487 lines of benchmark tables to find out how to install the thing. Nine sections move into
+`docs/` as files of their own — proof, features, captcha, configuration, privacy, limits,
+architecture, development, faq — with their links repointed for their new depth, and nothing
+deleted. Nineteen same-page anchors pointed at subheadings that had moved and now point into the
+file each landed in. What stays is what a reader needs first: what it is, how to install it, what it
+can do, how the ladder works, the tool table, the REST routes, how it compares, and the closing
+matter. `docs/local-configuration.md` documents the new settings and their presets.
+
+### The gates, run against this tree
+
+Offline, on Windows 11, at the commit this tag names. No network, so these say nothing about
+delivery — the evasion sets are not re-taken here, and the figures `v1.0.0-rc.2` published for
+them still carry the dates and policies they were measured under.
+
+| gate | result |
+|---|---|
+| `cargo test --workspace` | **1218 passing**, 22 ignored |
+| `bench tells --assert` | **160/160** probes clean, five browser passes |
+| `bench fingerprint --engine chrome` | **8/8** identities coherent, 1500 drawn machines |
+| `bench micro --assert` | 11 CPU budgets + 4 structural checks, with and without the model features |
+| clippy | clean on the default set and on all nine feature configurations |
+
+`bench extract --assert` is not in that list: the corpora are not on this machine. The run that
+does back the extraction figures is the one committed under `bench/experiments/` above.
 
 ### The tool surface, rewritten for the model that reads it
 
@@ -49,7 +237,7 @@ nothing said when to use `web_act` rather than `browser_open` + `browser_do`, or
 - **`web_diff` on a page never seen** answers `changed: null` with `first_seen: true`, not
   `changed: true`. **`web_status`** drops `cache_cleared: null` and shows `soft_line` as 0.7
   rather than an f32 printed through f64.
-- `crates/svipall-mcp/tests/tool_surface.rs` holds the shape: per-tool and whole-list budgets, no
+- `crates/svipall/tests/tool_surface.rs` holds the shape: per-tool and whole-list budgets, no
   boilerplate, every parameter described, every description naming its alternative, no vendor
   names, and every family reachable from `instructions`.
 
