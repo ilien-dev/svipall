@@ -69,11 +69,16 @@ only at publish time. It does.
 Once a release has published through it, delete any granular access token still on the account:
 nothing needs one any more.
 
-crates.io works the same way, per crate, and `scripts/crates-trusted-publishing.sh` configures all
-of them in one run: it asks for a token with the **`trusted-publishing`** scope, creates only the
-configurations that are missing, and is safe to run again when a crate joins the workspace. Delete
-the token afterwards. The `crates` job asks for a token only when a crate is actually missing from
-the registry, so a re-run after a partial release does not depend on it.
+crates.io takes either of two routes, and the `crates` job asks for neither unless a crate is
+missing from the registry:
+
+- **A repository secret, `CARGO_REGISTRY_TOKEN`**: a crates.io API token with the `publish-new` and
+  `publish-update` scopes, limited to crates `svipall*`. Used whenever it is set. It is the only
+  route that publishes a crate the registry has never seen; the price is a long-lived secret.
+- **Trusted publishing**, when no secret is set. Configured per crate, on crates that already
+  exist; `scripts/crates-trusted-publishing.sh` does all of them in one run with a token carrying
+  the `trusted-publishing` scope, creates only what is missing, and is safe to run again. Delete
+  that token afterwards.
 
 ## The MCP Registry
 
