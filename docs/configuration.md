@@ -170,4 +170,25 @@ max_jobs = 2                 # long jobs at once — not `parallelism`, which bo
 | `SVIPALL_API_KEY` | — | Pin the bearer key, for a container whose home is not writable |
 | `SVIPALL_RELEASES_URL` | GitHub releases | Where `svipall models install` fetches the models archive and its `sha256sums.txt`; point it at a mirror inside a network that cannot reach GitHub |
 
+
+### The window the headful tiers open
+
+`real` and `warm` open a real browser window, because a headless one answers `pointer: fine` with
+`false` and a wall that asks is told what it is talking to. The window is moved off the edge of the
+screen rather than hidden: a hidden or minimised window is an occluded one, and Chrome throttles it
+and flips `visibilityState`, which gives the same thing away by another route.
+
+Position is a request, and a tiling compositor may ignore it — Hyprland and sway place the window in
+their layout, which also distorts the height the page reads (`bench tells`, `window_chrome_height`).
+On Linux the window therefore carries its own X11 class, `svipall-browser`, so a rule can catch
+those windows and no others:
+
+```text
+windowrule = workspace special:svipall silent, class:^(svipall-browser)$   # Hyprland
+for_window [class="svipall-browser"] move scratchpad                       # sway, i3
+```
+
+Under a plain X server, or an Xvfb the browser is pointed at with `DISPLAY`, neither is needed.
+`config set max_tier=stealth` forbids those tiers outright, at the cost of the walls they exist for.
+
 ---
