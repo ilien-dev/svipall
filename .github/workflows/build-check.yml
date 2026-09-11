@@ -50,6 +50,14 @@ jobs:
             target: x86_64-apple-darwin
             ext: ""
             ort_source: true
+          # The same target on an Intel runner, where the artefact can actually be started. The
+          # cross build above proves it links and stops there, which is the one gap in this matrix.
+          # `macos-13` is the last Intel image GitHub offers and it is on its way out; the day it
+          # goes, this leg goes with it and the cross build is what remains.
+          - os: macos-13
+            target: x86_64-apple-darwin
+            ext: ""
+            ort_source: true
           - os: ubuntu-22.04
             target: x86_64-unknown-linux-gnu
             ext: ""
@@ -126,10 +134,11 @@ jobs:
           cargo build --no-default-features --profile dist --target ${{ matrix.target }} --bin svipall-mcp --bin svipall \
             --features impersonate,onnx-ocr,onnx-grid,onnx-audio,onnx-detect,onnx-segment,onnx-zeroshot
 
-      # A cross-built artefact cannot run here, which is why x86-64 macOS is skipped: that leg
-      # proves it links, and a runner of its own would be needed to prove it starts.
+      # A cross-built artefact cannot run where it was built, which is why the x86-64 macOS leg on
+      # `macos-latest` (an arm64 machine) skips this: it proves the artefact links. The `macos-13`
+      # leg is the same target on an Intel machine, and there it runs.
       - name: Answers with its models
-        if: matrix.target != 'x86_64-apple-darwin'
+        if: matrix.target != 'x86_64-apple-darwin' || matrix.os == 'macos-13'
         shell: bash
         env:
           CARGO_TARGET_DIR: ${{ runner.os == 'Windows' && 'C:\t' || './t' }}
