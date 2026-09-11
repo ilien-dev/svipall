@@ -85,8 +85,16 @@ jobs:
       matrix:
         include:
           # Every target carries the captcha models. Two of them link the ONNX Runtime `ort`
-          # downloads; the other three build it from source, because upstream has nothing that
-          # works for them — see `ort_source` below and tools/onnxruntime/build.sh.
+          # downloads; the two Linux ones build it from source, because upstream publishes nothing
+          # that works for them — see `ort_source` below and tools/onnxruntime/build.sh.
+          #
+          # Intel macOS is not here. It was, and it was the one target that could be built and
+          # never run: `macos-latest` is arm64, so the artefact was cross-compiled, and GitHub has
+          # retired the Intel image — a `macos-13` job sits queued with no runner rather than
+          # failing. Apple's last Intel Mac was discontinued in 2023 and macOS 26 is the last
+          # release that supports one. Shipping an artefact nobody can start, from a build nobody
+          # can test, is worse than sending those machines to the container image, which runs
+          # `linux/amd64` natively on them. `install.sh` says so by name.
           - os: windows-latest
             target: x86_64-pc-windows-msvc
             ext: .exe
@@ -95,12 +103,6 @@ jobs:
             target: aarch64-apple-darwin
             ext: ""
             ort_source: false
-          # ONNX Runtime publishes no x86_64 macOS build at the version `ort` is pinned to, and
-          # `download-binaries` fails rather than falling back. Built here instead.
-          - os: macos-latest
-            target: x86_64-apple-darwin
-            ext: ""
-            ort_source: true
           # Linux builds on 22.04 so the artefact starts on Debian 12, Ubuntu 22.04 and RHEL 9:
           # a binary links the glibc of the machine that built it, and `ubuntu-latest` produced
           # one needing GLIBC_2.39. The prebuilt ONNX Runtime cannot come along for that ride —
@@ -274,7 +276,6 @@ jobs:
       # run here, so this is the four native targets telling us the build is not, for instance,
       # missing its models — which is exactly the failure the container image used to ship.
       - name: Smoke test
-        if: matrix.target != 'x86_64-apple-darwin'
         shell: bash
         env:
           CARGO_TARGET_DIR: ${{ runner.os == 'Windows' && 'C:\t' || (matrix.target == 'aarch64-apple-darwin' && './target' || './t') }}

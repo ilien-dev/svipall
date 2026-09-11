@@ -18,7 +18,8 @@ const VERSION = require('./package.json').version;
 const TARGETS = {
   'linux-x64': 'x86_64-unknown-linux-gnu',
   'linux-arm64': 'aarch64-unknown-linux-gnu',
-  'darwin-x64': 'x86_64-apple-darwin',
+  // No 'darwin-x64': Intel macOS has no build. The message below names the container image, which
+  // Docker Desktop runs natively there.
   'darwin-arm64': 'aarch64-apple-darwin',
   'win32-x64': 'x86_64-pc-windows-msvc',
 };

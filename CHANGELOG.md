@@ -56,6 +56,14 @@
   changed nothing in the report and the problem read as permanent. Both ports now resolve through
   one `svipall_core::config::port_from_env`, which is also what the server uses, so the two cannot
   drift apart again.
+- **Intel macOS loses its build.** It was the only artefact that could be built and never started:
+  `macos-latest` is arm64, so it was cross-compiled, and GitHub has retired the Intel image far
+  enough that a `macos-13` job sits queued with no runner rather than failing — measured, not
+  assumed. Apple discontinued its last Intel Mac in 2023 and macOS 26 is the last release that
+  supports one. **Anyone on that hardware moves to the container image**, which Docker Desktop runs
+  natively there; `install.sh` and the npm package decline by name and point at it rather than
+  404ing on a download, Homebrew no longer carries a formula for it, and the packaging manifests no
+  longer list the archive. Reversing this is one entry in the release matrix.
 - **The `slim` image carries the models too, and both images now say so at build time.** `slim` is
   repackaged from the published Linux archive rather than compiled a second time, and that archive
   has them now — the difference between the two flavours is the browser, which is what the tag

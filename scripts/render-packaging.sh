@@ -49,7 +49,8 @@ sha_for() {
     printf '%s' "$value"
 }
 
-targets="x86_64-unknown-linux-gnu aarch64-unknown-linux-gnu x86_64-apple-darwin aarch64-apple-darwin x86_64-pc-windows-msvc"
+# No x86_64-apple-darwin: Intel macOS has no build, so no manifest may name one.
+targets="x86_64-unknown-linux-gnu aarch64-unknown-linux-gnu aarch64-apple-darwin x86_64-pc-windows-msvc"
 
 render() {
     src="$1"
