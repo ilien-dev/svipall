@@ -39,10 +39,8 @@ async fn main() -> anyhow::Result<()> {
             let queue = queue::JobQueue::new();
             let state = Arc::new(svipall_solver::AppState::new(db, queue));
             let dash_state = state.clone();
-            let dash_port: u16 = std::env::var("SVIPALL_DASHBOARD_PORT")
-                .ok()
-                .and_then(|p| p.parse().ok())
-                .unwrap_or(cfg.dashboard_port);
+            let dash_port =
+                svipall_core::config::port_from_env("SVIPALL_DASHBOARD_PORT", cfg.dashboard_port);
             // A fresh token every run. The dashboard carries the URLs being visited and accepts
             // captcha answers, so its data routes are not open to whoever can reach the port.
             let token = uuid::Uuid::new_v4().simple().to_string();
@@ -73,10 +71,7 @@ async fn main() -> anyhow::Result<()> {
     // `SvipallServer`, so a REST fetch and an MCP fetch use one browser pool, one cache and one set
     // of learned tiers, which is the whole point of mounting it here rather than running a second
     // process.
-    let rest_port: u16 = std::env::var("SVIPALL_REST_PORT")
-        .ok()
-        .and_then(|p| p.parse().ok())
-        .unwrap_or(cfg.rest_port);
+    let rest_port = svipall_core::config::port_from_env("SVIPALL_REST_PORT", cfg.rest_port);
     if rest_port != 0 {
         let (rest, bind) = (server.clone(), cfg.rest_bind.clone());
         tokio::spawn(async move {

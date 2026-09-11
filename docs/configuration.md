@@ -168,5 +168,6 @@ max_jobs = 2                 # long jobs at once — not `parallelism`, which bo
 | `SVIPALL_DASHBOARD_PORT` | `dashboard_port` | Port the human dashboard listens on |
 | `SVIPALL_REST_PORT` | `rest_port` | Port the REST API listens on inside `svipall-mcp`. The Docker knob |
 | `SVIPALL_API_KEY` | — | Pin the bearer key, for a container whose home is not writable |
+| `SVIPALL_RELEASES_URL` | GitHub releases | Where `svipall models install` fetches the models archive and its `sha256sums.txt`; point it at a mirror inside a network that cannot reach GitHub |
 
 ---

@@ -1,19 +1,19 @@
 # The `slim` image: the http tier and nothing else.
 #
-# It carries the portable Linux binary the release already built and published, rather than
-# compiling the same program a second time inside a container. That is not a shortcut — `slim` is
-# `--features impersonate`, which is exactly what the tarball is, and building it twice only
-# creates a way for the image and the download to disagree about what `svipall` is. Measured, the
-# second compile cost 9.9 minutes and this costs 0.5.
+# It carries the Linux binary the release already built and published, rather than compiling the
+# same program a second time inside a container: building it twice only creates a way for the image
+# and the download to disagree about what `svipall` is. Measured, the second compile cost 9.9
+# minutes and this costs 0.5.
 #
 # glibc: the artefact is built on Ubuntu 22.04 and links 2.35, while this image carries Trixie's,
 # which is newer. Older-against-newer is the direction that works, and the release proves it
 # separately by starting that same binary on bookworm. Compiling here would link Trixie's glibc
 # and produce an image binary less portable than the one users download.
 #
-# `full` still builds from source in Dockerfile: it needs the captcha models, and the ONNX Runtime
-# those need will not link against the glibc the portable artefact targets. That is the whole
-# reason the models are in the image and not in the tarball.
+# The captcha models come along, because the published archive carries them now — that target
+# builds its own ONNX Runtime rather than linking the prebuilt one, so the models no longer cost
+# the low glibc floor. What separates this image from `full` is the browser, and only that: with
+# none, a page behind a challenge stays blocked, while the standalone image API still answers.
 #
 #   docker build -t svipall:slim -f Dockerfile.slim .     # expects ./bin/svipall{,-mcp}
 FROM debian:trixie-slim
@@ -27,12 +27,16 @@ ENV SVIPALL_HOME=/data
 ENV SVIPALL_DASHBOARD_PORT=8787
 RUN chmod +x /usr/local/bin/svipall /usr/local/bin/svipall-mcp /usr/local/bin/docker-entrypoint.sh \
     && useradd --create-home --uid 1000 svipall && mkdir -p /data && chown svipall /data
-# The image says out loud what it cannot do, rather than leaving it to be discovered: no browser
-# and no models, so a page behind a challenge stays blocked. `full` is the supported way to ask
-# for the rest.
+# The image says out loud what it cannot do, rather than leaving it to be discovered: no browser,
+# so a page behind a challenge stays blocked, and `full` is the supported way to ask for the rest.
+# It also asserts what it *can* do, because that is the half that changed: the published archive
+# this image is made of carries the captcha models now, and an image that quietly lost them would
+# look identical from outside.
 RUN su svipall -c 'svipall doctor' | tee /tmp/d.json \
     && grep -q '"no_browser"' /tmp/d.json \
-    && grep -q '"no_models"' /tmp/d.json \
+    && grep -q '"detect"' /tmp/d.json \
+    && grep -q '"segment"' /tmp/d.json \
+    && ! grep -q '"no_models"' /tmp/d.json \
     && rm -f /tmp/d.json
 USER svipall
 # How the MCP Registry proves this image is ours: it reads this annotation off the published

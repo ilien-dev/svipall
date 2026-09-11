@@ -16,6 +16,7 @@ pub mod hooks;
 /// Work that outlives the request that asked for it.
 pub mod jobs;
 /// Where a model comes from: the operator's file first, the embedded copy second.
+pub mod model_install;
 pub mod model_source;
 pub mod ocr;
 pub mod profiles;

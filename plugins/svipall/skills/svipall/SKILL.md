@@ -102,6 +102,8 @@ svipall solver export-corpus --out ./corpus       # every captcha seen + answer,
 svipall quality ask --count 20                    # put pages in front of a person at the dashboard to rate
 svipall quality export-training --out set.jsonl   # those ratings plus what the log implies, as training data
 svipall quality train --in set.jsonl --out ~/.svipall/models
+svipall models status                             # embedded, installed, and whether this build can read one
+svipall models install                            # the release's models archive into ~/.svipall/models/
 ```
 
 `svipall log --summary` is worth a look when a site starts failing: a domain that is half blocked and

@@ -84,40 +84,38 @@ jobs:
       fail-fast: false
       matrix:
         include:
+          # Every target carries the captcha models. Two of them link the ONNX Runtime `ort`
+          # downloads; the other three build it from source, because upstream has nothing that
+          # works for them — see `ort_source` below and tools/onnxruntime/build.sh.
           - os: windows-latest
             target: x86_64-pc-windows-msvc
             ext: .exe
-            models: true
-          # The one target with no local model inference. ONNX Runtime publishes no x86_64 macOS
-          # build at the version `ort` is pinned to, and `download-binaries` fails the build rather
-          # than falling back, so this artefact is built without the `onnx-*` features — and
-          # without the weights nothing in it could read. Image captchas go to the human dashboard,
-          # `svipall doctor` reports `no_models`, and the platform table says so out loud.
-          - os: macos-latest
-            target: x86_64-apple-darwin
-            ext: ""
-            models: false
+            ort_source: false
           - os: macos-latest
             target: aarch64-apple-darwin
             ext: ""
-            models: true
-          # Linux builds on 22.04 and without the model features, and the two are the same
-          # decision. A binary links the glibc of the machine that built it, so `ubuntu-latest`
-          # produced one needing GLIBC_2.39 that would not start on Debian 12, Ubuntu 22.04 or
-          # RHEL 9. Building on 22.04 fixes that, and then the ONNX Runtime binaries `ort`
-          # downloads will not link there at all: they reference glibc 2.38 symbols and GCC 13's
-          # libstdc++. One or the other, and a binary that starts everywhere beats a binary that
-          # answers image captchas on Ubuntu 24. The container image keeps the models, because a
-          # container carries its own glibc. `Runs on an older distribution` below is the gate.
+            ort_source: false
+          # ONNX Runtime publishes no x86_64 macOS build at the version `ort` is pinned to, and
+          # `download-binaries` fails rather than falling back. Built here instead.
+          - os: macos-latest
+            target: x86_64-apple-darwin
+            ext: ""
+            ort_source: true
+          # Linux builds on 22.04 so the artefact starts on Debian 12, Ubuntu 22.04 and RHEL 9:
+          # a binary links the glibc of the machine that built it, and `ubuntu-latest` produced
+          # one needing GLIBC_2.39. The prebuilt ONNX Runtime cannot come along for that ride —
+          # it references glibc 2.38 and GCC 13's libstdc++ — so this target builds its own,
+          # which links this runner's glibc like everything else in the artefact.
+          # `Runs on an older distribution` below is the gate, and it now asserts the models too.
           - os: ubuntu-22.04
             target: x86_64-unknown-linux-gnu
             ext: ""
-            models: false
+            ort_source: true
           # Native arm runner: BoringSSL cross-compiles badly and does not need to.
           - os: ubuntu-22.04-arm
             target: aarch64-unknown-linux-gnu
             ext: ""
-            models: false
+            ort_source: true
     steps:
       - uses: actions/checkout@v4
 
@@ -180,6 +178,35 @@ jobs:
         if: runner.os == 'macOS'
         run: brew install cmake pkg-config llvm
 
+      # ONNX Runtime for the three targets pyke publishes nothing usable for. Restored from a
+      # cache `cache-warm.yml` writes on `main`, because a cache written under a tag is unreadable
+      # from the next one — the same rule the dependency cache above lives by. A miss is slow
+      # rather than fatal: the build script runs and the release takes an hour longer.
+      - uses: actions/cache/restore@v4
+        if: matrix.ort_source
+        id: ort-cache
+        with:
+          path: .ort/build/Release
+          key: ort-${{ hashFiles('tools/onnxruntime/VERSION') }}-${{ matrix.target }}
+      - name: ONNX Runtime from source
+        if: matrix.ort_source
+        shell: bash
+        run: |
+          if [ "${{ steps.ort-cache.outputs.cache-hit }}" != "true" ]; then
+            # The architecture comes from the target, not from the runner: `macos-latest` is arm64
+            # and the Intel artefact is cross-compiled on it.
+            case "${{ matrix.target }}" in
+              x86_64-*) arch=x86_64 ;;
+              aarch64-apple-*) arch=arm64 ;;
+              aarch64-*) arch=aarch64 ;;
+            esac
+            tools/onnxruntime/build.sh "$PWD/.ort" "$arch"
+          fi
+          # ort-sys reads this before its download path, so nothing in Cargo.toml changes. It has
+          # to be the directory holding the libonnxruntime_*.a files and their `_deps`, which is
+          # one level below what ONNX Runtime calls its build directory.
+          echo "ORT_LIB_LOCATION=$PWD/.ort/build/Release" >> "$GITHUB_ENV"
+
       # The models the binary carries. torchvision's published weights (BSD-3), exported once
       # here and compiled in by svipall-models; nothing is fetched at run time. The CPU wheel is
       # enough: exporting is not training.
@@ -187,10 +214,21 @@ jobs:
         with:
           python-version: "3.12"
       - name: Export embedded models
-        if: matrix.models
         shell: bash
         run: |
-          python -m pip install --quiet torch torchvision --index-url https://download.pytorch.org/whl/cpu
+          # The CPU index carries no aarch64 Linux wheel past torch 2.0.1 and none at all for
+          # 3.12, which is why this step was believed impossible there. PyPI has one
+          # (`manylinux_2_28_aarch64`). It is the CUDA-tagged build — `2.14.0+cu130`, measured, not
+          # assumed — because that is the only aarch64 wheel published, and it is a much larger
+          # download than the x86 CPU one. The export itself runs on the CPU either way and produces
+          # the same two files, byte size for byte size. macOS arm64 keeps the CPU index, where its
+          # wheel has always been.
+          case "${{ matrix.target }}" in
+            aarch64-unknown-linux-gnu)
+              python -m pip install --quiet torch torchvision ;;
+            *)
+              python -m pip install --quiet torch torchvision --index-url https://download.pytorch.org/whl/cpu ;;
+          esac
           python -m pip install --quiet onnx
           python tools/models/export.py
           ls -la crates/svipall-models/models
@@ -208,12 +246,9 @@ jobs:
           # Empty, not unset: unsetting it hands the build back to .cargo/config.toml and
           # its `target-cpu=native`, which `ring` rejects on aarch64 apple targets.
           case "${{ matrix.target }}" in aarch64-*) RUSTFLAGS= ;; esac
-          if [ "${{ matrix.models }}" = "true" ]; then
-            feats="--features impersonate,onnx-ocr,onnx-grid,onnx-audio,onnx-detect,onnx-segment,onnx-zeroshot"
-          else
-            feats="--features impersonate"
-          fi
-          cargo build --no-default-features --profile dist --target ${{ matrix.target }} --bin svipall-mcp --bin svipall $feats
+          RUSTFLAGS="$RUSTFLAGS ${ORT_EXTRA_RUSTFLAGS:-}"
+          cargo build --no-default-features --profile dist --target ${{ matrix.target }} --bin svipall-mcp --bin svipall \
+            --features impersonate,onnx-ocr,onnx-grid,onnx-audio,onnx-detect,onnx-segment,onnx-zeroshot
 
       - name: Stage Windows runtime
         if: runner.os == 'Windows'
@@ -250,25 +285,29 @@ jobs:
           # No browser on a CI runner, so `doctor` reports problems and that is correct. What must
           # hold is that the models made it in.
           "$bin" doctor | tee doctor.json
-          # Asserted both ways, because "no models" is a real answer for some targets and a
-          # regression for others, and only the matrix knows which this is.
-          if [ "${{ matrix.models }}" = "true" ]; then
-            grep -q '"detect"' doctor.json
-            grep -q '"segment"' doctor.json
-          else
-            grep -q '"no_models"' doctor.json
-          fi
+          # Every artefact carries them now, so there is one right answer and `no_models` from any
+          # target is the regression this catches.
+          grep -q '"detect"' doctor.json
+          grep -q '"segment"' doctor.json
+          ! grep -q '"no_models"' doctor.json
 
       # The binary that is about to be published, started on a distribution older than the one
       # that built it. A glibc that is too new is invisible here otherwise: the runner has it, so
       # everything passes, and the first person on Debian gets `GLIBC_2.39 not found`.
-      - name: Runs on an older distribution
+      - name: Runs on an older distribution, with its models
         if: contains(matrix.target, 'linux')
         shell: bash
         env:
           CARGO_TARGET_DIR: ${{ matrix.target == 'aarch64-apple-darwin' && './target' || './t' }}
         run: |
-          docker run --rm -v "$PWD/t/${{ matrix.target }}/dist:/x" debian:bookworm-slim             /x/svipall --version
+          run() { docker run --rm -v "$PWD/t/${{ matrix.target }}/dist:/x" debian:bookworm-slim "$@"; }
+          run /x/svipall --version
+          # Not only that it starts: that the ONNX Runtime built beside it answers there too. On
+          # the runner that built the artefact a glibc that is too new is invisible, which is how
+          # the first person on Debian used to find out instead of CI.
+          run /x/svipall doctor | tee doctor-bookworm.json
+          grep -q '"detect"' doctor-bookworm.json
+          grep -q '"segment"' doctor-bookworm.json
 
       # Both binaries: the MCP server and the CLI the skill documents. Shipping only the server
       # left `svipall fetch` a build-from-source feature.
@@ -307,12 +346,48 @@ jobs:
             out/*.zip
           if-no-files-found: error
 
+  # The models, once, for every platform. A weights file has no target — it is the ONNX Runtime
+  # that does — so this is one asset rather than a copy inside each archive, and it is what
+  # `svipall models install` downloads for a build that carries none: `cargo install svipall`
+  # compiles the ONNX path in through its default features and crates.io is no place for 54 MB of
+  # weights. Named `svipall-models-<version>.zip` so the checksum steps below, which glob
+  # `svipall-*`, list it without being told about it.
+  models:
+    name: models archive
+    needs: version
+    if: needs.version.outputs.publish == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Export the models
+        run: |
+          python -m pip install --quiet torch torchvision --index-url https://download.pytorch.org/whl/cpu
+          python -m pip install --quiet onnx
+          python tools/models/export.py
+          ls -la crates/svipall-models/models
+      - name: Package
+        env:
+          VERSION: ${{ needs.version.outputs.version }}
+        run: |
+          cd crates/svipall-models/models
+          zip -9 "$GITHUB_WORKSPACE/svipall-models-$VERSION.zip" \
+            detect.onnx detect.json segment.onnx segment.json
+          ls -la "$GITHUB_WORKSPACE/svipall-models-$VERSION.zip"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: svipall-models-archive
+          path: svipall-models-*.zip
+          if-no-files-found: error
+
   # The manifests and the native Linux packages, from the artefacts the build job just produced.
   # Nothing is recompiled: a package manager that ships a different build from the tarball is a
   # second product to support.
   packages:
     name: packages
-    needs: [version, build]
+    needs: [version, build, models]
     if: needs.version.outputs.publish == 'true'
     runs-on: ubuntu-latest
     steps:
@@ -386,7 +461,7 @@ jobs:
 
   publish:
     name: publish
-    needs: [version, build, packages]
+    needs: [version, build, models, packages]
     if: needs.version.outputs.publish == 'true'
     runs-on: ubuntu-latest
     permissions:
@@ -417,6 +492,7 @@ jobs:
           files: |
             artifacts/svipall-*.tar.gz
             artifacts/svipall-*.zip
+            artifacts/svipall-models-*.zip
             artifacts/sha256sums.txt
             packages/packaging-manifests.tar.gz
             packages/packaging/dist/*.deb
