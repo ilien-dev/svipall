@@ -50,6 +50,13 @@
   and installing weights there would only trade `no_models` for `models_not_readable`. An archive's
   entries are checked before anything is written: only the five model names, only in the archive's
   root, and never an `.onnx` without its sidecar.
+- **The headful tiers' window carries its own X11 class.** `real` and `warm` open a real window on
+  purpose — a headless browser answers `pointer: fine` with `false` — and it was moved off the edge
+  of the screen, which is a request a tiling compositor may ignore. Hyprland and sway do: the window
+  lands in the layout, visible, and the page then reads a height the layout chose rather than the
+  one the identity states. `svipall-browser` gives a compositor rule something to match that is not
+  every Chrome window the user has open; `docs/configuration.md` carries the rule for Hyprland, sway
+  and i3. Nothing on the page can read it: `WM_CLASS` never reaches the DOM.
 - **`svipall doctor` honours the port variables it tells you about.** `dashboard_port_busy`'s fix
   names `SVIPALL_DASHBOARD_PORT`, and `svipall-mcp` binds what that variable says — but doctor read
   the config file alone, so on any machine with an mcp already listening, setting the variable
