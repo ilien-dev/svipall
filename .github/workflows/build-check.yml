@@ -13,12 +13,10 @@ name: build-check
 
 on:
   workflow_dispatch:
-  # `workflow_dispatch` alone is unreachable until the file is on the default branch, which is
-  # exactly backwards for a check whose job is to vet a branch before it gets there. A pull request
-  # that touches how an artefact is built runs it from the branch's own copy. The `push` line names
-  # the branch this arrived on and comes out with it.
-  push:
-    branches: [linux-models-artifact]
+  # `workflow_dispatch` is unreachable until the file is on the default branch, which is exactly
+  # backwards for a check whose job is to vet a branch before it gets there. A pull request that
+  # touches how an artefact is built runs it from the branch's own copy, which is the case that
+  # matters; once this file is on `main`, dispatching it by hand works too.
   pull_request:
     paths:
       - "tools/onnxruntime/**"
