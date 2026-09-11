@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 1.0.1 — 2026-09-11
 
 - **Every build carries the captcha models now.** Three of the five targets shipped without them:
   the prebuilt ONNX Runtime `ort` downloads references glibc 2.38 and GCC 13's libstdc++, so a
