@@ -1,5 +1,69 @@
 # Changelog
 
+## Unreleased
+
+- **Every build carries the captcha models now.** Three of the five targets shipped without them:
+  the prebuilt ONNX Runtime `ort` downloads references glibc 2.38 and GCC 13's libstdc++, so a
+  Linux artefact linking it starts on Ubuntu 24.04 and nothing older, and none is published for
+  x86-64 macOS at all. The choice had been a binary that starts everywhere over one that answers an
+  image captcha; it is now neither, because those three targets build the runtime from source
+  (`tools/onnxruntime/build.sh`) and link that. A runtime compiled on the 22.04 runner needs that
+  runner's glibc 2.35, exactly like the rest of the artefact, so Debian 12 and RHEL 9 keep working
+  and the models come along. Windows and Apple-silicon macOS keep the prebuilt one, which works
+  there. Measured end to end in containers: the artefact starts on Debian 12, `doctor` reports
+  `detect` and `segment`, and `crates/svipall/tests/models.rs` runs real ONNX sessions there.
+- **The export step reaches aarch64 Linux, which it never had.** It installed torch from
+  `download.pytorch.org/whl/cpu`, whose newest aarch64 wheel is 2.0.1 and which has none for Python
+  3.12 at all — so that leg had always been built without models. PyPI publishes a
+  `manylinux_2_28_aarch64` wheel, and the path was run on an emulated arm64 machine: `torch
+  2.14.0+cu130`, both models exported at the same 13.8 MB and 44.1 MB as on x86-64. It is the
+  CUDA-tagged wheel, the only aarch64 one published, so the download is large; the export runs on
+  the CPU either way. macOS arm64 keeps the CPU index, where its wheel has always been.
+- **The runtime version is pinned to 1.27.1, and it is not free to move in either direction.**
+  `ort 2.0.0-rc.13` asks for ONNX Runtime API 27. Build 1.22 and everything links, `svipall doctor`
+  lists both embedded models, and the first session fails with `The requested API version [27] is
+  not available` — a failure no smoke test that only starts the binary can see. Build 1.28 and the
+  link itself breaks in a debug profile: it splits `model_package` into a static library of its own
+  that `libonnxruntime_session.a` references and ort-sys does not know to link, which a release
+  profile hides by garbage-collecting the section. `tools/onnxruntime/VERSION` carries the pin, the
+  build script emits linker flags for any such split library so the next bump is not a mystery, the
+  release's Linux gate runs `doctor` on Debian 12 and greps for the models rather than only checking
+  that the binary starts, and `crates/svipall/tests/models.rs` is what to run against any build made
+  this way.
+- **The runtime is cached on `main`, not in the release.** Building ONNX Runtime takes the better
+  part of an hour per target, and a cache written under a tag is unreadable from the next one — the
+  same rule the dependency cache lives by. `cache-warm.yml` builds and caches it, keyed by the
+  version file; the release restores that key and builds its own on a miss, so a cold cache costs
+  time and never a release.
+- **`svipall models install`, for a build that can read a model and has none.** `cargo install
+  svipall` compiles the ONNX path in — `local-models` is a default feature — and the published
+  crate carries no weights, because crates.io is not where 54 MB of them belong. So it reported
+  `no_models` with nothing a user could do about it short of cloning the repository and installing
+  torch. The release now publishes one `svipall-models-<version>.zip` for every platform (a weights
+  file has no target; it is the runtime that does), and the command downloads it, checks it against
+  the `sha256sums.txt` the release already publishes, refuses on a mismatch, and writes the files
+  into `~/.svipall/models/`, where they already won over an embedded copy. `--from-file` installs an
+  archive you already have and `SVIPALL_RELEASES_URL` points the download at a mirror, so an
+  air-gapped machine is not locked out. Nothing downloads by itself: this is a command a person
+  types, like `svipall browser install`. `svipall models status` reports `readable`, which is the
+  distinction that matters — a binary built without any `onnx-*` feature cannot read a model file,
+  and installing weights there would only trade `no_models` for `models_not_readable`. An archive's
+  entries are checked before anything is written: only the five model names, only in the archive's
+  root, and never an `.onnx` without its sidecar.
+- **`svipall doctor` honours the port variables it tells you about.** `dashboard_port_busy`'s fix
+  names `SVIPALL_DASHBOARD_PORT`, and `svipall-mcp` binds what that variable says — but doctor read
+  the config file alone, so on any machine with an mcp already listening, setting the variable
+  changed nothing in the report and the problem read as permanent. Both ports now resolve through
+  one `svipall_core::config::port_from_env`, which is also what the server uses, so the two cannot
+  drift apart again.
+- **The `slim` image carries the models too, and both images now say so at build time.** `slim` is
+  repackaged from the published Linux archive rather than compiled a second time, and that archive
+  has them now — the difference between the two flavours is the browser, which is what the tag
+  always meant. Its build asserted the opposite, demanding `no_models` from `svipall doctor`, so the
+  image build broke the moment the archive gained them; that is how this was found. Both flavours
+  now assert `detect`, `segment` and the absence of `no_models`, because an image that quietly lost
+  them looks identical from outside.
+
 ## 1.0.0 — 2026-09-10
 
 **The first stable release, and the same program as `1.0.0-rc.3`.** Nothing that ships changed

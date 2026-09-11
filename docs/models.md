@@ -7,12 +7,37 @@ instead. Each model is described by a JSON sidecar; the sidecar is the contract.
 
 Build with the matching features: `cargo build --release --features onnx-ocr,onnx-grid,onnx-audio,onnx-detect,onnx-segment,onnx-zeroshot`.
 
-**Not every release build carries them.** The Windows and Apple-silicon binaries do, and so does
-the container image on both architectures. The Linux and Intel-Mac binaries do not: the ONNX
-Runtime builds `ort` downloads reference glibc 2.38, so a Linux binary using them would not start
-on Debian 12, Ubuntu 22.04 or RHEL 9, and none is published for x86-64 macOS at all. `svipall
-doctor` reports `no_models` where they are absent, and the four modalities that need one go to the
-human dashboard.
+**Every release build carries them**, on every platform, and so do both container images. Three
+targets get there the long way: the prebuilt ONNX Runtime `ort` downloads references glibc 2.38 and
+is published for no x86-64 macOS at all, so Linux x86-64, Linux arm64 and Intel macOS build the
+runtime from source (`tools/onnxruntime/build.sh`) and link that instead. It is version-pinned in
+`tools/onnxruntime/VERSION`, and the pin is not free to move down: `ort` asks for ONNX Runtime API
+27, and an older runtime links cleanly and then refuses at the first session.
+
+A build from source is the one case with no weights: `cargo install svipall` compiles the ONNX path
+in and the published crate carries no `.onnx`, because crates.io is not where 54 MB of them belong.
+
+## Installing the ones a build does not carry
+
+```
+svipall models status      # what is embedded, what is installed, and whether anything can read it
+svipall models install     # the archive for this version, into ~/.svipall/models/
+svipall models remove
+```
+
+`install` downloads `svipall-models-<version>.zip` from the matching release — about 54 MB, the two
+torchvision models and their sidecars — checks it against the `sha256sums.txt` the release already
+publishes, and refuses on a mismatch. `--from-file archive.zip` installs one you already have, which
+is what an air-gapped machine and this project's own tests use, and `SVIPALL_RELEASES_URL` points
+the download at a mirror. Nothing here happens by itself: this is a command a person types, and the
+promise above that nothing is fetched at run time still holds.
+
+**It only helps a build that can read a model.** `svipall models status` reports `readable`, which
+is false for a binary compiled without any `onnx-*` feature — `--no-default-features` builds, and
+anything that opted out of `local-models`. Installing weights there moves `svipall doctor` from
+`no_models` to `models_not_readable` and answers exactly as many captchas as before, which is none.
+No published artefact is in that state any more; the build this command exists for is
+`cargo install svipall`, which compiles the ONNX path in and carries no weights.
 
 ## What the binary carries
 

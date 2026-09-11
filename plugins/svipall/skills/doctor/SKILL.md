@@ -23,9 +23,12 @@ Two things worth knowing before you interpret the result:
 
 - `dashboard_port_busy` is usually a `svipall-mcp` that is already running. Say so rather than
   sending someone to change a port they do not need to change.
-- `models.embedded` being empty is not cosmetic. It is the difference between a release build and
-  one built from a clean clone without the export step: image captchas go to the human dashboard
-  instead of being answered. Say which one this is.
+- `models.embedded` being empty is not cosmetic: image captchas go to the human dashboard instead
+  of being answered. Which fix applies depends on `models.inference`. With it **true** the build can
+  read a model and simply has none — a source build, typically — and `svipall models install`
+  downloads them. With it **false** no file can help: that build was compiled without any `onnx-*`
+  feature, and the answer is a build that carries them (on Linux the `-models` archive, or the
+  container image). Say which of the two this is rather than offering both.
 
 Then check the MCP side, which `doctor` cannot see from inside the binary: call `web_status`. If it
 fails while `svipall doctor` succeeds, the binary is fine and the MCP registration is not —

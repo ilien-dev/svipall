@@ -51,6 +51,8 @@ urlencoding = { workspace = true }
 scraper = { workspace = true }
 url = { workspace = true }
 zip = { version = "2.2", default-features = false, features = ["deflate", "aes-crypto"] }
+# Checking a downloaded models archive against the release's own sha256sums.txt.
+sha2 = "0.10"
 md5 = "0.7"
 
 # Local OCR (optional). Enable with --features onnx-ocr and drop a model in ~/.svipall/models/.

@@ -3917,6 +3917,7 @@ dependencies = [
  "scraper",
  "serde",
  "serde_json",
+ "sha2",
  "svipall-cdp",
  "svipall-core",
  "svipall-dashboard",
