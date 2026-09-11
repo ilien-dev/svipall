@@ -62,6 +62,13 @@ if [ "$(uname -s)" = Darwin ]; then
     osx_defines="CMAKE_OSX_ARCHITECTURES=$arch"
 fi
 
+# ONNX Runtime refuses to build as root unless told, and the flag only exists where that refusal
+# does: the macOS build.py rejects it outright with `unrecognized arguments`. A CI runner is never
+# root and a container usually is, so ask the machine rather than the platform. Unquoted for the
+# same reason as `osx_defines`: empty must vanish, not become an argument.
+root_flag=""
+[ "$(id -u)" = 0 ] && root_flag="--allow_running_as_root"
+
 mkdir -p "$build_dir"
 rm -rf "$src_dir"
 git clone --depth 1 --branch "v$version" --recursive --shallow-submodules \
@@ -75,7 +82,7 @@ git clone --depth 1 --branch "v$version" --recursive --shallow-submodules \
     --build_dir "$build_dir/build" \
     --skip_tests \
     --skip_submodule_sync \
-    --allow_running_as_root \
+    $root_flag \
     --compile_no_warning_as_error \
     --cmake_extra_defines \
         onnxruntime_BUILD_SHARED_LIB=OFF \
