@@ -74,20 +74,27 @@ Windows 10 version 1903 or newer for the operating system's
 |---|---|---|---|---|
 | Linux x86-64 | yes | yes | yes | the binary |
 | Linux arm64 | yes | **no** — point `browser_path` at your own Chromium, or accept the http tier | yes | the container |
-| macOS Intel | yes | yes | yes | the binary |
+| macOS Intel | **no** | — | — | the container (`linux/amd64` runs natively on it) |
 | macOS Apple silicon | yes | yes | yes | the binary |
 | Windows x86-64 | yes | yes (Edge already counts) | yes | the binary |
 | Windows arm64 | no | — | — | the x64 build under emulation, or the container |
 | anything else | no | — | — | the container, or build from source |
 
-**Why three of those build their own ONNX Runtime.** The prebuilt runtimes `ort` downloads
+**Why the Linux builds compile their own ONNX Runtime.** The prebuilt runtimes `ort` downloads
 reference glibc 2.38 and GCC 13's libstdc++, so a Linux binary linking them starts on Ubuntu 24.04
-and newer and nowhere older — not Debian 12, Ubuntu 22.04, RHEL 9 or Amazon Linux 2023 — and none
-is published for x86-64 macOS at all. For a while that meant those three targets shipped without
-models. They now build the runtime from source instead (`tools/onnxruntime/build.sh`), which links
-whatever the build machine has: the Linux artefacts are built on Ubuntu 22.04, so the floor is its
-glibc 2.35 and the models come along. Windows and Apple-silicon macOS keep the prebuilt runtime,
-which works there.
+and newer and nowhere older — not Debian 12, Ubuntu 22.04, RHEL 9 or Amazon Linux 2023. For a while
+that meant those targets shipped without models. They now build the runtime from source instead
+(`tools/onnxruntime/build.sh`), which links whatever the build machine has: the artefacts are built
+on Ubuntu 22.04, so the floor is its glibc 2.35 and the models come along. Windows and
+Apple-silicon macOS keep the prebuilt runtime, which works there.
+
+**Why there is no Intel macOS build.** There was, and it was the one artefact that could be built
+and never started: `macos-latest` is arm64, so it was cross-compiled, and GitHub has retired its
+Intel image far enough that a job asking for one waits without ever being scheduled. Apple
+discontinued its last Intel Mac in 2023 and macOS 26 is the final release supporting one. Publishing
+a binary nobody can test, from a build nobody can run, is worse than saying so: `install.sh` and the
+npm package decline by name, Homebrew has no formula for it, and the container image runs
+`linux/amd64` natively on that hardware.
 
 Each Linux artefact is then started on Debian 12 — older than the machine that built it — and asked
 whether its models answer there, because a runtime built against a newer glibc links cleanly and

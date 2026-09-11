@@ -7,10 +7,11 @@ instead. Each model is described by a JSON sidecar; the sidecar is the contract.
 
 Build with the matching features: `cargo build --release --features onnx-ocr,onnx-grid,onnx-audio,onnx-detect,onnx-segment,onnx-zeroshot`.
 
-**Every release build carries them**, on every platform, and so do both container images. Three
-targets get there the long way: the prebuilt ONNX Runtime `ort` downloads references glibc 2.38 and
-is published for no x86-64 macOS at all, so Linux x86-64, Linux arm64 and Intel macOS build the
-runtime from source (`tools/onnxruntime/build.sh`) and link that instead. It is version-pinned in
+**Every release build carries them**, on every platform, and so do both container images. The two
+Linux targets get there the long way: the prebuilt ONNX Runtime `ort` downloads references glibc
+2.38, so they build the runtime from source (`tools/onnxruntime/build.sh`) and link that instead.
+Intel macOS has no build at all — the runtime is not published for it and GitHub no longer schedules
+a machine that could test one, so that hardware is pointed at the container image. It is version-pinned in
 `tools/onnxruntime/VERSION`, and the pin is not free to move down: `ort` asks for ONNX Runtime API
 27, and an older runtime links cleanly and then refuses at the first session.
 

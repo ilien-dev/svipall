@@ -42,7 +42,7 @@ env:
   CARGO_TERM_COLOR: always
 
 jobs:
-  # ONNX Runtime, built from source for the three targets pyke publishes nothing usable for, and
+  # ONNX Runtime, built from source for the two targets pyke publishes nothing usable for, and
   # cached here so a release restores it instead of spending an hour per target on it. Rule 1 at
   # the top of this file is why it lives on `main` rather than in the release: a cache written
   # under a tag is unreadable from the next one.
@@ -61,8 +61,6 @@ jobs:
             target: x86_64-unknown-linux-gnu
           - os: ubuntu-22.04-arm
             target: aarch64-unknown-linux-gnu
-          - os: macos-latest
-            target: x86_64-apple-darwin
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5

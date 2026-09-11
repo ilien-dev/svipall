@@ -432,7 +432,7 @@ fn build_legs(workflow: &str) -> Vec<Leg> {
                 == "true",
         });
     }
-    assert!(legs.len() >= 5, "the matrix lost legs; this test is stale");
+    assert!(legs.len() >= 4, "the matrix lost legs; this test is stale");
     legs
 }
 
@@ -463,7 +463,7 @@ fn every_target_is_built_once_and_carries_the_models() {
     );
 }
 
-/// The three targets pyke publishes no usable runtime for build their own, with the script this
+/// The two targets pyke publishes no usable runtime for build their own, with the script this
 /// repository keeps, and the other two take the prebuilt one. A leg that quietly stopped building
 /// its own would link the downloaded runtime and reintroduce the glibc floor this removed.
 #[test]
@@ -473,7 +473,7 @@ fn the_targets_without_a_usable_prebuilt_runtime_build_their_own() {
     for leg in &legs {
         let expected = matches!(
             leg.target.as_str(),
-            "x86_64-unknown-linux-gnu" | "aarch64-unknown-linux-gnu" | "x86_64-apple-darwin"
+            "x86_64-unknown-linux-gnu" | "aarch64-unknown-linux-gnu"
         );
         assert_eq!(
             leg.ort_source, expected,
@@ -645,4 +645,42 @@ fn both_container_images_assert_the_models_they_carry() {
             "{file} must fail the build when doctor reports no_models"
         );
     }
+}
+
+/// Intel macOS is published by nothing here. It was the one target that could be built and never
+/// run — `macos-latest` is arm64, so the artefact was cross-compiled, and GitHub's Intel image is
+/// retired far enough that a `macos-13` job sits queued with no runner rather than failing. Apple
+/// discontinued its last Intel Mac in 2023. A formula, a PKGBUILD or an installer that still names
+/// that archive would fail at download time with nothing useful to read, so none of them may.
+#[test]
+fn nothing_offers_an_intel_macos_build() {
+    let root = workspace_root();
+    for file in [
+        ".github/workflows/release.yml",
+        ".github/workflows/cache-warm.yml",
+        ".github/workflows/build-check.yml",
+        "scripts/render-packaging.sh",
+        "scripts/render-packaging.ps1",
+        "packaging/templates/homebrew.rb",
+        "packaging/npm/install.js",
+    ] {
+        let text = fs::read_to_string(root.join(file)).expect(file);
+        for line in text.lines() {
+            // The comments that explain the absence name the target; a line that *uses* it is what
+            // this is looking for, and every use here is quoted or assigned.
+            let trimmed = line.trim_start();
+            if trimmed.starts_with('#') || trimmed.starts_with("//") {
+                continue;
+            }
+            assert!(
+                !line.contains("x86_64-apple-darwin"),
+                "{file} still offers an Intel macOS build:\n{line}"
+            );
+        }
+    }
+    let sh = fs::read_to_string(root.join("install.sh")).expect("install.sh");
+    assert!(
+        sh.contains("there is no build for Intel macOS"),
+        "install.sh must say so by name rather than 404 on a download"
+    );
 }

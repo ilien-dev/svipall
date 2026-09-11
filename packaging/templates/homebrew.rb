@@ -10,10 +10,9 @@ class Svipall < Formula
       url "https://github.com/ilien-dev/svipall/releases/download/v@VERSION@/svipall-@VERSION@-aarch64-apple-darwin.tar.gz"
       sha256 "@SHA_AARCH64_APPLE_DARWIN@"
     end
-    on_intel do
-      url "https://github.com/ilien-dev/svipall/releases/download/v@VERSION@/svipall-@VERSION@-x86_64-apple-darwin.tar.gz"
-      sha256 "@SHA_X86_64_APPLE_DARWIN@"
-    end
+    # No `on_intel`: Intel macOS has no build, and a formula that names a URL the release does not
+    # publish fails at download time with nothing useful to read. `brew install` declines here
+    # instead, and docs/install.md names the container image.
   end
 
   on_linux do
