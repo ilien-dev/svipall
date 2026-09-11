@@ -16,9 +16,12 @@
 #   docker run --rm -v svipall-home:/data svipall svipall fetch https://example.com
 #   docker run --rm -v svipall-home:/data svipall svipall doctor         # what this image can do
 #
-# Two flavours, and the difference is real rather than cosmetic. `full` carries a browser and the
-# captcha models, so the tier ladder and local solving both work. `slim` carries neither: it is the
-# http tier, and a page behind a challenge stays blocked. Both are built for amd64 and arm64.
+# Two flavours, and the difference is the browser. `full` carries one, so the tier ladder runs and a
+# challenge on a real page can be solved; `slim` has none, so it is the http tier and a page behind a
+# challenge stays blocked. Both carry the captcha models — `slim` is repackaged from the published
+# Linux archive, which has carried them since that target started building its own ONNX Runtime, and
+# they are useful there through the standalone image API even with no browser. Both are built for
+# amd64 and arm64.
 #
 # The browser differs by architecture, and the image says which one it has. On amd64 it is Chrome
 # for Testing, downloaded at build time. On arm64 Chrome for Testing publishes nothing, so it is
@@ -121,6 +124,9 @@ RUN if [ "$TARGETARCH" != "arm64" ]; then svipall browser install; fi \
     && svipall doctor > /tmp/d.json \
     && grep -q '"in_use"' /tmp/d.json \
     && ! grep -q '"no_browser"' /tmp/d.json \
+    && grep -q '"detect"' /tmp/d.json \
+    && grep -q '"segment"' /tmp/d.json \
+    && ! grep -q '"no_models"' /tmp/d.json \
     && rm -f /tmp/d.json
 
 # ---------------------------------------------------------------------------------------------

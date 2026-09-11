@@ -749,6 +749,64 @@ pub fn scratch_profile() -> PathBuf {
 /// on stderr. Asked before the launch, so the attempt line names the actual problem instead of
 /// "browser process exited". `env` is read through a closure so the rule is testable without
 /// touching the process environment.
+/// The X11 class the headful tiers launch under, so a compositor rule can catch those windows and
+/// nothing else. Not visible to a page: `WM_CLASS` never reaches the DOM.
+pub const WINDOW_CLASS: &str = "svipall-browser";
+
+/// Keeping a headful window out of the user's way, without pretending it is not there.
+///
+/// The window is the point of these tiers: a headless browser answers `pointer: fine` with `false`
+/// and a wall that asks is told what it is talking to. So it is moved off the edge of the screen
+/// rather than hidden — a hidden or minimised window is an occluded one, and Chrome throttles
+/// rendering and flips `visibilityState` for it, which is the same self-report by another route.
+///
+/// Position is a request. A tiling compositor is entitled to ignore it, and Hyprland and sway do:
+/// the window lands in the layout and the page reads a height the layout chose, which is why
+/// `window_chrome_height` fails there and passes under a plain X server. The class is for exactly
+/// that case — it gives a compositor rule something to match that is not every Chrome window the
+/// user has open:
+///
+/// ```text
+/// windowrule = workspace special:svipall silent, class:^(svipall-browser)$   # Hyprland
+/// for_window [class="svipall-browser"] move scratchpad                       # sway, i3
+/// ```
+///
+/// `--class` is X11-only, hence the platform flag; it reaches nothing in the DOM either way.
+pub fn out_of_sight_args(headless: bool, visible: bool, linux: bool) -> Vec<String> {
+    if headless || visible {
+        return Vec::new();
+    }
+    let mut args = vec!["--window-position=-32000,-32000".to_string()];
+    if linux {
+        args.push(format!("--class={WINDOW_CLASS}"));
+    }
+    args
+}
+
+#[cfg(test)]
+mod out_of_sight_tests {
+    use super::{out_of_sight_args, WINDOW_CLASS};
+
+    /// A headful tier the caller did not ask to see goes off-screen, and on Linux carries the class
+    /// a compositor rule can catch.
+    #[test]
+    fn a_headful_window_nobody_asked_for_goes_out_of_the_way() {
+        let args = out_of_sight_args(false, false, true);
+        assert!(args.iter().any(|a| a == "--window-position=-32000,-32000"));
+        assert!(args.iter().any(|a| a == &format!("--class={WINDOW_CLASS}")));
+        // Off Linux the class flag does not exist; passing it would be an unknown argument.
+        assert_eq!(out_of_sight_args(false, false, false).len(), 1);
+    }
+
+    /// `web_login` and `browser_open --visible` open a window *for* the user, and a headless tier
+    /// has none. Moving either would be moving the wrong window.
+    #[test]
+    fn a_window_that_was_asked_for_is_left_alone() {
+        assert!(out_of_sight_args(false, true, true).is_empty());
+        assert!(out_of_sight_args(true, false, true).is_empty());
+    }
+}
+
 pub fn no_display(
     headless: bool,
     linux: bool,
@@ -1434,8 +1492,12 @@ impl BrowserPool {
         } else {
             b.with_head()
         };
-        if !opts.tier.headless() && !opts.visible {
-            b = b.arg("--window-position=-32000,-32000");
+        for arg in out_of_sight_args(
+            opts.tier.headless(),
+            opts.visible,
+            cfg!(target_os = "linux"),
+        ) {
+            b = b.arg(arg);
         }
         if let Some(dir) = &profile_dir {
             let _ = std::fs::create_dir_all(dir);

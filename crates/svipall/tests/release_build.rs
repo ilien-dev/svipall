@@ -400,3 +400,287 @@ fn every_release_pushes_the_tap_and_the_bucket() {
         }
     }
 }
+
+/// One leg of the build matrix, as `release.yml` writes it.
+struct Leg {
+    os: String,
+    target: String,
+    ort_source: bool,
+}
+
+/// The `build` job's matrix, read the way the rest of this file reads the workflow: textually, so
+/// that a test of what CI does needs no yaml dependency to say it.
+fn build_legs(workflow: &str) -> Vec<Leg> {
+    let job = job(workflow, "build").expect("a `build` job");
+    let include = job
+        .split_once("include:\n")
+        .expect("the matrix is written as an include list")
+        .1;
+    let end = include.find("\n    steps:").unwrap_or(include.len());
+    let mut legs = Vec::new();
+    for block in include[..end].split("- os: ").skip(1) {
+        let field = |name: &str| {
+            block
+                .lines()
+                .find_map(|l| l.trim().strip_prefix(&format!("{name}: ")))
+                .map(|v| v.trim().trim_matches('"').to_string())
+        };
+        legs.push(Leg {
+            os: block.lines().next().expect("the os").trim().to_string(),
+            target: field("target").expect("every leg names a target"),
+            ort_source: field("ort_source").expect("every leg says where its runtime comes from")
+                == "true",
+        });
+    }
+    assert!(legs.len() >= 4, "the matrix lost legs; this test is stale");
+    legs
+}
+
+/// One artefact per target, and every one of them carries the captcha models. The release used to
+/// ship three targets that could not answer an image captcha anywhere, which is a different program
+/// wearing the same version number.
+#[test]
+fn every_target_is_built_once_and_carries_the_models() {
+    let workflow = release_yml();
+    let legs = build_legs(&workflow);
+    let mut targets: Vec<&str> = legs.iter().map(|l| l.target.as_str()).collect();
+    let before = targets.len();
+    targets.sort_unstable();
+    targets.dedup();
+    assert_eq!(
+        before,
+        targets.len(),
+        "two legs build the same target, and they would upload under one artifact name"
+    );
+    let build = job(&workflow, "build").expect("a `build` job");
+    assert!(
+        build.contains("--features impersonate,onnx-ocr,onnx-grid,onnx-audio,onnx-detect,onnx-segment,onnx-zeroshot"),
+        "the build step no longer asks for every model feature"
+    );
+    assert!(
+        !build.contains("matrix.models"),
+        "`models` is no longer a property a leg can lack; nothing should branch on it"
+    );
+}
+
+/// The two targets pyke publishes no usable runtime for build their own, with the script this
+/// repository keeps, and the other two take the prebuilt one. A leg that quietly stopped building
+/// its own would link the downloaded runtime and reintroduce the glibc floor this removed.
+#[test]
+fn the_targets_without_a_usable_prebuilt_runtime_build_their_own() {
+    let workflow = release_yml();
+    let legs = build_legs(&workflow);
+    for leg in &legs {
+        let expected = matches!(
+            leg.target.as_str(),
+            "x86_64-unknown-linux-gnu" | "aarch64-unknown-linux-gnu"
+        );
+        assert_eq!(
+            leg.ort_source, expected,
+            "{} on {}: ort_source should be {expected}",
+            leg.target, leg.os
+        );
+    }
+    let build = job(&workflow, "build").expect("a `build` job");
+    assert!(
+        build.contains("tools/onnxruntime/build.sh"),
+        "the build job no longer runs the runtime build script"
+    );
+    assert!(
+        build.contains("ORT_LIB_LOCATION=$PWD/.ort/build/Release"),
+        "ort-sys reads ORT_LIB_LOCATION, and it must name the directory holding the static libs"
+    );
+    // Linux still builds on the oldest runner available: the whole reason for building the runtime
+    // is that the artefact keeps that runner's glibc rather than the prebuilt runtime's.
+    for leg in legs.iter().filter(|l| l.target.contains("linux")) {
+        assert!(
+            leg.os.starts_with("ubuntu-22.04"),
+            "{} builds on {}, which raises the glibc floor the source build exists to keep low",
+            leg.target,
+            leg.os
+        );
+    }
+}
+
+/// A runtime built from source is slow enough that a release cannot pay for it every time, and a
+/// cache written under a tag is unreadable from the next one — so `cache-warm.yml` writes it on
+/// `main` and the release restores it. Two different keys means the release always misses, silently
+/// and expensively.
+#[test]
+fn the_runtime_cache_is_warmed_under_the_key_the_release_restores() {
+    let root = workspace_root();
+    let release = release_yml();
+    let warm = fs::read_to_string(root.join(".github/workflows/cache-warm.yml"))
+        .expect("cache-warm.yml")
+        .replace("\r\n", "\n");
+    let key = "ort-${{ hashFiles('tools/onnxruntime/VERSION') }}-${{ matrix.target }}";
+    assert!(
+        release.contains(key),
+        "release.yml restores a different key"
+    );
+    assert!(warm.contains(key), "cache-warm.yml writes a different key");
+    assert!(
+        warm.contains("tools/onnxruntime/build.sh"),
+        "cache-warm.yml must build the runtime it caches"
+    );
+    assert!(
+        root.join("tools/onnxruntime/VERSION").is_file(),
+        "the key hashes a file that has to exist"
+    );
+}
+
+/// Every Linux artefact is started on a distribution older than the one that built it, and asked
+/// whether its models answer there. Starting is not enough: a runtime built against a newer glibc
+/// links and then fails at the first session, and `svipall doctor` lists the embedded models either
+/// way — that failure is invisible until a captcha arrives.
+#[test]
+fn each_linux_artefact_answers_on_an_older_distribution() {
+    let workflow = release_yml();
+    let step = workflow
+        .split("\n      - ")
+        .find(|s| s.starts_with("name: Runs on an older distribution"))
+        .expect("release.yml has the older-distribution step");
+    assert!(
+        step.contains("debian:bookworm-slim"),
+        "the gate must be a distribution older than the runner:\n{step}"
+    );
+    for model in ["detect", "segment"] {
+        assert!(
+            step.contains(&format!("'\"{model}\"'")),
+            "the gate must assert {model} answers there, not merely that the binary starts"
+        );
+    }
+}
+
+/// `svipall models install` asks the release for an asset by name, and the release job builds one
+/// by name. They are the same string or the command 404s against a release that has the file —
+/// which is why the format is asserted here against the literal the workflow writes, rather than
+/// described in two places and hoped about.
+#[test]
+fn the_models_archive_is_published_under_the_name_the_installer_asks_for() {
+    let workflow = release_yml();
+    let models = job(&workflow, "models").expect("release.yml has a `models` job");
+    assert!(
+        models.contains("svipall-models-$VERSION.zip"),
+        "the models job no longer builds the asset the installer asks for:\n{models}"
+    );
+    assert_eq!(
+        svipall::model_install::asset_name("$VERSION"),
+        "svipall-models-$VERSION.zip"
+    );
+    assert!(
+        workflow.contains("artifacts/svipall-models-*.zip"),
+        "the release does not publish the models archive"
+    );
+    // Both checksum steps glob `svipall-*`, so a job that runs before this one writes a
+    // `sha256sums.txt` without the archive in it — and then the installer downloads something it
+    // cannot verify, which it reports as a warning and nobody reads.
+    for consumer in ["packages", "publish"] {
+        let body = job(&workflow, consumer).expect("a job");
+        let needs = body
+            .lines()
+            .find(|l| l.trim_start().starts_with("needs:"))
+            .unwrap_or_default();
+        assert!(
+            needs.contains("models"),
+            "{consumer} must wait for the models archive: {needs}"
+        );
+    }
+}
+
+/// The runtime's architecture comes from the target, not from the runner. `macos-latest` is arm64
+/// and the x86-64 macOS artefact is cross-compiled on it: rustc knows that from the target triple,
+/// a cmake build does not, and a runtime built for the wrong architecture fails at the link step
+/// with a page of unresolved symbols. Both workflows map it, the same way, and the script refuses a
+/// Linux cross-build rather than producing one quietly.
+#[test]
+fn the_runtime_is_built_for_the_target_rather_than_the_runner() {
+    let root = workspace_root();
+    let script = fs::read_to_string(root.join("tools/onnxruntime/build.sh")).expect("build.sh");
+    assert!(
+        script.contains("CMAKE_OSX_ARCHITECTURES=$arch"),
+        "the script must tell cmake which architecture to produce on macOS"
+    );
+    assert!(
+        script.contains("cannot build the runtime for"),
+        "a Linux cross-build must be refused rather than attempted"
+    );
+    let release = release_yml();
+    let warm = fs::read_to_string(root.join(".github/workflows/cache-warm.yml"))
+        .expect("cache-warm.yml")
+        .replace("\r\n", "\n");
+    for (name, text) in [("release.yml", &release), ("cache-warm.yml", &warm)] {
+        for needle in [
+            "x86_64-*) arch=x86_64 ;;",
+            "aarch64-apple-*) arch=arm64 ;;",
+            "aarch64-*) arch=aarch64 ;;",
+            "tools/onnxruntime/build.sh \"$PWD/.ort\" \"$arch\"",
+        ] {
+            assert!(
+                text.contains(needle),
+                "{name} does not map the target to a runtime architecture: {needle}"
+            );
+        }
+    }
+}
+
+/// Both container images assert what they carry, at build time, in the image itself. `slim` used to
+/// assert the opposite — it demanded `no_models`, because it is repackaged from a Linux archive that
+/// had none — and that assertion failed the moment the archive gained them, which is how this was
+/// found. An image that quietly loses the models looks identical from outside, so the assertion is
+/// the only thing standing between that and a user.
+#[test]
+fn both_container_images_assert_the_models_they_carry() {
+    let root = workspace_root();
+    for file in ["Dockerfile", "Dockerfile.slim"] {
+        let text = fs::read_to_string(root.join(file)).expect(file);
+        for needle in ["grep -q '\"detect\"'", "grep -q '\"segment\"'"] {
+            assert!(
+                text.contains(needle),
+                "{file} does not assert the models it ships: {needle}"
+            );
+        }
+        assert!(
+            text.contains("! grep -q '\"no_models\"'"),
+            "{file} must fail the build when doctor reports no_models"
+        );
+    }
+}
+
+/// Intel macOS is published by nothing here. It was the one target that could be built and never
+/// run — `macos-latest` is arm64, so the artefact was cross-compiled, and GitHub's Intel image is
+/// retired far enough that a `macos-13` job sits queued with no runner rather than failing. Apple
+/// discontinued its last Intel Mac in 2023. A formula, a PKGBUILD or an installer that still names
+/// that archive would fail at download time with nothing useful to read, so none of them may.
+#[test]
+fn nothing_offers_an_intel_macos_build() {
+    let root = workspace_root();
+    for file in [
+        ".github/workflows/release.yml",
+        ".github/workflows/cache-warm.yml",
+        ".github/workflows/build-check.yml",
+        "scripts/render-packaging.sh",
+        "scripts/render-packaging.ps1",
+        "packaging/templates/homebrew.rb",
+        "packaging/npm/install.js",
+    ] {
+        let text = fs::read_to_string(root.join(file)).expect(file);
+        for line in text.lines() {
+            // The comments that explain the absence name the target; a line that *uses* it is what
+            // this is looking for, and every use here is quoted or assigned.
+            let trimmed = line.trim_start();
+            if trimmed.starts_with('#') || trimmed.starts_with("//") {
+                continue;
+            }
+            assert!(
+                !line.contains("x86_64-apple-darwin"),
+                "{file} still offers an Intel macOS build:\n{line}"
+            );
+        }
+    }
+    let sh = fs::read_to_string(root.join("install.sh")).expect("install.sh");
+    assert!(
+        sh.contains("there is no build for Intel macOS"),
+        "install.sh must say so by name rather than 404 on a download"
+    );
+}

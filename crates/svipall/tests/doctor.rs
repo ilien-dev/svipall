@@ -198,3 +198,20 @@ fn the_report_is_one_json_object_an_installer_can_read_without_a_parser_of_its_o
     }
     assert!(v["problems"].is_array());
 }
+
+/// `dashboard_port_busy` says to set `SVIPALL_DASHBOARD_PORT`, and `svipall-mcp` binds what that
+/// variable says — so the port doctor checks has to be the same one. It was not: doctor read the
+/// config file alone, so on every machine with a `svipall-mcp` already listening, following the fix
+/// changed nothing about the report and the problem looked permanent.
+#[test]
+fn the_dashboard_port_doctor_checks_is_the_one_the_server_would_bind() {
+    let cfg = svipall_core::config::Config::default();
+    let configured = cfg.dashboard_port;
+    std::env::set_var("SVIPALL_DASHBOARD_PORT", "8799");
+    let facts = doctor::collect(&cfg);
+    std::env::remove_var("SVIPALL_DASHBOARD_PORT");
+    assert_eq!(
+        facts.dashboard_port, 8799,
+        "doctor reported the config's {configured} while the server would have bound 8799"
+    );
+}

@@ -57,6 +57,10 @@ COMMANDS:
                             ~/.svipall/api_key. Runs until ctrl-c.
     browser [status|install|update|remove]
                             Which browser runs, or download Chrome for Testing (~190 MB).
+    models [status|install|remove] [--from-file FILE]
+                            Which captcha models this build has, and install the ones it does not
+                            carry into ~/.svipall/models/ from the matching release (~58 MB). A
+                            build with no `onnx-*` feature cannot read them: `status` says so.
     config show             Show effective settings (secrets redacted).
     config set key=value... Save validated settings; the next command uses them automatically.
     config preset local|auto|emulated|native
@@ -148,7 +152,7 @@ async fn run(args: &[String]) -> anyhow::Result<Value> {
     let mut cfg = svipall_core::config::load_in(&svipall_core::config::home_dir())?;
     if !matches!(
         args[0].as_str(),
-        "browser" | "doctor" | "status" | "quality" | "solver"
+        "browser" | "doctor" | "status" | "quality" | "solver" | "models"
     ) {
         svipall::provision::ensure_browser(&mut cfg).await?;
     }
@@ -414,6 +418,13 @@ async fn run(args: &[String]) -> anyhow::Result<Value> {
         }
         "status" => server.status_json(serde_json::from_value(json!({}))?).await,
         // Reads this machine rather than a page, which is why it takes the config and nothing else.
+        "models" => {
+            svipall::model_install::run(
+                first.as_deref().unwrap_or("status"),
+                flags.value("from-file"),
+            )
+            .await
+        }
         "doctor" => Ok(svipall::doctor::report(&cfg)),
         "serve" => {
             // The one command whose object is about itself rather than about a page, and the one
@@ -706,6 +717,7 @@ mod tests {
             "quality",
             "serve",
             "doctor",
+            "models",
             "hook",
             "--version",
         ] {

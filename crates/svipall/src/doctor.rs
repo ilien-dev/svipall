@@ -164,7 +164,9 @@ pub fn problems(f: &Facts) -> Vec<Problem> {
             "no_models",
             "No captcha models are compiled in and none are installed, so image challenges go to \
              the human dashboard instead of being answered.",
-            "Use a release build, or see docs/models.md to export and install them.",
+            "Run `svipall models install` to fetch them into ~/.svipall/models/, or use a build \
+             that carries them — on Linux that is the `-models` archive, which needs glibc 2.39 or \
+             newer — or the container image. `docs/models.md` covers exporting your own.",
         ));
     } else if !f.inference {
         // One problem per missing capability: with no weights at all, `no_models` already said it.
@@ -250,6 +252,11 @@ pub fn report_from(f: &Facts) -> Value {
 /// Ask this machine everything [`problems`] needs to know.
 pub fn collect(cfg: &Config) -> Facts {
     let home = svipall_core::config::home_dir();
+    // The ports this process would bind, which is what the reader is being told about — not the
+    // ones the config file happens to name. `dashboard_port_busy` sends people to
+    // `SVIPALL_DASHBOARD_PORT`, and a report that ignored it could never clear.
+    let dashboard_port =
+        svipall_core::config::port_from_env("SVIPALL_DASHBOARD_PORT", cfg.dashboard_port);
     let browsers = crate::browser::detect_all(cfg);
     let browser_major = browsers
         .first()
@@ -280,9 +287,9 @@ pub fn collect(cfg: &Config) -> Facts {
             .collect(),
         installed_models: installed_models(),
         inference: cfg!(feature = "onnx"),
-        dashboard_port: cfg.dashboard_port,
-        dashboard_free: port_free(&cfg.dashboard_bind, cfg.dashboard_port),
-        rest_port: cfg.rest_port,
+        dashboard_port,
+        dashboard_free: port_free(&cfg.dashboard_bind, dashboard_port),
+        rest_port: svipall_core::config::port_from_env("SVIPALL_REST_PORT", cfg.rest_port),
     }
 }
 

@@ -49,7 +49,7 @@ table says which and why.
 | macOS or Linux, has Homebrew | `brew install ilien-dev/svipall/svipall` |
 | Windows, has Scoop | `scoop bucket add svipall https://github.com/ilien-dev/scoop-svipall` then `scoop install svipall` |
 | Node is already there | `npx --yes svipall doctor` — downloads the same release build on first use |
-| Rust toolchain is already there | `cargo install svipall` — builds from source, and so carries no captcha models |
+| Rust toolchain is already there | `cargo install svipall` — builds from source, so it can read a model and carries none; `svipall models install` fetches them |
 
 **winget and the AUR are not published yet.** Their manifests exist and are rendered from each
 release by `scripts/render-packaging.sh`, but each needs a one-time step outside the repository
@@ -72,20 +72,37 @@ Windows 10 version 1903 or newer for the operating system's
 
 | Platform | Binary | Browser tiers | Models | Everything works via |
 |---|---|---|---|---|
-| Linux x86-64 | yes | yes | **no** | the container |
-| Linux arm64 | yes | **no** — point `browser_path` at your own Chromium, or accept the http tier | **no** | the container |
-| macOS Intel | yes | yes | **no** | the container (`linux/amd64` runs under Docker Desktop) |
+| Linux x86-64 | yes | yes | yes | the binary |
+| Linux arm64 | yes | **no** — point `browser_path` at your own Chromium, or accept the http tier | yes | the container |
+| macOS Intel | **no** | — | — | the container (`linux/amd64` runs natively on it) |
 | macOS Apple silicon | yes | yes | yes | the binary |
 | Windows x86-64 | yes | yes (Edge already counts) | yes | the binary |
 | Windows arm64 | no | — | — | the x64 build under emulation, or the container |
 | anything else | no | — | — | the container, or build from source |
 
-**Why the Linux binaries carry no models.** The ONNX Runtime builds that `ort` downloads reference
-glibc 2.38 and GCC 13's libstdc++, so a binary using them starts only on a distribution as new as
-Ubuntu 24.04 — not on Debian 12, Ubuntu 22.04, RHEL 9 or Amazon Linux 2023. Given the choice
-between a binary that starts everywhere and one that answers image captchas on the newest
-distributions only, the release ships the first. Image challenges go to the human dashboard
-instead, and `svipall doctor` says `no_models`.
+**Why the Linux builds compile their own ONNX Runtime.** The prebuilt runtimes `ort` downloads
+reference glibc 2.38 and GCC 13's libstdc++, so a Linux binary linking them starts on Ubuntu 24.04
+and newer and nowhere older — not Debian 12, Ubuntu 22.04, RHEL 9 or Amazon Linux 2023. For a while
+that meant those targets shipped without models. They now build the runtime from source instead
+(`tools/onnxruntime/build.sh`), which links whatever the build machine has: the artefacts are built
+on Ubuntu 22.04, so the floor is its glibc 2.35 and the models come along. Windows and
+Apple-silicon macOS keep the prebuilt runtime, which works there.
+
+**Why there is no Intel macOS build.** There was, and it was the one artefact that could be built
+and never started: `macos-latest` is arm64, so it was cross-compiled, and GitHub has retired its
+Intel image far enough that a job asking for one waits without ever being scheduled. Apple
+discontinued its last Intel Mac in 2023 and macOS 26 is the final release supporting one. Publishing
+a binary nobody can test, from a build nobody can run, is worse than saying so: `install.sh` and the
+npm package decline by name, Homebrew has no formula for it, and the container image runs
+`linux/amd64` natively on that hardware.
+
+Each Linux artefact is then started on Debian 12 — older than the machine that built it — and asked
+whether its models answer there, because a runtime built against a newer glibc links cleanly and
+fails at the first session, and `svipall doctor` lists the embedded models either way.
+
+So every published archive, every package built from one, and both container images carry the two
+vision models. A build from source does not unless `tools/models/export.py` ran first, which is what
+`svipall models install` is for.
 
 **The container image has everything, on both architectures**, because a container carries its own
 glibc and none of the above constrains the host. On arm64 its browser is Debian's own Chromium
@@ -141,8 +158,8 @@ One JSON object. `ok: true` means it is ready. Otherwise every entry in `problem
 | `code` | What it means | What to do |
 |---|---|---|
 | `no_browser` | Browser tiers need a compatible browser | Normal startup provisions one automatically on supported platforms; `svipall browser install` provisions it immediately |
-| `no_models` | Image captchas go to the human dashboard instead of being answered | Use a release build, or see [models.md](models.md) |
-| `models_not_readable` | The build carries model weights but no `onnx-*` feature to read them, so they answer nothing | Use a release build |
+| `no_models` | Image captchas go to the human dashboard instead of being answered | Expected only from a source build: `svipall models install` fetches them. A published archive reporting this is a bug, not a configuration. [models.md](models.md) |
+| `models_not_readable` | The build carries model weights but no `onnx-*` feature to read them, so they answer nothing | Use a release build that carries the models; installing more weights cannot help this one |
 | `no_impersonation` | Built without BoringSSL; the http tier is recognisable in the first packet | Use a release build |
 | `stale_browser` | The browser announces a Chrome old enough to be a signal | `svipall browser update` |
 | `self_defending_browser` | Brave/Vivaldi/Opera contradict the identity every other layer states | `svipall browser install` |
@@ -213,7 +230,7 @@ claude mcp add svipall -- docker run -i --rm -v svipall-home:/data ghcr.io/ilien
 ```
 
 `-i` keeps stdin open for MCP, and `-v svipall-home:/data` is what makes it remember anything.
-Two moving tags, both built for amd64 and arm64: `latest` (browser and models) and `slim` (the http
+Two moving tags, both built for amd64 and arm64: `latest` (a browser as well) and `slim` (the http
 tier only). Only a stable release moves them; to try a pre-release, pull its version tag —
 `ghcr.io/ilien-dev/svipall:<version>`, and `:<version>-slim`.
 
@@ -248,7 +265,7 @@ empty `~/.svipall/claude_strict`; delete the file to turn it off, no restart.
 | Windows source build: cmake fails with `MSB4184` | BoringSSL's paths exceed `MAX_PATH` | Set `CARGO_TARGET_DIR=C:\t` and rebuild |
 | `svipall: command not found` right after installing | The PATH change only applies to new shells | Open a new terminal, or use the absolute path the installer printed |
 | Every page comes back blocked | No browser, so only the http tier ran | `svipall doctor`, then `svipall browser install` |
-| Captchas always go to the dashboard | The build carries no models | `svipall doctor`; use a release build |
+| Captchas always go to the dashboard | The build carries no models, or none for that modality | `svipall doctor`. A source build wants `svipall models install`; a published build already has `detect` and `segment`, and text, audio and unknown grid subjects have no published model at all |
 | The MCP tools are missing while `svipall doctor` works | The binary is fine, the registration is not | Re-run step 5 with an absolute path, and restart the client |
 | `docker run -p 8787:8787` and the dashboard does not load | Loopback inside a container is the container | The entrypoint writes a `/data/config.toml` binding `0.0.0.0` on first start; if you have your own config, set `dashboard_bind` yourself |
 

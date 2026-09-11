@@ -27,11 +27,11 @@ name = "svipall"
 path = "src/bin/svipall.rs"
 
 [dependencies]
-svipall-core = { path = "../svipall-core", version = "1.0.0" }
-svipall-http = { path = "../svipall-http", version = "1.0.0", default-features = false }
-svipall-solver = { path = "../svipall-solver", version = "1.0.0" }
-svipall-dashboard = { path = "../svipall-dashboard", version = "1.0.0" }
-svipall-models = { path = "../svipall-models", version = "1.0.0" }
+svipall-core = { path = "../svipall-core", version = "1.0.1" }
+svipall-http = { path = "../svipall-http", version = "1.0.1", default-features = false }
+svipall-solver = { path = "../svipall-solver", version = "1.0.1" }
+svipall-dashboard = { path = "../svipall-dashboard", version = "1.0.1" }
+svipall-models = { path = "../svipall-models", version = "1.0.1" }
 tokio = { workspace = true }
 axum = { workspace = true }
 serde = { workspace = true }
@@ -51,6 +51,8 @@ urlencoding = { workspace = true }
 scraper = { workspace = true }
 url = { workspace = true }
 zip = { version = "2.2", default-features = false, features = ["deflate", "aes-crypto"] }
+# Checking a downloaded models archive against the release's own sha256sums.txt.
+sha2 = "0.10"
 md5 = "0.7"
 
 # Local OCR (optional). Enable with --features onnx-ocr and drop a model in ~/.svipall/models/.
