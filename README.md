@@ -122,7 +122,7 @@ brew install ilien-dev/svipall/svipall               # macOS, Linux
 scoop bucket add svipall https://github.com/ilien-dev/scoop-svipall && scoop install svipall
 docker pull ghcr.io/ilien-dev/svipall:latest         # or :slim, the http tier only; see container notes
 npx --yes svipall doctor                             # if node is already there
-cargo install svipall                            # builds from source, so no captcha models
+cargo install svipall                            # from source; add `svipall models install` for the models
 ```
 
 The installers verify checksums where they can, and a mismatch stops the install. A missing

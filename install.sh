@@ -98,7 +98,15 @@ EXT="tar.gz"
 case "$os-$arch" in
     Linux-x86_64|Linux-amd64)      TARGET="x86_64-unknown-linux-gnu"; EXT="tar.gz" ;;
     Linux-aarch64|Linux-arm64)     TARGET="aarch64-unknown-linux-gnu"; EXT="tar.gz" ;;
-    Darwin-x86_64)                 TARGET="x86_64-apple-darwin"; EXT="tar.gz" ;;
+    Darwin-x86_64)
+        # Intel macOS has no build. Apple's last Intel Mac shipped in 2023, GitHub has retired the
+        # Intel runner image, and an artefact that cannot be built on a machine that can start it
+        # is not one to publish. Docker Desktop runs the container image natively here.
+        err "there is no build for Intel macOS."
+        err "The container image runs natively on it: docker pull ghcr.io/$REPO:latest"
+        err "See https://github.com/$REPO/blob/main/docs/install.md"
+        exit 1
+        ;;
     Darwin-arm64)                  TARGET="aarch64-apple-darwin"; EXT="tar.gz" ;;
     MINGW*|MSYS*|CYGWIN*) # matched against "$os-$arch", so the trailing glob covers the arch
         # Git Bash, MSYS2 and Cygwin are Windows. Sending someone here to Docker would be absurd
@@ -116,7 +124,7 @@ esac
 
 unsupported() {
     err "no release build for $os $arch."
-    err "Builds exist for Linux x86-64 and arm64, and macOS Intel and Apple silicon."
+    err "Builds exist for Linux x86-64 and arm64, and macOS on Apple silicon."
     err "On anything else, the container image works: docker pull ghcr.io/$REPO:latest"
     err "Or build from source: https://github.com/$REPO#build-from-source"
     exit 1

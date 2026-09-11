@@ -34,12 +34,61 @@ on:
       - "Cargo.lock"
       - "Cargo.toml"
       - "crates/*/Cargo.toml"
+      - "tools/onnxruntime/VERSION"
+      - "tools/onnxruntime/build.sh"
   workflow_dispatch:
 
 env:
   CARGO_TERM_COLOR: always
 
 jobs:
+  # ONNX Runtime, built from source for the two targets pyke publishes nothing usable for, and
+  # cached here so a release restores it instead of spending an hour per target on it. Rule 1 at
+  # the top of this file is why it lives on `main` rather than in the release: a cache written
+  # under a tag is unreadable from the next one.
+  #
+  # Keyed by the version file, so bumping `tools/onnxruntime/VERSION` builds a new one and leaves
+  # the old entry to expire. The release restores this exact key and builds its own on a miss, so
+  # this job failing costs time and never a release.
+  onnxruntime:
+    name: onnxruntime ${{ matrix.target }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-22.04
+            target: x86_64-unknown-linux-gnu
+          - os: ubuntu-22.04-arm
+            target: aarch64-unknown-linux-gnu
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - uses: actions/cache/restore@v4
+        id: cache
+        with:
+          path: .ort/build/Release
+          key: ort-${{ hashFiles('tools/onnxruntime/VERSION') }}-${{ matrix.target }}
+      - name: Build
+        if: steps.cache.outputs.cache-hit != 'true'
+        run: |
+          # The same mapping the release uses: the runner's architecture is not the target's.
+          case "${{ matrix.target }}" in
+            x86_64-*) arch=x86_64 ;;
+            aarch64-apple-*) arch=arm64 ;;
+            aarch64-*) arch=aarch64 ;;
+          esac
+          tools/onnxruntime/build.sh "$PWD/.ort" "$arch"
+      # Saved even on a hit: `actions/cache/save` is a no-op when the key is already there, and a
+      # restore that found the entry has just renewed its 7-day clock, which is the point.
+      - uses: actions/cache/save@v4
+        if: steps.cache.outputs.cache-hit != 'true'
+        with:
+          path: .ort/build/Release
+          key: ort-${{ hashFiles('tools/onnxruntime/VERSION') }}-${{ matrix.target }}
+
   warm:
     name: warm ${{ matrix.target }}
     runs-on: ${{ matrix.os }}

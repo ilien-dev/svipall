@@ -547,3 +547,35 @@ mod tests {
         assert_eq!(cfg.max_jobs, 2);
     }
 }
+
+/// A port an environment variable may override, resolved the one way every caller has to agree on.
+///
+/// `SVIPALL_DASHBOARD_PORT` and `SVIPALL_REST_PORT` are read where the port is used rather than
+/// when the config is loaded, which is fine until two callers disagree — and they did. `doctor`
+/// reported the port from the config file while `svipall-mcp` bound the one the variable named, so
+/// `dashboard_port_busy` told a reader to set a variable that could not change doctor's answer.
+pub fn port_from_env(var: &str, configured: u16) -> u16 {
+    std::env::var(var)
+        .ok()
+        .and_then(|p| p.parse().ok())
+        .unwrap_or(configured)
+}
+
+#[cfg(test)]
+mod port_from_env_tests {
+    use super::port_from_env;
+
+    /// One variable per test, and none of them is read anywhere else, so the process-wide mutation
+    /// cannot reach another test in this binary.
+    #[test]
+    fn the_variable_wins_when_it_parses_and_the_config_wins_otherwise() {
+        std::env::remove_var("SVIPALL_TEST_PORT_A");
+        assert_eq!(port_from_env("SVIPALL_TEST_PORT_A", 8787), 8787);
+        std::env::set_var("SVIPALL_TEST_PORT_A", "8799");
+        assert_eq!(port_from_env("SVIPALL_TEST_PORT_A", 8787), 8799);
+        // Not a port, so it is not an answer: silently binding 0 would open a random one.
+        std::env::set_var("SVIPALL_TEST_PORT_A", "eight thousand");
+        assert_eq!(port_from_env("SVIPALL_TEST_PORT_A", 8787), 8787);
+        std::env::remove_var("SVIPALL_TEST_PORT_A");
+    }
+}
