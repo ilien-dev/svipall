@@ -7,7 +7,7 @@ license = "AGPL-3.0-only"
 description = "Captcha job store and HTTP API for svipall (in.php/res.php + createTask/getTaskResult)"
 
 [dependencies]
-svipall-core = { path = "../svipall-core", version = "1.0.1" }
+svipall-core = { path = "../svipall-core", version = "1.0.2" }
 tokio = { workspace = true }
 axum = { workspace = true }
 serde = { workspace = true }

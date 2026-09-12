@@ -7,7 +7,7 @@ license = "AGPL-3.0-only"
 description = "HTTP engine for svipall's http tier, with optional browser-grade TLS/HTTP2 emulation"
 
 [dependencies]
-svipall-core = { path = "../svipall-core", version = "1.0.1" }
+svipall-core = { path = "../svipall-core", version = "1.0.2" }
 tokio = { workspace = true }
 anyhow = { workspace = true }
 async-trait = { workspace = true }
@@ -19,7 +19,7 @@ wreq-util = { version = "0.2", optional = true, features = ["emulation"] }
 # carry for a transport most sites still do not offer, and the TCP engine is what a first visit
 # uses whatever happens. The decompressors are ours to run here because quiche returns a body
 # exactly as the server sent it.
-svipall-quic = { path = "../svipall-quic", version = "1.0.1", optional = true }
+svipall-quic = { path = "../svipall-quic", version = "1.0.2", optional = true }
 url = { workspace = true, optional = true }
 tracing = { workspace = true, optional = true }
 flate2 = { version = "1.0", optional = true, default-features = false, features = ["rust_backend"] }
