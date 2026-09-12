@@ -73,14 +73,21 @@ fn the_whole_tool_list_fits_a_budget() {
     // about 9 000 tokens, a third of it schema boilerplate. The rewrite took that out (-6 500) and
     // spent it on descriptions that say when to use each tool (+4 400), a typed action schema
     // for web_act and browser_do (+2 900) and `schema`/`tables` on web_fetch_many and web_crawl
-    // (+1 300), because a wrong tool or an invented field costs more than a sentence. The cap is
-    // the measured result plus room for one tool.
+    // (+1 300), because a wrong tool or an invented field costs more than a sentence.
+    //
+    // 37 359 after that, 38 009 now. The 650 went on four things, each of them measured on real
+    // pages: `query` says what a specific one saves against a broad one (6% of the page left
+    // against 88%, on two long articles), `mobile` stopped promising half the tokens it does not
+    // save and started naming the browser page it costs, `out_file` quotes the response it
+    // actually returns, and `web_fetch`/`web_crawl` say that a link to the page's own site comes
+    // back as a path. A turn spent reading that is worth a query that leaves 6% of a page instead
+    // of 88%. The cap is the measured result plus room for one tool.
     let total: usize = tools()
         .iter()
         .map(|t| t.name.len() + description(t).len() + schema_len(t))
         .sum();
     assert!(
-        total <= 38_000,
+        total <= 38_600,
         "the tool list is {total} chars; the model reads all of it on every request"
     );
 }

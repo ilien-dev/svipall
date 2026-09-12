@@ -2,6 +2,16 @@
 
 ## 1.0.2 — 2026-09-11
 
+- **`query` says what it actually saves, which the query decides and the page does not.** It is the
+  first thing the instructions offer for cutting tokens, and how much it cuts had never been
+  stated. Measured on two long articles: `"robots.txt"` left 4 748 characters of 35 469 and
+  `"Craigslist lawsuit"` left 2 017 — 13% and 6% of the page — while `"history of scraping"` left
+  31 135, or 88%, because a broad query matches most of a page about scraping. A model writing
+  topics instead of facts gets none of the saving and no hint why. The description now carries the
+  range and the rule it implies: name the fact, not the topic. That, and the three other measured
+  corrections, put the tool list at 38 009 characters against a 38 000 cap; the cap is 38 600 now,
+  with what the 650 bought written next to it.
+
 - **Two parameter descriptions promised savings that were not there.** `mobile` said "often half
   the tokens for the same article". Measured on a Wikipedia article and a BBC section, at both the
   http and the browser tier: **byte-identical output**, 35 501 against 35 469 and 3 018 against
