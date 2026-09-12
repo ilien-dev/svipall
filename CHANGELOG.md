@@ -2,6 +2,14 @@
 
 ## 1.0.2 — 2026-09-11
 
+- **The strict-mode refusal names a tool that exists under either install.** The `WebFetch` hook
+  denied the call and pointed at `mcp__svipall__web_fetch`. That prefix is not svipall's to choose:
+  registered by hand with `claude mcp add -s user svipall` the tools do arrive under it, but
+  installed as the plugin — the path this repository ships and documents — the same server's tools
+  arrive as `mcp__plugin_svipall_svipall__web_fetch`. So on a plugin install the refusal named
+  something that is not there, at the one moment the agent has nothing else to go on. The tools are
+  now named bare, `web_fetch` and `web_search`, which resolves under both.
+
 - **The note on a blocked page names the tool that returns the page, not the one that returns a
   token.** A captcha was reported as `call solve_turnstile(sitekey=…, pageUrl=…)` — with the
   arguments filled in, at the moment of the decision, which beats any instruction given earlier in
