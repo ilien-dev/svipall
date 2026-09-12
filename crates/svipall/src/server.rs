@@ -4435,7 +4435,7 @@ impl SvipallServer {
             None => all.clone(),
         };
         let rendered = crate::snapshot::render(&shown);
-        Ok(json!({
+        let mut value = json!({
             "url": p.url,
             "final_url": final_url,
             "nodes": shown.len(),
@@ -4443,7 +4443,12 @@ impl SvipallServer {
             "interactive": shown.iter().filter(|n| crate::snapshot::is_interactive(&n.role)).count(),
             "snapshot": rendered,
             "tokens_estimated": svipall_core::budget::estimate_tokens(&rendered),
-        }))
+        });
+        // The same rule the fetch path follows: a `final_url` that repeats the `url` is the
+        // address written twice. Pruning it on one tool and not the other would be worse than
+        // either, because then absence would mean different things depending on which was called.
+        strip_silent_fields(&mut value);
+        Ok(value)
     }
 
     #[tool(
