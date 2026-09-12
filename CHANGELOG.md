@@ -1,6 +1,6 @@
 # Changelog
 
-## 1.0.2 — 2026-09-11
+## 1.0.3 — 2026-09-11
 
 - **The headless tiers stop announcing that nothing is holding the mouse.** A headless Chrome
   answers `(pointer: fine)` and `(hover: hover)` with `false` — one media query, the oldest tell
@@ -114,6 +114,8 @@
   "Instructions in English." — a note about the project's own source, sitting in the system prompt
   for the whole session where it reads as a directive about the *answer*. What language a user is
   answered in was never svipall's call.
+
+## 1.0.2 — 2026-09-11
 
 - **`/svipall:setup` asks its two consent questions in words a first-time user can answer.** The
   memory-file step showed three lines of markup — `<!-- BEGIN SVIPALL -->`, `@svipall/SVIPALL.md`,
