@@ -23,7 +23,9 @@ pub struct WebFetchParams {
     #[serde(default)]
     pub main_content_only: Option<bool>,
     /// Keep only the blocks relevant to these words (BM25), e.g. "shipping costs". The cheapest
-    /// way to read a long page for one fact.
+    /// way to read a long page for one fact, and how much it saves is decided by the query, not
+    /// the page: measured on two long articles, "robots.txt" and "caching headers" left 6% and
+    /// 13% of the page, while "history of scraping" left 88%. Name the fact, not the topic.
     #[serde(default)]
     pub query: Option<String>,
     /// Timeout in ms for the whole ladder. Default 60000.
