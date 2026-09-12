@@ -2,6 +2,17 @@
 
 ## 1.0.2 — 2026-09-11
 
+- **Two parameter descriptions promised savings that were not there.** `mobile` said "often half
+  the tokens for the same article". Measured on a Wikipedia article and a BBC section, at both the
+  http and the browser tier: **byte-identical output**, 35 501 against 35 469 and 3 018 against
+  3 018. A responsive site — most of them — serves one document to every viewport, and the flag
+  does not rewrite the host. It is also not free: it takes a browser page of its own, because no
+  warm page is reused, and it rules out the native last resort. All of that is in the description
+  now, and the promise is gone. `out_file` said "about twenty tokens for what could be forty
+  thousand"; measured, the response is 418 characters against the 34 746 it wrote to disk, so it
+  now says that. Every other documented default was checked against the code and holds: timeout
+  60 000, `max_tokens` 25 000, `max_pages` 20, `max_depth` 2, snapshot 200 nodes, scroll 40 rounds.
+
 - **`web_snapshot`'s cost is stated from a measurement instead of a guess.** The skill said "~150
   tokens for a whole page". Measured: 12 tokens on `example.com` and 1 609 on a Wikipedia article,
   where the node list hits its 200-node cap — an order of magnitude out, on a number a model uses
