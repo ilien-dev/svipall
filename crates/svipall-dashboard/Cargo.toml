@@ -7,11 +7,11 @@ license = "AGPL-3.0-only"
 description = "Human dashboard for manual captcha solving"
 
 [dependencies]
-svipall-solver = { path = "../svipall-solver", version = "1.0.2" }
+svipall-solver = { path = "../svipall-solver", version = "1.0.3" }
 tokio = { workspace = true }
 axum = { workspace = true }
 serde_json = { workspace = true }
-svipall-core = { path = "../svipall-core", version = "1.0.2" }
+svipall-core = { path = "../svipall-core", version = "1.0.3" }
 
 [dev-dependencies]
 tower = { workspace = true }

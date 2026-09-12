@@ -23,7 +23,9 @@ pub struct WebFetchParams {
     #[serde(default)]
     pub main_content_only: Option<bool>,
     /// Keep only the blocks relevant to these words (BM25), e.g. "shipping costs". The cheapest
-    /// way to read a long page for one fact.
+    /// way to read a long page for one fact, and how much it saves is decided by the query, not
+    /// the page: measured on two long articles, "robots.txt" and "caching headers" left 6% and
+    /// 13% of the page, while "history of scraping" left 88%. Name the fact, not the topic.
     #[serde(default)]
     pub query: Option<String>,
     /// Timeout in ms for the whole ladder. Default 60000.
@@ -90,13 +92,16 @@ pub struct WebFetchParams {
     /// default because some anti-bot scripts notice a page whose images never loaded.
     #[serde(default)]
     pub text_only: Option<bool>,
-    /// Ask for the mobile version: less navigation, fewer widgets, often half the tokens for the
-    /// same article.
+    /// Ask as a phone: phone identity and viewport. Only worth it where a site serves a lighter
+    /// page to phones — a responsive site, which is most of them, returns the same bytes: measured
+    /// byte-identical on two sites at both the http and browser tiers. It also costs a browser
+    /// page of its own, since no warm page is reused, and rules out the native last resort.
     #[serde(default)]
     pub mobile: Option<bool>,
-    /// Write the content to this file and return the path instead, about twenty tokens for what
-    /// could be forty thousand. Relative paths land in ~/.svipall/out/. With `schema` or `tables`
-    /// a .csv, .json or .jsonl name writes the rows in that format.
+    /// Write the content to this file and return the path instead: measured, a 418-character
+    /// response against the 34 746 characters of the page it wrote. Relative paths land in
+    /// ~/.svipall/out/. With `schema` or `tables` a .csv, .json or .jsonl name writes the rows in
+    /// that format.
     #[serde(default)]
     pub out_file: Option<String>,
     /// Return the page's data tables as typed rows, `tables: [{caption, header, rows}]`, instead

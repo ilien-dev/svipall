@@ -1,5 +1,120 @@
 # Changelog
 
+## 1.0.3 — 2026-09-11
+
+- **The headless tiers stop announcing that nothing is holding the mouse.** A headless Chrome
+  answers `(pointer: fine)` and `(hover: hover)` with `false` — one media query, the oldest tell
+  there is — and `bench tells` had failed `input_modality` on `browser`, `stealth` and the reused
+  browser for as long as the probe has existed. The standing answer was the ladder: climb to a
+  headful tier, which costs a real window and a compositor that may not cooperate with it. Blink
+  takes the answer on the command line, so the headless launches now carry it. A touch identity
+  gets the coarse pair instead, because the same probe reads `(any-pointer: coarse)` against
+  `maxTouchPoints` in one breath and a fine pointer on a machine declaring a touch screen would
+  trade one contradiction for another. Measured with `bench tells`: **155/160 probes clean to
+  158/160**, with `input_modality` passing at every tier.
+
+  The two that remain are `window_chrome_height` on `real` and `warm`, and they are this machine
+  rather than this code: a tiling compositor ignores `--window-position` and sizes the window
+  itself, which is exactly the case `--class=svipall-browser` exists for. `docs/configuration.md`
+  has the rule.
+
+- **`a_cancelled_job_stops_fetching` is no longer a race the test usually won.** Its seven routes
+  are the whole crawl budget and loopback served all of them in under ten milliseconds — less than
+  one turn of the loop waiting to see the job running — so the crawl was regularly finished before
+  the cancel could land, and the test failed for having nothing left to stop. It failed twice in
+  eight full-suite runs. `Reply::slow(ms)` gives a route a latency; at eighty milliseconds a page
+  the cancel arrives with one page done and six to go. Ten consecutive runs clean.
+
+- **The global memory block stops repeating the tool list the MCP server already sends.** It is the
+  one piece of svipall that sits in every session of every project on the machine, web or not, and
+  half of it was a per-tool routing table copied from the server's own `instructions` — read twice,
+  and a second place to forget when a tool changes. It now points at those instructions and at the
+  `svipall:svipall` skill, and keeps only what neither of them says: never set a tier by hand,
+  never retry a blocked URL blindly, large results to `out_file`, credentials as `${NAME}`, stop
+  rather than loop on verification a person has to pass, and `svipall doctor` before blaming a
+  site. 2 082 characters to 997.
+
+- **`query` says what it actually saves, which the query decides and the page does not.** It is the
+  first thing the instructions offer for cutting tokens, and how much it cuts had never been
+  stated. Measured on two long articles: `"robots.txt"` left 4 748 characters of 35 469 and
+  `"Craigslist lawsuit"` left 2 017 — 13% and 6% of the page — while `"history of scraping"` left
+  31 135, or 88%, because a broad query matches most of a page about scraping. A model writing
+  topics instead of facts gets none of the saving and no hint why. The description now carries the
+  range and the rule it implies: name the fact, not the topic. That, and the three other measured
+  corrections, put the tool list at 38 009 characters against a 38 000 cap; the cap is 38 600 now,
+  with what the 650 bought written next to it.
+
+- **Two parameter descriptions promised savings that were not there.** `mobile` said "often half
+  the tokens for the same article". Measured on a Wikipedia article and a BBC section, at both the
+  http and the browser tier: **byte-identical output**, 35 501 against 35 469 and 3 018 against
+  3 018. A responsive site — most of them — serves one document to every viewport, and the flag
+  does not rewrite the host. It is also not free: it takes a browser page of its own, because no
+  warm page is reused, and it rules out the native last resort. All of that is in the description
+  now, and the promise is gone. `out_file` said "about twenty tokens for what could be forty
+  thousand"; measured, the response is 418 characters against the 34 746 it wrote to disk, so it
+  now says that. Every other documented default was checked against the code and holds: timeout
+  60 000, `max_tokens` 25 000, `max_pages` 20, `max_depth` 2, snapshot 200 nodes, scroll 40 rounds.
+
+- **`web_snapshot`'s cost is stated from a measurement instead of a guess.** The skill said "~150
+  tokens for a whole page". Measured: 12 tokens on `example.com` and 1 609 on a Wikipedia article,
+  where the node list hits its 200-node cap — an order of magnitude out, on a number a model uses
+  to decide whether a snapshot is worth taking. It now gives the range, the cap, and what the same
+  page's prose costs (8 700) so the comparison the tool is for is the one being made. The snapshot
+  response also drops a `final_url` that repeats the `url`, as the fetch path already did: pruning
+  a field on one tool and not the other would make its absence mean two things.
+
+- **A link to the page's own site comes back the way the page wrote it, which is 14.7% of the
+  delivered text.** The largest thing svipall puts in front of a model is the page itself, and on
+  four real pages — Hacker News, MDN's header list, a Wikipedia article, a newspaper front page,
+  112 KB of markdown between them — **40% of that was link URLs**. Most of it was one string
+  repeated: the page's own HTML said `/wiki/Web_crawler` and the renderer resolved it to
+  `https://en.wikipedia.org/wiki/Web_crawler` for display, adding the scheme and host to every
+  same-site link on a document whose `url` already says which site it is. Same-site links are now
+  written as the path, query and fragment the page used; a link to another host stays absolute,
+  because nothing on the page says where another host is. Re-fetched with `--cache refresh`, the
+  same four pages: 112 466 → 95 919 characters, −30.4% on Hacker News, −14.2% on MDN, −10.7% on
+  Wikipedia. `include_links` still returns every link absolute, for a caller that wants a list it
+  can fetch without thinking about where it came from, and `not_a_url` now names the join when a
+  path is handed back to `web_fetch`.
+
+  Measured, and one candidate measured away: stripping `utm_*` and the other tracking parameters
+  from displayed links looked worth doing on a synthetic fixture and was worth **nothing** on the
+  four real pages — zero tracking bytes between them. It was not built.
+
+- **The strict-mode refusal names a tool that exists under either install.** The `WebFetch` hook
+  denied the call and pointed at `mcp__svipall__web_fetch`. That prefix is not svipall's to choose:
+  registered by hand with `claude mcp add -s user svipall` the tools do arrive under it, but
+  installed as the plugin — the path this repository ships and documents — the same server's tools
+  arrive as `mcp__plugin_svipall_svipall__web_fetch`. So on a plugin install the refusal named
+  something that is not there, at the one moment the agent has nothing else to go on. The tools are
+  now named bare, `web_fetch` and `web_search`, which resolves under both.
+
+- **The note on a blocked page names the tool that returns the page, not the one that returns a
+  token.** A captcha was reported as `call solve_turnstile(sitekey=…, pageUrl=…)` — with the
+  arguments filled in, at the moment of the decision, which beats any instruction given earlier in
+  a session. That tool answers with a bare token bound to the session and address that produced it,
+  which is the wrong branch whenever the goal is the content. The note now offers
+  `solve_and_continue` first and the token tool second, with the condition that makes it right
+  attached. It also no longer repeats the page's own address, which on a `raw:` fetch meant
+  printing the whole document inside the advice about it, twice. The wording moved into
+  `steer.rs`, where the rest of the model-facing messages already live and are tested as prose, and
+  a test now checks every tool and parameter any note names against the built tool list.
+- **A response no longer spends tokens on fields that say nothing.** `"exit":null`,
+  `"native_fallback":false`, `"stopped_reason":null` and a `final_url` repeating the `url`
+  character for character were on every page svipall returned, and a response envelope is read once
+  per *page* — fifty times in one `web_fetch_many`, hundreds in one crawl. Measured on a page whose
+  content was 250 characters: 370 characters of envelope before, 295 after. Nothing is withheld —
+  a `null` says exactly what a missing key says, and a flag that is false says what its absence
+  says. Absent, each one becomes a signal: `native_fallback` now appears precisely when a native
+  attempt was made, and `final_url` when something redirected. `identity_used` stays unconditional,
+  because silence is not an acceptable way to tell somebody their real device characteristics were
+  not exposed. Held by `crates/svipall/tests/response_surface.rs`, which is to the response what
+  `tool_surface.rs` is to the tool list.
+- **The MCP instructions no longer end with a sentence about language.** They closed with
+  "Instructions in English." — a note about the project's own source, sitting in the system prompt
+  for the whole session where it reads as a directive about the *answer*. What language a user is
+  answered in was never svipall's call.
+
 ## 1.0.2 — 2026-09-11
 
 - **`/svipall:setup` asks its two consent questions in words a first-time user can answer.** The

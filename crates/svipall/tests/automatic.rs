@@ -48,7 +48,10 @@ async fn a_fingerprint_wall_reaches_persistent_emulation_without_headless_probes
     let out = server.fetch_json(params(&site, url)).await.value;
     assert_eq!(out["tier_used"], "real", "{out}");
     assert_eq!(out["identity_used"], "emulated", "{out}");
-    assert_eq!(out["native_fallback"], false, "{out}");
+    assert!(
+        out["native_fallback"].is_null(),
+        "no native attempt was made, so the flag is absent: {out}"
+    );
     let attempts = out["attempts"].as_array().unwrap();
     assert_eq!(attempts.len(), 2, "{out}");
     assert!(attempts[0].as_str().unwrap().starts_with("http:"));
@@ -63,7 +66,10 @@ async fn a_fingerprint_wall_reaches_persistent_emulation_without_headless_probes
     server.shutdown_configuration().await;
     assert_eq!(repeat["tier_used"], "real", "{repeat}");
     assert_eq!(repeat["identity_used"], "emulated", "{repeat}");
-    assert_eq!(repeat["native_fallback"], false, "{repeat}");
+    assert!(
+        repeat["native_fallback"].is_null(),
+        "no native attempt was made, so the flag is absent: {repeat}"
+    );
     let attempts = repeat["attempts"].as_array().unwrap();
     assert_eq!(attempts.len(), 1, "{repeat}");
     assert!(attempts[0].as_str().unwrap().starts_with("real:"));
@@ -99,7 +105,10 @@ async fn a_managed_challenge_reaches_headful_emulation_with_two_attempts() {
     server.shutdown_configuration().await;
     assert_eq!(out["tier_used"], "real", "{out}");
     assert_eq!(out["identity_used"], "emulated", "{out}");
-    assert_eq!(out["native_fallback"], false, "{out}");
+    assert!(
+        out["native_fallback"].is_null(),
+        "no native attempt was made, so the flag is absent: {out}"
+    );
     let attempts = out["attempts"].as_array().unwrap();
     assert_eq!(attempts.len(), 2, "{out}");
     assert!(attempts[0].as_str().unwrap().starts_with("http:"));
@@ -208,7 +217,10 @@ async fn attempt_cap_returns_the_page_and_never_opens_native() {
     );
     let out = server.fetch_json(params(&site, url)).await.value;
     assert_eq!(out["status"], 403, "{out}");
-    assert_eq!(out["native_fallback"], false);
+    assert!(
+        out["native_fallback"].is_null(),
+        "no native attempt was made, so the flag is absent: {out}"
+    );
     assert!(out["stopped_reason"]
         .as_str()
         .unwrap()
@@ -239,7 +251,10 @@ async fn short_success_never_triggers_privacy_fallback() {
         assert_eq!(out["status"], 200, "{out}");
         assert_eq!(out["tier_used"], "http", "{out}");
         assert_eq!(out["identity_used"], "emulated");
-        assert_eq!(out["native_fallback"], false);
+        assert!(
+            out["native_fallback"].is_null(),
+            "no native attempt was made, so the flag is absent: {out}"
+        );
     }
     assert_eq!(site.hits(url), 3);
 }
@@ -322,7 +337,10 @@ async fn native_is_last_and_an_opt_out_prevents_its_launch() {
             );
         } else {
             assert_eq!(out["identity_used"], "emulated", "{out}");
-            assert_eq!(out["native_fallback"], false, "{out}");
+            assert!(
+                out["native_fallback"].is_null(),
+                "no native attempt was made, so the flag is absent: {out}"
+            );
         }
     }
 }

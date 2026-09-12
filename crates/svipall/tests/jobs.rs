@@ -138,7 +138,19 @@ async fn the_job_id_is_the_crawl_id_so_there_is_only_one_handle_to_learn() {
 async fn a_cancelled_job_stops_fetching() {
     // Fails if `DELETE` only marks the row: the crawl would run to its budget and report success
     // on work somebody had already called off.
-    let site = Site::start(site_routes()).await;
+    //
+    // The site answers slowly on purpose. Its seven routes are the whole budget, and on loopback
+    // all seven arrive in under ten milliseconds — less than one turn of the loop below, so the
+    // crawl was regularly *finished* before the cancel could land and the test failed for having
+    // nothing left to stop. It failed twice in eight full-suite runs. With eighty milliseconds a
+    // page the cancel cannot arrive too late, and the assertion means what it says again.
+    let site = Site::start(
+        site_routes()
+            .into_iter()
+            .map(|(path, reply)| (path, reply.slow(80)))
+            .collect(),
+    )
+    .await;
     let db = Db::new();
     let runner = JobRunner::new(db.server(), 2);
     runner.start();
@@ -162,7 +174,9 @@ async fn a_cancelled_job_stops_fetching() {
     assert_eq!(result["stopped_by"], "cancelled");
     assert!(
         result["count"].as_u64().unwrap_or(99) < 7,
-        "the crawl ran to its budget anyway: {result}"
+        "the crawl ran to its budget anyway: count={} stopped_by={}",
+        result["count"],
+        result["stopped_by"]
     );
 }
 

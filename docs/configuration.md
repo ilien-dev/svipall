@@ -39,8 +39,8 @@ hardware capabilities, screen, language and timezone. Sites can correlate these 
 cookie profiles. Emulation reduces some exposure but guarantees neither anonymity nor IP hiding.
 The browser uses tool-managed profiles, and its sandbox remains enabled. Launch flags no longer
 request disabling site isolation, client phishing detection or IPC flooding protection. Browser
-updates and host configuration still matter. Results report `identity_used`, `native_fallback`
-and a `privacy_notice` whenever native fallback was attempted, even if it failed. To prevent all automatic native
+updates and host configuration still matter. Results always report `identity_used`; `native_fallback`
+and a `privacy_notice` appear whenever a native fallback was attempted, even if it failed. To prevent all automatic native
 fallback, run `svipall config set auto_native_fallback=false`; `browser_identity=emulated` also
 keeps browser requests emulated. Explicit `browser_identity=native` is a separate manual override.
 
