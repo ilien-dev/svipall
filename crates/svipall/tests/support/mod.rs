@@ -43,6 +43,13 @@ pub struct Reply {
     pub content_type: String,
     pub body: String,
     pub headers: Vec<(String, String)>,
+    /// How long this route takes to answer.
+    ///
+    /// A loopback site answers in microseconds, which is fine for every test that asks what came
+    /// back and useless for the ones that ask what happens *while* a crawl is running: there is no
+    /// "while". Giving a route a latency is what turns "cancel it before it finishes" from a race
+    /// the test usually wins into one it cannot lose.
+    pub delay_ms: u64,
 }
 
 impl Reply {
@@ -52,6 +59,7 @@ impl Reply {
             content_type: "text/html; charset=utf-8".into(),
             body: body.into(),
             headers: Vec::new(),
+            delay_ms: 0,
         }
     }
 
@@ -78,6 +86,7 @@ impl Reply {
             content_type: "text/plain; charset=utf-8".into(),
             body: body.into(),
             headers: Vec::new(),
+            delay_ms: 0,
         }
     }
 
@@ -88,6 +97,12 @@ impl Reply {
 
     pub fn header(mut self, k: &str, v: &str) -> Self {
         self.headers.push((k.into(), v.into()));
+        self
+    }
+
+    /// Answer this route after `ms`, so a test can act while the fetch is still in flight.
+    pub fn slow(mut self, ms: u64) -> Self {
+        self.delay_ms = ms;
         self
     }
 
@@ -167,6 +182,9 @@ impl Site {
                     }
                     out.push_str("\r\n");
                     out.push_str(&reply.body);
+                    if reply.delay_ms > 0 {
+                        tokio::time::sleep(std::time::Duration::from_millis(reply.delay_ms)).await;
+                    }
                     let _ = sock.write_all(out.as_bytes()).await;
                     let _ = sock.flush().await;
                 });

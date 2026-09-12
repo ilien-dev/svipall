@@ -783,6 +783,62 @@ pub fn out_of_sight_args(headless: bool, visible: bool, linux: bool) -> Vec<Stri
     args
 }
 
+/// What the headless renderer should answer about the pointer driving it.
+///
+/// A headless Chrome answers `(pointer: fine)` and `(hover: hover)` with `false`, because there is
+/// no mouse behind it and it says so. That is one media query and it is the oldest tell there is;
+/// `bench tells` has failed `input_modality` on the `browser` and `stealth` tiers for as long as
+/// the probe has existed. The answer until now was the ladder — climb to a headful tier, which
+/// costs a real window and a compositor that may not cooperate with it.
+///
+/// Blink takes the answer on the command line. The numbers are its own enums: pointer none 1,
+/// coarse 2, fine 4; hover none 1, hover 2. A touch identity gets the coarse pair so the reply
+/// still agrees with `maxTouchPoints`, which `SetTouchEmulationEnabled` drives from the same
+/// `has_touch` — `bench tells` checks that agreement in the same probe, and a fine pointer on a
+/// machine claiming a touch screen would trade one contradiction for another.
+///
+/// Nothing here reaches the DOM but the answer itself: a switch is not readable from a page.
+/// Headful gets nothing, because that window has a real pointer and answers for itself.
+pub fn input_modality_args(headless: bool, has_touch: bool) -> Vec<String> {
+    if !headless {
+        return Vec::new();
+    }
+    let (pointer, hover) = if has_touch { (2, 1) } else { (4, 2) };
+    vec![format!(
+        "--blink-settings=primaryPointerType={pointer},availablePointerTypes={pointer},primaryHoverType={hover},availableHoverTypes={hover}"
+    )]
+}
+
+#[cfg(test)]
+mod input_modality_tests {
+    use super::input_modality_args;
+
+    #[test]
+    fn a_headless_renderer_is_told_what_is_driving_it() {
+        let args = input_modality_args(true, false);
+        let flag = args.first().expect("one switch");
+        assert!(flag.contains("primaryPointerType=4"), "{flag}");
+        assert!(flag.contains("availablePointerTypes=4"), "{flag}");
+        assert!(flag.contains("primaryHoverType=2"), "{flag}");
+        assert!(flag.contains("availableHoverTypes=2"), "{flag}");
+    }
+
+    #[test]
+    fn a_touch_identity_keeps_its_answer_coarse() {
+        // `bench tells` reads `(any-pointer: coarse)` against `maxTouchPoints` in one breath. A
+        // fine pointer on a machine that declares a touch screen is a contradiction, not a fix.
+        let flag = input_modality_args(true, true).remove(0);
+        assert!(flag.contains("primaryPointerType=2"), "{flag}");
+        assert!(flag.contains("availableHoverTypes=1"), "{flag}");
+    }
+
+    #[test]
+    fn a_headful_window_answers_for_itself() {
+        assert!(input_modality_args(false, false).is_empty());
+        assert!(input_modality_args(false, true).is_empty());
+    }
+}
+
 #[cfg(test)]
 mod out_of_sight_tests {
     use super::{out_of_sight_args, WINDOW_CLASS};
@@ -1463,6 +1519,7 @@ impl BrowserPool {
         // launch-time facts. `key` carries the seed for exactly that reason.
         let id = self.identity_for(opts.proxy.as_deref(), opts.mobile, opts.identity_seed);
         let window = Self::window_of(&id);
+        let has_touch = window.has_touch;
         let mut b = BrowserConfig::builder()
             .chrome_executable(exe)
             .disable_default_args()
@@ -1497,6 +1554,9 @@ impl BrowserPool {
             opts.visible,
             cfg!(target_os = "linux"),
         ) {
+            b = b.arg(arg);
+        }
+        for arg in input_modality_args(opts.tier.headless(), has_touch) {
             b = b.arg(arg);
         }
         if let Some(dir) = &profile_dir {

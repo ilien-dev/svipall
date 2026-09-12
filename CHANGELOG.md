@@ -2,6 +2,29 @@
 
 ## 1.0.2 — 2026-09-11
 
+- **The headless tiers stop announcing that nothing is holding the mouse.** A headless Chrome
+  answers `(pointer: fine)` and `(hover: hover)` with `false` — one media query, the oldest tell
+  there is — and `bench tells` had failed `input_modality` on `browser`, `stealth` and the reused
+  browser for as long as the probe has existed. The standing answer was the ladder: climb to a
+  headful tier, which costs a real window and a compositor that may not cooperate with it. Blink
+  takes the answer on the command line, so the headless launches now carry it. A touch identity
+  gets the coarse pair instead, because the same probe reads `(any-pointer: coarse)` against
+  `maxTouchPoints` in one breath and a fine pointer on a machine declaring a touch screen would
+  trade one contradiction for another. Measured with `bench tells`: **155/160 probes clean to
+  158/160**, with `input_modality` passing at every tier.
+
+  The two that remain are `window_chrome_height` on `real` and `warm`, and they are this machine
+  rather than this code: a tiling compositor ignores `--window-position` and sizes the window
+  itself, which is exactly the case `--class=svipall-browser` exists for. `docs/configuration.md`
+  has the rule.
+
+- **`a_cancelled_job_stops_fetching` is no longer a race the test usually won.** Its seven routes
+  are the whole crawl budget and loopback served all of them in under ten milliseconds — less than
+  one turn of the loop waiting to see the job running — so the crawl was regularly finished before
+  the cancel could land, and the test failed for having nothing left to stop. It failed twice in
+  eight full-suite runs. `Reply::slow(ms)` gives a route a latency; at eighty milliseconds a page
+  the cancel arrives with one page done and six to go. Ten consecutive runs clean.
+
 - **The global memory block stops repeating the tool list the MCP server already sends.** It is the
   one piece of svipall that sits in every session of every project on the machine, web or not, and
   half of it was a per-tool routing table copied from the server's own `instructions` — read twice,
