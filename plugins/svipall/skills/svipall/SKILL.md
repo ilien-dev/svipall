@@ -64,7 +64,7 @@ arrived too — it says who is watching, not that anything was withheld.
 |---|---|
 | The prose | `svipall fetch URL` |
 | Only what is relevant | `svipall fetch URL --query "shipping costs"` |
-| Something to click | `svipall snapshot URL` — roles, names and refs, ~150 tokens for a whole page |
+| Something to click | `svipall snapshot URL` — roles, names and refs. Measured: 12 tokens on a plain page, 1 600 on a dense one (the node list is capped at 200), against 8 700 for the same page's prose |
 | The site's real API | `svipall capture URL` — the JSON the page itself fetched while loading |
 | A lot of pages | `svipall crawl URL --out pages.csv` — writes a file, returns a path and a count |
 | A table, as rows | `svipall fetch URL --tables --out rows.csv` — typed rows with their columns, not a markdown grid |
@@ -160,6 +160,15 @@ subscription comes back as `wall_kind: paywall`, and a 200 that is really a miss
 `softnotfound` — neither is content, and no tier fixes either. `optimization: high` appears only on
 the far end of pages built for a ranking. `web_fetch_many` adds `corroboration`, which says how many
 of the results are actually different documents rather than one story on five hostnames.
+
+Links in the markdown are written the way the page wrote them: a link to the page's own site is a
+path (`/wiki/Web_crawler`), to be joined to that response's `url`; a link to another host is
+absolute. Measured across four real pages, that is 15% of the delivered text. `include_links`
+returns every link absolute when a ready-to-fetch list is what is wanted.
+
+A field that reports an *event* is there only when the event happened: `final_url` when a redirect
+moved the page, `native_fallback` when a real-device attempt was made. `identity_used` is always
+present — silence is not a way to say that nothing about this machine was exposed.
 
 **None of it ever withholds a page.** They are labels: the odd, thin, heavily-optimised page that
 happens to hold the answer is returned exactly like any other, and what to do about it is yours.

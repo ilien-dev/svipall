@@ -878,3 +878,43 @@ jobs:
     uses: ./.github/workflows/mcp-registry.yml
     secrets:
       MCP_PRIVATE_KEY: ${{ secrets.MCP_PRIVATE_KEY }}
+
+  # The website shows the current version, and the number is written into its HTML at build time.
+  # Nothing here is required for that to be correct — the page asks the GitHub API again in the
+  # visitor's browser and raises the number itself — so this job is not on the critical path of a
+  # release and never fails one. What it buys is the served HTML being right as well: the reader
+  # with JavaScript off, the crawler, and the first paint before the request comes back.
+  #
+  # The site is a Worker with Workers Builds attached, not a classic Pages project, so the hook is
+  # the one that project issues under Settings > Builds > Deploy Hooks. A POST to it is the whole
+  # protocol: the id in the URL is the credential, which is also why it is a secret here. Anyone
+  # holding it can queue a build of that branch and nothing else. With the secret unset the step
+  # says so and succeeds, which is what makes this safe to merge before the hook exists.
+  #
+  # Stable releases only, matching what the site will show: a pre-release would spend a Pages build
+  # baking the same number the site already has.
+  site:
+    name: site
+    needs: [version, publish]
+    if: needs.version.outputs.publish == 'true' && needs.version.outputs.prerelease != 'true'
+    runs-on: ubuntu-latest
+    permissions: {}
+    steps:
+      - name: Ask Cloudflare to rebuild svipall.dev
+        env:
+          # Read through env rather than interpolated into the script: a secret spliced into a
+          # shell command is one quoting mistake away from being a shell command.
+          HOOK: ${{ secrets.SITE_DEPLOY_HOOK }}
+        run: |
+          if [ -z "$HOOK" ]; then
+            echo "SITE_DEPLOY_HOOK is not set; the site will pick up v${{ needs.version.outputs.version }} in the browser."
+            exit 0
+          fi
+          # --fail so a 4xx is a failure and not a silent success, and the body is printed either
+          # way: the answer carries the build_uuid of the build that was queued.
+          curl --fail --silent --show-error --location \
+            --request POST "$HOOK" \
+            --max-time 30 \
+            --retry 3 --retry-delay 5 --retry-all-errors
+          echo
+          echo "Queued a rebuild of svipall.dev for v${{ needs.version.outputs.version }}."

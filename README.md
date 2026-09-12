@@ -163,14 +163,14 @@ output can be piped to `jq`. `serve` is a long-running server, and help is writt
 ### What comes back
 
 A historical run of `svipall fetch https://example.com`, with the `content` string cut short.
-Current automatic fetches also report identity and fallback fields described below:
+Current automatic fetches also report `identity_used`, and the fallback fields described below when
+they have something to report:
 
 ```json
 {
   "attempts": ["http: 200 (170ms) OK"],
   "chars": 167,
   "content": "# Example Domain\n\nThis domain is for use in documentation examples…",
-  "exit": null,
   "final_url": "https://example.com/",
   "optimization": "ordinary",
   "quality": "thin",
