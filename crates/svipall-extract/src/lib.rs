@@ -1556,6 +1556,25 @@ mod tests {
             !md.contains("https://en.wikipedia.org/wiki/Web_crawler"),
             "the host is repeated on a same-site link: {md}"
         );
+
+        // The structured list is the other half of the deal, and the skill says so: a caller that
+        // wants links it can fetch without thinking about where they came from asks for them and
+        // gets them absolute. Only the prose is shortened.
+        let parts = parse_page(
+            html,
+            &ParseWants {
+                links_base: Some("https://en.wikipedia.org/wiki/Web_scraping".into()),
+                ..Default::default()
+            },
+        );
+        assert!(
+            parts
+                .links
+                .iter()
+                .any(|l| l == "https://en.wikipedia.org/wiki/Web_crawler"),
+            "include_links must stay absolute: {:?}",
+            parts.links
+        );
     }
 
     #[test]
