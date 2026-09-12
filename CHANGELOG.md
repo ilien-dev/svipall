@@ -1,5 +1,19 @@
 # Changelog
 
+## 1.0.2 — 2026-09-11
+
+- **`/svipall:setup` asks its two consent questions in words a first-time user can answer.** The
+  memory-file step showed three lines of markup — `<!-- BEGIN SVIPALL -->`, `@svipall/SVIPALL.md`,
+  the end marker — and asked whether to add them. Somebody who has never seen `~/.claude/CLAUDE.md`
+  has no way to judge that: not what the file is, not what an import line does, not what stays
+  untouched. The step now requires saying all four things before the block is shown, and phrases
+  the choices as outcomes rather than yes/no.
+- **Strict mode is offered with its failure mode attached, and recommended against on a fresh
+  install.** The hook `deny`s `WebFetch` and `WebSearch` with no fallback, so a machine where the
+  MCP server is not answering — not on PATH, not installed, failed to start — has no web access at
+  all rather than a degraded one. That is the whole risk and it was not being said out loud. It is
+  now in the offer and in both option labels, since a dialog's labels are what gets read.
+
 ## 1.0.1 — 2026-09-11
 
 - **Every build carries the captcha models now.** Three of the five targets shipped without them:
