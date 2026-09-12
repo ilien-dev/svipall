@@ -2,6 +2,15 @@
 
 ## 1.0.2 — 2026-09-11
 
+- **The global memory block stops repeating the tool list the MCP server already sends.** It is the
+  one piece of svipall that sits in every session of every project on the machine, web or not, and
+  half of it was a per-tool routing table copied from the server's own `instructions` — read twice,
+  and a second place to forget when a tool changes. It now points at those instructions and at the
+  `svipall:svipall` skill, and keeps only what neither of them says: never set a tier by hand,
+  never retry a blocked URL blindly, large results to `out_file`, credentials as `${NAME}`, stop
+  rather than loop on verification a person has to pass, and `svipall doctor` before blaming a
+  site. 2 082 characters to 997.
+
 - **`query` says what it actually saves, which the query decides and the page does not.** It is the
   first thing the instructions offer for cutting tokens, and how much it cuts had never been
   stated. Measured on two long articles: `"robots.txt"` left 4 748 characters of 35 469 and
