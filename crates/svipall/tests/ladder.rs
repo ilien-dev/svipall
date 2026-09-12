@@ -786,7 +786,12 @@ async fn raw_markup_is_not_echoed_back_as_the_url() {
         + "</p></body></html>";
     let out = server().fetch_json(http(&format!("raw:{markup}"))).await;
     assert_eq!(out.value["url"], "raw:", "{:?}", out.value["url"]);
-    assert_eq!(out.value["final_url"], "raw:");
+    // Nothing redirected, so `final_url` would only repeat `url`: it is dropped rather than sent.
+    assert!(
+        out.value["final_url"].is_null(),
+        "{:?}",
+        out.value["final_url"]
+    );
     let whole = out.value.to_string();
     let content = text(&out.value);
     assert!(

@@ -241,6 +241,14 @@ fn the_instructions_route_every_task_to_a_name() {
         text.contains("blocked_reason") && text.contains("Never retry"),
         "the two rules that cost cooldowns are missing"
     );
+    // These instructions sit in the system prompt for the whole session, so a sentence about
+    // language is read as a directive about the *answer*. It used to end "Instructions in
+    // English.", which is a note about the project's own source, not an instruction to anybody —
+    // and what language a user is answered in was never svipall's call.
+    assert!(
+        !text.to_ascii_lowercase().contains("in english"),
+        "the instructions tell the model what language to work in: {text}"
+    );
 }
 
 #[test]

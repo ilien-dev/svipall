@@ -2,6 +2,32 @@
 
 ## 1.0.2 — 2026-09-11
 
+- **The note on a blocked page names the tool that returns the page, not the one that returns a
+  token.** A captcha was reported as `call solve_turnstile(sitekey=…, pageUrl=…)` — with the
+  arguments filled in, at the moment of the decision, which beats any instruction given earlier in
+  a session. That tool answers with a bare token bound to the session and address that produced it,
+  which is the wrong branch whenever the goal is the content. The note now offers
+  `solve_and_continue` first and the token tool second, with the condition that makes it right
+  attached. It also no longer repeats the page's own address, which on a `raw:` fetch meant
+  printing the whole document inside the advice about it, twice. The wording moved into
+  `steer.rs`, where the rest of the model-facing messages already live and are tested as prose, and
+  a test now checks every tool and parameter any note names against the built tool list.
+- **A response no longer spends tokens on fields that say nothing.** `"exit":null`,
+  `"native_fallback":false`, `"stopped_reason":null` and a `final_url` repeating the `url`
+  character for character were on every page svipall returned, and a response envelope is read once
+  per *page* — fifty times in one `web_fetch_many`, hundreds in one crawl. Measured on a page whose
+  content was 250 characters: 370 characters of envelope before, 295 after. Nothing is withheld —
+  a `null` says exactly what a missing key says, and a flag that is false says what its absence
+  says. Absent, each one becomes a signal: `native_fallback` now appears precisely when a native
+  attempt was made, and `final_url` when something redirected. `identity_used` stays unconditional,
+  because silence is not an acceptable way to tell somebody their real device characteristics were
+  not exposed. Held by `crates/svipall/tests/response_surface.rs`, which is to the response what
+  `tool_surface.rs` is to the tool list.
+- **The MCP instructions no longer end with a sentence about language.** They closed with
+  "Instructions in English." — a note about the project's own source, sitting in the system prompt
+  for the whole session where it reads as a directive about the *answer*. What language a user is
+  answered in was never svipall's call.
+
 - **`/svipall:setup` asks its two consent questions in words a first-time user can answer.** The
   memory-file step showed three lines of markup — `<!-- BEGIN SVIPALL -->`, `@svipall/SVIPALL.md`,
   the end marker — and asked whether to add them. Somebody who has never seen `~/.claude/CLAUDE.md`

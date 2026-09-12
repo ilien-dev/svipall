@@ -161,6 +161,10 @@ subscription comes back as `wall_kind: paywall`, and a 200 that is really a miss
 the far end of pages built for a ranking. `web_fetch_many` adds `corroboration`, which says how many
 of the results are actually different documents rather than one story on five hostnames.
 
+A field that reports an *event* is there only when the event happened: `final_url` when a redirect
+moved the page, `native_fallback` when a real-device attempt was made. `identity_used` is always
+present — silence is not a way to say that nothing about this machine was exposed.
+
 **None of it ever withholds a page.** They are labels: the odd, thin, heavily-optimised page that
 happens to hold the answer is returned exactly like any other, and what to do about it is yours.
 
