@@ -30,6 +30,11 @@ pub fn strict_armed() -> bool {
 /// an event this build does not understand. The denial is worth having only because it names the
 /// tool that does the same job and carries the URL across, so the agent can act on it in one step
 /// instead of asking the user what it was fetching.
+///
+/// The tool is named bare, without an `mcp__…__` prefix, because the prefix is not svipall's to
+/// choose: registered by hand the tools arrive as `mcp__svipall__web_fetch`, installed as the
+/// plugin as `mcp__plugin_svipall_svipall__web_fetch`. Hardcoding either is wrong for the other
+/// install, at the moment the agent has nothing else to go on.
 pub fn claude_web(event: &Value, strict: bool) -> Value {
     if !strict {
         return json!({});
@@ -47,15 +52,16 @@ pub fn claude_web(event: &Value, strict: bool) -> Value {
             format!(
                 "This machine runs svipall, which reads pages the built-in fetch cannot: it climbs \
                  a tier ladder past anti-bot walls, answers captchas locally, and reports a block \
-                 as a block instead of summarising the challenge page as the article. Call \
-                 `mcp__svipall__web_fetch` with url {url} instead (mode defaults to auto — do not \
-                 set a tier by hand). For several urls use `mcp__svipall__web_fetch_many`, for a \
-                 whole site `mcp__svipall__web_crawl`."
+                 as a block instead of summarising the challenge page as the article. Call the \
+                 svipall MCP server's `web_fetch` with url {url} instead (mode defaults to auto \
+                 — do not set a tier by hand). For several urls use `web_fetch_many`, for a whole \
+                 site `web_crawl`."
             )
         }
         "WebSearch" => format!(
             "This machine runs svipall, which searches without an API key and can then read any \
-             result past its anti-bot wall. Call `mcp__svipall__web_search` instead{}.",
+             result past its anti-bot wall. Call the svipall MCP server's `web_search` \
+             instead{}.",
             input
                 .and_then(|i| i.get("query"))
                 .and_then(Value::as_str)

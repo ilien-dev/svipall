@@ -56,6 +56,40 @@ fn the_url_the_caller_asked_for_survives_into_the_suggestion() {
 }
 
 #[test]
+fn the_denial_names_a_tool_that_exists_under_either_registration() {
+    // The MCP prefix is not svipall's to choose. Registered by hand with
+    // `claude mcp add -s user svipall` the tools arrive as `mcp__svipall__web_fetch`; installed as
+    // the plugin — the path this repository ships and documents — the same server's tools arrive
+    // as `mcp__plugin_svipall_svipall__web_fetch`. A hardcoded prefix is therefore wrong for one
+    // of the two installs, and it is wrong at the worst moment: the harness has just refused the
+    // call, and this sentence is the only thing the agent has to act on. The bare tool name
+    // resolves under both.
+    for tool in ["WebFetch", "WebSearch"] {
+        let out = hooks::claude_web(&event(tool), true);
+        let reason = out["hookSpecificOutput"]["permissionDecisionReason"]
+            .as_str()
+            .unwrap_or_default();
+        assert!(
+            !reason.contains("mcp__"),
+            "{tool}: the reason hardcodes an MCP prefix svipall does not control: {reason:?}"
+        );
+        let names = if tool == "WebFetch" {
+            "web_fetch"
+        } else {
+            "web_search"
+        };
+        assert!(
+            reason.contains(names),
+            "{tool}: the reason never names {names}: {reason:?}"
+        );
+        assert!(
+            reason.contains("svipall"),
+            "{tool}: the reason never says whose tool that is: {reason:?}"
+        );
+    }
+}
+
+#[test]
 fn it_never_denies_a_tool_it_was_not_asked_about() {
     // A hook matcher is a regular expression someone can widen by accident. Denying Read or Bash
     // because the matcher slipped would be indistinguishable from svipall being broken.
