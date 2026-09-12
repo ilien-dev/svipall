@@ -3,7 +3,7 @@
   "name": "dev.ilien.svipall/mcp",
   "title": "Svipall",
   "description": "Read any page past its anti-bot wall, crawl sites, search without an API key, solve captchas locally",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "websiteUrl": "https://github.com/ilien-dev/svipall",
   "repository": {
     "url": "https://github.com/ilien-dev/svipall",
@@ -15,7 +15,7 @@
       "registryType": "npm",
       "registryBaseUrl": "https://registry.npmjs.org",
       "identifier": "svipall",
-      "version": "1.0.1",
+      "version": "1.0.2",
       "runtimeHint": "npx",
       "runtimeArguments": [
         { "type": "named", "name": "--yes" },
@@ -26,7 +26,7 @@
     },
     {
       "registryType": "oci",
-      "identifier": "ghcr.io/ilien-dev/svipall:1.0.1",
+      "identifier": "ghcr.io/ilien-dev/svipall:1.0.2",
       "runtimeHint": "docker",
       "runtimeArguments": [
         { "type": "named", "name": "--rm" },
@@ -39,7 +39,7 @@
       "registryType": "cargo",
       "registryBaseUrl": "https://crates.io",
       "identifier": "svipall",
-      "version": "1.0.1",
+      "version": "1.0.2",
       "transport": { "type": "stdio" }
     }
   ]

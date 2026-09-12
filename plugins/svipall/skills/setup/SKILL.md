@@ -86,8 +86,21 @@ On yes:
    own path, not from the working directory. If you cannot find it, fetch
    `https://raw.githubusercontent.com/ilien-dev/svipall/main/plugins/svipall/memory/SVIPALL.md`
    instead of writing your own version of it. Overwriting the destination is fine — it is ours.
-2. Read `~/.claude/CLAUDE.md` (create it empty if absent). **Show the exact block you are about to
-   add and get a second yes**, because this is somebody's own file:
+2. Read `~/.claude/CLAUDE.md` (create it empty if absent). **Ask a second time before writing, and
+   ask in plain words.** Assume the user has never seen a memory file: three lines of markup shown
+   on their own tell them nothing, so the block alone is not a question anybody can answer. Say,
+   before showing it:
+
+   - **what that file is** — the standing instructions Claude Code reads at the start of every
+     session, in every project on this machine;
+   - **what the line does** — `@svipall/SVIPALL.md` pulls in the page you just copied next to it,
+     which is what tells Claude to reach the web through Svipall instead of the built-in fetch;
+   - **what it does not do** — nothing else in the file is read, moved or rewritten, and no project
+     of theirs changes;
+   - **how to undo it** — `/svipall:uninstall`, or delete the marked block by hand; a dated backup
+     of the file is kept either way.
+
+   Then show the block and the full path it goes into:
 
    ```
    <!-- BEGIN SVIPALL -->
@@ -95,14 +108,35 @@ On yes:
    <!-- END SVIPALL -->
    ```
 
+   Offer the two choices as outcomes, never as a bare yes/no: *add it — Claude prefers Svipall for
+   web access everywhere*, against *skip it — Svipall stays installed and usable, Claude just will
+   not reach for it on its own*.
+
 3. Copy `~/.claude/CLAUDE.md` to `~/.claude/CLAUDE.md.bak-<YYYYMMDD-HHMMSS>` first.
 4. If the markers are already present, replace what is between them. Otherwise append the block.
    Never add a second copy, and never touch anything outside the markers.
 
-## 6. Offer: strict mode (default: no)
+## 6. Offer: strict mode (default: no, and say so)
 
-> "There is also a strict mode: Claude Code's own `WebFetch` and `WebSearch` get declined with a
-> pointer to the Svipall tool that does the same job. Off unless you ask for it."
+Step 5 already makes Claude prefer Svipall. Strict mode only covers the case where it forgets, and
+it does so with a hard refusal: the hook **denies** `WebFetch` and `WebSearch` outright, with no
+fallback. So if the Svipall MCP server is ever not answering — not installed on that machine, not
+on PATH, failed to start — the session has no web access at all, not even the built-in one.
+
+Recommend against it on a fresh install, in as many words, and offer it anyway:
+
+> "There is also a strict mode: Claude Code's own `WebFetch` and `WebSearch` stop working, declined
+> with a pointer to the Svipall tool that does the same job. I would leave it off for now — if
+> Svipall ever fails to start, a strict session has no way to reach the web at all. The line above
+> is already enough to make Claude prefer Svipall. You can turn this on later with one file."
+
+Put the warning in the choices too, not only in the prose above them — somebody who reads nothing
+but the two labels must still see it: *leave it off — Claude prefers Svipall anyway, and the
+built-in fetch stays as a backstop*, against *turn it on — the built-in fetch stops working, even
+on a day Svipall does not start*.
+
+Turn it on without hesitation if the user asks for it, and say the same thing if they turn it on
+after using Svipall for a while — by then they know it starts.
 
 On yes, create the empty marker file `~/.svipall/claude_strict`. Deleting it turns strict mode off
 again, immediately, with no restart. Leave it alone if the user did not ask.
