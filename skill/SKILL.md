@@ -161,6 +161,11 @@ subscription comes back as `wall_kind: paywall`, and a 200 that is really a miss
 the far end of pages built for a ranking. `web_fetch_many` adds `corroboration`, which says how many
 of the results are actually different documents rather than one story on five hostnames.
 
+Links in the markdown are written the way the page wrote them: a link to the page's own site is a
+path (`/wiki/Web_crawler`), to be joined to that response's `url`; a link to another host is
+absolute. Measured across four real pages, that is 15% of the delivered text. `include_links`
+returns every link absolute when a ready-to-fetch list is what is wanted.
+
 A field that reports an *event* is there only when the event happened: `final_url` when a redirect
 moved the page, `native_fallback` when a real-device attempt was made. `identity_used` is always
 present — silence is not a way to say that nothing about this machine was exposed.

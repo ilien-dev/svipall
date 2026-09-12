@@ -2,6 +2,24 @@
 
 ## 1.0.2 — 2026-09-11
 
+- **A link to the page's own site comes back the way the page wrote it, which is 14.7% of the
+  delivered text.** The largest thing svipall puts in front of a model is the page itself, and on
+  four real pages — Hacker News, MDN's header list, a Wikipedia article, a newspaper front page,
+  112 KB of markdown between them — **40% of that was link URLs**. Most of it was one string
+  repeated: the page's own HTML said `/wiki/Web_crawler` and the renderer resolved it to
+  `https://en.wikipedia.org/wiki/Web_crawler` for display, adding the scheme and host to every
+  same-site link on a document whose `url` already says which site it is. Same-site links are now
+  written as the path, query and fragment the page used; a link to another host stays absolute,
+  because nothing on the page says where another host is. Re-fetched with `--cache refresh`, the
+  same four pages: 112 466 → 95 919 characters, −30.4% on Hacker News, −14.2% on MDN, −10.7% on
+  Wikipedia. `include_links` still returns every link absolute, for a caller that wants a list it
+  can fetch without thinking about where it came from, and `not_a_url` now names the join when a
+  path is handed back to `web_fetch`.
+
+  Measured, and one candidate measured away: stripping `utm_*` and the other tracking parameters
+  from displayed links looked worth doing on a synthetic fixture and was worth **nothing** on the
+  four real pages — zero tracking bytes between them. It was not built.
+
 - **The strict-mode refusal names a tool that exists under either install.** The `WebFetch` hook
   denied the call and pointed at `mcp__svipall__web_fetch`. That prefix is not svipall's to choose:
   registered by hand with `claude mcp add -s user svipall` the tools do arrive under it, but

@@ -19,7 +19,17 @@ pub fn not_a_tier(field: &str, value: &str) -> String {
 }
 
 /// A URL that none of the fetchers can take.
+///
+/// A bare path is called out first because it is the mistake the markdown itself invites: links to
+/// the page's own site are written the way the page wrote them, `/wiki/Web_crawler`, and joining
+/// that to the response's `url` is the whole fix.
 pub fn not_a_url(url: &str) -> String {
+    if url.starts_with('/') {
+        return format!(
+            "{url:?} is a path, not a URL. Links to a page's own site come back as the page wrote \
+             them; join it to that response's `url` — https://host{url} — and fetch that."
+        );
+    }
     format!("{url:?} is not a URL. Give http(s)://…, file:///… under ~/.svipall/in, or raw:<html>.")
 }
 
@@ -165,6 +175,11 @@ mod tests {
         assert!(not_a_tier("mode", "bogus").contains("Omit mode"));
         assert!(not_a_tier("max_tier", "x").contains("warm"));
         assert!(not_a_url("x").contains("raw:<html>"));
+        // The markdown hands the model paths now, so the message that fires when it passes one
+        // back has to name the join rather than repeat the list of accepted schemes.
+        let path = not_a_url("/wiki/Web_crawler");
+        assert!(path.contains("join"), "{path}");
+        assert!(path.contains("`url`"), "{path}");
         assert!(unknown_task("t").contains("solve_and_continue"));
         // The note on a blocked page offers the tool that ends the problem before the one that
         // returns a token, and never the token tool without the condition that makes it right.

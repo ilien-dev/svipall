@@ -3513,7 +3513,7 @@ impl SvipallServer {
 #[tool_router]
 impl SvipallServer {
     #[tool(
-        description = "Fetch one URL and return its main content as markdown (PDF and office documents too), or as rows with `schema` or `tables`. The default way to read a page: `mode=auto` climbs http -> browser -> stealth -> real -> warm, remembers the working tier per domain, and is never set by hand. Cut tokens with `query` (keep only relevant blocks), `css_selector`, `max_tokens` + `cursor` (page through), or `out_file` (write to disk, return a path). To click use web_snapshot; for the site's JSON API use web_capture; for several known URLs use web_fetch_many. Returns `content`, `title`, `tier_used` and `quality`. A wall returns `blocked_reason` and a `note` saying what to do: act on it, never retry blindly.",
+        description = "Fetch one URL and return its main content as markdown (PDF and office documents too), or as rows with `schema` or `tables`. The default way to read a page: `mode=auto` climbs http -> browser -> stealth -> real -> warm, remembers the working tier per domain, and is never set by hand. Cut tokens with `query` (keep only relevant blocks), `css_selector`, `max_tokens` + `cursor` (page through), or `out_file` (write to disk, return a path). To click use web_snapshot; for the site's JSON API use web_capture; for several known URLs use web_fetch_many. Returns `content`, `title`, `tier_used` and `quality`; links to the page's own site are paths, to be joined to `url`. A wall returns `blocked_reason` and a `note` saying what to do: act on it, never retry blindly.",
         annotations(read_only_hint = true, open_world_hint = true)
     )]
     async fn web_fetch(
@@ -3712,7 +3712,7 @@ impl SvipallServer {
     }
 
     #[tool(
-        description = "Crawl one site from a start URL and return every page as markdown, deduplicated, robots.txt obeyed. Use when the pages are not known in advance; when they are, web_fetch_many is cheaper, and web_map lists a site's URLs for a few hundred tokens before deciding to crawl. `max_pages` (20), `max_depth` (2), `include` (URL substring), `query` (rank by relevance, stop when saturated), `strategy=dfs` for a manual or a paginated listing, `schema` or `tables` for rows from every page. For many rows pass `out_file` (.csv, .json, .jsonl): a path comes back instead of the pages. Returns the pages and a `crawl_id`; pass it back as `crawl_id` to resume an interrupted crawl.",
+        description = "Crawl one site from a start URL and return every page as markdown, deduplicated, robots.txt obeyed. Use when the pages are not known in advance; when they are, web_fetch_many is cheaper, and web_map lists a site's URLs for a few hundred tokens before deciding to crawl. `max_pages` (20), `max_depth` (2), `include` (URL substring), `query` (rank by relevance, stop when saturated), `strategy=dfs` for a manual or a paginated listing, `schema` or `tables` for rows from every page. For many rows pass `out_file` (.csv, .json, .jsonl): a path comes back instead of the pages. Returns the pages and a `crawl_id`; pass it back as `crawl_id` to resume an interrupted crawl. Links to a page's own site are paths, to be joined to that page's `url`.",
         annotations(read_only_hint = true, open_world_hint = true)
     )]
     async fn web_crawl(
