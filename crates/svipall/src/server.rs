@@ -354,6 +354,46 @@ fn looks_binary(url: &str) -> bool {
     BINARY_EXT.iter().any(|e| path.ends_with(e))
 }
 
+/// Drop from a response every field that carries no information.
+///
+/// The tool definitions are read once per session; this envelope is read once per *page* — fifty
+/// times in one `web_fetch_many`, hundreds in one crawl. Measured before this existed: 370
+/// characters around a page whose content was 250, and sixty of them were `"exit":null`,
+/// `"native_fallback":false` and a `final_url` that repeated the `url` character for character.
+///
+/// None of it is withholding. A `null` says exactly what the missing key says; a flag that is
+/// false says what its absence says. Removed, each one turns into a signal — `native_fallback`
+/// appears precisely when a native attempt was made — which is the same trade `optimization` and
+/// `quality_reasons` already make. The fields that report a *state* rather than an event stay
+/// unconditional: `identity_used` is how a caller learns their real device characteristics were
+/// not exposed, and silence is not an acceptable way to say that.
+fn strip_silent_fields(v: &mut Value) {
+    let Some(obj) = v.as_object_mut() else { return };
+    if obj.get("final_url") == obj.get("url") {
+        obj.remove("final_url");
+    }
+    if obj.get("native_fallback") == Some(&json!(false)) {
+        obj.remove("native_fallback");
+    }
+    if obj.get("cooldown_seconds_left") == Some(&json!(0)) {
+        obj.remove("cooldown_seconds_left");
+    }
+    drop_nulls(v);
+}
+
+/// Remove every `null` from an object and the objects under it.
+///
+/// Arrays are left alone on purpose: `extracted` rows and `tables` are tabular, and a column that
+/// is null on one row and missing on the next is a ragged table rather than a smaller one.
+fn drop_nulls(v: &mut Value) {
+    if let Some(obj) = v.as_object_mut() {
+        obj.retain(|_, x| !x.is_null());
+        for child in obj.values_mut() {
+            drop_nulls(child);
+        }
+    }
+}
+
 /// Put everything the fetch measured onto a response.
 ///
 /// ▲ One place, so a page served from the cache is labelled exactly as the fetch labelled it. That
@@ -502,27 +542,6 @@ fn apply_template(
         );
     }
     out
-}
-
-/// Human-readable next step for a wall that survived the ladder.
-fn guidance(kind: &WallKind, domain: &str, tier: &str, solver: bool, dashboard: &str) -> String {
-    let login_hint = format!("web_login(url) opens a visible window: pass the check once by hand and the {} profile keeps the cookies for later real/warm fetches.", domain);
-    match kind {
-        WallKind::Hold | WallKind::Generic | WallKind::Cloudflare => {
-            let mut s = format!("Challenge still present at tier {}. {} Or route the domain through a proxy with web_route.", tier, login_hint);
-            if solver { s.push_str(&format!(" If the page exposes a sitekey, solve_turnstile / solve_recaptcha_v2 / solve_hcaptcha return a token; humans can also solve at {}.", dashboard)); }
-            s
-        }
-        WallKind::Vendor => format!("Browser-fingerprinting wall (DataDome / PerimeterX / Incapsula) at tier {}. {} A residential proxy via web_route usually helps too.", tier, login_hint),
-        WallKind::Login => "Login wall. Use web_login(url, profile=NAME) to sign in once, then pass profile=NAME to web_fetch / web_act.".to_string(),
-        WallKind::Gate => "Geo or consent gate instead of the page. Use web_act to dismiss it (click the accept/continue button) or web_route to change the exit country.".to_string(),
-        WallKind::Empty => format!("Page did not render text at tier {}. Try web_act with a wait action, or a css_selector for the region you need.", tier),
-        WallKind::NotFound => "The URL does not exist (404/410). Check the address; escalating tiers cannot help.".to_string(),
-        WallKind::SoftNotFound => "The page answered 200 but says it does not exist. Check the address; escalating tiers cannot help, and the stub is not the page you asked for.".to_string(),
-        WallKind::Paywall => format!("The article exists and is being withheld behind a subscription. {login_hint} Only a profile that is signed in changes the answer; a proxy does not."),
-        WallKind::Status => format!("Hard HTTP block at tier {}; domain is on a 15 min cooldown. Use web_route with a proxy, or web_status(clear_cooldown=\"{}\") to retry sooner.", tier, domain),
-        WallKind::None => String::new(),
-    }
 }
 
 /// Send a result to a file and hand back the path.
@@ -2154,6 +2173,7 @@ impl SvipallServer {
                 );
             }
         }
+        strip_silent_fields(&mut out.value);
         out
     }
 
@@ -3328,14 +3348,15 @@ impl SvipallServer {
         .filter(|w| !w.is_empty());
         let note = match (&challenge, self.solver_state.is_some()) {
             (Some(c), true) => format!(
-                "{} The page exposes a {:?} widget: call {}(sitekey=\"{}\", pageUrl=\"{}\").",
-                guidance(&kind, &domain, &tier, false, self.dashboard()),
-                c.kind,
-                c.kind.tool(),
-                c.sitekey,
-                o.final_url
+                "{} {}",
+                crate::steer::wall_next_step(&kind, &domain, &tier, false, self.dashboard()),
+                crate::steer::captcha_next_step(
+                    &format!("{:?}", c.kind),
+                    c.kind.tool(),
+                    &c.sitekey,
+                )
             ),
-            _ => guidance(
+            _ => crate::steer::wall_next_step(
                 &kind,
                 &domain,
                 &tier,
@@ -5265,7 +5286,7 @@ impl SvipallServer {
                 "note".into(),
                 json!(format!(
                     "the challenge did not clear. {}",
-                    guidance(
+                    crate::steer::wall_next_step(
                         &wall,
                         &domain_from_url(&final_url),
                         "warm",
@@ -6289,7 +6310,7 @@ impl ServerHandler for SvipallServer {
                  Changes: web_diff once, web_watch on a schedule. Memory across sessions: web_notes. \
                  A blocked page carries blocked_reason and a note: read them. Never retry a blocked URL blindly. \
                  A captcha named -> solve_and_continue (solve_* tokens only for a form you post yourself). A login or a wall a person must pass -> web_login once. \
-                 A fingerprint wall that never yields -> web_route through a proxy. Why a domain is slow or blocked -> web_log view=summary; current state and resets -> web_status. Instructions in English."
+                 A fingerprint wall that never yields -> web_route through a proxy. Why a domain is slow or blocked -> web_log view=summary; current state and resets -> web_status."
                     .to_string(),
             ),
         }

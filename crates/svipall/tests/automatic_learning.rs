@@ -41,7 +41,10 @@ async fn two_useful_browser_observations_skip_failed_http_on_the_third_visit() {
             out["quality_reasons"], out["chars"]
         );
         assert_eq!(out["identity_used"], "emulated", "{out}");
-        assert_eq!(out["native_fallback"], false, "{out}");
+        assert!(
+            out["native_fallback"].is_null(),
+            "no native attempt was made, so the flag is absent: {out}"
+        );
         let attempts = out["attempts"].as_array().unwrap();
         let expected = if round == 2 { 1 } else { 2 };
         assert_eq!(attempts.len(), expected, "{out}");
