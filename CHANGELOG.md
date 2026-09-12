@@ -2,6 +2,14 @@
 
 ## 1.0.2 — 2026-09-11
 
+- **`web_snapshot`'s cost is stated from a measurement instead of a guess.** The skill said "~150
+  tokens for a whole page". Measured: 12 tokens on `example.com` and 1 609 on a Wikipedia article,
+  where the node list hits its 200-node cap — an order of magnitude out, on a number a model uses
+  to decide whether a snapshot is worth taking. It now gives the range, the cap, and what the same
+  page's prose costs (8 700) so the comparison the tool is for is the one being made. The snapshot
+  response also drops a `final_url` that repeats the `url`, as the fetch path already did: pruning
+  a field on one tool and not the other would make its absence mean two things.
+
 - **A link to the page's own site comes back the way the page wrote it, which is 14.7% of the
   delivered text.** The largest thing svipall puts in front of a model is the page itself, and on
   four real pages — Hacker News, MDN's header list, a Wikipedia article, a newspaper front page,

@@ -64,7 +64,7 @@ arrived too — it says who is watching, not that anything was withheld.
 |---|---|
 | The prose | `svipall fetch URL` |
 | Only what is relevant | `svipall fetch URL --query "shipping costs"` |
-| Something to click | `svipall snapshot URL` — roles, names and refs, ~150 tokens for a whole page |
+| Something to click | `svipall snapshot URL` — roles, names and refs. Measured: 12 tokens on a plain page, 1 600 on a dense one (the node list is capped at 200), against 8 700 for the same page's prose |
 | The site's real API | `svipall capture URL` — the JSON the page itself fetched while loading |
 | A lot of pages | `svipall crawl URL --out pages.csv` — writes a file, returns a path and a count |
 | A table, as rows | `svipall fetch URL --tables --out rows.csv` — typed rows with their columns, not a markdown grid |
