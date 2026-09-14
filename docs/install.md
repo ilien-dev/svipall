@@ -50,7 +50,31 @@ A person can follow it too. Every command is exact, and none of them needs an ad
 svipall --version
 ```
 
-A JSON object means yes — go to [step 4](#4-check-the-installation). `command not found` means no.
+A JSON object means an installation already exists. Note its current version and executable path,
+then check the latest version **before writing the selected plugin, MCP entry or skill**:
+
+```bash
+svipall update --check
+```
+
+That command exists in 1.0.5 and newer. For an older binary, read the latest stable `tag_name` from
+`https://api.github.com/repos/ilien-dev/svipall/releases/latest` and identify the existing channel
+from the executable path; do not install a second copy through a guessed channel.
+
+Always show the current version and latest version. If the current version is older, show the exact
+channel-specific update command and ask the user to choose:
+
+- **Update the shared installation** — replace the user-owned `svipall` and `svipall-mcp` binaries
+  used by all harnesses configured on this machine. Keep `~/.svipall`, including configuration,
+  profiles, cookies, cache, models and its managed browser. Running MCP clients must restart.
+- **Keep the current version** — make no binary or data changes and continue installing the chosen
+  integration with the version already present.
+
+An integration install never implies consent to update the shared binaries. On update, stay with
+the detected installation channel; release-script installations on 1.0.5 and newer can run
+`svipall update --install` after confirmation. On keep, use the current version when selecting the
+matching skill. If the versions are equal, say so and go to [step 4](#4-check-the-installation).
+`command not found` means there is no existing binary, so continue to step 2.
 
 ---
 
@@ -188,13 +212,16 @@ One JSON object. `ok: true` means it is ready. Otherwise every entry in `problem
 
 ## 5. Install the skill for the selected scope
 
-Both integration choices include the canonical Agent Skill. Use the `version` printed by
-`svipall --version` and install `skill/SKILL.md` from the **matching release tag**, for example
-`https://raw.githubusercontent.com/ilien-dev/svipall/v1.0.4/skill/SKILL.md`. A release archive
-already contains that file. For a source build, copy it from the same source checkout. Never pair
-a stable binary with the current `main` skill: its commands may have changed.
+Both integration choices include the canonical Agent Skill and the small explicit updater skill.
+Use the `version` printed by `svipall --version` and install both from the **matching release tag**:
+`skill/SKILL.md` and `skills/svipall-update/SKILL.md`. For example, join `v<version>` into
+`https://raw.githubusercontent.com/ilien-dev/svipall/v<version>/skill/SKILL.md`. A release archive
+already contains `SKILL.md` and `svipall-update/SKILL.md`. For a source build, copy them from the
+same source checkout. Never pair a stable binary with the current `main` skills: their commands may
+have changed.
 
-Copy it to the harness's path for the scope the user chose, creating only the `svipall` directory:
+Copy the canonical skill to the harness's path for the scope the user chose, creating only its
+`svipall` directory:
 
 | Harness | All projects for this user | This project only |
 |---|---|---|
@@ -202,6 +229,14 @@ Copy it to the harness's path for the scope the user chose, creating only the `s
 | Codex | `$HOME/.agents/skills/svipall/SKILL.md` | `.agents/skills/svipall/SKILL.md` at the repository root |
 | Cursor | `~/.cursor/skills/svipall/SKILL.md` | `.cursor/skills/svipall/SKILL.md` |
 | OpenCode | `~/.config/opencode/skills/svipall/SKILL.md` | `.opencode/skills/svipall/SKILL.md` |
+
+Copy the updater beside it as `svipall-update/SKILL.md` in the same user- or project-level skills
+directory. Codex invokes it as `$svipall-update` and also shows enabled skills in its slash-command
+list. Cursor exposes the skill directly as `/svipall-update`. For OpenCode, also copy
+`integrations/opencode/commands/svipall-update.md` from the matching tag to
+`~/.config/opencode/commands/` or `.opencode/commands/` for the selected scope; that supplies
+`/svipall-update` and delegates to the skill. The Claude plugin supplies the same workflow as
+`/svipall:update`, so do not copy a duplicate updater when using that plugin.
 
 Exception: for user-wide **MCP + Skill** in Claude Code, ask whether to use the recommended plugin
 before copying a standalone skill. If the user accepts, continue to the Claude Code plugin steps in
@@ -369,10 +404,10 @@ Remove only the integration and scope the user selected:
 | Harness | Remove MCP | Remove skill |
 |---|---|---|
 | Claude Code plugin | `/svipall:uninstall` | removed with the plugin |
-| Claude Code manual | `claude mcp remove --scope user svipall` or the project equivalent | `~/.claude/skills/svipall` or `.claude/skills/svipall` |
-| Codex | `codex mcp remove svipall`, or remove only `[mcp_servers.svipall]` from the project config | `$HOME/.agents/skills/svipall` or `.agents/skills/svipall` |
-| Cursor | remove only `mcpServers.svipall` from the selected `mcp.json` | `~/.cursor/skills/svipall` or `.cursor/skills/svipall` |
-| OpenCode | remove only the selected config's Svipall MCP entry | `~/.config/opencode/skills/svipall` or `.opencode/skills/svipall` |
+| Claude Code manual | `claude mcp remove --scope user svipall` or the project equivalent | `~/.claude/skills/{svipall,svipall-update}` or the project equivalents |
+| Codex | `codex mcp remove svipall`, or remove only `[mcp_servers.svipall]` from the project config | `$HOME/.agents/skills/{svipall,svipall-update}` or the project equivalents |
+| Cursor | remove only `mcpServers.svipall` from the selected `mcp.json` | `~/.cursor/skills/{svipall,svipall-update}` or the project equivalents |
+| OpenCode | remove only the selected config's Svipall MCP entry | `~/.config/opencode/skills/{svipall,svipall-update}` and `~/.config/opencode/commands/svipall-update.md`, or the project equivalents |
 
 Restore a timestamped backup if a manual merge damaged a config, but do not replace newer unrelated
 changes with an old whole-file backup. CLI + Skill has no MCP entry to remove unless the user chose

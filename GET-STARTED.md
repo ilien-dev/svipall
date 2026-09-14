@@ -31,7 +31,9 @@ It will work out which version your computer needs and ask how you want to use i
 - **MCP + Skill** adds Svipall to the assistant's MCP tools for the full interactive surface.
 
 It then asks whether that choice should apply everywhere or only to the current project, shows what
-it will change, installs it and checks the selected integration rather than assuming it worked.
+it will change, installs it and checks the selected integration rather than assuming it worked. If
+Svipall is already installed, it also shows the current and latest versions and asks whether to
+update the copy shared by your assistants or keep using the one you have.
 
 ## In Claude Code specifically
 
@@ -45,6 +47,7 @@ Three lines, in the Claude Code prompt:
 
 `/svipall:setup` installs the program if it is not there yet, connects it, and asks whether you want
 Claude to use it for all web access from now on. Say no to anything you would rather not have.
+Later, `/svipall:update` checks the current and latest versions and asks before replacing anything.
 
 ## Doing it yourself
 
@@ -63,7 +66,8 @@ irm https://raw.githubusercontent.com/ilien-dev/svipall/main/install.ps1 | iex
 ```
 
 You will see it download a file, check it, and print where it put things. It never asks for your
-password, and it only writes inside your own user folder.
+password, and it only writes inside your own user folder. If another version is already there, it
+asks before replacing the two binaries shared by every configured assistant.
 
 At the end it may offer to download a browser of its own, about 190 MB. Say yes if you can: without
 it, Svipall can only read the simplest sites. You can also do it later by running
@@ -77,6 +81,9 @@ svipall doctor
 
 That prints a report. If it says `"ok": true`, you are done. Otherwise each problem it lists comes
 with the exact command that fixes it.
+
+To check for a newer Svipall later without changing anything, run `svipall update --check`. Run
+`svipall update --install` only after you decide to replace the shared user installation.
 
 ## Trying it
 

@@ -93,8 +93,10 @@ https://raw.githubusercontent.com/ilien-dev/svipall/main/docs/install.md
 That page guides an agent through platform detection and verification, then asks which integration
 you want: **CLI + Skill** (recommended, lower context use) or **MCP + Skill** (the full MCP tool
 surface). It also asks whether to configure every project or only the current one, and verifies the
-chosen result instead of treating a skill as MCP registration. Completion depends on the agent,
-client configuration and available permissions.
+chosen result instead of treating a skill as MCP registration. When Svipall already exists, it
+shows the installed and latest versions and asks whether to update the shared user installation or
+keep the current version before it writes the integration. Completion depends on the agent, client
+configuration and available permissions.
 
 ### Claude Code: install the plugin
 
@@ -106,8 +108,10 @@ client configuration and available permissions.
 
 `/svipall:setup` installs the binary if it is missing, checks the server answers, and offers to make
 Svipall the way Claude reaches the web in every project. It asks before each of those.
-`/svipall:doctor` reports the installation's capabilities. `/svipall:uninstall` offers removal
-of setup's registration, memory and strict-mode changes; binary and data removal are separate choices.
+`/svipall:doctor` reports the installation's capabilities. `/svipall:update` shows the installed
+and latest releases, then updates the binaries only if you choose to. `/svipall:uninstall` offers
+removal of setup's registration, memory and strict-mode changes; binary and data removal are
+separate choices.
 
 ### Install it yourself
 
@@ -130,7 +134,15 @@ cargo install svipall                            # from source; add `svipall mod
 
 The installers verify checksums where they can, and a mismatch stops the install. A missing
 checksum file, entry or hashing utility only warns, so a successful exit is not by itself proof
-the archive was verified: read the output.
+the archive was verified: read the output. If the destination already contains another version,
+the installer states that the binaries are shared by every harness and asks before replacing them.
+
+Check for a release without changing anything, or update after reviewing the report:
+
+```bash
+svipall update --check
+svipall update --install       # only after choosing to update the shared installation
+```
 
 Platform builds, what ships where, building from source and wiring it into any MCP client are all
 in [**docs/install.md**](docs/install.md). Never installed anything from a terminal before?
@@ -295,7 +307,7 @@ Twenty-nine tools, all local.
 
 ```
 svipall fetch | crawl | snapshot | capture | search | map | log | notes | watch
-        profile | browser | route | status | serve | doctor | hook
+        profile | browser | route | status | serve | doctor | update | hook
         config show | set | preset
         solver export-corpus
         quality ask | export-training | train
