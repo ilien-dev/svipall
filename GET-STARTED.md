@@ -25,8 +25,13 @@ Install and configure Svipall by following the instructions here:
 https://raw.githubusercontent.com/ilien-dev/svipall/main/docs/install.md
 ```
 
-It will work out which version your computer needs, install it, and connect it up, asking you
-before each step.
+It will work out which version your computer needs and ask how you want to use it:
+
+- **CLI + Skill** (recommended) uses less context and runs Svipall through the assistant's shell.
+- **MCP + Skill** adds Svipall to the assistant's MCP tools for the full interactive surface.
+
+It then asks whether that choice should apply everywhere or only to the current project, shows what
+it will change, installs it and checks the selected integration rather than assuming it worked.
 
 ## In Claude Code specifically
 

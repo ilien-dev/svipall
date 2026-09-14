@@ -226,6 +226,54 @@ fn no_documented_npx_line_mistakes_the_binary_for_the_package() {
     }
 }
 
+/// The agent-facing installer is an interface: its two choices must stay distinct, and every
+/// first-class harness needs enough exact information to finish and verify the selected setup.
+#[test]
+fn the_agent_installer_offers_cli_or_mcp_without_conflating_them() {
+    let root = workspace_root();
+    let install = read(&root, "docs/install.md");
+
+    for required in [
+        "CLI + Skill (recommended)",
+        "MCP + Skill",
+        "codex mcp add svipall --",
+        "$HOME/.agents/skills/svipall/SKILL.md",
+        "claude mcp add --scope user svipall --",
+        "~/.cursor/mcp.json",
+        "agent mcp list-tools svipall",
+        "opencode mcp add svipall --global --",
+        "~/.config/opencode/skills/svipall/SKILL.md",
+        "Unknown or unsupported harness",
+        "matching release tag",
+    ] {
+        assert!(
+            install.contains(required),
+            "docs/install.md is missing the universal setup contract: {required}"
+        );
+    }
+
+    assert!(
+        install.contains("does not register an MCP server"),
+        "the CLI choice must say plainly that it does not create an MCP entry"
+    );
+    assert!(
+        !install.contains("~/.codex/skills/svipall/SKILL.md"),
+        "Codex discovers user skills under $HOME/.agents/skills; do not revive the old path"
+    );
+    assert!(
+        !install.contains("sudo dpkg") && !install.contains("sudo rpm"),
+        "the agent installer promises never to use sudo, so it cannot offer root package commands"
+    );
+
+    for public_entrypoint in ["README.md", "GET-STARTED.md", "install.sh", "install.ps1"] {
+        let text = read(&root, public_entrypoint);
+        assert!(
+            text.contains("CLI + Skill") && text.contains("MCP + Skill"),
+            "{public_entrypoint} must name both outcomes instead of implying every install is MCP"
+        );
+    }
+}
+
 #[test]
 fn the_image_carries_the_name_the_registry_looks_for() {
     let root = workspace_root();
