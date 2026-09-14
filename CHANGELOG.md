@@ -1,5 +1,28 @@
 # Changelog
 
+## 1.0.5 — 2026-09-14
+
+- **Installing an integration no longer leaves an existing Svipall silently out of date.** The
+  agent guide and Claude setup now check the installed and latest stable versions before writing a
+  plugin, MCP entry or skill. When an update exists they explain that `svipall` and `svipall-mcp`
+  are one user-owned installation shared by every configured harness, then offer two explicit
+  outcomes: update it while preserving `~/.svipall`, or keep the current version and continue the
+  integration setup unchanged. The shell and PowerShell installers apply the same guard before
+  replacing an older binary.
+
+- **Updates have a first-class, consent-preserving workflow.** `svipall update --check` returns the
+  current version, latest version, executable, detected installation channel and exact update
+  command without changing the machine. `svipall update --install` acts only when the caller has
+  already obtained consent, stays with the existing release-script, Homebrew, Scoop, Cargo, npm,
+  container or system-package channel, and refuses to guess an unknown one. Windows returns a
+  PowerShell handoff because a running executable cannot replace itself safely.
+
+- **Every supported harness receives an update command suited to its extension model.** The Claude
+  plugin ships `/svipall:update`; Codex and Cursor receive the portable `svipall-update` Agent
+  Skill (invoked as `$svipall-update` or `/svipall-update`), and OpenCode receives a matching slash
+  command adapter. Release archives now carry the updater skill and adapters, and contract tests
+  keep the universal and Claude workflows synchronized.
+
 ## 1.0.4 — 2026-09-13
 
 - **The agent-assisted installer now asks which integration the user actually wants.** Before

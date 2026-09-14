@@ -14,3 +14,15 @@ dst="$root/plugins/svipall/skills/svipall/SKILL.md"
 mkdir -p "$(dirname "$dst")"
 cp "$src" "$dst"
 echo "synced $src -> $dst"
+
+# The updater is a standalone `$svipall-update` skill in Agent Skills clients, but Claude plugins
+# namespace it as `/svipall:update`.  Its body stays canonical; only the frontmatter name and the
+# Claude-specific invocation phrase differ.
+update_src="$root/skills/svipall-update/SKILL.md"
+update_dst="$root/plugins/svipall/skills/update/SKILL.md"
+mkdir -p "$(dirname "$update_dst")"
+sed \
+  -e 's/^name: svipall-update$/name: update/' \
+  -e 's/Use when the user asks/Use when the user runs \/svipall:update or asks/' \
+  "$update_src" > "$update_dst"
+echo "synced $update_src -> $update_dst"

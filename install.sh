@@ -180,6 +180,34 @@ else
         fi
     fi
     num="${VERSION#v}"
+
+    # Installing an integration is not permission to replace the binaries every harness shares.
+    # Ask before the download, when declining still costs nothing.  An executable elsewhere on
+    # PATH belongs to another channel; this installer cannot update it without creating two copies.
+    existing_exe=""
+    [ -x "$PREFIX/svipall" ] && existing_exe="$PREFIX/svipall"
+    if [ -z "$existing_exe" ]; then
+        existing_exe="$(command -v svipall 2>/dev/null || true)"
+        if [ -n "$existing_exe" ]; then
+            die "Svipall is already installed at $existing_exe, outside $PREFIX. Update it through its existing channel instead of creating a second installation."
+        fi
+    fi
+    if [ -n "$existing_exe" ]; then
+        installed_version="$("$existing_exe" --version 2>/dev/null | tr ',' '\n' | grep '"version"' | head -n1 | cut -d'"' -f4 || true)"
+        if [ -n "$installed_version" ]; then
+            say "Svipall is already installed: current version $installed_version; latest version $num."
+        else
+            say "Svipall is already installed at $existing_exe; its current version could not be read."
+        fi
+        if [ "$installed_version" != "$num" ]; then
+            say "Updating replaces the user-owned svipall and svipall-mcp binaries used by all harnesses; ~/.svipall and its data stay unchanged."
+            if ! ask "Update the shared installation to $num?"; then
+                say "Kept the current version ${installed_version:-unknown}; nothing was downloaded or changed."
+                exit 0
+            fi
+        fi
+    fi
+
     name="svipall-$num-$TARGET.$EXT"
     base="https://github.com/$REPO/releases/download/$VERSION"
     say "downloading $name"

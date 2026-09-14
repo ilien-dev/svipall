@@ -274,6 +274,50 @@ fn the_agent_installer_offers_cli_or_mcp_without_conflating_them() {
     }
 }
 
+/// Installing an integration around an existing binary must not silently freeze that binary on an
+/// old release.  The same prompt applies to the Claude plugin and to the universal agent guide.
+#[test]
+fn every_setup_checks_an_existing_version_before_writing_the_integration() {
+    fn body(text: &str) -> &str {
+        text.splitn(3, "---").nth(2).unwrap_or(text).trim()
+    }
+
+    let root = workspace_root();
+    let install = read(&root, "docs/install.md");
+    let claude_setup = read(&root, "plugins/svipall/skills/setup/SKILL.md");
+    let update = read(&root, "skills/svipall-update/SKILL.md");
+    let claude_update = read(&root, "plugins/svipall/skills/update/SKILL.md");
+
+    for (name, text) in [
+        ("agent install guide", install.as_str()),
+        ("Claude setup", claude_setup.as_str()),
+    ] {
+        let text = text.to_lowercase();
+        for required in [
+            "current version",
+            "latest version",
+            "all harnesses",
+            "update",
+            "keep the current version",
+        ] {
+            assert!(
+                text.contains(required),
+                "{name} is missing update choice: {required}"
+            );
+        }
+    }
+
+    assert_eq!(
+        body(&update),
+        body(&claude_update),
+        "the universal updater skill and Claude's /svipall:update must have one behavior"
+    );
+    assert!(update.contains("svipall update --check"));
+    assert!(update.contains("svipall update --install"));
+    let opencode = read(&root, "integrations/opencode/commands/svipall-update.md");
+    assert!(opencode.contains("svipall-update") && opencode.contains("chosen to update"));
+}
+
 #[test]
 fn the_image_carries_the_name_the_registry_looks_for() {
     let root = workspace_root();

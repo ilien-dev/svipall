@@ -106,6 +106,37 @@ try {
             }
         }
         $num = $Version -replace '^v', ''
+
+        # Ask before downloading or replacing a binary already shared by one or more harnesses.
+        # A copy outside this prefix belongs to another channel and must not be shadowed on PATH.
+        $existing = Join-Path $Prefix 'svipall.exe'
+        if (-not (Test-Path -LiteralPath $existing)) {
+            $found = Get-Command svipall -ErrorAction SilentlyContinue
+            if ($found) {
+                Die "Svipall is already installed at $($found.Source), outside $Prefix. Update it through its existing channel instead of creating a second installation."
+            }
+        } else {
+            $installedVersion = ''
+            try {
+                $installedVersion = ((& $existing --version | Out-String) | ConvertFrom-Json).version
+            } catch {}
+            if ($installedVersion) {
+                Say "Svipall is already installed: current version $installedVersion; latest version $num."
+            } else {
+                Say "Svipall is already installed at $existing; its current version could not be read."
+            }
+            if ($installedVersion -ne $num) {
+                Say 'Updating replaces the user-owned svipall and svipall-mcp binaries used by all harnesses; ~\.svipall and its data stay unchanged.'
+                if (-not $Yes) {
+                    $answer = Read-Host "Update the shared installation to $num? [y/N]"
+                    if ($answer -notmatch '^[yY]([eE][sS])?$') {
+                        Say "Kept the current version $(if ($installedVersion) {$installedVersion} else {'unknown'}); nothing was downloaded or changed."
+                        exit 0
+                    }
+                }
+            }
+        }
+
         $name = "svipall-$num-$target.zip"
         $base = "https://github.com/$repo/releases/download/$Version"
         $archive = Join-Path $tmp $name
