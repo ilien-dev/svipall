@@ -268,9 +268,10 @@ say "Done. Next:"
 if [ "$on_path" -eq 0 ] && [ "$NO_PATH" -eq 0 ]; then
     say "  open a new terminal (or: . $profile) so svipall is on your PATH"
 fi
-say "  claude mcp add svipall -- $PREFIX/svipall-mcp        # wire it into Claude Code"
-say "  svipall fetch https://example.com                     # or just use it from a shell"
+say "  svipall fetch https://example.com                     # use the CLI directly"
+say "  or choose CLI + Skill / MCP + Skill for your agent:"
+say "  https://github.com/$REPO/blob/main/docs/install.md"
 say ""
-say "In Claude Code, the plugin does the wiring for you:"
+say "In Claude Code, the plugin is the MCP + Skill shortcut:"
 say "  /plugin marketplace add $REPO"
 say "  /plugin install svipall@svipall"

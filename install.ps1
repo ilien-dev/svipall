@@ -199,10 +199,11 @@ try {
     if (-not $onPath -and -not $NoPath) {
         Say '  open a new terminal so svipall is on your PATH'
     }
-    Say "  claude mcp add svipall -- $Prefix\svipall-mcp.exe   # wire it into Claude Code"
-    Say '  svipall fetch https://example.com                    # or just use it from a shell'
+    Say '  svipall fetch https://example.com                    # use the CLI directly'
+    Say '  or choose CLI + Skill / MCP + Skill for your agent:'
+    Say "  https://github.com/$repo/blob/main/docs/install.md"
     Say ''
-    Say 'In Claude Code, the plugin does the wiring for you:'
+    Say 'In Claude Code, the plugin is the MCP + Skill shortcut:'
     Say "  /plugin marketplace add $repo"
     Say '  /plugin install svipall@svipall'
 } finally {

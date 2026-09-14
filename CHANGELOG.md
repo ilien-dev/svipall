@@ -1,5 +1,27 @@
 # Changelog
 
+## 1.0.4 — 2026-09-13
+
+- **The agent-assisted installer now asks which integration the user actually wants.** Before
+  changing the machine it explains and offers **CLI + Skill** (the recommended, lower-context
+  option) or **MCP + Skill** (the complete MCP tool surface), then asks whether the integration is
+  user-wide or limited to the current project. It previews the exact files and commands, preserves
+  unrelated configuration, asks once before writing, and verifies the selected outcome instead of
+  treating an installed skill as proof that an MCP server was registered.
+
+- **Claude Code, Codex, Cursor and OpenCode have first-class setup instructions.** Each adapter now
+  uses that harness's current skill location, MCP command or configuration file, scope semantics
+  and verification command. An unknown harness gets a portable stdio definition and a guarded
+  fallback: the agent must show the proposed target and configuration and obtain confirmation
+  rather than guessing where to write. Claude Code keeps its plugin as the recommended shortcut
+  for a user-wide MCP + Skill installation.
+
+- **Installation and removal describe the same system.** The quick-start pages and both bootstrap
+  scripts name the two integration choices; the full guide records how to remove only the chosen
+  harness integration. Skill files are taken from the binary's matching release tag, legacy Codex
+  paths are no longer offered, and root-only package commands were removed from a prompt that
+  promises not to use `sudo`.
+
 ## 1.0.3 — 2026-09-11
 
 - **The headless tiers stop announcing that nothing is holding the mouse.** A headless Chrome
