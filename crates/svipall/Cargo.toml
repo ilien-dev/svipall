@@ -27,11 +27,11 @@ name = "svipall"
 path = "src/bin/svipall.rs"
 
 [dependencies]
-svipall-core = { path = "../svipall-core", version = "1.0.4" }
-svipall-http = { path = "../svipall-http", version = "1.0.4", default-features = false }
-svipall-solver = { path = "../svipall-solver", version = "1.0.4" }
-svipall-dashboard = { path = "../svipall-dashboard", version = "1.0.4" }
-svipall-models = { path = "../svipall-models", version = "1.0.4" }
+svipall-core = { path = "../svipall-core", version = "1.0.5" }
+svipall-http = { path = "../svipall-http", version = "1.0.5", default-features = false }
+svipall-solver = { path = "../svipall-solver", version = "1.0.5" }
+svipall-dashboard = { path = "../svipall-dashboard", version = "1.0.5" }
+svipall-models = { path = "../svipall-models", version = "1.0.5" }
 tokio = { workspace = true }
 axum = { workspace = true }
 serde = { workspace = true }
@@ -49,6 +49,7 @@ schemars = "1.2"
 futures = { workspace = true }
 urlencoding = { workspace = true }
 scraper = { workspace = true }
+semver = { workspace = true }
 url = { workspace = true }
 zip = { version = "2.2", default-features = false, features = ["deflate", "aes-crypto"] }
 # Checking a downloaded models archive against the release's own sha256sums.txt.
@@ -123,6 +124,7 @@ assets = [
     ["../../packaging/staging/svipall-mcp", "usr/bin/", "755"],
     ["../../README.md", "usr/share/doc/svipall/README.md", "644"],
     ["../../skill/SKILL.md", "usr/share/doc/svipall/SKILL.md", "644"],
+    ["../../skills/svipall-update/SKILL.md", "usr/share/doc/svipall/svipall-update/SKILL.md", "644"],
 ]
 
 [package.metadata.generate-rpm]
@@ -134,4 +136,5 @@ assets = [
     { source = "../../packaging/staging/svipall-mcp", dest = "/usr/bin/svipall-mcp", mode = "755" },
     { source = "../../README.md", dest = "/usr/share/doc/svipall/README.md", mode = "644" },
     { source = "../../skill/SKILL.md", dest = "/usr/share/doc/svipall/SKILL.md", mode = "644" },
+    { source = "../../skills/svipall-update/SKILL.md", dest = "/usr/share/doc/svipall/svipall-update/SKILL.md", mode = "644" },
 ]

@@ -32,6 +32,7 @@ step 'clippy (onnx-zeroshot)' cargo clippy -p svipall --all-targets --features o
 # The QUIC stack is off by default, so nothing else in this list ever compiles it.
 step 'clippy (http3)' cargo clippy -p svipall --all-targets --features http3 -- -D warnings
 step 'tests' cargo test --workspace
+step 'installer update prompt' bash "$here/test-update-prompt.sh"
 # The h3 engine and the shape of the QUIC handshake it produces, offline.
 step 'tests (http3)' cargo test -p svipall-http --features http3 --test h3
 # The inference paths, executed: a real ONNX Runtime session over hand-built fixture graphs, and

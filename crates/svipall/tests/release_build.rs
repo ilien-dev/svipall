@@ -315,6 +315,17 @@ fn the_registry_key_is_read_without_its_whitespace() {
     );
 }
 
+#[test]
+fn every_release_archive_carries_the_explicit_update_skill() {
+    let workflow = release_yml();
+    assert!(
+        workflow.contains("cp -R skills/svipall-update out/")
+            && workflow.contains("cp -R integrations out/")
+            && workflow.contains("LICENSE SKILL.md svipall-update integrations"),
+        "the updater skill must travel with every binary archive"
+    );
+}
+
 /// The registry's `?search=` finds nothing for the full name `dev.ilien.svipall/mcp`, even with
 /// 1.0.0 published, so a second send would have been refused as a duplicate instead of skipped.
 /// The server's own versions endpoint answers exactly.

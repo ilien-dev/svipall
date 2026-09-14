@@ -17,8 +17,27 @@ Report at the end: what changed, and how to undo it.
 svipall --version
 ```
 
-- **It answers** with a JSON object → note the `version` and `target`, go to step 3.
+- **It answers** with a JSON object → note the `version` and `target`, then compare it with the
+  latest version before installing or changing this plugin's integration.
 - **Command not found** → step 2.
+
+For 1.0.5 and newer, run `svipall update --check`. For an older binary, read the latest stable
+`tag_name` from `https://api.github.com/repos/ilien-dev/svipall/releases/latest`. State the current
+version and latest version even when they are equal.
+
+If a newer release exists, show the detected installation channel, the exact update command, and
+ask the user to choose between these outcomes before writing any integration:
+
+- **Update the shared installation** — replace the user-owned `svipall` and `svipall-mcp` binaries
+  used by all harnesses on this machine, preserve `~/.svipall` and its data, then continue setup.
+  Harnesses with a running MCP server must restart afterwards.
+- **Keep the current version** — do not change either binary; continue installing this plugin and
+  use the version already present.
+
+Installing the plugin is not consent to update the shared binaries. If the user chooses update,
+follow `../update/SKILL.md`; the old-binary fallback must use the existing installation channel.
+Then run `svipall --version` again and continue with the version actually installed. If the latest
+release cannot be checked, say why and ask whether to continue setup with the current version.
 
 ## 2. Install the binary
 
