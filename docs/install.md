@@ -15,12 +15,32 @@ A person can follow it too. Every command is exact, and none of them needs an ad
 ## 0. Rules for whoever is running this
 
 - **Explain the selected installation channel.** An installation request authorizes its normal setup.
+- **Before writing anything, ask which integration the user wants.** Offer these outcomes in these
+  words, with the trade-off in the choice itself:
+
+  - **CLI + Skill (recommended)** — lower context use; the agent runs `svipall` through its shell.
+    This does not register an MCP server, so Svipall will not appear in the client's MCP list and
+    MCP-only interactive sessions are unavailable.
+  - **MCP + Skill** — register `svipall-mcp` and install the same skill. The client gets the full
+    MCP tool surface and persistent browser interactions, at the cost of a larger tool catalogue.
+
+  Do not silently substitute one for the other.
+- **Then ask for scope:** *all projects for this user* or *this project only*. Before making changes,
+  show the detected platform, harness, install channel, exact config and skill paths, download sizes,
+  and whether any existing Svipall entry will be replaced. One confirmation authorizes that stated
+  set of writes; a later conflict or optional download gets its own question.
+  Scope applies to the harness integration; the two binaries remain one user-owned installation.
+- **Detect the harness from the running agent and its environment**, not merely from commands found
+  on PATH. A machine can have several clients installed. Inspect any existing `svipall` MCP entry
+  and skill before proposing a change.
 - **Never run any of it with `sudo`.** Everything installs into a directory the user owns. A step
   that seems to need root means something went wrong; stop and say so.
 - **The managed browser download is about 190 MB.** The tool provisions it automatically when
   needed; `--no-browser` / `-NoBrowser` disables automatic provisioning.
 - **If a step fails, stop and report the actual error.** Do not quietly try another channel: the
   user ends up with two installs and no idea which one is on PATH.
+- **Never overwrite an unrelated config file.** Prefer the harness's own registration command. If
+  JSON or TOML must be edited, preserve every other key and make a timestamped backup first.
 
 ---
 
@@ -43,8 +63,6 @@ table says which and why.
 |---|---|
 | macOS or Linux | `curl -fsSL https://raw.githubusercontent.com/ilien-dev/svipall/main/install.sh \| sh` |
 | Windows | `irm https://raw.githubusercontent.com/ilien-dev/svipall/main/install.ps1 \| iex` |
-| Debian / Ubuntu | download `svipall_<version>_amd64.deb` from the release, then `sudo dpkg -i` it |
-| Fedora / RHEL | download `svipall-<version>.x86_64.rpm` from the release, then `sudo rpm -i` it |
 | Prefers containers | `docker pull ghcr.io/ilien-dev/svipall:latest` |
 | macOS or Linux, has Homebrew | `brew install ilien-dev/svipall/svipall` |
 | Windows, has Scoop | `scoop bucket add svipall https://github.com/ilien-dev/scoop-svipall` then `scoop install svipall` |
@@ -168,9 +186,50 @@ One JSON object. `ok: true` means it is ready. Otherwise every entry in `problem
 
 ---
 
-## 5. Wire it into the agent
+## 5. Install the skill for the selected scope
 
-### Claude Code — the plugin does all of this
+Both integration choices include the canonical Agent Skill. Use the `version` printed by
+`svipall --version` and install `skill/SKILL.md` from the **matching release tag**, for example
+`https://raw.githubusercontent.com/ilien-dev/svipall/v1.0.4/skill/SKILL.md`. A release archive
+already contains that file. For a source build, copy it from the same source checkout. Never pair
+a stable binary with the current `main` skill: its commands may have changed.
+
+Copy it to the harness's path for the scope the user chose, creating only the `svipall` directory:
+
+| Harness | All projects for this user | This project only |
+|---|---|---|
+| Claude Code | `~/.claude/skills/svipall/SKILL.md` | `.claude/skills/svipall/SKILL.md` |
+| Codex | `$HOME/.agents/skills/svipall/SKILL.md` | `.agents/skills/svipall/SKILL.md` at the repository root |
+| Cursor | `~/.cursor/skills/svipall/SKILL.md` | `.cursor/skills/svipall/SKILL.md` |
+| OpenCode | `~/.config/opencode/skills/svipall/SKILL.md` | `.opencode/skills/svipall/SKILL.md` |
+
+Exception: for user-wide **MCP + Skill** in Claude Code, ask whether to use the recommended plugin
+before copying a standalone skill. If the user accepts, continue to the Claude Code plugin steps in
+section 6; the plugin supplies its own namespaced skill, so do not install a duplicate here.
+
+If the destination already exists and differs, show that fact and ask before replacing it. After
+copying, compare the source and destination hashes. A client that was already open may need a new
+session; state which client must refresh rather than saying only "restart".
+
+If the user chose **CLI + Skill**, stop after a successful `svipall fetch https://example.com`.
+Do not add an MCP entry. If one already exists, ask whether to keep it or remove it; the chosen CLI
+mode does not itself authorize deleting an earlier MCP setup.
+
+If the user chose **MCP + Skill**, continue with step 6.
+
+---
+
+## 6. Register the MCP server
+
+Resolve `svipall-mcp` to an absolute path and use it below. For a container, the command and args are
+`docker run -i --rm -v svipall-home:/data ghcr.io/ilien-dev/svipall:latest`; `-i` keeps MCP stdin
+open and the volume preserves profiles, cache and learned routes. For npm, use
+`npx --yes --package=svipall svipall-mcp`: `--package` is required because `svipall-mcp` is a binary
+inside the `svipall` package, not a package of its own.
+
+### Claude Code
+
+For a user-wide MCP setup, recommend the plugin because it already bundles the MCP entry and skill:
 
 ```
 /plugin marketplace add ilien-dev/svipall
@@ -178,65 +237,90 @@ One JSON object. `ok: true` means it is ready. Otherwise every entry in `problem
 /svipall:setup
 ```
 
-The plugin registers the MCP server and ships the skills. `/svipall:setup` also offers to make
-Svipall the way this user reaches the web everywhere, and `/svipall:uninstall` reverses it.
-
-### Claude Code — by hand
+The plugin's setup keeps its existing optional memory and strict-mode questions. Do not install the
+plugin for **CLI + Skill**, because the plugin registers MCP. For manual registration use:
 
 ```bash
-claude mcp add svipall -- svipall-mcp
+claude mcp add --scope user svipall -- /absolute/path/to/svipall-mcp
+claude mcp add --scope project svipall -- /absolute/path/to/svipall-mcp
 ```
 
-If `svipall-mcp` is not on the PATH of whatever launched Claude Code, use the absolute path:
-`claude mcp add -s user svipall -- /absolute/path/to/svipall-mcp`.
+Use only the line matching the selected scope. Verify with `claude mcp list`; if the tools are not
+available in the current session, restart Claude Code and inspect `/mcp`.
 
-The npm route installs nothing on the PATH, so there it is npx that has to find the binary:
+### Codex
+
+User-wide registration uses the CLI, which writes to the active Codex home. Respect `CODEX_HOME`
+when it is set instead of assuming that the config is under the ordinary home directory:
 
 ```bash
-claude mcp add svipall -- npx --yes --package=svipall svipall-mcp
+codex mcp add svipall -- /absolute/path/to/svipall-mcp
+codex mcp list
 ```
 
-`--package` is not optional. The package is `svipall` and the binary is `svipall-mcp`, and npx
-given a bare `svipall-mcp` looks for a **package** by that name, which nobody publishes.
+For project scope, merge this into `.codex/config.toml` in a trusted project:
 
-### Claude Desktop, Cursor, and any other MCP client
+```toml
+[mcp_servers.svipall]
+command = "/absolute/path/to/svipall-mcp"
+```
 
-Add to the client's MCP config (`claude_desktop_config.json`, `.cursor/mcp.json`, …):
+Verify the entry with `codex mcp list`, then start a new Codex session and inspect `/mcp`. A config
+entry is not proof that an already-running session dynamically gained the tools.
+
+### Cursor
+
+Merge the entry into `~/.cursor/mcp.json` for user scope or `.cursor/mcp.json` for project scope:
 
 ```json
 {
   "mcpServers": {
     "svipall": {
-      "command": "svipall-mcp"
+      "command": "/absolute/path/to/svipall-mcp"
     }
   }
 }
 ```
 
-Use an absolute path for `command` if the client does not inherit your shell's PATH — GUI apps on
-macOS usually do not.
+Preserve every other server and key. Restart Cursor, run `agent mcp list`, then
+`agent mcp list-tools svipall`; both the server and its tools must be present.
 
-### Codex, opencode, and agents that prefer a shell
+### OpenCode
 
-Point them at the CLI instead. It is the same server for a fraction of the tokens: copy `SKILL.md`
-from the release archive (or [`skill/SKILL.md`](../skill/SKILL.md)) into wherever that
-agent keeps its skills — `~/.codex/skills/svipall/SKILL.md`, `.opencode/skills/`, and so on. The
-whole surface is `svipall <command>`; `svipall --help` lists it.
-
-### A container instead of a binary
+Use its configuration-aware command; omit `--global` only for project scope:
 
 ```bash
-claude mcp add svipall -- docker run -i --rm -v svipall-home:/data ghcr.io/ilien-dev/svipall:latest
+opencode mcp add svipall --global -- /absolute/path/to/svipall-mcp
+opencode mcp add svipall -- /absolute/path/to/svipall-mcp
+opencode mcp list
 ```
 
-`-i` keeps stdin open for MCP, and `-v svipall-home:/data` is what makes it remember anything.
-Two moving tags, both built for amd64 and arm64: `latest` (a browser as well) and `slim` (the http
-tier only). Only a stable release moves them; to try a pre-release, pull its version tag —
-`ghcr.io/ilien-dev/svipall:<version>`, and `:<version>-slim`.
+Use exactly one add command. The list must report Svipall connected. If the installed OpenCode
+version does not accept that syntax, inspect `opencode mcp add --help` and show the user the config
+it proposes before writing it; do not guess between incompatible config schemas.
+
+### Unknown or unsupported harness
+
+Find its documented user- or project-level MCP and Agent Skills locations. Show the target paths and
+this generic STDIO entry, then get confirmation before writing anything:
+
+```json
+{
+  "mcpServers": {
+    "svipall": {
+      "command": "/absolute/path/to/svipall-mcp"
+    }
+  }
+}
+```
+
+Prefer `.agents/skills/svipall/SKILL.md` only if that harness implements the Agent Skills standard.
+If no supported config location or verification command can be established, give the snippet and
+manual verification steps and report the integration as unfinished rather than claiming success.
 
 ---
 
-## 6. Optional: make Svipall the default way to reach the web
+## 7. Optional: make Svipall the default way to reach the web
 
 In Claude Code, `/svipall:setup` offers this and does it for you. By hand, add to
 `~/.claude/CLAUDE.md` (or your agent's equivalent memory file):
@@ -256,7 +340,7 @@ empty `~/.svipall/claude_strict`; delete the file to turn it off, no restart.
 
 ---
 
-## 7. Known failures, and what they actually mean
+## 8. Known failures, and what they actually mean
 
 | Symptom | Cause | Fix |
 |---|---|---|
@@ -271,7 +355,7 @@ empty `~/.svipall/claude_strict`; delete the file to turn it off, no restart.
 
 ---
 
-## 8. Removing it
+## 9. Removing it
 
 ```bash
 # whichever way it went on
@@ -279,6 +363,20 @@ sh install.sh --uninstall          # or: install.ps1 -Uninstall
 brew uninstall svipall
 scoop uninstall svipall
 ```
+
+Remove only the integration and scope the user selected:
+
+| Harness | Remove MCP | Remove skill |
+|---|---|---|
+| Claude Code plugin | `/svipall:uninstall` | removed with the plugin |
+| Claude Code manual | `claude mcp remove --scope user svipall` or the project equivalent | `~/.claude/skills/svipall` or `.claude/skills/svipall` |
+| Codex | `codex mcp remove svipall`, or remove only `[mcp_servers.svipall]` from the project config | `$HOME/.agents/skills/svipall` or `.agents/skills/svipall` |
+| Cursor | remove only `mcpServers.svipall` from the selected `mcp.json` | `~/.cursor/skills/svipall` or `.cursor/skills/svipall` |
+| OpenCode | remove only the selected config's Svipall MCP entry | `~/.config/opencode/skills/svipall` or `.opencode/skills/svipall` |
+
+Restore a timestamped backup if a manual merge damaged a config, but do not replace newer unrelated
+changes with an old whole-file backup. CLI + Skill has no MCP entry to remove unless the user chose
+to keep a pre-existing one.
 
 That leaves `~/.svipall` alone on purpose: profiles, cookies, cache, learned tiers and the
 downloaded browser. Delete it by hand if you mean to, because none of it comes back.

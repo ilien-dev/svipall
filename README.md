@@ -90,8 +90,11 @@ Install and configure Svipall by following the instructions here:
 https://raw.githubusercontent.com/ilien-dev/svipall/main/docs/install.md
 ```
 
-That page guides an agent through platform detection, installation, verification and MCP
-registration. Completion depends on the agent, client configuration and available permissions.
+That page guides an agent through platform detection and verification, then asks which integration
+you want: **CLI + Skill** (recommended, lower context use) or **MCP + Skill** (the full MCP tool
+surface). It also asks whether to configure every project or only the current one, and verifies the
+chosen result instead of treating a skill as MCP registration. Completion depends on the agent,
+client configuration and available permissions.
 
 ### Claude Code: install the plugin
 
