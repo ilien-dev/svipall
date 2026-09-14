@@ -325,13 +325,15 @@ jobs:
           cp "$CARGO_TARGET_DIR/${{ matrix.target }}/dist/svipall-mcp${{ matrix.ext }}" out/
           cp "$CARGO_TARGET_DIR/${{ matrix.target }}/dist/svipall${{ matrix.ext }}" out/
           cp README.md LICENSE skill/SKILL.md out/
+          cp -R skills/svipall-update out/
+          cp -R integrations out/
           if [ "${{ runner.os }}" = "Windows" ]; then
             cp "$CARGO_TARGET_DIR/${{ matrix.target }}/dist/"*.dll out/
             cp "$CARGO_TARGET_DIR/${{ matrix.target }}/dist/windows-runtime.json" out/
           fi
           cd out
           name="svipall-$VERSION-${{ matrix.target }}"
-          files="svipall-mcp${{ matrix.ext }} svipall${{ matrix.ext }} README.md LICENSE SKILL.md"
+          files="svipall-mcp${{ matrix.ext }} svipall${{ matrix.ext }} README.md LICENSE SKILL.md svipall-update integrations"
           if [ "${{ runner.os }}" = "Windows" ]; then
             7z a -tzip "$name.zip" $files *.dll windows-runtime.json
           else

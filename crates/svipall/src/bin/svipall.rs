@@ -61,6 +61,9 @@ COMMANDS:
                             Which captcha models this build has, and install the ones it does not
                             carry into ~/.svipall/models/ from the matching release (~58 MB). A
                             build with no `onnx-*` feature cannot read them: `status` says so.
+    update [--check|--install]
+                            Compare this build with the latest stable release. Checking is read-only;
+                            --install updates only after the caller obtained the user's consent.
     config show             Show effective settings (secrets redacted).
     config set key=value... Save validated settings; the next command uses them automatically.
     config preset local|auto|emulated|native
@@ -148,6 +151,14 @@ async fn main() {
 async fn run(args: &[String]) -> anyhow::Result<Value> {
     if args[0] == "config" {
         return svipall::settings::run(&args[1..]);
+    }
+    if args[0] == "update" {
+        let flags = Flags::parse(&args[1..]);
+        let action = flags.positional.first().map(String::as_str);
+        if action.is_some_and(|a| !matches!(a, "check" | "install")) {
+            anyhow::bail!("update knows check and install, not {action:?}");
+        }
+        return svipall::update::run(flags.has("install") || action == Some("install")).await;
     }
     let mut cfg = svipall_core::config::load_in(&svipall_core::config::home_dir())?;
     if !matches!(
@@ -470,6 +481,8 @@ const SWITCHES: &[&str] = &[
     "full",
     "tables",
     "stdin",
+    "check",
+    "install",
 ];
 
 /// `--name value` and `--name`, plus whatever is left over.
@@ -719,6 +732,7 @@ mod tests {
             "doctor",
             "models",
             "hook",
+            "update",
             "--version",
         ] {
             assert!(USAGE.contains(cmd), "{cmd} is missing from the usage text");
