@@ -1,17 +1,17 @@
 <p align="center">
   <picture>
     <source media="(prefers-color-scheme: dark)" srcset="assets/brand/svipall-lockup-dark.svg">
-    <img src="assets/brand/svipall-lockup.svg" alt="Svipall — local-first web scraping and browsing MCP server for AI agents" width="400">
+    <img src="assets/brand/svipall-lockup.svg" alt="Svipall, a local-first web scraping and browsing MCP server for AI agents" width="400">
   </picture>
 </p>
 
 <h3 align="center">A different face at every gate.</h3>
 
 <p align="center">
-  <b>Web reading for your AI agent — running on your own machine.</b><br>
+  <b>Web reading for your AI agent, running on your own machine.</b><br>
   An MCP server and CLI, in Rust, that extracts web pages into Markdown,<br>
-  crawls sites within configured limits, searches without an API key, and attempts supported challenges —<br>
-  then tells you plainly about the ones it cannot.
+  crawls sites within configured limits, searches without an API key,<br>
+  and attempts supported challenges, then says plainly which ones it could not.
 </p>
 
 <p align="center">
@@ -41,7 +41,8 @@
 
 ---
 
-**Local processing. No third-party API keys. No paid captcha services. No telemetry.**
+**Everything runs locally. There are no third-party API keys, no paid captcha services and no
+telemetry.**
 Web requests reach the sites you visit, and results reach the agent or client you connect.
 
 Svipall fetches and renders pages locally, extracts their content, and reports detected challenges
@@ -53,17 +54,18 @@ content separately from HTTP status and the tool's own verdict.
 
 | What goes wrong | Svipall |
 |---|---|
-| Your agent reads a "checking your browser" screen and summarises it as the article. It was a `200`, so nothing flagged it | Twelve wall kinds, each naming the move it implies. **Detected blocks carry an explicit verdict**; classification is heuristic [→](docs/features.md#judging-what-came-back) |
-| You crawl 5,000 pages and can't tell which are worth keeping | Assessed pages carry quality and duplicate observations; **quality labels do not discard pages** [→](docs/features.md#judging-what-came-back) |
-| One page = 300,000 tokens of raw HTML. The fixes are four manual jobs you now own | Clean Markdown by default; opt into tables as rows, `out_file` to disk, or capture of the site's own JSON API [→](docs/features.md#reading) |
-| You want to attempt a supported captcha without a paid solver | Fifteen widget families and eleven answer modalities, all local, optional vision models depending on the build, and a human dashboard for unresolved challenges [→](docs/captcha.md) |
+| Your agent reads a "checking your browser" screen and summarises it as the article. It was a `200`, so nothing flagged it | Twelve wall kinds, each naming the move it implies. Detected blocks carry an explicit verdict; classification is heuristic [details](docs/features.md#judging-what-came-back) |
+| You crawl 5,000 pages and can't tell which are worth keeping | Assessed pages carry quality and duplicate observations, and quality labels never discard a page [details](docs/features.md#judging-what-came-back) |
+| One page = 300,000 tokens of raw HTML. The fixes are four manual jobs you now own | Clean Markdown by default; opt into tables as rows, `out_file` to disk, or capture of the site's own JSON API [details](docs/features.md#reading) |
+| You want to attempt a supported captcha without a paid solver | Fifteen widget families and eleven answer modalities, all local, optional vision models depending on the build, and a human dashboard for unresolved challenges [details](docs/captcha.md) |
 
 It records successful visits, failures, incomplete extraction and rejected changes. Historical
 benchmark logs and the current comparison use different scoring rules and configurations;
 the [results section](docs/proof.md) distinguishes them.
 
 Rust · MCP + CLI + REST · no Node, no Python, no API key · local storage and processing
-→ **[Install it ↓](#install)**
+
+**[Install it](#install)**
 
 The [comparison table](#how-svipall-compares) describes other projects' documented scope.
 
@@ -108,7 +110,7 @@ of setup's registration, memory and strict-mode changes; binary and data removal
 
 ### Install it yourself
 
-One line, no toolchain, nothing to compile:
+One line, with no toolchain and nothing to compile:
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/ilien-dev/svipall/main/install.sh | sh   # macOS, Linux
@@ -130,20 +132,20 @@ checksum file, entry or hashing utility only warns, so a successful exit is not 
 the archive was verified: read the output.
 
 Platform builds, what ships where, building from source and wiring it into any MCP client are all
-in [**docs/install.md**](docs/install.md). Never installed anything from a terminal before?
-[**GET-STARTED.md**](GET-STARTED.md) is this section with nothing assumed.
+in [docs/install.md](docs/install.md). If you have never installed anything from a terminal,
+[GET-STARTED.md](GET-STARTED.md) is this section with nothing assumed.
 
 ### Then ask for something
 
-No key to paste, no account to create, no service to sign up for.
+There is no key to paste and no account to create.
 
 > *"Read this page and summarise the pricing."*
 > *"Crawl these docs and write me an `llms.txt`."*
 > *"Watch this listing and tell me when the price moves."*
 > *"Get me every row of that table as CSV."*
 
-The assistant can choose among the exposed tools. A human dashboard for supported challenges needing a pair of
-eyes lives at `http://localhost:8787/human`.
+The assistant can choose among the exposed tools. Supported challenges that need a pair of eyes
+go to a human dashboard at `http://localhost:8787/human`.
 
 ### Or drive it from a shell
 
@@ -183,50 +185,50 @@ they have something to report:
 }
 ```
 
-`tier_used` says how hard it had to try. `quality` says what actually arrived — and when a page does
-*not* arrive, the same object carries `blocked_reason`, `wall_kind`, `wall_vendor`, `wall_evidence`
+`tier_used` says how hard it had to try and `quality` says what actually arrived. When a page does
+not arrive, the same object carries `blocked_reason`, `wall_kind`, `wall_vendor`, `wall_evidence`
 and a `note` telling your agent what to do next. Straight from a committed benchmark record:
 
 ```json
 { "wall_kind": "vendor", "wall_vendor": "kpsdk.io", "wall_evidence": "header x-kpsdk-ct" }
 ```
 
-**A detected block carries a verdict alongside the returned content.** A clear verdict still
-needs a content check; the classifier is not proof that the requested records arrived intact.
+A detected block carries a verdict alongside the returned content. A clear verdict still needs a
+content check, because the classifier cannot show that the requested records arrived intact.
 
 ## What you can actually do with it
 
 | You want to… | It looks like this |
 |---|---|
-| **Read one page cleanly** | `web_fetch` → Markdown with heuristic boilerplate removal and sanitization; `query=` ranks text by lexical relevance |
-| **Turn a listing into rows** | `schema: "auto"` reads the page's own repeated structure, names the columns and hands back typed rows — no model, no API, one parse |
-| **Pull a data table** | `tables=true` → typed rows; `out_file: rows.csv` writes them to disk so thousands of rows never touch your context |
-| **Skip the scraping entirely** | `web_capture` returns the JSON the page fetched while loading — usually the site's real API, with `?page=2` waiting for you |
-| **Turn a docs site into a corpus** | `web_crawl` with `llms.txt` output, near-duplicate labels, resumable frontier and lexical saturation stopping, subject to page/token/traffic limits |
-| **Search without a key** | `web_search` scrapes DuckDuckGo, Bing and Brave; `engine="all"` merges them by agreement |
-| **Let the agent click things** | `web_snapshot` (roles + refs, a fraction of the tokens) then `web_act` — click, type, scroll, wait, all through human-like input |
-| **Attempt a browser challenge** | Automatic routing can escalate to a patient browser tier; unresolved challenges and detected blocks are reported, but the remote cause is not always identifiable |
-| **Attempt a captcha locally** | Fifteen widget families and eleven answer modalities, model support where available and a phone-friendly human dashboard. No paid solver; local budgets and remote restrictions still apply |
-| **Log in once and stay in** | `web_login` opens a real window; you sign in; the cookies are kept in a profile you can export |
-| **Watch a page** | `web_watch` checks the whole page or one CSS region while the server runs; saved selector fingerprints can help recover some redesigns |
-| **Read PDFs and Office files** | docx, xlsx, pptx, odt, epub, rtf, csv and pdf come back as Markdown, from the web or from `file://` |
-| **Drive it from any language** | `svipall serve` → 19 local REST routes, one per tool, behind a bearer key it generates for you |
+| Read one page cleanly | `web_fetch` → Markdown with heuristic boilerplate removal and sanitization; `query=` ranks text by lexical relevance |
+| Turn a listing into rows | `schema: "auto"` reads the page's own repeated structure, names the columns and hands back typed rows, with no model and no API call, in one parse |
+| Pull a data table | `tables=true` → typed rows; `out_file: rows.csv` writes them to disk so thousands of rows never touch your context |
+| Skip the scraping entirely | `web_capture` returns the JSON the page fetched while loading, usually the site's real API, with `?page=2` waiting for you |
+| Turn a docs site into a corpus | `web_crawl` with `llms.txt` output, near-duplicate labels, resumable frontier and lexical saturation stopping, subject to page/token/traffic limits |
+| Search without a key | `web_search` scrapes DuckDuckGo, Bing and Brave; `engine="all"` merges them by agreement |
+| Let the agent click things | `web_snapshot` (roles + refs, a fraction of the tokens) then `web_act` to click, type, scroll and wait, all through human-like input |
+| Attempt a browser challenge | Automatic routing can escalate to a patient browser tier; unresolved challenges and detected blocks are reported, but the remote cause is not always identifiable |
+| Attempt a captcha locally | Fifteen widget families and eleven answer modalities, model support where available and a phone-friendly human dashboard. No paid solver; local budgets and remote restrictions still apply |
+| Log in once and stay in | `web_login` opens a real window; you sign in; the cookies are kept in a profile you can export |
+| Watch a page | `web_watch` checks the whole page or one CSS region while the server runs; saved selector fingerprints can help recover some redesigns |
+| Read PDFs and Office files | docx, xlsx, pptx, odt, epub, rtf, csv and pdf come back as Markdown, from the web or from `file://` |
+| Drive it from any language | `svipall serve` → 19 local REST routes, one per tool, behind a bearer key it generates for you |
 
 ### Who it is for
 
 | You are… | Svipall gives you… |
 |---|---|
-| **A Claude Code / Claude Desktop / Cursor user** | One line of setup and tools your assistant picks by itself. Research, documentation, price comparison, monitoring |
-| **A developer building AI agents** | A local web layer with structured output, token budgets, file export and resumable crawls; live web outcomes remain variable |
-| **A RAG / dataset builder** | Bounded site crawls to Markdown, near-duplicate labels, `llms.txt`, and quality observations for assessed pages |
-| **A data or research person** | Pages that sit behind "checking your browser" walls — and an honest answer when your address cannot open one |
-| **A privacy-conscious operator** | No scraping API, no captcha farm, no geolocation lookup, no update check, no telemetry. Additional downloads are the managed browser when needed (automatic provisioning can be disabled) and the blocklists you enabled |
-| **A security or QA engineer** testing your own site | A reproducible benchmark whose raw run logs are committed in this repository, and a request log that names which tier answered and which wall appeared |
+| A Claude Code, Claude Desktop or Cursor user | One line of setup and tools your assistant picks by itself. Research, documentation, price comparison, monitoring |
+| A developer building AI agents | A local web layer with structured output, token budgets, file export and resumable crawls; live web outcomes remain variable |
+| A RAG or dataset builder | Bounded site crawls to Markdown, near-duplicate labels, `llms.txt`, and quality observations for assessed pages |
+| A data or research person | Pages that sit behind "checking your browser" walls, and an honest answer when your address cannot open one |
+| A privacy-conscious operator | No scraping API, no captcha farm, no geolocation lookup, no update check, no telemetry. Additional downloads are the managed browser when needed (automatic provisioning can be disabled) and the blocklists you enabled |
+| A security or QA engineer testing your own site | A reproducible benchmark whose raw run logs are committed in this repository, and a request log that names which tier answered and which wall appeared |
 
-Svipall is **not** a hosted scraping API and does not try to be one. If you want a URL you can `curl`
-from a serverless function, use a cloud service. If you want the web inside your own agent, on your
-own hardware, Svipall provides that processing locally; browser traffic and optional downloads
-are described under [Privacy and safety](docs/privacy.md).
+Svipall runs on your own hardware. If you want a URL you can `curl` from a serverless function,
+use a hosted scraping service instead. If you want the web inside your own agent, Svipall does that
+processing locally; browser traffic and optional downloads are described under
+[Privacy and safety](docs/privacy.md).
 
 ---
 
@@ -236,24 +238,25 @@ are described under [Privacy and safety](docs/privacy.md).
 emulated route and append one eligible native fallback. Wall verdicts can end the attempt;
 content-quality labels alone do not trigger escalation.*
 
-1. **Ask for the page through HTTP first on a new route.** The default engine emulates selected
+1. Ask for the page through HTTP first on a new route. The default engine emulates selected
    Chrome network characteristics. In the historical `public31` runs above, 59 of 93 cells stopped at this tier;
-   44 of those scored `ok` under that benchmark's rule. Stopping is not necessarily delivery.
-2. **If the page needs JavaScript, open a browser.** Headless Chromium runs the scripts and hands
+   44 of those scored `ok` under that benchmark's rule. A route that stops here has still not
+   necessarily delivered the page.
+2. If the page needs JavaScript, open a browser. Headless Chromium runs the scripts and hands
    back the rendered document.
-3. **If the site checks for robots, wear a disguise.** The stealth tier patches known browser
+3. If the site checks for robots, wear a disguise. The stealth tier patches known browser
    surfaces to match the emulated identity. The offline probes check those surfaces; they cannot
    prove that an arbitrary detector will accept them.
-4. **If the site wants a real person, act like one.** The `real` tier is a visible-but-offscreen
+4. If the site wants a real person, act like one. The `real` tier is a visible-but-offscreen
    browser with a persistent profile, moving the pointer along curves and scrolling with a wheel.
-5. **If there is a challenge, answer it or wait it out.** The `warm` tier runs the captcha strategy
+5. If there is a challenge, answer it or wait it out. The `warm` tier runs the captcha strategy
    loop during its bounded wait and avoids pointer activity on recognized self-verifying
    interstitials. This does not guarantee clearance.
-6. **Use native only as a last resort.** When eligible and within the remaining budgets, try one
+6. Use native only as a last resort. When eligible and within the remaining budgets, try one
    native browser attempt. It exposes real device characteristics and reports a privacy notice.
-7. **Remember what worked.** Two supporting observations can promote a useful emulated route for
+7. Remember what worked. Two supporting observations can promote a useful emulated route for
    later visits in the same context. Native stays last even when it succeeds.
-8. **Report the observed failure.** Where available, a blocked result includes `blocked_reason`,
+8. Report the observed failure. Where available, a blocked result includes `blocked_reason`,
    the classified wall, recognized vendor/evidence and a suggested next step. Classification is
    heuristic; transport errors and local budget deferrals may have less page evidence.
 
@@ -266,11 +269,11 @@ Twenty-nine tools, all local.
 | Tool | What it does |
 |---|---|
 | `web_fetch` | Fetch a page as Markdown or structured JSON. `mode=auto` climbs the ladder. `schema` (self-healing), `tables`, `scroll`, `query`, `max_tokens`/`cursor`, `cache`, `include_metadata`, `include_links`, `include_quality`, `use_site_template`, `robots`, `out_file`, `mobile`, `text_only`, `isolated`, `css_selector`, `profile`, `proxy`, `method`/`body`/`headers`. URLs may be `raw:<html>` or `file://` under `local_roots` |
-| `web_fetch_many` | Bounded-parallel fetch of many URLs, with `schema` and `tables` as on `web_fetch`. Reports `corroboration` — how many *distinct* documents the set actually is — marks each duplicate with `same_text_as`, and moves the different ones up. It says `reordered_for_diversity` when it did, because a set that comes back in a different order without saying so is a surprise, not a feature |
+| `web_fetch_many` | Bounded-parallel fetch of many URLs, with `schema` and `tables` as on `web_fetch`. Reports `corroboration` (how many *distinct* documents the set actually is), marks each duplicate with `same_text_as`, and moves the different ones up. It says `reordered_for_diversity` when it did, because a set that comes back in a different order without saying so will mislead the caller |
 | `web_search` | DuckDuckGo / Bing / Brave without an API key; `engine="all"` merges by agreement |
 | `web_site_search` | Discover a site's search form and learn its query-URL pattern when possible; later fetches still follow normal routing and policy |
 | `web_crawl` | Same-domain crawl with robots.txt, dedup, boilerplate removal, `strategy=dfs`, `scroll`, `schema`/`tables` for rows, `llms.txt`, file export, a saturation stop, and a `crawl_id` to resume |
-| `web_map` | A site's URLs without crawling it: robots.txt, sitemaps (nested indexes and `.gz` included), RSS/Atom feeds and homepage links — a few hundred tokens of structure instead of the thousands a crawl costs |
+| `web_map` | A site's URLs without crawling it: robots.txt, sitemaps (nested indexes and `.gz` included), RSS/Atom feeds and homepage links, a few hundred tokens of structure instead of the thousands a crawl costs |
 | `web_snapshot` | The page as roles, accessible names and short refs that `web_act` accepts. Deterministic, no vision model |
 | `web_act` | click, type, fill, press, hover, select, scroll, wait, eval, goto, screenshot, hold, verify, console; supported pointer/keyboard/wheel actions use the behavior layer, while `eval` runs caller-supplied JavaScript |
 | `web_capture` | Observe matching JSON/network responses during a bounded browser visit; API usability and completeness are not guaranteed |
@@ -305,7 +308,7 @@ A test asserts the usage text names every command the binary answers to, and a s
 
 ## The REST API
 
-The same server, over HTTP, so any language can drive it — not only an MCP client or a shell.
+The same server, over HTTP, so any language can drive it without an MCP client or a shell.
 
 ```bash
 svipall serve --port 8788        # the bearer key is printed once, and kept in ~/.svipall/api_key
@@ -336,24 +339,24 @@ installation (`500`); an unknown job can return `404`, and routing can reject un
 or methods. A client must inspect both the HTTP status and the tool result before deciding to retry.
 
 Every tool and job route needs the key, including on loopback; `/v1/health` is exempt.
-A local port is not a boundary: Svipall carries
-logged-in profiles, cookies and your exit address, so an open one is a proxy wearing your identity.
+A local port is not a boundary on its own: Svipall carries logged-in profiles, cookies and your
+exit address, so anything that reaches the port can make requests as you.
 Two more checks sit in front of the key, because binding to `127.0.0.1` does not stop a page in your
 own browser being served a DNS answer of `127.0.0.1` and posting to it: any request carrying an
 `Origin` header is refused, and on a loopback bind so is any `Host` that is not loopback. There is no
-CORS layer and there will not be one — no browser page is a client of this API.
+CORS layer and there will not be one, because no browser page is a client of this API.
 
 Ten tools are deliberately **not** routes, in three groups, and `rest.rs` records why next to each:
 `browser_open`/`browser_do`/`browser_close`, whose persistent session lifecycle is outside this
 REST interface's current design; `web_login`, whose interactive window is also excluded; and the six
 `solve_*`/`captcha_status`/`report_captcha` tools, which already answer on the dashboard port in the
 classic solver wire shape. Twenty-nine tools minus those ten is the nineteen routes above. A new
-`#[tool]` **fails the test suite** until it is listed as a route or as a named exclusion.
+`#[tool]` fails the test suite until it is listed as a route or as a named exclusion.
 
 A long crawl is a job rather than a held connection. `"async": true` answers `202` with an id; `GET
 /v1/jobs/{id}` polls it, `GET /v1/jobs/{id}/stream` follows it as Server-Sent Events, `DELETE` stops
-it. The id **is** the `crawl_id`, so there is one handle to learn and resuming is `{"crawl_id": "…"}`
-— the same word the MCP tool and the CLI already use. A cancelled crawl stops between pages *after*
+it. The id is the `crawl_id`, so there is one handle to learn and resuming is `{"crawl_id": "…"}`,
+the same word the MCP tool and the CLI already use. A cancelled crawl stops between pages *after*
 that page's links are queued, so its frontier is kept; it is never aborted, because that would leak a
 browser page. A job whose process was killed becomes `interrupted`, and `interrupted` is resumable.
 The first frame of a stream is always a snapshot from the store, so a subscriber that joins at page
@@ -365,7 +368,7 @@ which is the scarcest thing a local-only tool has. Full contract in [`docs/rest.
 
 ## How Svipall compares
 
-The following describes project scope from primary documentation checked on **2026-09-07**.
+The following describes project scope from primary documentation checked on 2026-09-07.
 It is not a feature-exhaustive comparison or a head-to-head performance test.
 
 | Project | Documented focus |
@@ -383,7 +386,7 @@ projects. Choose based on your required integration and validate your own target
 
 ## Everything else
 
-This file is the first minute. The rest is next door, and none of it was deleted.
+This file is the short version. Everything it leaves out is in the documents below.
 
 | | |
 |---|---|
@@ -407,7 +410,7 @@ This file is the first minute. The rest is next door, and none of it was deleted
 ## About the name
 
 **Svipall** is one of Odin's names in *Grímnismál*, stanza 47. Bellows renders it as
-“The Changing” in his [translation notes](https://en.wikisource.org/wiki/The_Poetic_Edda_%28tr._Bellows%29/Grimnismol).
+"The Changing" in his [translation notes](https://en.wikisource.org/wiki/The_Poetic_Edda_%28tr._Bellows%29/Grimnismol).
 The project uses that name as an image of changing appearance, not as a promise of invisibility.
 
 That is the idea behind its emulated identities: keep the machine, browser, network fingerprint
@@ -423,10 +426,9 @@ a site will accept the visit or be unable to link it to an earlier one.
 distribution and section 13 on remote network interaction. The component licences and linking
 exception below also apply; this paragraph is not a substitute for those terms.
 
-`crates/svipall-extract`, the extraction engine, is deliberately **MIT OR Apache-2.0** so that
-anything can depend on it: a library nobody can use is a library nobody reads. `crates/svipall-cdp`
-keeps its upstream terms (chromiumoxide, MIT OR Apache-2.0) and `crates/svipall-quic` keeps its own
-(quiche, BSD-2-Clause); the default build links BoringSSL under an explicit AGPL section 7 linking
+`crates/svipall-extract`, the extraction engine, is deliberately **MIT OR Apache-2.0** so that a
+project under any licence can depend on it. `crates/svipall-cdp` keeps its upstream terms
+(chromiumoxide, MIT OR Apache-2.0) and `crates/svipall-quic` keeps its own (quiche, BSD-2-Clause); the default build links BoringSSL under an explicit AGPL section 7 linking
 exception. These are set out in [`NOTICE`](NOTICE) and
 [`THIRD-PARTY-NOTICES.md`](THIRD-PARTY-NOTICES.md).
 
@@ -436,9 +438,9 @@ The name **Svipall** and the Svipall logo are trademarks of the author. They are
 under the AGPL, and nothing in this repository grants a licence to them.
 
 The licence gives you the code. It does not give you the name. Run it, study it, modify it, fork it
-and redistribute it freely under the AGPL — but distribute a modified version under a **different
-name and without the logo**, so that nobody who downloads it is misled about who produced it or what
-is in it.
+and redistribute it freely under the AGPL. Distribute a modified version under a different name
+and without the logo, so that nobody who downloads it is misled about who produced it or what is
+in it.
 
 The project permits descriptive references such as saying that your project uses Svipall,
 works with Svipall, or is a fork of Svipall, without implying endorsement.
@@ -448,8 +450,7 @@ works with Svipall, or is a fork of Svipall, without implying endorsement.
 Svipall is provided **as is, with no warranty and no liability**, and it grants you **no
 authorisation with respect to any system you point it at**. Complying with the law, with
 data-protection rules and with a site's terms is the operator's responsibility, not the author's.
-Capability is not permission — read [`DISCLAIMER.md`](DISCLAIMER.md) before you run it against
-something that is not yours.
+Read [`DISCLAIMER.md`](DISCLAIMER.md) before you run it against something that is not yours.
 
 ---
 
