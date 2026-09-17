@@ -1,24 +1,41 @@
 # Contributing to Svipall
 
-Contributions are welcome. There is no CLA and no copyright assignment: you keep the
-copyright in what you write.
+Contributions are welcome. You keep the copyright in what you write — there is no
+copyright assignment — but contributions are taken under a Contributor Licence
+Agreement as well as the Developer Certificate of Origin.
 
 ## Licence of contributions
 
-Svipall is licensed under **AGPL-3.0-only**. By opening a pull request you agree that
-your contribution is licensed under the same terms, and you certify its origin with the
-[Developer Certificate of Origin](https://developercertificate.org/) by signing off
-each commit:
+Svipall is licensed under **AGPL-3.0-only** and stays that way. The maintainer may also
+offer the same code under other terms, including a commercial or hosted service built on
+a private fork, which is only possible if one party holds the rights to the whole
+codebase. [`CLA.md`](CLA.md) is the agreement that permits it: you grant the maintainer a
+broad licence over your contribution, you keep every right you have in it, and it is
+published to the public under the AGPL exactly as before.
 
-```powershell
-git commit -s -m "fix: relocate a healed selector when the anchor moves"
-```
+Two things are required for a pull request to be merged:
 
-`-s` appends a `Signed-off-by:` line with the name and email from your git config. That
-is the whole ceremony — nothing to sign, nothing to send.
+1. **Accept the CLA.** Keep this line in the pull request description, unchanged — the
+   template already contains it:
+
+   ```text
+   I have read CLA.md and I agree to it for this and my future contributions to Svipall.
+   ```
+
+2. **Sign off each commit**, certifying its origin with the
+   [Developer Certificate of Origin](https://developercertificate.org/):
+
+   ```powershell
+   git commit -s -m "fix: relocate a healed selector when the anchor moves"
+   ```
+
+   `-s` appends a `Signed-off-by:` line with the name and email from your git config.
+
+Nothing to print, scan or mail; nothing leaves the pull request.
 
 If your contribution includes code you did not write, say so in the pull request and
-name its licence. Anything that is not permissively licensed will not be merged.
+name its licence. Anything that is not permissively licensed will not be merged, and
+anything you cannot license under [`CLA.md`](CLA.md) cannot be merged either.
 
 ## Before you open a pull request
 
