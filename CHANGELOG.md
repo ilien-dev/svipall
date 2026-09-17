@@ -1,5 +1,17 @@
 # Changelog
 
+## 1.0.6 — 2026-09-17
+
+- **Contributions are now taken under a Contributor Licence Agreement.** [`CLA.md`](CLA.md) asks
+  each contributor for a perpetual, irrevocable licence broad enough for the maintainer to release
+  the same code under other terms, including a commercial or hosted service built on a private
+  fork. There is no copyright assignment: contributors keep the copyright in their work, keep every
+  right to reuse it, and the public release stays **AGPL-3.0-only** (**MIT OR Apache-2.0** for
+  `crates/svipall-extract`). Acceptance is one line in the pull request description, which the new
+  pull request template carries; the Developer Certificate of Origin sign-off is still required
+  alongside it. Contributions merged before this release were taken under the DCO alone and are not
+  covered.
+
 ## 1.0.5 — 2026-09-14
 
 - **Installing an integration no longer leaves an existing Svipall silently out of date.** The
