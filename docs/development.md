@@ -123,7 +123,7 @@ that is no longer the head of `main`.
 
 ---
 
-Contributions are taken under the **DCO** — no CLA, no copyright assignment. See
-[`CONTRIBUTING.md`](../CONTRIBUTING.md).
+Contributions are taken under the **DCO** and the **CLA** — no copyright assignment. See
+[`CONTRIBUTING.md`](../CONTRIBUTING.md) and [`CLA.md`](../CLA.md).
 
 ---

@@ -417,7 +417,7 @@ This file is the first minute. The rest is next door, and none of it was deleted
 | [Exit codes](docs/exits.md) | What the binary returns, for scripts |
 | [Models](docs/models.md) | The embedded weights, their licences and their sizes |
 | [Firefox](docs/firefox.md) &middot; [HTTP/3](docs/http3.md) &middot; [Benchmarks](docs/bench.md) | The engineering notes |
-| [Changelog](CHANGELOG.md) &middot; [Contributing](CONTRIBUTING.md) &middot; [Disclaimer](DISCLAIMER.md) | |
+| [Changelog](CHANGELOG.md) &middot; [Contributing](CONTRIBUTING.md) &middot; [CLA](CLA.md) &middot; [Disclaimer](DISCLAIMER.md) | |
 
 ## About the name
 
@@ -444,6 +444,10 @@ keeps its upstream terms (chromiumoxide, MIT OR Apache-2.0) and `crates/svipall-
 (quiche, BSD-2-Clause); the default build links BoringSSL under an explicit AGPL section 7 linking
 exception. These are set out in [`NOTICE`](NOTICE) and
 [`THIRD-PARTY-NOTICES.md`](THIRD-PARTY-NOTICES.md).
+
+Contributions are taken under [`CLA.md`](CLA.md): contributors keep the copyright in their work and
+grant the maintainer a licence broad enough to also release it under other terms. The public
+release stays AGPL-3.0-only. For a licence other than the AGPL, write to <code@ilien.dev>.
 
 ## Trademark
 
