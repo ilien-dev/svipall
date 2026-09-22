@@ -145,7 +145,7 @@ on PATH, failed to start — the session has no web access at all, not even the 
 Recommend against it on a fresh install, in as many words, and offer it anyway:
 
 > "There is also a strict mode: Claude Code's own `WebFetch` and `WebSearch` stop working, declined
-> with a pointer to the Svipall tool that does the same job. I would leave it off for now — if
+> with a pointer to the Svipall tool that replaces them. I would leave it off for now — if
 > Svipall ever fails to start, a strict session has no way to reach the web at all. The line above
 > is already enough to make Claude prefer Svipall. You can turn this on later with one file."
 
