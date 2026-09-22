@@ -17,7 +17,7 @@ length the network took.
 
 The one thing the timing does not represent is duration: the working mark between a
 command and its output is a fixed beat, not the real elapsed time. The real elapsed
-time is in the output itself, where the tool prints it — `browser: 200 (6259ms) OK`.
+time is in the output itself, where the tool prints it: `browser: 200 (6259ms) OK`.
 
 ## The pieces
 
@@ -44,7 +44,7 @@ fast way to look at a change before spending six hundred screenshots on it.
 Both directories it writes into, `.frames/` and `.stills/`, are ignored by git.
 
 It needs no npm install and no ffmpeg. The only binary it looks for is the Chromium
-Playwright unpacks under `ms-playwright/chromium-*`; if it is somewhere else, set
+Playwright unpacks under `ms-playwright/chromium-*`. If it is somewhere else, set
 `SVIPALL_DEMO_CHROME`. To get it in the first place: `npx playwright install chromium`.
 
 Recording is frame-stepped rather than timed, so the same input gives the same output

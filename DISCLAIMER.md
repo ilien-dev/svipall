@@ -2,7 +2,7 @@
 
 Svipall is a tool. Like any tool that speaks HTTP, it can be pointed at a system whose
 owner did not invite it. What follows is not legal advice, and it is not part of the
-licence — it states the terms on which this software is published, and where
+licence. It states the terms on which this software is published, and where
 responsibility sits.
 
 Throughout this page, "the author" means ilien <code@ilien.dev>, the copyright
@@ -22,14 +22,14 @@ software, whatever its cause and whichever legal theory is invoked.
 ## Responsibility sits with the operator
 
 You alone decide which addresses Svipall connects to, how often, on whose behalf and
-what you do with what comes back. That makes you — not the author, and not any
-contributor — responsible for:
+what you do with what comes back. That makes you, not the author and not any
+contributor, responsible for:
 
 - complying with every law that applies to you and to the systems you reach, including
   computer-misuse and unauthorised-access statutes, copyright and database rights,
   competition law, contract law, and criminal law generally;
 - complying with data-protection law when the pages you fetch contain personal data,
-  including the GDPR, the UK GDPR, the CCPA/CPRA and their equivalents — lawful basis,
+  including the GDPR, the UK GDPR, the CCPA/CPRA and their equivalents: lawful basis,
   minimisation, retention and the rights of data subjects are your obligations, not the
   tool's;
 - the terms of service, acceptable-use policies, API terms, rate limits, contractual
@@ -81,8 +81,8 @@ breach a contract you accepted, and is your act, not the author's.
 
 ## Indemnity
 
-If your use of Svipall leads to a claim against the author — from a site operator, a
-regulator, a data subject or anyone else — you will indemnify and hold the author
+If your use of Svipall leads to a claim against the author, whether from a site operator,
+a regulator, a data subject or anyone else, you will indemnify and hold the author
 harmless for that claim, its defence and its costs.
 
 ## If you are unsure

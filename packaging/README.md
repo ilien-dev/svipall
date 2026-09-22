@@ -20,7 +20,7 @@ next to the artefacts they describe.
 
 ## What each channel costs to publish
 
-The distinction that matters is not technical, it is whether somebody else has to say yes.
+What separates them is whether somebody else has to say yes.
 
 ### Nothing but this repository and its releases
 
@@ -33,7 +33,7 @@ The distinction that matters is not technical, it is whether somebody else has t
 | Container image | Anywhere with Docker | `ghcr.io`, pushed with the workflow's own `GITHUB_TOKEN` |
 
 A tap and a bucket are **repositories, not submissions**. `brew install ilien-dev/svipall/svipall`
-and `scoop bucket add svipall …` work the moment the file is in the repo; nobody reviews either.
+and `scoop bucket add svipall …` work the moment the file is in the repo. Nobody reviews either.
 What does need review is `homebrew-core` or Scoop's own `main` bucket, and neither is necessary.
 
 ### Published, one account
@@ -42,9 +42,9 @@ What does need review is `homebrew-core` or Scoop's own `main` bucket, and neith
 |---|---|
 | npm | An npmjs.com account. `npm publish` from `packaging/npm/`, and `npx --yes --package=svipall svipall-mcp` is then the cheapest MCP configuration there is: nothing installed first |
 
-**On an account whose second factor is a passkey, `--otp` does not apply** — that flag takes a TOTP
+**On an account whose second factor is a passkey, `--otp` does not apply.** That flag takes a TOTP
 code, and the CLI cannot run a WebAuthn ceremony. npm falls back to a browser flow and prints a URL
-to approve; the publish blocks until you do. A granular access token with **Bypass 2FA** is the
+to approve, and the publish blocks until you do. A granular access token with **Bypass 2FA** is the
 other route, and the one CI would need.
 
 The first publish was manual for a reason that cannot be worked around: **trusted publishing is
@@ -74,9 +74,9 @@ missing from the registry:
 
 - **A repository secret, `CARGO_REGISTRY_TOKEN`**: a crates.io API token with the `publish-new` and
   `publish-update` scopes, limited to crates `svipall*`. Used whenever it is set. It is the only
-  route that publishes a crate the registry has never seen; the price is a long-lived secret.
+  route that publishes a crate the registry has never seen. The price is a long-lived secret.
 - **Trusted publishing**, when no secret is set. Configured per crate, on crates that already
-  exist; `scripts/crates-trusted-publishing.sh` does all of them in one run with a token carrying
+  exist. `scripts/crates-trusted-publishing.sh` does all of them in one run with a token carrying
   the `trusted-publishing` scope, creates only what is missing, and is safe to run again. Delete
   that token afterwards.
 
@@ -84,9 +84,9 @@ missing from the registry:
 
 `server.json` in the repository root is the submission, and `.github/workflows/mcp-registry.yml`
 sends it: `release.yml` calls it last, and when that call fails, dispatching it from `main`
-(`gh workflow run mcp-registry.yml`) sends the entry for the version `main` carries. The registry stores **metadata only**: it does not host a byte of this project. What it
-does is check, for every package `server.json` names, that the artefact on that package's own
-registry carries the server's name — which is how it knows the submission is ours and not somebody
+(`gh workflow run mcp-registry.yml`) sends the entry for the version `main` carries. The registry stores **metadata only**: it does not host a byte of this project. It
+checks, for every package `server.json` names, that the artefact on that package's own
+registry carries the server's name. That is how it knows the submission is ours and not somebody
 claiming our name.
 
 | Package | Where the name has to be | Written in |
@@ -101,9 +101,9 @@ it renders a README, so the `<!-- mcp-name: … -->` form the registry's own doc
 PyPI and NuGet leaves the validator nothing to find.
 
 **The name is `dev.ilien.svipall/mcp`, and it is permanent.** The registry has no rename and no
-unpublish; a different name is a second server, forever. It also decides the authentication: only
-DNS authentication grants a *subdomain* of the domain it verifies, so `.well-known` HTTP auth — which
-grants the bare domain alone — cannot publish this name.
+unpublish. A different name is a second server, forever. It also decides the authentication: only
+DNS authentication grants a *subdomain* of the domain it verifies, so `.well-known` HTTP auth, which
+grants the bare domain alone, cannot publish this name.
 
 ### The one secret, and the record it answers to
 
@@ -123,14 +123,14 @@ Then, once each:
 | Repository secrets | `MCP_PRIVATE_KEY` = the hex private key |
 
 Keep `key.pem` off this machine's repositories and out of the release. Rotating it is a new TXT
-record and a new secret; it does not touch anything already published.
+record and a new secret. It does not touch anything already published.
 
 ### What the job refuses to do
 
 It runs last, after `npm`, `crates` and `image-manifest`, and it checks that `svipall@<version>` is
 on npm and `svipall <version>` is on crates.io before it authenticates. A submission naming a
 version a registry cannot serve is a permanent record of a package nobody can install, and the
-registry's own error for it — "Registry validation failed for package" — does not say which one.
+registry's own error for it ("Registry validation failed for package") does not say which one.
 
 Re-running a release is safe: the job asks the registry what it already holds and does nothing when
 that is this version.
@@ -181,9 +181,9 @@ an npm package a version behind downloads an archive that does not exist. The re
 
 - **They do not install a browser.** The browser tiers want one, the http tier does not, and
   `svipall browser install` is ~190 MB that nobody should spend on somebody's behalf. The tap and
-  the bucket say so in their notes; `svipall doctor` says it on every machine.
+  the bucket say so in their notes, and `svipall doctor` says it on every machine.
 - **They are not signed by Apple or Microsoft.** There is no Apple Developer ID and no Authenticode
   certificate for this project. macOS builds are signed ad-hoc, which stops the "damaged" dialog
-  but not the quarantine flag on a browser download; the release carries a GitHub build
+  but not the quarantine flag on a browser download. The release carries a GitHub build
   attestation, verifiable with `gh attestation verify`. Every channel here checks the published
   sha256 instead.

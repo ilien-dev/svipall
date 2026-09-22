@@ -1,8 +1,8 @@
 # Exits
 
 An exit is a proxy the operator supplies. Svipall never ships one, never buys one, and never
-resolves your address to a country — a country is *declared*, not detected, and an exit whose
-country nobody declared simply has none.
+resolves your address to a country. A country is *declared*, not detected, and an exit whose
+country nobody declared has none.
 
 This is also, honestly, the ceiling: the four targets the benchmark does not clear are decided by
 IP reputation, and the answer to all four is an exit. A local-only tool cannot provide that for
@@ -21,10 +21,10 @@ serves `shop.example.com` unless that name has one of its own.
 
 Two strategies (`exits.rs`):
 
-* **`sticky`** (default) — the domain keeps the exit it last used while that exit is usable. A site
+* **`sticky`** (default): the domain keeps the exit it last used while that exit is usable. A site
   that watched one address build a session should keep seeing it; rotating on every request is the
   pattern a scoring panel is built to notice.
-* **`round_robin`** — take the next usable exit after the last one. For throughput, when the site
+* **`round_robin`**: take the next usable exit after the last one. For throughput, when the site
   does not track sessions.
 
 Either way a retired exit is skipped, and **when every exit is retired the healthiest is used
@@ -51,7 +51,7 @@ So two blocks retire an exit for that domain (100 − 70 = 30). What counts as a
 times slower than that exit's own average all count, because all three are how a site says no
 without saying it.
 
-**Health heals with time** — one point per 600 seconds idle, capped at full. A twice-blocked exit
+**Health heals with time**: one point per 600 seconds idle, capped at full. A twice-blocked exit
 is usable again after roughly ninety minutes of not being used, which is long enough that whatever
 score retired it has likely moved on. A dead exit list that never recovers is a pool that shrinks
 to nothing over a week.
@@ -64,12 +64,12 @@ really are about the site rather than the address: `Retry-After` (honoured up to
 the hard cooldown after that (fifteen minutes).
 
 The gap between requests is tuned from the host's own latency and refusals, with floors and
-ceilings per tier — 100 ms to 2 s on `http`, 400 ms to 5 s on the browser tiers — and a strike
+ceilings per tier (100 ms to 2 s on `http`, 400 ms to 5 s on the browser tiers), and a strike
 backs off exponentially, `base * 2^min(strikes, 4)`.
 
 A pool of one is deliberately not tracked *for health*: with nowhere else to go, a strike against
 the only exit is just a strike against the domain. Spend is different, and is tracked for every
-address including the machine's own — see below.
+address including the machine's own (see below).
 
 ## The reputation budget
 
@@ -79,7 +79,7 @@ project's own benchmark lost a target to that: the lists were run against one re
 several times in a day, and a cell that had been passing stopped.
 
 `reputation.rs` keeps spend per `(domain, exit)` in `~/.svipall/reputation.json`, and **the machine's
-own address is a key like any other** — which is the whole point, because the case that went wrong
+own address is a key like any other**. That is the whole point, because the case that went wrong
 is the one with no proxy at all.
 
 A visit costs what its tier costs, doubled when the page comes back walled:
@@ -93,22 +93,22 @@ not the same event to a host that scores addresses, and pricing them alike would
 crawling impossible or make challenges free.
 
 **Spend decays rather than resetting**, halving every `reputation_half_life_hours` (six by
-default). A window would have a cliff — at midnight, eight visits become free again — and would
-need a list of timestamps; a half-life is one number and one instant. It also means
+default). A window would have a cliff (at midnight, eight visits become free again) and would
+need a list of timestamps. A half-life is one number and one instant. It also means
 `reputation_budget` (250 by default) is a **rate**, not a daily total: a steady spend settles at
 `budget * ln 2 / half_life`, about 29 points an hour.
 
 What it does:
 
 * under 70% of the budget, nothing;
-* from 70% to 100%, the pacer's gap is stretched continuously, up to four times — capped there
-  rather than higher because the browser tiers already wait seconds and a crawl has a deadline;
+* from 70% to 100%, the pacer's gap is stretched continuously, up to four times. It is capped there
+  because the browser tiers already wait seconds and a crawl has a deadline;
 * over the budget, the fetch is declined before anything goes out, with `blocked_reason:
   "address_budget"`, how many seconds until it is not, and the way out.
 
 **This amends "refusing to fetch is not a strategy" above.** That rule is about exit *health*, and
-it stands: a burnt pool still hands back its healthiest exit. A spent budget is a different claim —
-not "this address is refused" but "we have asked enough for now" — and it is the one thing a
+it stands: a burnt pool still hands back its healthiest exit. A spent budget is a different claim
+("we have asked enough for now", not "this address is refused"), and it is the one thing a
 local-only tool can do about the scarcest resource it has. It stays a labelled answer with an
 escape hatch, never a silence: `web_status(clear_budget="DOMAIN")` empties it, `web_route` moves to
 another address, and `reputation_budget = 0` turns the whole mechanism off.
@@ -134,7 +134,7 @@ recording it as one would lose the page for that crawl id forever.
   request cannot report the real address; without one it is limited to the default public
   interface.
 * **Credentials.** `user:pass` in a proxy URL is split off and handed to the browser over CDP.
-  Chrome cannot read userinfo from `--proxy-server` — it pops a 407 dialog instead — and the
+  Chrome cannot read userinfo from `--proxy-server` (it pops a 407 dialog instead), and the
   argument vector is readable by every other process on the machine.
 * **Locale.** The exit's declared country sets the identity's timezone and language. A proxy in
   Frankfurt with a New York clock is a contradiction that costs nothing to avoid.
@@ -144,4 +144,4 @@ recording it as one would lose the page for that crawl id forever.
 There is no exit Svipall can create for itself: no Tor control port, no VPN interface binding, no
 device on the LAN. A `socks5h://127.0.0.1:PORT` from an `ssh -D` tunnel or a local Tor daemon works
 today as an ordinary proxy URL, but nothing supervises that tunnel, and `Health` cannot yet tell
-"the tunnel died" from "the site blocked me" — both arrive as a failure and cost the exit 35 points.
+"the tunnel died" from "the site blocked me": both arrive as a failure and cost the exit 35 points.

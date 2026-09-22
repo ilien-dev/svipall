@@ -2,9 +2,9 @@
 
 Lifted out of the README so that file stays readable. Everything here is the same text, with its links repointed.
 
-This project publishes its own benchmarks and reports the number it gets, not the number it would
-like. Raw run logs and JSON are committed in [`bench/baseline/`](../bench/baseline/) — including the
-rounds of work that improved nothing, and the rounds where a number went *down*.
+This project publishes its own benchmarks and reports the number it gets. Raw run logs and JSON
+are committed in [`bench/baseline/`](../bench/baseline/), including the
+rounds of work that improved nothing and the rounds where a number went *down*.
 
 | Gate | Result | Needs network? | Command |
 |---|---|---|---|
@@ -32,16 +32,16 @@ address has already spent past the line.
 
 The `browser_identity=auto` policy has [controlled local verification](../bench/experiments/auto-20260905/README.md)
 and a [2026-09-06 revalidation](../bench/experiments/revalidation-20260906/README.md),
-including native-last order, opt-out, learning and timeout handling. Running the commands above now measures the current code and effective configuration;
-it does not recreate the historical policy. Use the recorded revisions and configurations for those comparisons.
+including native-last order, opt-out, learning and timeout handling. Running the commands above now measures the current code and effective configuration.
+It does not recreate the historical policy. Use the recorded revisions and configurations for those comparisons.
 
-### Automatic-policy snapshot — first-response delivery, 2026-09-06
+### Automatic-policy snapshot: first-response delivery, 2026-09-06
 
 The [complete public measurement](../bench/experiments/automatic-public-20260906/README.md) recorded
 **459 calls across 48 URLs: three rounds, three consecutive calls per target slot**, with persistent
 learning, profiles, cooldowns and reputation, a 60-second timeout, cache bypass and unattended
 operation. **348/459 (75.82%) passed the existing delivery check.** The executable was frozen at
-`dd8a304`; these figures **predate the browser directory/shutdown fix in `e60e10b`** and are not
+`dd8a304`. These figures **predate the browser directory/shutdown fix in `e60e10b`** and are not
 measurements of that newer build.
 
 | Set | Total passes / calls | Median passes per round (range) | Successful-call median | Fetch seconds per delivery |
@@ -50,7 +50,7 @@ measurements of that newer build.
 | hard12 | 72/108 (66.67%) | 25/36 (19..28) | 1.31 s | 13.61 s |
 | vendors8 | 39/72 (54.17%) | 13/24 (12..14) | 3.50 s | 11.98 s |
 
-Each round above includes all three visits; [tables by visit position](../bench/experiments/automatic-public-20260906/results.md)
+Each round above includes all three visits. [Tables by visit position](../bench/experiments/automatic-public-20260906/results.md)
 separate their medians and ranges. The last column includes time spent on failures, divided by
 delivery-check passes. The run took **63.95 minutes including pauses** and retained **66 local
 deferrals and nine timeouts**. Native fallback was recorded on **28 calls**, all with a privacy
@@ -58,12 +58,12 @@ notice; **15 delivered with native identity**. These are conditional fallback ou
 controlled estimate of its gain over disabling native.
 
 **A passing delivery check is not proof of complete extraction.** It requires status 200..399,
-no reported block, nonempty content and at least one expected string where supplied; `public31`
+no reported block, nonempty content and at least one expected string where supplied. `public31`
 has no expected strings. **156 of the 348 passes were explicitly paginated**, and the harness did
 not follow their cursors. The [content audit](../bench/experiments/automatic-public-20260906/content-audit.md)
 also identifies title-only catalogue responses, empty-result and login pages. Fetching a detector
-page does not prove passing its active tests. The lists contain mixed page types and basic controls;
-their overlapping targets and persistent state are not independent samples of the web.
+page does not prove passing its active tests. The lists contain mixed page types and basic controls.
+Their overlapping targets and persistent state are not independent samples of the web.
 
 This is an observed snapshot on one host and exit. The report retains browser-launch errors,
 documents the repeated shuffle order in rounds 2 and 3, and separates background/source changes
@@ -71,11 +71,11 @@ from the frozen executable. It establishes neither a causal speedup nor superior
 tool or future reliability. [Raw records, hashes and offline verification](../bench/experiments/automatic-public-20260906/README.md#files-and-offline-verification)
 allow the reported calculations to be checked without contacting the sites again.
 
-### Native versus automatic — paired baseline, 2026-09-06
+### Native versus automatic: paired baseline, 2026-09-06
 
 The [paired baseline](../bench/experiments/native-auto-20260906/README.md) saved **918 calls** and
 reviewed all **334 distinct content fingerprints**. The control requests pages directly through
-Svipall's native `warm` mode; it is not a separate stock-browser implementation. Both arms use
+Svipall's native `warm` mode. It is not a separate stock-browser implementation. Both arms use
 the same frozen executable, deadlines and shared traffic/reputation accounting.
 
 | Baseline endpoint | Auto | Native warm |
@@ -87,9 +87,9 @@ the same frozen executable, deadlines and shared traffic/reputation accounting.
 
 The useful-delivery counts by round are **54/49/39 for auto** and **55/46/39 for native**.
 These overlapping ranges do not establish a content winner. The content-availability row is a
-secondary analysis added after review found useful job records inside blocked responses; those
+secondary analysis added after review found useful job records inside blocked responses. Those
 responses can still be incomplete. Shared budgets also mean one arm can leave the next locally
-deferred. The report retains those calls and publishes a sensitivity analysis; fast refusals
+deferred. The report retains those calls and publishes a sensitivity analysis. Fast refusals
 must not be mistaken for faster extraction. Review used arm-hidden content excerpts and recorded
 reasons, not independent double-blind review or exhaustive completeness checks.
 
@@ -98,7 +98,7 @@ passed its local regressions and full QC, then completed 918 calls with all 376 
 audited. It returned **164/161 useful deliveries** (auto/native), or **165/171** when including useful
 content inside blocked responses, in **2,891/3,545 total fetch seconds**. Its pause before round 3
 was extended to 13.09 hours by a computer shutdown. The report separates results before and after
-that interruption; both arms improved their counts and both spent more time than in the baseline.
+that interruption. Both arms improved their counts and both spent more time than in the baseline.
 That interrupted run does not establish a causal routing benefit. The older automatic-only
 snapshot above uses a different executable and protocol.
 
@@ -113,7 +113,7 @@ published records. Results across the three measured versions are:
 | Candidate 1 | 164 / 161 | 165 / 171 | 16.96 / 18.70 |
 | Current candidate 2 | 130 / 129 | 131 / 136 | 8.40 / 16.58 |
 
-**Auto had the better aggregate efficiency; useful delivery was nearly tied.** On the same 109
+**Auto had the better aggregate efficiency. Useful delivery was nearly tied.** On the same 109
 pairs where both returned useful content, auto accumulated **368.41 seconds** versus native's
 **735.33 seconds**, so the time difference is not only fast refusals. Native was slightly faster
 on that subset in round 3 and retained more useful content under the secondary blocked-excerpt
@@ -121,7 +121,7 @@ measure. The one-result primary difference does not establish a quality winner o
 equivalence. Neither arm consistently dominates all sites or rounds.
 
 Current useful counts by round were **58/45/27 auto** and **54/44/31 native**. Production local
-deferrals numbered **171/155** as shared accounting accumulated; the lower final totals and
+deferrals numbered **171/155** as shared accounting accumulated. The lower final totals and
 overlapping ranges do not establish a public improvement from the final patch. No limits or
 cooldowns were reset. Removing both sides of locally deferred pairs leaves 126/113 useful
 deliveries in 159 pairs, a conditional sensitivity result rather than a replacement success rate.
@@ -132,14 +132,14 @@ the useful totals unchanged. It was not uninterrupted, and elapsed-time/history 
 The improvement loop stopped at the documented practical limit of its tested hypotheses and fixed
 constraints. Remaining auto losses were 16 local deferrals, one deadline before native and three
 remote query-quota responses. This does not prove an absolute technical ceiling. Two isolated
-extractor expansions recovered more records in three saved documents but reduced corpus precision;
-both were rejected, and broader listing omissions remain. Full retained-product QC passed 1,216
+extractor expansions recovered more records in three saved documents but reduced corpus precision.
+Both were rejected, and broader listing omissions remain. Full retained-product QC passed 1,216
 workspace tests, ten automatic/learning/timeout checks, four additional local browser tests and
-the SIGIR-23 corpus floors. Six alternating CPU gates passed; the later controller-write fix
+the SIGIR-23 corpus floors. Six alternating CPU gates passed. The later controller-write fix
 separately passed 18 Python checks. See the linked report for changes, failed hypotheses, costs,
 audit criteria, interruption sensitivity and validation limits.
 
-### Extraction quality — measured against public corpora, including where it loses
+### Extraction quality: measured against public corpora, including where it loses
 
 ROUGE-LSum F1, median over the 3,975 gradable pages of the **SIGIR-23 gold standard**, scored by
 `svipall-bench extract` against the study's own published extractions:
@@ -157,29 +157,29 @@ The later isolated extractor prototype is not included in these figures.
 | Svipall, boilerplate removal off | 0.732 | 0.696 | 0.551 – 0.887 |
 
 Three published extractors are above Svipall on median. In this corpus, boilerplate removal
-adds about **0.19 median F1** over the disabled variant. F1 measures extraction agreement;
-it does not measure token cost or guarantee that a particular answer survived.
+adds about **0.19 median F1** over the disabled variant. F1 measures extraction agreement.
+It does not measure token cost or guarantee that a particular answer survived.
 
 <details>
 <summary><b>The ensemble vote, and the router that was tried and retired</b></summary>
 
 `svipall-extract` offers a vote of several heuristics reading one page. Under unanimity,
-a block is removed only when *every* voter condemns it. This is a local implementation;
-results from other ensemble extractors are not evidence of its accuracy.
+a block is removed only when *every* voter condemns it. This is a local implementation.
+Results from other ensemble extractors are not evidence of its accuracy.
 
 One voter cannot remove a block on its own under unanimity. Several voters can still agree on
 the wrong removal, so this does not guarantee preservation of every answer. Keeping additional
 boilerplate can also reduce precision and increase tokens. The two-thirds rule is still available as
-`Rule::Majority` for a caller who wants precision over recall; it is not the default and the module
+`Rule::Majority` for a caller who wants precision over recall. It is not the default, and the module
 says it never will be.
 
 Both paths round to 0.920 on median in this validation. The vote raises the mean from 0.831 to
 0.846 and the lower quartile from 0.773 to 0.804. These aggregate gains do not imply that every
-individual page improves or remains unchanged.
+individual page improves or stays unchanged.
 
 A model to classify page type was tried here and retired, because the cheap structural signal beat it: the posting types the forum detector reads have
 precision 1.000 on both halves of WCXB, against a model that named forums right about a third of
-the time. When the cheaper signal is the more reliable one, it is the only one left — and it costs
+the time. The structural signal also costs
 one pass over a tree that is already parsed.
 
 </details>
@@ -195,11 +195,11 @@ phrases, written by the corpus author:
 
 0.870 on the held-out set, over 505 pages. Five languages on DAnIEL, the remaining losses traced phrase by phrase, and the three
 experiments that were tried against them and *rejected* are all in
-[`docs/extraction.md`](extraction.md) — with the reason each one stayed out.
+[`docs/extraction.md`](extraction.md), with the reason each one stayed out.
 
 `bench extract --assert` enforces the following floors when the corresponding corpora are
 supplied. WCXB and DAnIEL values below are historical measurements documented in
-[`docs/extraction.md`](extraction.md); those corpora were not selected in the 2026-09-07 run.
+[`docs/extraction.md`](extraction.md). Those corpora were not selected in the 2026-09-07 run.
 
 | what is held | floor | measured |
 |---|---|---|
@@ -210,12 +210,12 @@ supplied. WCXB and DAnIEL values below are historical measurements documented in
 | Boilerplate leaked | ≤ 0.15 | **0.131** (dev) |
 | Reachable gold words dropped | ≤ 0.15 | **0.118** |
 
-The floors sit a little below the measurements on purpose — at the measured number, ordinary
-variation turns into a red build; far below it, the gate stops being one. Raising one after an
-improvement is the intended use; lowering one has to be argued for in the commit that does it.
+The floors sit a little below the measurements on purpose. At the measured number, ordinary
+variation turns into a red build, and far below it the gate stops being one. Raising one after an
+improvement is the intended use. Lowering one has to be argued for in the commit that does it.
 
-None of these corpora are vendored — they are other people's data and
-hundreds of megabytes of it — so four scripts fetch them, each naming its paper and its licence:
+None of these corpora are vendored (they are other people's data, and
+hundreds of megabytes of it), so four scripts fetch them, each naming its paper and its licence:
 
 ```bash
 scripts/fetch-extraction-corpus.sh   # SIGIR-23 gold standard (Bevendorff et al.), Apache-2.0
@@ -226,30 +226,30 @@ cargo run -p svipall-bench --release -- extract --corpus ./extraction-corpus
 ```
 
 `.ps1` equivalents sit beside each. The SIGIR tarballs are Git LFS pointers, so `git-lfs` has to be
-installed first — without it a clone silently yields 133-byte text files where the pages should be,
+installed first. Without it a clone silently yields 133-byte text files where the pages should be,
 and the script says so rather than letting the benchmark score an empty corpus.
 
 ### Anti-bot: `public31`, the independent list, scored by its own rule
 
-`public31` is the list an independent benchmark published in May 2026 — seven stealth tools, 31
-targets, 651 verdicts — scored with **that benchmark's own four-way rule** (`ok | gated | blocked |
+`public31` is the list an independent benchmark published in May 2026 (seven stealth tools, 31
+targets, 651 verdicts), scored with **that benchmark's own four-way rule** (`ok | gated | blocked |
 error`) implemented in `bench/src/targets.rs`. The historical figures below retain their original
-rule. Current scoring rejects missing or invalid HTTP statuses; the new comparison records both
+rule. Current scoring rejects missing or invalid HTTP statuses. The new comparison records both
 rules and content delivery separately in [the local experiment](../bench/experiments/local-20260905/README.md).
 
 The completed [local before/after comparison](../bench/experiments/local-20260905/findings.md) contains
 918 samples across three configurations. Native mode raises `hard12` delivery from 9/12 first and
 8/12 returning visits to 11/12 on both. That experiment's emulated default has mixed results, including a Zillow
 delivery regression and longer difficult-set waits. Content limitations, ranges and null results
-are reported alongside the gains. Its native arm is an explicit native override, and neither arm
-measures today's automatic fallback. The historical table below remains unchanged.
+are reported with the gains. Its native arm is an explicit native override, and neither arm
+measures today's automatic fallback. The historical table below is unchanged.
 
 | | runs | median | range | `blocked` verdicts |
 |---|---|---|---|---|
 | **Svipall** | 25, 26, 26 | **26 / 31** | 25..26 | **0** |
 
 Those runs recorded 77 `ok`, 16 `gated` and zero `blocked` labels across 93 cells. These labels
-describe returned pages; they do not reveal whether a remote decision depended on the IP address,
+describe returned pages. They do not reveal whether a remote decision depended on the IP address,
 browser or request. The source benchmark also published a `blocked` column:
 
 | | OK | gated | **blocked** |
@@ -264,8 +264,8 @@ browser or request. The source benchmark also published a `blocked` column:
 | **Svipall** | **26** | 5 | **0** |
 
 That table is a citation, not a measurement. The seven rows above Svipall are the figures
-that benchmark published; this project did not run those tools and cannot vouch for them. Different
-machine, different address, months apart — **the OK counts are not comparable cell for cell and are
+that benchmark published. This project did not run those tools and cannot vouch for them. Different
+machine, different address, months apart: **the OK counts are not comparable cell for cell and are
 not offered as if they were.** What *is* checkable here is the porting: the target list and the
 four-way rule live in [`bench/src/targets.rs`](../bench/src/targets.rs), so you can read exactly what
 Svipall's own row was scored under and re-run it yourself.
@@ -275,7 +275,7 @@ conditions as the success counts. They do not establish a ranking between these 
 
 The aggregate counts do not establish which targets every tool passed. For Svipall, resolved by
 tier across the three historical runs: `http` 44, `real`
-29, `warm` 4 — **44 of 93 recorded target visits passed at HTTP**. Median cost: **115.4 s per
+29, `warm` 4, so **44 of 93 recorded target visits passed at HTTP**. Median cost: **115.4 s per
 run of 31, or 3.7 s per page.**
 
 <details>
@@ -287,21 +287,21 @@ run of 31, or 3.7 s per page.**
 | `sedarplus.ca` | A WAF response in the saved Svipall run; the later native/auto audit also records refusals |
 | `medium.com`, `canadianinsider.com` | Historical rule/manual-inspection disagreement: saved responses had site titles and substantial bodies, while the rule matched `cdn-cgi/challenge-platform`. Neither status, title, size nor that script alone establishes useful content; the later native/auto audit separately reviews content |
 
-That last row is the ported rule being over-broad, measured directly rather than argued about.
-Svipall's own classifier is right and the imported one is wrong — and **the cells are still reported
+That last row is the ported rule being over-broad, measured directly.
+Svipall's own classifier is right and the imported one is wrong, and **the cells are still reported
 as failures**, because moving a target or bending a scoring function to win two cells is how a
-benchmark stops meaning anything. What is *not* done is escalating those pages to a browser to
+benchmark stops meaning anything. Those pages are *not* escalated to a browser to
 satisfy the rule: opening a browser on a page already in hand would make the tool worse in exchange
 for a number.
 
 `indeed-jobs` used to be a sixth, and it is the single cell that took this list from 25 to 26. It is
-a real Cloudflare managed challenge and it is also the flakiest target here — this benchmark has
-watched it, `crunchbase` and `zillow` swap places across four separate rounds. What was different on
-the run that moved it is **not the code but the address**, which had been left alone for two hours.
+a real Cloudflare managed challenge and also the flakiest target here: this benchmark has
+watched it, `crunchbase` and `zillow` swap places across four separate rounds. The code was the same on
+the run that moved it. **The address was different**: it had been left alone for two hours.
 A number that moves when the address rests is a number about the address. It is reported as an
 improvement only because the median left the previous range, which is this project's rule.
 
-A Firefox arm was also measured once — `http_firefox = true`, one run, `25/31`, committed as
+A Firefox arm was also measured once: `http_firefox = true`, one run, `25/31`, committed as
 `bench/baseline/public31-firefox.*`. One run is not a median, so the default Chrome configuration
 stays the headline.
 </details>
@@ -310,7 +310,7 @@ stays the headline.
 
 Twelve sites, scored by whether the expected text came back with no wall reported. Three runs,
 2026-09-04. A 7/12 here and a 26/31 there are not the same kind of number, and quoting one
-against the other — in either direction — is reading noise as signal. Both are published, each with
+against the other, in either direction, is reading noise as signal. Both are published, each with
 its list, so nobody has to.
 
 | Site | Protection | Passed | Tier that answered | Time |
@@ -334,31 +334,31 @@ three runs of this list, in 1.5 s, 2.1 s and 1.6 s.
 ### Anti-bot: `vendors8`, four vendors named, two targets each
 
 Two targets each behind **Kasada** (`twitch`, `hyatt`), **Akamai** (`newegg`, `homedepot`),
-**DataDome** (`g2`, `idealista`) and **Cloudflare**'s managed challenge (`crunchbase`, `indeed`) —
+**DataDome** (`g2`, `idealista`) and **Cloudflare**'s managed challenge (`crunchbase`, `indeed`),
 the same ids the committed `bench/baseline/vendors8.json` uses. **Median 3/8, range 2..3.** It scores
 worse than `hard12`, which is the point of publishing it. `hard12` and `public31` stay frozen, because a number only means something against
 its own list.
 
 Beyond the score:
 
-- Kasada is passable: `twitch` clears at the `real` tier in all three runs —
-  9.3 s, then 1.9 s, then 1.8 s. `hyatt`, behind the same vendor, fails in a way worth reading:
+- Kasada is passable: `twitch` clears at the `real` tier in all three runs
+  (9.3 s, then 1.9 s, then 1.8 s). `hyatt`, behind the same vendor, fails in a way worth reading:
   28 s, then 63 s, then a timeout, across three runs minutes apart. The baseline reads that
-  as the vendor's documented behaviour — the puzzle gets harder for an address it has seen
-  repeatedly — and says so as a reading of the timings, not as something it measured inside the
+  as the vendor's documented behaviour (the puzzle gets harder for an address it has seen
+  repeatedly) and says so as a reading of the timings, not as something it measured inside the
   vendor.
-- Akamai: the `homedepot` target answers `200` with its own error template — *"Oops!!
-  Something went wrong. Please refresh page"*, 206 characters — after a day of benchmark runs
+- Akamai: the `homedepot` target answers `200` with its own error template (*"Oops!!
+  Something went wrong. Please refresh page"*, 206 characters) after a day of benchmark runs
   against this address, and `403` with the same page over plain HTTP. That is a soft block wearing a
-  success code. Svipall was returning those 206 characters *as the page*; it now treats a short
+  success code. Svipall was returning those 206 characters *as the page*. It now treats a short
   "something went wrong, please refresh" as the stand-in it is.
-- The two published records of the previous round disagree with each other, and rather than pick
-  the flattering one, [`bench/baseline/README.md`](../bench/baseline/README.md) says so and declines to
+- The two published records of the previous round disagree with each other.
+  [`bench/baseline/README.md`](../bench/baseline/README.md) says so and declines to
   assert any movement at all: *"until that is resolved, 'the median left the previous range' cannot
   be asserted."*
 - A change that fixed real detection is explicitly not credited with the score. Vendor signs on
   headers and cookies had been declared and never read, so a whole class of wall was reported as
-  "the page did not render". Fixing it renames a block; it cannot make a page arrive — and the
+  "the page did not render". Fixing it renames a block. It cannot make a page arrive, and the
   baseline says exactly that.
 
 <a id="what-svipall-does-not-get-past-and-why"></a>
@@ -380,16 +380,16 @@ cannot isolate all server-side signals or prove that an address change is necess
 > Svipall does not bundle proxies or remote solving services. The local comparison uses neither.
 >
 > `evasion --exit URL` runs the same targets through an exit you supply and can help assess exit
-> sensitivity. **The historical baseline records use no configured exit** — they read `"exit": null`.
-> The new automatic-policy measurement likewise adds no proxy; its public-site results remain
+> sensitivity. **The historical baseline records use no configured exit**: they read `"exit": null`.
+> The new automatic-policy measurement likewise adds no proxy. Its public-site results are
 > specific to the observed host, exit and history.
 
-### Automation tells — 160 of 160, offline, and it fails the build
+### Automation tells: 160 of 160, offline, and it fails the build
 
 `fingerprint` asks public detectors what they see, which needs the network, which keeps it out of
 the build. So there is a second harness that asks the same question of a page the benchmark serves
-itself on loopback, across **five browser passes** — `browser`, `browser (reused)`, `stealth`,
-`real` and `warm` — 32 probes each, and it **fails the build**:
+itself on loopback, across **five browser passes** (`browser`, `browser (reused)`, `stealth`,
+`real` and `warm`), 32 probes each, and it **fails the build**:
 
 ```bash
 cargo run -p svipall-bench --release -- tells --assert
@@ -412,16 +412,16 @@ what a harness catches that a person does not:
 | `runtime_domain_unobservable` | A watchdog, not a defect: it fires only if Chrome reopens the `Runtime.enable` console leak the CDP client's design rests on |
 
 The recorded run passed all 32 probes at all five emulated passes. These are checks of known
-automation tells, not a guarantee of undetectability or a test of native anonymity. Two of the fixes were structural rather than cosmetic: the
+automation tells, not a guarantee of undetectability or a test of native anonymity. Two of the fixes were structural: the
 console ring is gone from the page entirely and comes from `Runtime.consoleAPICalled` on the protocol
 side, and workers are handed the identity in the window between attaching paused and resuming.
 
-### Identity coherence — asserted offline, in CI
+### Identity coherence: asserted offline, in CI
 
 A fingerprint is rarely caught by one odd value. It is caught by a combination no real device
 produces: a macOS user agent with a Windows GPU, a desktop with no taskbar, a Firefox emitting
 Chrome's client hints. Camoufox, the leading patched-Firefox project, names exactly this in its own
-documentation as the thing it keeps getting wrong — not the spoofing technique, the *coherence
+documentation as the thing it keeps getting wrong: not the spoofing technique, the *coherence
 between spoofed values*. The quotation and what it implies are in
 [`docs/firefox.md`](firefox.md).
 
@@ -435,8 +435,8 @@ client hints ↔ engine, screen ↔ availHeight ↔ viewport, form factor ↔ pl
 renderer ↔ engine, and the macOS OS-token spelling that differs between the two engines. No network,
 no browser, and it **fails the build** on a contradiction. It runs in `qc` and in CI.
 
-Run **without** the `--engine` flag, the same command adds a network half — the only part of it that
-touches the wire — and asserts eight things against `tls.peet.ws`:
+Run **without** the `--engine` flag, the same command adds a network half (the only part of it that
+touches the wire) and asserts eight things against `tls.peet.ws`:
 
 | What is asserted | Measured |
 |---|---|
@@ -454,14 +454,14 @@ touches the wire — and asserts eight things against `tls.peet.ws`:
 > never supported groups. The engine had been offering it all along. That correction is in the
 > baseline log too, because a benchmark that quietly deletes its own mistakes is a marketing page.
 
-### CPU budgets — measured, not recalled
+### CPU budgets: measured, not recalled
 
 `cargo run -p svipall-bench --release -- micro` on a 195 KB generated news page. The fixture is
 generated from a fixed seed rather than checked in, so two machines measure the same document.
 
-**The `Measured` column is one run on one desktop and yours will differ; the `Budget` column is what
+**The `Measured` column is one run on one desktop, and yours will differ. The `Budget` column is what
 `--assert` actually enforces**, and it is the half that gates the build. Timing budgets carry
-headroom for exactly that reason; the structural checks are exact and cannot flake on any machine.
+headroom for exactly that reason. The structural checks are exact and cannot flake on any machine.
 
 | Check | Measured | Budget |
 |---|---|---|
@@ -482,7 +482,7 @@ headroom for exactly that reason; the structural checks are exact and cannot fla
 | Pruning kept the article, the code and the table; dropped the nav and the sidebar | pass | exact |
 
 Measured column from `bench/experiments/cpu-budgets-20260907/micro.txt`, one Windows machine,
-2026-09-07. CPU timings depend on the machine; the budget column does not, and
+2026-09-07. CPU timings depend on the machine. The budget column does not, and
 `cargo run -p svipall-bench --release -- micro --assert` is what CI enforces.
 
 ---

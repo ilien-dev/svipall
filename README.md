@@ -112,8 +112,8 @@ configuration and available permissions.
 Svipall the way Claude reaches the web in every project. It asks before each of those.
 `/svipall:doctor` reports the installation's capabilities. `/svipall:update` shows the installed
 and latest releases, then updates the binaries only if you choose to. `/svipall:uninstall` offers
-removal of setup's registration, memory and strict-mode changes; binary and data removal are
-separate choices.
+removal of setup's registration, memory and strict-mode changes. Removing the binary and the data
+are separate choices.
 
 ### Install it yourself
 
@@ -174,7 +174,7 @@ svipall snapshot https://news.ycombinator.com                # the page as roles
 svipall serve --port 8788                                    # the same server as a local REST API
 ```
 
-Completed data commands print **one JSON object** to stdout; diagnostics go to stderr, so their
+Completed data commands print **one JSON object** to stdout and diagnostics to stderr, so the
 output can be piped to `jq`. `serve` is a long-running server, and help is written to stderr.
 
 ### What comes back
@@ -250,11 +250,11 @@ processing locally; browser traffic and optional downloads are described under
 ## How it works, in plain words
 
 *The steps below describe the emulated tiers. The current automatic policy can promote a supported
-emulated route and append one eligible native fallback. Wall verdicts can end the attempt;
-content-quality labels alone do not trigger escalation.*
+emulated route and append one eligible native fallback. Wall verdicts can end the attempt.
+Content-quality labels alone do not trigger escalation.*
 
 1. Ask for the page through HTTP first on a new route. The default engine emulates selected
-   Chrome network characteristics. In the historical `public31` runs above, 59 of 93 cells stopped at this tier;
+   Chrome network characteristics. In the historical `public31` runs above, 59 of 93 cells stopped at this tier, and
    44 of those scored `ok` under that benchmark's rule. A route that stops here has still not
    necessarily delivered the page.
 2. If the page needs JavaScript, open a browser. Headless Chromium runs the scripts and hands
@@ -263,7 +263,7 @@ content-quality labels alone do not trigger escalation.*
    surfaces to match the emulated identity. The offline probes check those surfaces; they cannot
    prove that an arbitrary detector will accept them.
 4. If the site wants a real person, act like one. The `real` tier is a visible-but-offscreen
-   browser with a persistent profile, moving the pointer along curves and scrolling with a wheel.
+   browser with a persistent profile. It moves the pointer along curves and scrolls with a wheel.
 5. If there is a challenge, answer it or wait it out. The `warm` tier runs the captcha strategy
    loop during its bounded wait and avoids pointer activity on recognized self-verifying
    interstitials. This does not guarantee clearance.
@@ -273,7 +273,7 @@ content-quality labels alone do not trigger escalation.*
    later visits in the same context. Native stays last even when it succeeds.
 8. Report the observed failure. Where available, a blocked result includes `blocked_reason`,
    the classified wall, recognized vendor/evidence and a suggested next step. Classification is
-   heuristic; transport errors and local budget deferrals may have less page evidence.
+   heuristic. Transport errors and local budget deferrals may have less page evidence.
 
 ---
 
@@ -331,7 +331,7 @@ curl -sH "Authorization: Bearer $KEY" -H 'content-type: application/json' \
      -d '{"url":"https://example.com","query":"pricing"}' localhost:8788/v1/fetch
 ```
 
-`svipall-mcp` mounts the same router when `rest_port` is set, on its own listener, sharing its
+`svipall-mcp` mounts the same router when `rest_port` is set, on its own listener, and shares its
 browser pools, page cache and route evidence with the MCP tools.
 
 Nineteen routes, one per tool, each taking that tool's own JSON as the body:
@@ -350,10 +350,10 @@ Nineteen routes, one per tool, each taking that tool's own JSON as the body:
 A blocked page is a `200`: the call ran, the *page* did not. `blocked_reason`, `wall_kind` and
 `note` can appear in the body as over MCP. Non-2xx responses include a malformed body (`400`), a bad key
 (`401`), a browser `Origin` or a rebound `Host` (`403`), a body over 2 MB (`413`) or a broken
-installation (`500`); an unknown job can return `404`, and routing can reject unsupported paths
+installation (`500`). An unknown job can return `404`, and routing can reject unsupported paths
 or methods. A client must inspect both the HTTP status and the tool result before deciding to retry.
 
-Every tool and job route needs the key, including on loopback; `/v1/health` is exempt.
+Every tool and job route needs the key, including on loopback. Only `/v1/health` is exempt.
 A local port is not a boundary on its own: Svipall carries logged-in profiles, cookies and your
 exit address, so anything that reaches the port can make requests as you.
 Two more checks sit in front of the key, because binding to `127.0.0.1` does not stop a page in your
@@ -368,11 +368,11 @@ REST interface's current design; `web_login`, whose interactive window is also e
 classic solver wire shape. Twenty-nine tools minus those ten is the nineteen routes above. A new
 `#[tool]` fails the test suite until it is listed as a route or as a named exclusion.
 
-A long crawl is a job rather than a held connection. `"async": true` answers `202` with an id; `GET
+A long crawl runs as a job and does not hold the connection. `"async": true` answers `202` with an id. `GET
 /v1/jobs/{id}` polls it, `GET /v1/jobs/{id}/stream` follows it as Server-Sent Events, `DELETE` stops
 it. The id is the `crawl_id`, so there is one handle to learn and resuming is `{"crawl_id": "…"}`,
 the same word the MCP tool and the CLI already use. A cancelled crawl stops between pages *after*
-that page's links are queued, so its frontier is kept; it is never aborted, because that would leak a
+that page's links are queued, so its frontier is kept. It is never aborted, because that would leak a
 browser page. A job whose process was killed becomes `interrupted`, and `interrupted` is resumable.
 The first frame of a stream is always a snapshot from the store, so a subscriber that joins at page
 forty is never told the job started at zero. And a queued job whose site already has one running is
@@ -439,11 +439,11 @@ a site will accept the visit or be unable to link it to an earlier one.
 
 **AGPL-3.0-only**, subject to the terms in [`LICENSE`](LICENSE), including its conditions for
 distribution and section 13 on remote network interaction. The component licences and linking
-exception below also apply; this paragraph is not a substitute for those terms.
+exception below also apply. This paragraph is not a substitute for those terms.
 
 `crates/svipall-extract`, the extraction engine, is deliberately **MIT OR Apache-2.0** so that a
 project under any licence can depend on it. `crates/svipall-cdp` keeps its upstream terms
-(chromiumoxide, MIT OR Apache-2.0) and `crates/svipall-quic` keeps its own (quiche, BSD-2-Clause); the default build links BoringSSL under an explicit AGPL section 7 linking
+(chromiumoxide, MIT OR Apache-2.0) and `crates/svipall-quic` keeps its own (quiche, BSD-2-Clause). The default build links BoringSSL under an explicit AGPL section 7 linking
 exception. These are set out in [`NOTICE`](NOTICE) and
 [`THIRD-PARTY-NOTICES.md`](THIRD-PARTY-NOTICES.md).
 

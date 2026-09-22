@@ -23,7 +23,7 @@ before (`outcomes`). A strategy that declines costs no attempt, and there is nev
 
 A detector (SSDLite320-MobileNetV3, 13.8 MB) and a segmenter (DeepLabV3-MobileNetV3, 44.1 MB),
 torchvision weights under BSD-3, running on the CPU. Where included, these enable local attempts
-for supported subjects without downloading weights at run time; they do not guarantee a correct
+for supported subjects without downloading weights at run time. They do not guarantee a correct
 answer or acceptance by a widget. A compatible model you train from your own
 corpus and drop in `~/.svipall/models/` **wins over the embedded one and is picked up without a
 restart.**
@@ -31,7 +31,7 @@ restart.**
 The current release workflow includes those export assets in Windows x86-64 and Apple-silicon
 builds and the full container on both architectures. Linux and Intel-Mac binary jobs omit them
 because of the configured ONNX Runtime distribution constraints. This describes the build matrix,
-not an installation test on every platform; inspect the installed build with `svipall doctor`.
+not an installation test on every platform. Inspect the installed build with `svipall doctor`.
 The [FAQ](#faq) lists the targets.
 
 The live image-grid, point, polygon and audio strategies depend on suitable models. Standalone
@@ -42,7 +42,7 @@ leave human assistance as a fallback when enabled and usable; the page can still
 `svipall doctor` reports model availability.
 
 Those two weights are not a binary blob you have to trust: `tools/models/export.py` regenerates them
-from torchvision's published weights — no account, no key, no service — and `docs/models.md` states
+from torchvision's published weights (no account, no key, no service), and `docs/models.md` states
 the contract each one has to keep.
 
 Widget identifiers use challenge endpoint hosts. Fixture tests check recognition and that listed
@@ -58,11 +58,11 @@ wrong predictions.
 
 `http://localhost:8787/human`, and on your LAN address when `dashboard_bind` is not loopback. One
 renderer per modality, and it works from a phone. **Every coordinate it sends is a fraction of the
-image, never a pixel**, so resizing can preserve its relative position; the chosen answer can still be wrong. The
+image, never a pixel**, so resizing can preserve its relative position. The chosen answer can still be wrong. The
 answer is checked against the modality of the job it answers *before* it is stored, so a mismatch is
 a rejection at the door with a reason rather than a wrong answer discovered a minute later by the
-site. `Unknown` — *"I cannot read this"* — is a real answer, and the one that keeps the ranking
-honest. An unsolved challenge expires after 30 minutes; a page-rating card, which nobody is waiting
+site. `Unknown` (*"I cannot read this"*) is a real answer, and the one that keeps the ranking
+honest. An unsolved challenge expires after 30 minutes. A page-rating card, which nobody is waiting
 on, does not.
 
 ### Training your own models
@@ -87,7 +87,7 @@ is available and `corpus_keep_days` is positive (default retention: 30 days).
 `svipall solver export-corpus --out ./corpus` writes the recorded images and a
 `manifest.jsonl` with prompt, answer, who answered and whether the page accepted it: training data
 for your own models. Rows with `"source":"human","ok":true` record a human answer and the
-live observer's acceptance result; this is not an independent correctness label. Full sidecar
+live observer's acceptance result. This is not an independent correctness label. Full sidecar
 contracts in [`docs/models.md`](models.md).
 
 ---

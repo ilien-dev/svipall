@@ -2,7 +2,7 @@
 
 Lifted out of the README so that file stays readable. Everything here is the same text, with its links repointed.
 
-Nine crates — seven of our own and two vendored — plus the benchmark workspace member.
+Nine crates (seven of our own and two vendored) plus the benchmark workspace member.
 Tracked Rust source, including tests and benchmarks, is about **66,000 lines of our own plus
 48,000 vendored** as of the 2026-09-06 audit.
 
@@ -18,12 +18,11 @@ Tracked Rust source, including tests and benchmarks, is about **66,000 lines of 
 | `svipall-dashboard` | The human panel |
 | `svipall` | **The product**: MCP tools, browser pool, strategy loop, the HTTP API (`rest`), the job runner (`jobs`) and the progress sink both report through. Ships `svipall-mcp` (server) and `svipall` (CLI, which is also `svipall serve`) |
 
-Three invariants hold the whole thing together, and each is enforced by a test rather than by
-convention:
+Three invariants hold the whole thing together, and a test enforces each of them:
 
 1. **One identity profile** drives TLS, headers, CDP overrides, the stealth script and every worker
-   realm — so a Chrome version is never stated in two places.
-2. **One DOM parse per response.** You ask via `ParseWants` and read from `PageParts`; the benchmark
+   realm, so a Chrome version is never stated in two places.
+2. **One DOM parse per response.** You ask via `ParseWants` and read from `PageParts`. The benchmark
    asserts the count is exactly 1.
 3. **Quality labels do not discard pages.** Extraction and token budgets can still limit returned text.
 

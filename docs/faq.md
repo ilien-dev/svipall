@@ -19,11 +19,11 @@ listed in [Development](#the-gate), and tagged releases
 attach binaries for **Windows x86-64, macOS Intel, macOS Apple silicon, Linux x86-64 and Linux
 arm64**, with a `sha256sums.txt` and a build attestation. Install them with a one-line script, with
 Homebrew or Scoop, from a `.deb` or `.rpm` where available, through npm, or as a container image on
-`ghcr.io` — [docs/install.md](install.md) has the platform details. The winget and AUR manifests
+`ghcr.io`. [docs/install.md](install.md) has the platform details. The winget and AUR manifests
 are packaging preparation, not confirmed published installation channels.
 
-The checked release has five binary targets. The current workflow's model matrix is below;
-browser operation also depends on an installed compatible browser, OS libraries and a usable
+The checked release has five binary targets. The current workflow's model matrix is below.
+Browser operation also depends on an installed compatible browser, OS libraries and a usable
 display for headful tiers. A package's existence does not establish full functionality on every host.
 
 | Platform | Published binary target | Browser provisioning | Model-enabled binary job |
@@ -43,9 +43,9 @@ limitations described in [the container section](#or-run-it-in-a-container).
 **A binary without models can still attempt non-model strategies.** Token widgets may clear in
 the browser, or may demand further challenges. Proof-of-work, slider, rotation, drag and hold
 strategies do not require ONNX weights. Model-dependent paths need compatible models or usable
-human assistance; neither path guarantees acceptance.
+human assistance. Neither path guarantees acceptance.
 `svipall doctor` reports whichever limitation applies to the machine it is on. On Windows, keep
-`CARGO_TARGET_DIR` short when building from source — BoringSSL's paths run into `MAX_PATH`.
+`CARGO_TARGET_DIR` short when building from source: BoringSSL's paths run into `MAX_PATH`.
 </details>
 
 <details>
@@ -64,7 +64,7 @@ It can, and the tool is built around that being the scarce resource. Top-level a
 per domain and exit, a persistent visit window limits bursts, full `Retry-After` backoff is kept, a
 hard block puts the domain on a 15-minute cooldown, and a reputation ledger tracks what each address
 has spent with each host and decays it with a six-hour half-life. Two crawls of the same site cannot
-run at once for exactly this reason. None of that makes you invisible — this project's own benchmark
+run at once for exactly this reason. None of that makes you invisible. This project's own benchmark
 has watched a home address get worse at three targets over a day of runs, and
 [published it](#anti-bot-vendors8-four-vendors-named-two-targets-each).
 </details>
@@ -75,7 +75,7 @@ has watched a home address get worse at three targets over a day of runs, and
 Svipall stores its cache, crawl state, cookies, profiles and captcha corpus locally under
 `~/.svipall` (or `SVIPALL_HOME`). Web requests still reach remote sites, including credentials or
 form input you submit, and results go to your connected agent or client. Native fallback can expose
-real browser/device characteristics. There is no Svipall telemetry or cloud sync; see
+real browser/device characteristics. There is no Svipall telemetry or cloud sync. See
 [Privacy and safety](#privacy-and-safety) for downloads, browser traffic and configuration.
 </details>
 
@@ -90,7 +90,7 @@ Other outcomes varied across visits. The recorded DataDome browser visits return
 interstitial, while bare HTTP on the same address received a different challenge: those observations
 do not isolate the cause to the IP address. `web_route` can try an exit you supply, without guaranteeing
 acceptance. The [2026-09-06 automatic-policy snapshot](../bench/experiments/automatic-public-20260906/README.md)
-reports delivery-check rates and content limitations on `dd8a304`; it predates the browser
+reports delivery-check rates and content limitations on `dd8a304` and predates the browser
 directory/shutdown fix in `e60e10b`.
 </details>
 
@@ -100,7 +100,7 @@ directory/shutdown fix in `e60e10b`.
 Take Claude Code's `WebFetch`, since it is the one most people already have. Its own documentation
 describes what it does: it fetches the URL, converts the page to Markdown, and answers **your
 prompt** against that Markdown with a small, fast model. What reaches the conversation is the small
-model's answer; the page does not.
+model's answer. The page itself never does.
 
 That is genuinely convenient. Nothing to install, and a page you wanted one number from never fills
 the context. It is also where the limits come from. A second question about the same page is a
@@ -112,10 +112,10 @@ page is Markdown like any other and gets summarised as though it were the articl
 Svipall gives the agent the content itself, with labels attached: a `blocked_reason` when a wall
 answered instead of the page, quality and duplicate observations when it did not
 ([details](features.md#judging-what-came-back)). Around it sit the jobs a single-page fetch does not
-cover — a tier ladder with per-domain memory, local captcha attempts, a login that persists across
+cover: a tier ladder with per-domain memory, local captcha attempts, a login that persists across
 pages, `web_map` and `web_crawl`, tables as rows, `out_file` for a result too big to put in a
 conversation, and three search engines queried from this machine and merged. Trimming is still
-there when you want it, as `query=`, `css_selector` or `max_tokens` rather than as the only mode.
+there when you want it, as `query=`, `css_selector` or `max_tokens`, but it is not the only mode.
 
 The honest cost: Svipall is a program to install, update and keep running, where the built-in tool
 is already there. Neither one can promise a given site will let it in.
@@ -126,24 +126,24 @@ is already there. Neither one can promise a given site will let it in.
 
 There is overlapping functionality, but this repository has not established a current
 head-to-head winner. The [comparison](#how-svipall-compares) describes documented project scope.
-Svipall focuses on local operation, content labels, bounded routing and local challenge attempts;
-compatibility, completeness and success still need validation on your workload.
+Svipall focuses on local operation, content labels, bounded routing and local challenge attempts.
+Compatibility, completeness and success still need validation on your workload.
 </details>
 
 <details>
 <summary><b>Is scraping legal?</b></summary>
 
 That depends on the site, the data and where you are, and it is your call rather than this project's.
-Svipall grants you **no authorisation with respect to any system you point it at** — read
+Svipall grants you **no authorisation with respect to any system you point it at**. Read
 [`DISCLAIMER.md`](../DISCLAIMER.md) before you run it against something that is not yours. It evades bot
-detection on public pages; it does not crack passwords, bypass paywalls or forge authentication.
+detection on public pages. It does not crack passwords, bypass paywalls or forge authentication.
 </details>
 
 <details>
 <summary><b>Do I need a GPU?</b></summary>
 
 No GPU is required for the supplied CPU model paths. Availability depends on the build and
-installed weights. Browser software rendering can affect fingerprint consistency; `web_status`
+installed weights. Browser software rendering can affect fingerprint consistency, and `web_status`
 reports detected limitations without proving how a site will classify them.
 </details>
 

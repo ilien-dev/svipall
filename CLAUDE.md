@@ -1,7 +1,7 @@
 # Svipall
 
 Local-first web scraping + captcha MCP server in Rust. Defeat anti-bot walls **by evading them**,
-never by breaking access controls. Everything runs here.
+never by breaking access controls.
 
 ## Layout
 `crates/svipall-*` plus `bench/`, a workspace member **not** under `crates/`.
@@ -46,12 +46,13 @@ never by breaking access controls. Everything runs here.
   the runs that improved nothing.
 - **No third-party services, no remote deploy.** No API keys, no paid solvers, no geolocation.
   No vendor brand names in code; name protocols by endpoint.
+- **Reader-facing Markdown: run the `quiron` skill on every edit** (READMEs, `docs/`, root
+  guides, never agent files). Code, links, tables, headings, numbers stay.
 - **English only.** **Size-guarded file**; trim, don't expand.
 
 ## Build / run / ship
 `cargo build --release` (cmake, nasm, perl, llvm; short `CARGO_TARGET_DIR` on Windows) is
 `target-cpu=native`: **never ship it**, artifacts are `--profile dist`. `svipall-mcp` over stdio +
 dashboard 8787; `svipall` is the CLI; `svipall doctor` reports an install. Config
-`~/.svipall/config.toml`; `SVIPALL_*` in the README. Installs: `install.{sh,ps1}`, package
-managers, crates.io, Docker, `plugins/svipall/`. Release = a `main` merge bumping
+`~/.svipall/config.toml`; `SVIPALL_*` in the README. Release = a `main` merge bumping
 `[workspace.package] version`.
