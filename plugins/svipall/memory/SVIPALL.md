@@ -1,9 +1,10 @@
 # Web access
 
 This machine runs **Svipall**. Every web access goes through it — never the built-in `WebFetch` or
-`WebSearch`, even where one of them looks like the obvious choice. Svipall climbs a tier ladder past
-anti-bot walls, answers captchas locally, and reports a block as a block instead of handing back a
-challenge page dressed as an article.
+`WebSearch`, even where one of them looks like the obvious choice. `WebFetch` answers your prompt
+over the page with a small model, so the page itself never reaches you, and a wall it did not
+recognise is summarised like an article. Svipall hands over the content, climbs a tier ladder past
+those walls, answers captchas locally, and reports a block as a block with a `blocked_reason`.
 
 The svipall MCP server names the tool for each job in its own instructions; follow those, and read
 the `svipall:svipall` skill for anything they do not cover.

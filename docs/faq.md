@@ -95,6 +95,33 @@ directory/shutdown fix in `e60e10b`.
 </details>
 
 <details>
+<summary><b>How is this different from the fetch tool my agent already has?</b></summary>
+
+Take Claude Code's `WebFetch`, since it is the one most people already have. Its own documentation
+describes what it does: it fetches the URL, converts the page to Markdown, and answers **your
+prompt** against that Markdown with a small, fast model. What reaches the conversation is the small
+model's answer; the page does not.
+
+That is genuinely convenient. Nothing to install, and a page you wanted one number from never fills
+the context. It is also where the limits come from. A second question about the same page is a
+second fetch, you cannot quote a line nobody thought to ask for, authenticated URLs and hostnames
+without a dot are refused, and a cross-host redirect is handed back to the agent rather than
+followed. Its documentation describes no notion of an anti-bot wall, so a "checking your browser"
+page is Markdown like any other and gets summarised as though it were the article.
+
+Svipall gives the agent the content itself, with labels attached: a `blocked_reason` when a wall
+answered instead of the page, quality and duplicate observations when it did not
+([details](features.md#judging-what-came-back)). Around it sit the jobs a single-page fetch does not
+cover — a tier ladder with per-domain memory, local captcha attempts, a login that persists across
+pages, `web_map` and `web_crawl`, tables as rows, `out_file` for a result too big to put in a
+conversation, and three search engines queried from this machine and merged. Trimming is still
+there when you want it, as `query=`, `css_selector` or `max_tokens` rather than as the only mode.
+
+The honest cost: Svipall is a program to install, update and keep running, where the built-in tool
+is already there. Neither one can promise a given site will let it in.
+</details>
+
+<details>
 <summary><b>Is it a Firecrawl / Crawl4AI / Scrapling / Playwright MCP replacement?</b></summary>
 
 There is overlapping functionality, but this repository has not established a current
