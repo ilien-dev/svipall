@@ -4,9 +4,9 @@ Lifted out of the README so that file stays readable. Everything here is the sam
 
 Use `svipall config show`, `svipall config set key=value`, or `svipall config preset local`.
 The default identity policy is `auto`: learn useful emulated routes first, with at most one native
-browser attempt as a last resort. Existing explicit `emulated` or `native` settings are preserved;
-use `svipall config preset auto` to migrate an existing installation. Connected MCP
-clients can save browser policy through `web_status` with a `configure` object; running MCP/REST
+browser attempt as a last resort. Existing explicit `emulated` or `native` settings are kept
+and `svipall config preset auto` moves an existing installation to it. Connected MCP
+clients can save browser policy through `web_status` with a `configure` object, and running MCP/REST
 servers apply it on the next request. See [local configuration and sessions](local-configuration.md)
 for identity modes, bounded waits, browser provisioning and which settings apply live.
 
@@ -14,53 +14,53 @@ for identity modes, bounded waits, browser provisioning and which settings apply
 
 No per-site setup is required. Automatic fetches learn locally by domain, route family, exit and
 browser environment. Successful delivery with full content quality and observed latency can
-promote an emulated route after two supporting observations. Repeated failures demote it; evidence
-expires after 24 hours. Routes that repeatedly fail are skipped for 30 minutes; the strongest
-allowed emulated probe remains available, and a repeatedly failing native fallback is also paused.
-The current implementation additionally remembers classified fingerprint/hold walls for 30 minutes
+promote an emulated route after two supporting observations. Repeated failures demote it and evidence
+expires after 24 hours. Routes that repeatedly fail are skipped for 30 minutes. The strongest
+allowed emulated probe stays available and a native fallback that keeps failing is paused too.
+The current implementation also remembers classified fingerprint/hold walls for 30 minutes
 to avoid weaker probes when a headful route is permitted. Generic errors and native-only walls
-do not supply that evidence, and a later delivery clears the marker on its route.
-Within a fetch, it also uses the existing managed-challenge discriminator to skip
-weaker routes when headful emulation is allowed. Ordinary interstitials retain cheaper exploration;
+do not supply that evidence and a later delivery clears the marker on its route.
+Within a fetch it also uses the existing managed-challenge discriminator to skip
+weaker routes when headful emulation is allowed. Ordinary interstitials keep the cheaper exploration and
 this per-call decision does not create fingerprint-wall memory or change the caller's deadline.
-This is a heuristic: it cannot prove that the requested information is
+This heuristic cannot prove that the requested information is
 complete or guarantee the best route or a successful fetch. Short pages are returned with quality
-labels and do not, by themselves, trigger a native attempt.
+labels and do not trigger a native attempt by themselves.
 
 Privacy takes priority over delivery scores: even a successful native route stays last. Automatic
 native fallback is excluded for named profiles, isolated visits, mobile requests, forced tiers and
 non-GET requests. Native and emulated automatic profiles use separate directories and cookie jars.
-Detected login walls, subscriptions and missing pages stop escalation. HTTP 429/503 triggers
-backoff. Quotas expressed only in page text can escape classification, as the current audit shows;
+Detected login walls, subscriptions and missing pages stop escalation, and HTTP 429/503 triggers
+backoff. Quotas expressed only in page text can escape classification, as the current audit shows, so
 respect an observed restriction even when the tool labels the response as delivered.
 
-**Native mode exposes real browser/device characteristics**, potentially including graphics,
+**Native mode exposes real browser/device characteristics**, which can include graphics,
 hardware capabilities, screen, language and timezone. Sites can correlate these across visits and
 cookie profiles. Emulation reduces some exposure but guarantees neither anonymity nor IP hiding.
-The browser uses tool-managed profiles, and its sandbox remains enabled. Launch flags no longer
+The browser uses tool-managed profiles and its sandbox stays enabled. Launch flags no longer
 request disabling site isolation, client phishing detection or IPC flooding protection. Browser
-updates and host configuration still matter. Results always report `identity_used`; `native_fallback`
+updates and host configuration still matter. Results always report `identity_used`, and `native_fallback`
 and a `privacy_notice` appear whenever a native fallback was attempted, even if it failed. To prevent all automatic native
-fallback, run `svipall config set auto_native_fallback=false`; `browser_identity=emulated` also
+fallback, run `svipall config set auto_native_fallback=false`. `browser_identity=emulated` also
 keeps browser requests emulated. Explicit `browser_identity=native` is a separate manual override.
 
 Defaults permit **12 top-level transport attempts per 60 seconds per domain and exit**, a minimum
 **1 second between scheduled attempts**, and **6 attempts per automatic fetch**, within its total
 timeout. Exceeding the visit window starts a **15-minute cooldown**. HTTP 429/503 stops escalation
 and persists a cooldown of at least 15 minutes, or the full `Retry-After` when longer. Rejected calls
-do not prolong that cooldown. The existing decaying address budget can stop work sooner.
+do not extend that cooldown. The existing decaying address budget can stop work sooner.
 
 The visit ledger is transactional and persists across restarts. Changing identity or forcing a
 tier does not reset it. Successful cache hits do not consume visits. Returned pages are preserved
-when further attempts are refused, with `stopped_reason` and `cooldown_seconds_left`; callers should
-wait instead of repeatedly retrying. The legacy `clear_cooldown` action does not erase this ledger.
-These limits reduce traffic and exposure; they cannot promise that a site will not block an IP.
+when further attempts are refused, with `stopped_reason` and `cooldown_seconds_left`, and callers should
+wait instead of retrying over and over. The legacy `clear_cooldown` action does not erase this ledger.
+These limits reduce traffic and exposure, but they cannot promise that a site will not block an IP.
 
 The accounting unit is a fetch attempt or supported browser-tool navigation, **not every network
 request**: resource loads, redirects, origin warmup, challenge exchanges, scripts and interactive
 actions can generate additional traffic. Local development hosts are exempt. This is not a browser
 firewall or a universal request ceiling. Adjust limits through `svipall config set` or
-`web_status(configure={...})`; `svipall status` reports the effective limits. Learning and admission
+`web_status(configure={...})`, and `svipall status` reports the effective limits. Learning and admission
 need no third-party solver, service, API key or downloaded learning model.
 
 `~/.svipall/config.toml` (or `$SVIPALL_HOME/config.toml`). Every field has a default, so a missing or
@@ -175,10 +175,10 @@ max_jobs = 2                 # long jobs at once — not `parallelism`, which bo
 
 `real` and `warm` open a real browser window, because a headless one answers `pointer: fine` with
 `false` and a wall that asks is told what it is talking to. The window is moved off the edge of the
-screen rather than hidden: a hidden or minimised window is an occluded one, and Chrome throttles it
+screen. It is not hidden because a hidden or minimised window is an occluded one, and Chrome throttles it
 and flips `visibilityState`, which gives the same thing away by another route.
 
-Position is a request, and a tiling compositor may ignore it — Hyprland and sway place the window in
+Position is a request and a tiling compositor may ignore it: Hyprland and sway place the window in
 their layout, which also distorts the height the page reads (`bench tells`, `window_chrome_height`).
 On Linux the window therefore carries its own X11 class, `svipall-browser`, so a rule can catch
 those windows and no others:
