@@ -6,7 +6,7 @@ No jargon, no options. If you want the full reference instead, read
 ## What this is
 
 Your AI assistant can read text you give it, but it cannot really browse. When it tries, a lot of
-websites quietly hand it a "checking your browser" page — and the assistant summarises *that* as if
+websites quietly hand it a "checking your browser" page, and the assistant summarises *that* as if
 it were the article. It never says anything went wrong, because as far as it can tell, nothing did.
 
 Svipall is a program that runs on your own computer and does the browsing properly. It looks and
@@ -31,7 +31,7 @@ It will work out which version your computer needs and ask how you want to use i
 - **MCP + Skill** adds Svipall to the assistant's MCP tools for the full interactive surface.
 
 It then asks whether that choice should apply everywhere or only to the current project, shows what
-it will change, installs it and checks the selected integration rather than assuming it worked. If
+it will change, installs it and then checks that the selected integration really works. If
 Svipall is already installed, it also shows the current and latest versions and asks whether to
 update the copy shared by your assistants or keep using the one you have.
 
@@ -59,7 +59,7 @@ Open a terminal and paste one line.
 curl -fsSL https://raw.githubusercontent.com/ilien-dev/svipall/main/install.sh | sh
 ```
 
-**Windows** (in PowerShell — search the Start menu for it)
+**Windows** (in PowerShell: search the Start menu for it)
 
 ```
 irm https://raw.githubusercontent.com/ilien-dev/svipall/main/install.ps1 | iex
@@ -95,14 +95,14 @@ You get the page back as clean text.
 
 ## If something goes wrong
 
-- **`svipall: command not found`** — you are probably still in the old terminal window. Close it and
+- **`svipall: command not found`** means you are probably still in the old terminal window. Close it and
   open a new one.
-- **macOS says the developer cannot be verified** — that happens when a file arrives through a
+- **macOS says the developer cannot be verified.** That happens when a file arrives through a
   browser. The one-line installer above avoids it. If you already downloaded it by hand, run
   `xattr -d com.apple.quarantine` followed by the path to the file.
-- **Every page comes back blocked** — you probably skipped the browser download. Run
+- **Every page comes back blocked?** You probably skipped the browser download. Run
   `svipall browser install`.
-- **Anything else** — run `svipall doctor` and read what it says. It is written to be understood,
+- **Anything else?** Run `svipall doctor` and read what it says. It is written to be understood,
   and every problem it reports comes with its fix.
 
 ## Removing it
@@ -119,5 +119,5 @@ curl -fsSL https://raw.githubusercontent.com/ilien-dev/svipall/main/install.sh |
 irm https://raw.githubusercontent.com/ilien-dev/svipall/main/install.ps1 -OutFile i.ps1; ./i.ps1 -Uninstall
 ```
 
-That removes the program. It leaves the folder `.svipall` in your home directory alone — that is
-where any sites you logged into are kept — so delete it by hand if you want everything gone.
+That removes the program. It leaves the folder `.svipall` in your home directory alone (that is
+where any sites you logged into are kept), so delete it by hand if you want everything gone.

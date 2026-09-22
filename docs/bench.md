@@ -1,8 +1,8 @@
 # The benchmarks, and the rules they are read under
 
-`svipall-bench` is a workspace member at `bench/`, not under `crates/`. It has eight modes; two of
-them belong in the gate because they touch no network, and the rest are run by hand — because they
-reach the network, or because they start a browser.
+`svipall-bench` is a workspace member at `bench/`, not under `crates/`. It has eight modes. Two of
+them belong in the gate because they touch no network. The rest are run by hand, because they
+reach the network or start a browser.
 
 ```
 cargo run -p svipall-bench --release -- micro --assert          # CPU budgets + structural counts
@@ -50,27 +50,27 @@ and fixed rather than quietly corrected.
 
 ## Three lists, and why they are never one number
 
-* **`hard12`** — Svipall's own list: twelve sites chosen *because* they have walls, scored by
+* **`hard12`**: Svipall's own list: twelve sites chosen *because* they have walls, scored by
   whether the expected text came back with no wall reported.
-* **`public31`** — the list an independent benchmark published in May 2026 (seven stealth tools,
+* **`public31`**: the list an independent benchmark published in May 2026 (seven stealth tools,
   31 targets, 651 verdicts), scored with **that benchmark's own four-way rule**
   (`ok | gated | blocked | error`) ported verbatim into `bench/src/targets.rs`, so a cell here
   means what a cell there means. Twenty-five of its 31 pass for every tool measured there,
-  including unpatched automation; the signal lives in six cells.
-* **`vendors8`** — two targets each behind the proof-of-work vendor, the edge vendor, the
+  including unpatched automation. The signal lives in six cells.
+* **`vendors8`**: two targets each behind the proof-of-work vendor, the edge vendor, the
   fingerprinting vendor and the managed challenge.
 
-A 9/12 and a 28/31 are not the same kind of number. Quoting one against the other — in either
-direction — is reading noise as signal, so all three are published, each beside its list.
+A 9/12 and a 28/31 are not the same kind of number. Quoting one against the other, in either
+direction, is reading noise as signal, so all three are published, each beside its list.
 
-**The membership of `hard12` and `public31` is frozen.** A new target goes in a new list; a test in
+**The membership of `hard12` and `public31` is frozen.** A new target goes in a new list, and a test in
 `targets.rs` enforces the count. Moving a target is how a benchmark becomes a press release.
 
 ### The ported rule is not always right, and that is recorded rather than chased
 
 `public31`'s body rule counts `cdn-cgi/challenge-platform` as a gate. Every Cloudflare customer
-page carries that script, challenge or not, so the rule marks fully delivered pages as `gated` —
-measured directly on `medium.com` and `canadianinsider.com`, both answering `200` with their real
+page carries that script, challenge or not, so the rule marks fully delivered pages as `gated`.
+This was measured directly on `medium.com` and `canadianinsider.com`, both answering `200` with their real
 titles and 45–50 KB of their own content. Svipall's classifier is right and the ported rule is
 over-broad. Escalating those cells to win them back would mean opening a browser on a page already
 in hand, so it is not done: the disagreement is published instead.
@@ -95,5 +95,5 @@ the one anybody can reproduce without buying anything.
 
 The modes that open a browser and the ones that toggle a feature flag both write
 `target/release/svipall-bench.exe`. Windows keeps the image of a process that has just exited
-locked for a moment, so `qc` gives the `--features onnx` step its own `CARGO_TARGET_DIR` rather
-than relinking the same path three times in a row.
+locked for a moment, so `qc` gives the `--features onnx` step its own `CARGO_TARGET_DIR` instead
+of relinking the same path three times in a row.

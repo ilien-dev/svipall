@@ -14,21 +14,21 @@ cargo build --release
 ./target/release/svipall browser install     # optional, recommended: a dedicated Chrome for Testing
 ```
 
-Three source-build considerations; `svipall doctor` reports browser and model availability:
+Three things to know for a source build (`svipall doctor` reports browser and model availability):
 
 - On Windows, set a short `CARGO_TARGET_DIR` (e.g. `C:\t`) first: BoringSSL's build paths run into
   `MAX_PATH` and the failure is an unhelpful cmake error.
 - `.cargo/config.toml` sets `target-cpu=native`, so what `--release` produces is **for this machine
   only** and can die with an illegal instruction on another. Release artefacts use `--profile dist`
-  with an explicit baseline; never ship what `--release` builds here.
+  with an explicit baseline. Never ship what `--release` builds here.
 - A clean clone carries no model weights. Model-dependent challenges require compatible supplied
-  weights or human assistance. `tools/models/export.py` reproduces the detector and segmenter;
-  model-enabled release jobs and the `full` container build run it. ONNX Runtime availability also
-  depends on the platform; `--no-default-features --features impersonate` omits local models.
+  weights or human assistance. `tools/models/export.py` reproduces the detector and segmenter.
+  Model-enabled release jobs and the `full` container build run it. ONNX Runtime availability also
+  depends on the platform, and `--no-default-features --features impersonate` omits local models.
 
 No BoringSSL toolchain at all? `cargo build --release --no-default-features` builds without the
-TLS emulation and the default local-model features, falling back to reqwest; `web_status` reports which engine is live
-under `http_engine`, and asking for the emulating one explicitly on such a build is a **hard error
+TLS emulation and the default local-model features, and falls back to reqwest. `web_status` reports which engine is live
+under `http_engine`. Asking for the emulating one explicitly on such a build is a **hard error
 rather than a silent downgrade**, because a silent downgrade is exactly the failure that is hard to
 notice.
 
@@ -71,7 +71,7 @@ Two steps are the ones that keep this project honest, and **both run offline**: 
 opens a page on loopback at five browser passes and fails if a checked probe detects a known
 automation tell, and `fingerprint --engine chrome` checks identity coherence. Neither can
 be satisfied by argument. **`fingerprint --engine chrome` runs in both `qc` and CI; `tells --assert`
-runs in `qc` only**; the CI workflow does not invoke it. It checks local browser behaviour when
+runs in `qc` only**. The CI workflow does not invoke it. It checks local browser behaviour when
 run, skips when no browser is available, and is not a green tick on a pull request. The extraction floors are likewise a
 `qc` step and skip themselves, loudly, on a machine without the corpora.
 
@@ -101,7 +101,7 @@ builds its download URL from its own version, and crates.io rejects a `path` dep
 `version`.
 
 On a push to `main` the `version` job reads that number and asks one question: does a tag `v<it>`
-already exist? If it does — which is every ordinary push — the whole workflow stops there and costs
+already exist? If it does (every ordinary push), the whole workflow stops there and costs
 nothing. If it does not, the release runs: five targets built and smoke-tested, the `.deb`, `.rpm`
 and package manifests rendered, the GitHub release published (which is what creates the tag, so a
 build that fails leaves none behind for the next run to trip over), then npm, crates.io and the two
@@ -110,7 +110,7 @@ container images.
 npm and crates.io both publish over OIDC, with no stored secret: each registry was told on its own
 site that this repository and this workflow file may publish, and trades the token GitHub mints for
 a short-lived one. Both steps skip a version already on the registry, so re-running a release is
-safe. Publishing to crates.io is not reversible — there is no unpublish, only `yank` — which is why
+safe. Publishing to crates.io is not reversible (there is no unpublish, only `yank`), which is why
 the crates go up one at a time, in dependency order, after the release itself exists.
 
 Every member is published except `bench`. That includes the two vendored forks, `svipall-cdp` and
@@ -123,7 +123,7 @@ that is no longer the head of `main`.
 
 ---
 
-Contributions are taken under the **DCO** and the **CLA** — no copyright assignment. See
+Contributions are taken under the **DCO** and the **CLA**, with no copyright assignment. See
 [`CONTRIBUTING.md`](../CONTRIBUTING.md) and [`CLA.md`](../CLA.md).
 
 ---

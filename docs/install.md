@@ -1,7 +1,7 @@
 # Installing Svipall
 
-This page is written to be executed rather than read. Hand it to any AI coding agent — Claude Code,
-Cursor, Codex, opencode, Copilot — and it has everything it needs:
+This page is written to be executed. Hand it to any AI coding agent (Claude Code, Cursor, Codex,
+opencode, Copilot) and it has everything it needs:
 
 ```
 Install and configure Svipall by following the instructions here:
@@ -18,25 +18,25 @@ A person can follow it too. Every command is exact, and none of them needs an ad
 - **Before writing anything, ask which integration the user wants.** Offer these outcomes in these
   words, with the trade-off in the choice itself:
 
-  - **CLI + Skill (recommended)** — lower context use; the agent runs `svipall` through its shell.
+  - **CLI + Skill (recommended)**: lower context use: the agent runs `svipall` through its shell.
     This does not register an MCP server, so Svipall will not appear in the client's MCP list and
     MCP-only interactive sessions are unavailable.
-  - **MCP + Skill** — register `svipall-mcp` and install the same skill. The client gets the full
+  - **MCP + Skill**: register `svipall-mcp` and install the same skill. The client gets the full
     MCP tool surface and persistent browser interactions, at the cost of a larger tool catalogue.
 
   Do not silently substitute one for the other.
 - **Then ask for scope:** *all projects for this user* or *this project only*. Before making changes,
   show the detected platform, harness, install channel, exact config and skill paths, download sizes,
   and whether any existing Svipall entry will be replaced. One confirmation authorizes that stated
-  set of writes; a later conflict or optional download gets its own question.
+  set of writes. A later conflict or optional download gets its own question.
   Scope applies to the harness integration; the two binaries remain one user-owned installation.
-- **Detect the harness from the running agent and its environment**, not merely from commands found
+- **Detect the harness from the running agent and its environment**, not only from commands found
   on PATH. A machine can have several clients installed. Inspect any existing `svipall` MCP entry
   and skill before proposing a change.
 - **Never run any of it with `sudo`.** Everything installs into a directory the user owns. A step
-  that seems to need root means something went wrong; stop and say so.
+  that seems to need root means something went wrong. Stop and say so.
 - **The managed browser download is about 190 MB.** The tool provisions it automatically when
-  needed; `--no-browser` / `-NoBrowser` disables automatic provisioning.
+  needed. `--no-browser` / `-NoBrowser` disables automatic provisioning.
 - **If a step fails, stop and report the actual error.** Do not quietly try another channel: the
   user ends up with two installs and no idea which one is on PATH.
 - **Never overwrite an unrelated config file.** Prefer the harness's own registration command. If
@@ -59,19 +59,19 @@ svipall update --check
 
 That command exists in 1.0.5 and newer. For an older binary, read the latest stable `tag_name` from
 `https://api.github.com/repos/ilien-dev/svipall/releases/latest` and identify the existing channel
-from the executable path; do not install a second copy through a guessed channel.
+from the executable path. Do not install a second copy through a guessed channel.
 
 Always show the current version and latest version. If the current version is older, show the exact
 channel-specific update command and ask the user to choose:
 
-- **Update the shared installation** — replace the user-owned `svipall` and `svipall-mcp` binaries
+- **Update the shared installation**: replace the user-owned `svipall` and `svipall-mcp` binaries
   used by all harnesses configured on this machine. Keep `~/.svipall`, including configuration,
   profiles, cookies, cache, models and its managed browser. Running MCP clients must restart.
-- **Keep the current version** — make no binary or data changes and continue installing the chosen
+- **Keep the current version**: make no binary or data changes and continue installing the chosen
   integration with the version already present.
 
 An integration install never implies consent to update the shared binaries. On update, stay with
-the detected installation channel; release-script installations on 1.0.5 and newer can run
+the detected installation channel. Release-script installations on 1.0.5 and newer can run
 `svipall update --install` after confirmation. On keep, use the current version when selecting the
 matching skill. If the versions are equal, say so and go to [step 4](#4-check-the-installation).
 `command not found` means there is no existing binary, so continue to step 2.
@@ -80,7 +80,7 @@ matching skill. If the versions are equal, say so and go to [step 4](#4-check-th
 
 ## 2. Pick a channel
 
-Two ways in, plus a container. The package managers are not published yet; the note under the
+Two ways in, plus a container. The package managers are not published yet, and the note under the
 table says which and why.
 
 | Situation | Command |
@@ -101,10 +101,10 @@ either to a user gets them `No package found matching input criteria`, so do not
 The `install.sh` / `install.ps1` scripts put both binaries in `~/.local/bin` (POSIX) or
 `%LOCALAPPDATA%\Programs\svipall` (Windows), add that directory to the **user's** PATH, verify the
 download against the published `sha256sums.txt`, and print what they touched. `--help` lists the
-flags; `--uninstall` reverses it.
+flags and `--uninstall` reverses it.
 
 Windows archives include the release Visual C++ runtime beside the executables. Keep the DLLs
-and `windows-runtime.json` when extracting manually; the installer and npm preserve them. This
+and `windows-runtime.json` when extracting manually. The installer and npm preserve them. This
 uses [app-local deployment](https://learn.microsoft.com/en-us/cpp/windows/choosing-a-deployment-method?view=msvc-170)
 and needs no separate runtime installer or administrator. Model-enabled Windows builds require
 Windows 10 version 1903 or newer for the operating system's
@@ -124,9 +124,9 @@ Windows 10 version 1903 or newer for the operating system's
 
 **Why the Linux builds compile their own ONNX Runtime.** The prebuilt runtimes `ort` downloads
 reference glibc 2.38 and GCC 13's libstdc++, so a Linux binary linking them starts on Ubuntu 24.04
-and newer and nowhere older — not Debian 12, Ubuntu 22.04, RHEL 9 or Amazon Linux 2023. For a while
+and newer and nowhere older: not Debian 12, Ubuntu 22.04, RHEL 9 or Amazon Linux 2023. For a while
 that meant those targets shipped without models. They now build the runtime from source instead
-(`tools/onnxruntime/build.sh`), which links whatever the build machine has: the artefacts are built
+(`tools/onnxruntime/build.sh`), which links whatever the build machine has. The artefacts are built
 on Ubuntu 22.04, so the floor is its glibc 2.35 and the models come along. Windows and
 Apple-silicon macOS keep the prebuilt runtime, which works there.
 
@@ -138,7 +138,7 @@ a binary nobody can test, from a build nobody can run, is worse than saying so: 
 npm package decline by name, Homebrew has no formula for it, and the container image runs
 `linux/amd64` natively on that hardware.
 
-Each Linux artefact is then started on Debian 12 — older than the machine that built it — and asked
+Each Linux artefact is then started on Debian 12 (older than the machine that built it) and asked
 whether its models answer there, because a runtime built against a newer glibc links cleanly and
 fails at the first session, and `svipall doctor` lists the embedded models either way.
 
@@ -166,7 +166,7 @@ cargo build --release
 
 Three ways a source build differs from a release one:
 
-- On **Windows**, set a short `CARGO_TARGET_DIR` first (e.g. `C:\t`) — BoringSSL's build paths run
+- On **Windows**, set a short `CARGO_TARGET_DIR` first (e.g. `C:\t`). BoringSSL's build paths run
   into `MAX_PATH` and the failure is an unhelpful cmake error.
 - A plain `cargo build --release` in this repo picks up `target-cpu=native` from
   `.cargo/config.toml`. That binary is for this machine only, and copied elsewhere it can die with
@@ -180,8 +180,8 @@ Three ways a source build differs from a release one:
 that last point without a way around it: the weights are exported at release time and are not
 inside the published crate, so an installation from crates.io answers image challenges through the
 human dashboard and reports `no_models`. Every crate of the workspace is published there except
-the benchmark harness; `svipall-extract` is the one worth depending on by itself, under
-`MIT OR Apache-2.0` rather than the workspace's AGPL.
+the benchmark harness; `svipall-extract` is the one worth depending on by itself, and it is licensed
+`MIT OR Apache-2.0` instead of the workspace's AGPL.
 
 No BoringSSL toolchain at all? `cargo build --release --no-default-features` drops to reqwest and
 loses the browser-grade TLS fingerprint. `svipall doctor` reports it as `no_impersonation`.
@@ -220,7 +220,7 @@ already contains `SKILL.md` and `svipall-update/SKILL.md`. For a source build, c
 same source checkout. Never pair a stable binary with the current `main` skills: their commands may
 have changed.
 
-Copy the canonical skill to the harness's path for the scope the user chose, creating only its
+Copy the canonical skill to the harness's path for the scope the user chose. Create only its
 `svipall` directory:
 
 | Harness | All projects for this user | This project only |
@@ -234,20 +234,20 @@ Copy the updater beside it as `svipall-update/SKILL.md` in the same user- or pro
 directory. Codex invokes it as `$svipall-update` and also shows enabled skills in its slash-command
 list. Cursor exposes the skill directly as `/svipall-update`. For OpenCode, also copy
 `integrations/opencode/commands/svipall-update.md` from the matching tag to
-`~/.config/opencode/commands/` or `.opencode/commands/` for the selected scope; that supplies
+`~/.config/opencode/commands/` or `.opencode/commands/` for the selected scope. That supplies
 `/svipall-update` and delegates to the skill. The Claude plugin supplies the same workflow as
 `/svipall:update`, so do not copy a duplicate updater when using that plugin.
 
 Exception: for user-wide **MCP + Skill** in Claude Code, ask whether to use the recommended plugin
 before copying a standalone skill. If the user accepts, continue to the Claude Code plugin steps in
-section 6; the plugin supplies its own namespaced skill, so do not install a duplicate here.
+section 6. The plugin supplies its own namespaced skill, so do not install a duplicate here.
 
 If the destination already exists and differs, show that fact and ask before replacing it. After
 copying, compare the source and destination hashes. A client that was already open may need a new
-session; state which client must refresh rather than saying only "restart".
+session. Say which client must refresh instead of saying only "restart".
 
 If the user chose **CLI + Skill**, stop after a successful `svipall fetch https://example.com`.
-Do not add an MCP entry. If one already exists, ask whether to keep it or remove it; the chosen CLI
+Do not add an MCP entry. If one already exists, ask whether to keep it or remove it. The chosen CLI
 mode does not itself authorize deleting an earlier MCP setup.
 
 If the user chose **MCP + Skill**, continue with step 6.
@@ -280,7 +280,7 @@ claude mcp add --scope user svipall -- /absolute/path/to/svipall-mcp
 claude mcp add --scope project svipall -- /absolute/path/to/svipall-mcp
 ```
 
-Use only the line matching the selected scope. Verify with `claude mcp list`; if the tools are not
+Use only the line matching the selected scope. Verify with `claude mcp list`. If the tools are not
 available in the current session, restart Claude Code and inspect `/mcp`.
 
 ### Codex
@@ -318,11 +318,11 @@ Merge the entry into `~/.cursor/mcp.json` for user scope or `.cursor/mcp.json` f
 ```
 
 Preserve every other server and key. Restart Cursor, run `agent mcp list`, then
-`agent mcp list-tools svipall`; both the server and its tools must be present.
+`agent mcp list-tools svipall`. Both the server and its tools must be present.
 
 ### OpenCode
 
-Use its configuration-aware command; omit `--global` only for project scope:
+Use its configuration-aware command. Omit `--global` only for project scope:
 
 ```bash
 opencode mcp add svipall --global -- /absolute/path/to/svipall-mcp
@@ -332,7 +332,7 @@ opencode mcp list
 
 Use exactly one add command. The list must report Svipall connected. If the installed OpenCode
 version does not accept that syntax, inspect `opencode mcp add --help` and show the user the config
-it proposes before writing it; do not guess between incompatible config schemas.
+it proposes before writing it. Do not guess between incompatible config schemas.
 
 ### Unknown or unsupported harness
 
@@ -351,7 +351,7 @@ this generic STDIO entry, then get confirmation before writing anything:
 
 Prefer `.agents/skills/svipall/SKILL.md` only if that harness implements the Agent Skills standard.
 If no supported config location or verification command can be established, give the snippet and
-manual verification steps and report the integration as unfinished rather than claiming success.
+manual verification steps and report the integration as unfinished. Do not claim success.
 
 ---
 
@@ -371,7 +371,7 @@ at `~/.claude/svipall/SVIPALL.md`. Keep the markers, because they are what makes
 
 There is also a strict mode, off by default, in which Claude Code's own `WebFetch` and `WebSearch`
 are declined with a pointer to the Svipall tool that replaces them. Turn it on by creating an
-empty `~/.svipall/claude_strict`; delete the file to turn it off, no restart.
+empty `~/.svipall/claude_strict`. Delete the file to turn it off, with no restart.
 
 ---
 

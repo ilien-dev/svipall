@@ -1,6 +1,6 @@
 # svipall-extract
 
-HTML to text, Markdown, links, metadata and typed tables — in **one DOM parse**.
+HTML to text, Markdown, links, metadata and typed tables, in **one DOM parse**.
 
 [![Crates.io](https://img.shields.io/crates/v/svipall-extract.svg?style=flat-square)](https://crates.io/crates/svipall-extract)
 [![Docs.rs](https://img.shields.io/docsrs/svipall-extract?style=flat-square)](https://docs.rs/svipall-extract)
@@ -39,8 +39,8 @@ println!("{}", parts.markdown.unwrap_or_default());
 println!("{} links, {} tables", parts.links.len(), parts.tables.len());
 ```
 
-`dom_parse_count()` returns how many times the DOM has actually been parsed, so "one parse per
-response" is a property you can assert in a test rather than a claim in a README.
+`dom_parse_count()` returns how many times the DOM has actually been parsed, so a test can assert
+"one parse per response".
 
 ## What it does
 
@@ -58,8 +58,8 @@ response" is a property you can assert in a test rather than a claim in a README
 ## Selector healing
 
 The part most worth stealing. A CSS selector is a guess about a page that its author is free to
-change. Rather than storing the selector alone, `heal::fingerprint` records what the matched element
-*looked like* — tag, classes, attributes, depth, position, text shape. When the selector later
+change. `heal::fingerprint` records more than the selector. It keeps what the matched element
+*looked like*: tag, classes, attributes, depth, position, text shape. When the selector later
 matches nothing:
 
 ```rust
@@ -92,7 +92,7 @@ Dual licensed under either of
 
 at your option.
 
-The wider svipall project is AGPL-3.0-only; this crate is deliberately permissive so that anything
+The wider svipall project is AGPL-3.0-only. This crate is deliberately permissive so that anything
 can depend on it.
 
 ### Contribution

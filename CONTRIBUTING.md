@@ -1,7 +1,7 @@
 # Contributing to Svipall
 
-Contributions are welcome. You keep the copyright in what you write — there is no
-copyright assignment — but contributions are taken under a Contributor Licence
+Contributions are welcome. You keep the copyright in what you write (there is no
+copyright assignment), but contributions are taken under a Contributor Licence
 Agreement as well as the Developer Certificate of Origin.
 
 ## Licence of contributions
@@ -15,7 +15,7 @@ published to the public under the AGPL exactly as before.
 
 Two things are required for a pull request to be merged:
 
-1. **Accept the CLA.** Keep this line in the pull request description, unchanged — the
+1. **Accept the CLA.** Keep this line in the pull request description, unchanged. The
    template already contains it:
 
    ```text
@@ -31,7 +31,7 @@ Two things are required for a pull request to be merged:
 
    `-s` appends a `Signed-off-by:` line with the name and email from your git config.
 
-Nothing to print, scan or mail; nothing leaves the pull request.
+There is nothing to print, scan or mail, and nothing leaves the pull request.
 
 If your contribution includes code you did not write, say so in the pull request and
 name its licence. Anything that is not permissively licensed will not be merged, and
@@ -61,7 +61,7 @@ answers differently.
 - The test you added, and how to run just it.
 - What you measured, when the change touches a budget in `bench/`.
 - For a new captcha widget: a row in `WIDGETS` plus a fixture under
-  `crates/svipall-core/fixtures/widgets/` — `tests/widgets.rs` checks both.
+  `crates/svipall-core/fixtures/widgets/` (`tests/widgets.rs` checks both).
 - For anything under `crates/svipall-cdp/`: a note in `PATCHES.md` explaining the
   deviation from upstream and the test that would catch its loss.
 
@@ -79,7 +79,7 @@ before disclosing.
 
 ## Scope
 
-Svipall evades anti-bot walls; it does not break access controls that protect someone
+Svipall evades anti-bot walls. It does not break access controls that protect someone
 else's private data. Contributions aimed at unauthorised access, credential attacks,
 denial of service or defeating protections on systems the operator has no right to
 reach will be declined. See [`DISCLAIMER.md`](DISCLAIMER.md).

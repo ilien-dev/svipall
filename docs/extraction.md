@@ -20,13 +20,13 @@ ROUGE-LSum F1, median over the 3,975 gradable pages of the SIGIR-23 gold standar
 
 Boilerplate removal is worth **+0.19 F1** over the same markdown with it switched off. Both figures
 are reported because the study's own §4.4 shows the per-page distribution is power-shaped, with the
-mean falling barely inside the interquartile range — a single statistic here misleads either way.
+mean falling barely inside the interquartile range. A single statistic here misleads either way.
 
 On WCXB, which labels pages by type, Svipall scores **0.806** on the development set and **0.870**
 on the held-out set.
 
-On DAnIEL, five languages, ROUGE-LSum mean — with the share of pages the extractor essentially
-failed on, which is the column the multilingual study leads with:
+On DAnIEL (five languages), ROUGE-LSum mean, with the share of pages the extractor essentially
+failed on. That is the column the multilingual study leads with:
 
 | | pages | F1 | share under 0.3 |
 |---|---|---|---|
@@ -41,17 +41,17 @@ Readability at 0.672. A mean of 0.6 can be an extractor that is mediocre everywh
 excellent on two thirds of the pages and useless on the rest; 9% under 0.3 says it is nearer the
 first, which is the better of the two.
 
-### The number that matters more — required-snippet recall
+### The number that matters more: required-snippet recall
 
 ▲ F1 answers "how much of the gold came back". It cannot see the failure that actually breaks an
 answer: a page scoring 0.92 that dropped the one sentence carrying it. Cuconasu et al. (SIGIR 2024)
 measured that the document which degrades a generated answer is the high-scoring, on-topic,
-**answer-free** one — so the metric to move is whether the sentences a person marked as *required*
+**answer-free** one. So the metric to move is whether the sentences a person marked as *required*
 survived extraction.
 
 WCXB ships them: `with[]` phrases a correct extraction must contain, `without[]` phrases from the
-chrome it must not. Written by the corpus author, so they are a second opinion rather than a
-restatement of our own scoring. Shipping extractor, measured:
+chrome it must not. Written by the corpus author, they are a second opinion on our own
+scoring. Shipping extractor, measured:
 
 | | required kept | boilerplate leaked | pages losing content |
 |---|---|---|---|
@@ -94,7 +94,7 @@ Every lever with a number attached was swept, fitted on the development split an
 against the held-out one.
 
 **A class name should not condemn a block that reads like prose.** The pruner drops a small
-container called `related`, `promo`, `share` or `widget` without asking what is in it — the same
+container called `related`, `promo`, `share` or `widget` without asking what is in it. It is the same
 defect the forum detector was built for, generalised. Exempting blocks with commas, length and low
 link density:
 
@@ -118,8 +118,8 @@ loosens. Development liked it (+1.0 recall); held-out did not.
 
 Neither alternative recovered a single required phrase.
 
-**Markdown inserts tokens the plain-text walk does not.** A list marker between two sentences —
-`…is as follows:` `1.` `All queries…` — or a drop-cap rendered `**F**ree` breaks a phrase that was
+**Markdown inserts tokens the plain-text walk does not.** A list marker between two sentences
+(`…is as follows:` `1.` `All queries…`) or a drop-cap rendered `**F**ree` breaks a phrase that was
 delivered whole. Stripping them back out before comparing:
 
 | stripped as well | dev recall | held-out recall |
@@ -132,7 +132,7 @@ Both lose more than they recover, and the reason is in the pattern: `d+.` at the
 eats a year or a price that begins a paragraph, and those are content.
 
 **The density thresholds had never been fitted against anything.** They are now, and they are on
-the frontier — no setting on the grid has both higher recall and no more leak:
+the frontier: no setting on the grid has both higher recall and no more leak:
 
 | setting | kept | leak | F1 |
 |---|---|---|---|
@@ -145,7 +145,7 @@ the frontier — no setting on the grid has both higher recall and no more leak:
 | `min_score` 0.50 | 85.7% | 12.1% | 0.805 |
 | all three loosened | 86.6% | 15.1% | 0.797 |
 
-▲ **That is the ceiling for this extractor as it is built.** What remains is not a setting: it is
+▲ **That is the ceiling for this extractor as it is built.** What remains is
 JavaScript this path does not run, and text this tool has promised not to return.
 
 ## How it works
@@ -162,7 +162,7 @@ tree and returns node ids; nothing re-parses and nothing rewrites markup.
    fences, links resolved against the page URL. Hidden text never reaches the output
    (`extraction::sanitize`).
 
-### Forum detection -- the one thing that improved the shipping path
+### Forum detection: the one thing that improved the shipping path
 
 A discussion thread is the page type every article extractor destroys, because its posts live in
 containers named `comment` and every article extractor is built to strip those. Svipall had the
@@ -191,15 +191,16 @@ What that buys, on the path a fetch actually runs:
 | every other page type | -- | unchanged |
 
 Small, and it is the only change in this work that improved the shipping extractor at all. The
-structural stage -- Harvest's test, reduced from "find the posts" to "do posts exist" -- is kept
-because it is the only stage that works on a page which declares nothing — and by the corpus's own
+structural stage (Harvest's test, reduced from "find the posts" to "do posts exist") is kept
+because it is the only stage that works on a page which declares nothing. By the corpus's own
 count that is **47% of development forums and 49% of held-out ones**: the two declared signals
 together reach recall 0.527 and 0.510, and the rest of the thread pages on the web say nothing
 about themselves at all.
 
 ▲ Harvest's ancestor discount list was added to that stage and then removed. Measured on WCXB it
-cost one real forum on the held-out split — structural precision 0.700 → 0.667 — and removed none
-of the false positives it was added for. Measured, rejected, and written down in `content::forum`.
+cost one real forum on the held-out split (structural precision 0.700 → 0.667) and removed none
+of the false positives it was added for. The measurement and the rejection are written down in
+`content::forum`.
 
 ### Why the vote is off, and why the router is gone
 
@@ -216,31 +217,31 @@ Because the corpora say so. Scored on WCXB, mean word-level F1:
 Three things follow, and none of them is what the design hoped for.
 
 ▲ **The vote loses to what ships**, by 0.027 on dev and 0.045 on test. It earns its place on the
-SIGIR-23 hard tail — mean +0.016, first quartile +0.031 — and loses it on the modern multi-type
-corpus. So it stays available, measured, and off.
+SIGIR-23 hard tail (mean +0.016, first quartile +0.031) and loses it on the modern multi-type
+corpus. So it stays available but off.
 
 ▲ **Knowing the true page type is worth about +0.010**, and that is a *ceiling*, measured with the
 corpus's own labels rather than a prediction. It is the same order as the +0.003/+0.007 that WCXB's
 own hybrid pipeline reported for routing to a better extractor. Routing is not where the points are.
 
-▲ **The router recovered almost none of it** — 0.779 against the vote's 0.778. It named the profile
+▲ **The router recovered almost none of it**: 0.779 against the vote's 0.778. It named the profile
 right 72% of the time and the type right 52.8% against a 50.3% baseline of always answering
 "article", which is not enough to capture a 0.010 gain. It has been retired; see below.
 
 The one demonstrated win is the forum profile: told a thread is a thread, the vote scores 0.766 on
 the held-out forums against 0.675 without, **+0.09**. The router misses most of it because it
-cannot reliably tell a forum from an article -- which is why that gain was chased with a detector
-instead, above.
+cannot reliably tell a forum from an article, which is why that gain was chased with a detector
+instead (above).
 
-### The vote — `ExtractOpts::vote`, off by default
+### The vote: `ExtractOpts::vote`, off by default
 
 Three heuristics read the same page and only what **all of them** condemn is removed:
 
-- `content::candidates` — Readability's `grabArticle`, constants intact. Best median in the SIGIR-23
+- `content::candidates`: Readability's `grabArticle`, constants intact. Best median in the SIGIR-23
   comparison; worst of the thirteen on WCXB's non-article types.
-- `content::blocks` — Kohlschütter's shallow-text decision tree (WSDM 2010). The only voter that
+- `content::blocks`: Kohlschütter's shallow-text decision tree (WSDM 2010). The only voter that
   reads no characters and no punctuation, which is why it carries the multilingual case.
-- `extraction::prune` — the incumbent density pass, which knows that `<pre>` and data tables survive
+- `extraction::prune`: the incumbent density pass, which knows that `<pre>` and data tables survive
   whatever their score.
 
 Unanimity is the whole safety argument: a voter that misfires, a threshold that is wrong for this
@@ -260,7 +261,7 @@ Deleting it also removed a cost nobody was paying for on purpose. `extraction::s
 on every fetch that had a model installed and read by nothing else, and `ParseWants` carried a
 router closure through the single parse to feed it.
 
-With the model gone the extractor runs the default profile, which is the article profile — the
+With the model gone the extractor runs the default profile, which is the article profile: the
 shape that is both commonest and safest to be wrong about.
 
 ## What a local tool has that a library does not
@@ -271,16 +272,16 @@ Alarte and Silva measured that templates are **40–50% of the data on the web**
 outright that no public benchmark can evaluate cross-page methods, because none of them ships the
 sibling pages. That is a statement about benchmarks, not about crawlers.
 
-### Cross-page template learning — `svipall_core::template`, off by default
+### Cross-page template learning: `svipall_core::template`, off by default
 
 One record per domain in `kv` under `template/<domain>`: how many of that domain's pages carried
 each block. A block on most pages of a site is the site, not the page. It is learned from markdown
-blocks and not from the DOM, because the cache stores the rendered page — which is exactly what
+blocks and not from the DOM, because the cache stores the rendered page, which is exactly what
 `dedup::Boilerplate` already consumed.
 
 Two rules bound it. Nothing is stripped until sixteen pages of that domain have been seen (the
 figure the multi-sequence-alignment literature reports as sufficient), and a strip that would leave
-under a fifth of the page removes nothing at all — either the page *is* the site's frame, which
+under a fifth of the page removes nothing at all. Either the page *is* the site's frame, which
 `MostlyBoilerplate` says, or a passage the rest of the site repeats is this page's substance.
 
 ▲ **And it is off, because TECO says so.** TECO is the only public corpus that ships each key page
@@ -292,8 +293,8 @@ sixteen siblings and applied to the labelled key page, over its thirty forum sit
 | 40 characters | 4 of 11 sites | 7.6% | 12 words, on 3 sites |
 | **120 characters** (ships) | 2 of 11 sites | 3.4% | **1 word, on 1 site** |
 
-The bar for anything on by default is zero — no page may lose a word of human-labelled content the
-extractor had reached — and at no threshold does this clear it. Raising the floor until one
+The bar for anything on by default is zero (no page may lose a word of human-labelled content the
+extractor had reached), and at no threshold does this clear it. Raising the floor until one
 particular corpus reports zero would be fitting to that corpus. So it ships the way the vote and
 the router did: built, measured, and **off**, reachable by asking.
 
@@ -305,13 +306,13 @@ turned on for everyone.
 { "url": "…", "use_site_template": true }
 ```
 
-A response it changed says so — `"template": {"learned_from": 16, "removed_blocks": 3}` — because a
+A response it changed says so (`"template": {"learned_from": 16, "removed_blocks": 3}`), because a
 result that differs between two sessions from something a tool learned in between, and does not say
 so, is worse than one that never improved. The record is learned on every fetch regardless, so
 turning it on works immediately rather than sixteen pages later.
 
 WCXB was tried first and cannot answer: 108 of its 1,283 domains contribute more than one page,
-none more than eight, and at every threshold the template removed zero blocks from zero pages —
+none more than eight, and at every threshold the template removed zero blocks from zero pages:
 its same-domain pages were sampled for variety and share nothing verbatim after pruning.
 
 ### Page-level extraction on TECO
@@ -323,10 +324,10 @@ which is a different gold standard from either of the others:
 |---|---|---|---|
 | shipping extractor vs `TECO_mainContent`, 12 forum sites | 0.727 | 0.747 | 0.676 |
 
-Forums, and forums are the type Svipall does worst on — 0.567 on WCXB development. The two corpora
+Forums, and forums are the type Svipall does worst on (0.567 on WCXB development). The two corpora
 agree about that, which is worth more than either number alone.
 
-### Near-duplicate lookup across sessions — `Store::find_near`
+### Near-duplicate lookup across sessions: `Store::find_near`
 
 `provenance::group` compares fingerprints inside one batch, so the same wire story fetched a week
 apart read as two independent sources. `find_near` asks the whole cache instead, and Manku et al.
@@ -334,23 +335,23 @@ apart read as two independent sources. `find_near` asks the whole cache instead,
 Hamming distance 3 differ in at most three bands, so **at least one band is equal**. Four equality
 indexes return every true near-duplicate and a few false ones, which the exact distance discards. It
 is lossless at three bits and stops being so at four, which is why `NEAR_DUPLICATE_BITS` and the
-four bands are not independent numbers — a wider lookup is refused rather than answered partly.
+four bands are not independent numbers: a wider lookup is refused rather than answered partly.
 
 Reported under `include_quality`, never acted on.
 
-### Diversity ordering — `quality::diversity`
+### Diversity ordering: `quality::diversity`
 
 `fetch_many` reorders its results by Maximal Marginal Relevance (Carbonell & Goldstein, SIGIR 1998)
 over the simhashes already computed. Nothing is dropped, and the caller's first choice never moves;
 what changes is which result they read second. Cuconasu et al. (SIGIR 2024) is the reason: what
 degrades an answer is the high-scoring, on-topic, **answer-free** page, and adding *distant*
-documents raised accuracy. Four copies of one wire story at the top of a list is precisely that
+documents raised accuracy. Four copies of one wire story at the top of a list is exactly that
 shape.
 
-Two constants, both measured rather than chosen:
+Two constants, both measured:
 
 - **λ = 0.5.** For an exact copy at rank 1 to lose to a novel result at the bottom of a list of *n*,
-  λ must be under `n / (2(n−1))` — 0.625 at five results, tending to 0.5. At Carbonell's
+  λ must be under `n / (2(n−1))`, which is 0.625 at five results and tends to 0.5. At Carbonell's
   "favour relevance" setting of 0.7 the copies stay stacked at the top.
 - **Redundancy is rebased on chance.** Two *unrelated* simhashes agree on about half their bits, so
   raw similarity charges every candidate a large constant penalty that cancels out of the
@@ -359,11 +360,11 @@ Two constants, both measured rather than chosen:
 
 A response whose order changed says `"reordered_for_diversity": true`.
 
-### Provenance and calibration — `include_quality: true`
+### Provenance and calibration: `include_quality: true`
 
-The full breakdown: the integrity verdict with its reasons, the optimisation level with its traits
+The full breakdown is the integrity verdict with its reasons, the optimisation level with its traits
 and the structural signals behind them, the substance label, what the near-duplicate lookup found,
-and observations about where the page came from — a byline, a publication date, outbound citations
+and observations about where the page came from: a byline, a publication date, outbound citations
 counted by distinct host, and when this machine first saw the site (`MIN(fetched_at)`).
 
 ▲ **Observations, never a score.** The W3C Credible Web Community Group's own finding is why: acting
@@ -371,8 +372,8 @@ on signals of this kind produces "a bias towards larger, professional news organ
 an outlet with a masthead emits all of them and a specialist writing under a pseudonym emits none.
 
 Each score also carries its percentile among the pages this machine has fetched, accumulated per
-class in `kv` under `calib/<class>` — with the width of that claim (±9 points at thirty
-observations, ±3 at two hundred), and an explicit refusal below thirty:
+class in `kv` under `calib/<class>`, with the width of that claim (±9 points at thirty
+observations, ±3 at two hundred) and an explicit refusal below thirty:
 
 ```json
 "optimization_calibration": { "unavailable": "not enough observations yet: 7 of 30 needed" }
@@ -403,8 +404,8 @@ Svipall does worst on and the one the cross-page work was written for.
 
 > On Windows, run this from PowerShell. Under Git Bash the process has been observed dying
 > part-way through a long run with no message; the same binary completes with exit 0 from
-> PowerShell, and with the scorer stubbed out every page extracts cleanly on a 2 MB stack, so it is
-> an environment interaction rather than svipall.
+> PowerShell, and with the scorer stubbed out every page extracts cleanly on a 2 MB stack, so the
+> cause is the environment interaction.
 
 Adding `--assert` turns the report into a gate against the floors in `bench::extraction::floors`.
 `scripts/qc.{sh,ps1}` runs it when `SVIPALL_CORPUS` (and optionally `SVIPALL_WCXB`,
@@ -412,32 +413,32 @@ Adding `--assert` turns the report into a gate against the floors in `bench::ext
 
 ## Attribution
 
-- **SIGIR-23 corpus and baselines** — Bevendorff, Gupta, Kiesel and Stein, *An Empirical Comparison
+- **SIGIR-23 corpus and baselines**: Bevendorff, Gupta, Kiesel and Stein, *An Empirical Comparison
   of Web Content Extraction Algorithms*, SIGIR 2023 (`10.1145/3539618.3591920`), Apache-2.0.
-- **WCXB** — Foley, *WCXB: A Multi-Type Web Content Extraction Benchmark*, 2026
+- **WCXB**: Foley, *WCXB: A Multi-Type Web Content Extraction Benchmark*, 2026
   (`10.5281/zenodo.19316874`), CC-BY-4.0.
-- **DAnIEL** — Lejeune et al., 2012, as used by *Multilingual Benchmarking of Main Content
+- **DAnIEL**: Lejeune et al., 2012, as used by *Multilingual Benchmarking of Main Content
   Extractors*, SIGIR 2025.
-- **Readability's algorithm** — `mozilla/readability`, Apache-2.0. Reimplemented from the published
+- **Readability's algorithm**: `mozilla/readability`, Apache-2.0. Reimplemented from the published
   algorithm, not copied; its constants are kept identical so a disagreement is a bug here.
-- **Boilerpipe's `NumWordsRulesClassifier`** — Kohlschütter, Fankhauser and Nejdl, *Boilerplate
+- **Boilerpipe's `NumWordsRulesClassifier`**: Kohlschütter, Fankhauser and Nejdl, *Boilerplate
   Detection using Shallow Text Features*, WSDM 2010; `boilerpipe`, Apache-2.0. Same treatment, with
   one deliberate departure: how a word is counted, so that a language written without spaces is not
   read as one word per sentence.
-- **Trafilatura's selector vocabulary** — `adbar/trafilatura`, Apache-2.0.
-- **TECO** — Alarte and Silva, *TeCo: A Template Extraction Corpus* (`arXiv:1409.6182`), BSD, and
+- **Trafilatura's selector vocabulary**: `adbar/trafilatura`, Apache-2.0.
+- **TECO**: Alarte and Silva, *TeCo: A Template Extraction Corpus* (`arXiv:1409.6182`), BSD, and
   their HybEx/TemEx line of work on site-level template detection. Its condition of use is that
-  results obtained with it are published, and the two tables above are those results — including
+  results obtained with it are published, and the two tables above are those results, including
   the one that says the method does not hold its gate.
-- **SimHash and its banded index** — Manku, Jain and Das Sarma, *Detecting Near-Duplicates for Web
+- **SimHash and its banded index**: Manku, Jain and Das Sarma, *Detecting Near-Duplicates for Web
   Crawling*, WWW 2007.
-- **Maximal Marginal Relevance** — Carbonell and Goldstein, SIGIR 1998.
+- **Maximal Marginal Relevance**: Carbonell and Goldstein, SIGIR 1998.
 
 ## What is not here, and why
 
 - **No neural extractor.** SIGIR-23 found the deep models behind the heuristic ones, and WCXB found
   the same three years later on a modern corpus with a fine-tuned 0.6B model, at 36× the latency.
 - **No `rs-trafilatura` or `libreadability` dependency.** Both take HTML and return HTML, which
-  means a second parse of the document — roughly doubling the dominant cost — and neither can be
+  means a second parse of the document (roughly doubling the dominant cost), and neither can be
   told that a data table or a `<pre>` block must survive.
 - **No truth or trust verdict.** See `docs/models.md` and the `quality` module.
