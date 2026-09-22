@@ -8,8 +8,9 @@ description: Reach any web page from this machine — fetch, crawl, search, extr
 Local-first web scraping. Every request, every browser and every captcha stays on this machine —
 no API keys, no third-party solving service, nothing sent anywhere.
 
-**Use it for every web access.** Svipall climbs a tier ladder and remembers what worked per domain;
-a built-in fetch takes the first `200` it is given, and a challenge page is a `200`.
+**Use it for every web access.** Svipall climbs a tier ladder, remembers what worked per domain, and
+labels what came back; a built-in fetch has no notion of a wall, and a challenge page is a `200`.
+Claude Code's `WebFetch` hands that page to a small model, which summarises it like any other.
 
 One server, two surfaces: `svipall …` from a shell, and the MCP tools an assistant calls. The shell
 costs a fraction of the tokens; the tools are the same operations under other names, and the table
