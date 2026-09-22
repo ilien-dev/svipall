@@ -7,14 +7,14 @@ Chrome actually sends, and what the engine does and does not match.
 The short version: **it is built.** `crates/svipall-quic` is a vendored quiche on the same BoringSSL
 the http tier already links, emitting Chrome's QUIC ClientHello, and `svipall-http` fetches real
 pages over it. It is off by default and opt-in at build time, for reasons in `README.md`. What is
-still not Chrome is at the bottom of this page, measured rather than estimated.
+still not Chrome is measured at the bottom of this page.
 
 ## What was on record
 
 Two entries in `bench/baseline/README.md`, and a bullet in the README that summarised them.
 
-1. **A linking conflict** (first look). `quiche` reaches BoringSSL through `boring-sys`; the http
-   tier's engine reaches it through `btls-sys`; both declare `links = "boringssl"` and Cargo permits
+1. **A linking conflict** (first look). `quiche` reaches BoringSSL through `boring-sys`. The http
+   tier's engine reaches it through `btls-sys`. Both declare `links = "boringssl"` and Cargo permits
    one package per graph with a given `links` key.
 2. **A shape argument** (second look, 2026-09-03), which retracted the first: *"the engine's binding
    builds BoringSSL with prefixed symbols, so two copies can share a binary"*, and the real obstacle
@@ -26,10 +26,10 @@ binding exposes ALPS and ECH GREASE for QUIC, the gate opens."*
 
 ## The spike (2026-09-04)
 
-Four experiments, all local, none of them in the workspace. Nothing from them was merged; only what
+Four experiments, all local, none of them in the workspace. Nothing from them was merged, only what
 they found.
 
-### The linking reason was retracted for the wrong reason, and the conclusion still stood — until it did not
+### The linking reason was retracted for the wrong reason, and the conclusion still stood, until it did not
 
 `quiche` and `wreq` now **resolve** together. Not because of symbol prefixing: because `quiche`
 0.24.9's default feature is `boringssl-vendored`, which builds BoringSSL inside quiche's own build
@@ -59,7 +59,7 @@ The idea was to register 17513 and 65037 as arbitrary extensions. Two reasons th
 - `SSL_CTX_add_custom_ext` is an OpenSSL 1.1 API, not a BoringSSL one.
 - Modern BoringSSL has **no custom-extension API at all**. `btls-sys` runs bindgen over the whole of
   BoringSSL's headers with no allowlist, and the generated bindings contain **zero** occurrences of
-  `custom_ext` — neither `SSL_CTX_add_custom_ext` nor the older `SSL_CTX_add_client_custom_ext`.
+  `custom_ext`: neither `SSL_CTX_add_custom_ext` nor the older `SSL_CTX_add_client_custom_ext`.
 
 It would also have been the wrong tool. BoringSSL implements both extensions natively, an ECH GREASE
 payload has to match plausible HPKE sizes or it is itself a tell, and a hand-rolled ALPS gets no
@@ -69,7 +69,7 @@ settings negotiation and no codepoint handling.
 
 BoringSSL in QUIC mode writes nothing to a socket. It hands the handshake to an `SSL_QUIC_METHOD`
 the caller installs. So one `SSL_do_handshake` on a client that will never hear back still produces a
-complete TLS 1.3 ClientHello, in a buffer we own — no server, no socket, no packet capture. On
+complete TLS 1.3 ClientHello, in a buffer we own: no server, no socket, no packet capture. On
 `btls`, the binding `wreq` uses:
 
 ```
@@ -95,7 +95,7 @@ Extension 57 is what proves this really is a QUIC handshake and not a TCP one. F
 `set_alps_use_new_codepoint` moves ALPS to **17513 (0x4469)**, the number the record names. Both
 codepoints are reachable; the record's claim that neither is, is false.
 
-`cloudflare/boring` — the crate `quiche` binds — is the one that cannot. It wraps
+`cloudflare/boring`, the crate `quiche` binds, is the one that cannot. It wraps
 `SSL_set_enable_ech_grease` but has no ALPS wrapper, and BoringSSL has no context-level ALPS API to
 wrap: `SSL_CTX_add_application_settings` does not exist, ALPS is per-`SSL`, and quiche creates its
 `SSL` internally with no public accessor. That is a fact about one crate pairing, and it was
@@ -103,7 +103,7 @@ generalised into a claim about every Rust stack.
 
 ### What Chrome's QUIC ClientHello actually contains
 
-There is still no public service that reports a QUIC fingerprint — the endpoint the bench uses has
+There is still no public service that reports a QUIC fingerprint. The endpoint the bench uses has
 `tls`, `http1` and `tcpip` sections and no QUIC one. So the reference was produced here, from the
 Chrome svipall provisions, with no capture tool and no privileges: Chrome is told to force QUIC to a
 name that resolves to a UDP socket this process owns, and an Initial packet is readable by anyone
@@ -134,7 +134,7 @@ Three things worth having before anyone builds against this:
 - **Chrome uses ALPS 17613, not 17513.** The number on record is the original codepoint; Chrome has
   moved to the new one. Emitting 17513 would be as wrong as emitting neither.
 - **The order is permuted per connection.** Three runs produced three different orders, sharing not a
-  single position. So the *set* is the fingerprint and the order is not — which means one less thing
+  single position. So the *set* is the fingerprint and the order is not. That is one less thing
   to reproduce, and one more reason a fixed order would stand out.
 - **There is no GREASE extension and no GREASE cipher, but there is a GREASE transport parameter**,
   with a fresh random 62-bit id on every connection.
@@ -160,9 +160,9 @@ reading of the wrong link. quiche declares `crate-type = ["lib", "staticlib", "c
 the **cdylib** that fails: a cdylib is a complete shared object and has to resolve every symbol by
 itself. The rlib does not, and the final binary resolves them against `btls-sys`'s BoringSSL.
 
-So one copy of BoringSSL, no `links` conflict to have, and `quiche::h3` comes along with it — HTTP/3
+So one copy of BoringSSL, no `links` conflict to have, and `quiche::h3` comes along with it: HTTP/3
 itself is not separate work. Every deviation from upstream is in `crates/svipall-quic/PATCHES.md`,
-each anchored to a named function and each with the test that catches its loss. In summary:
+each anchored to a named function and each with the test that catches its loss. By file:
 
 | | |
 |---|---|
@@ -187,10 +187,10 @@ inside the `http` tier, and it is chosen the way Chrome chooses it:
 > h3 and uses it next time.
 
 `core::altsvc` has recorded exactly that since before any of this existed, so the trigger needed
-no new state — but the *ladder* did, and that is the next section.
+no new state. But the *ladder* did, and that is the next section.
 
 The engine decodes `content-encoding` itself. quiche returns a body exactly as the server sent it,
-and the identity advertises `gzip, deflate, br, zstd` — trimming that header to what was convenient
+and the identity advertises `gzip, deflate, br, zstd`. Trimming that header to what was convenient
 would have been a difference from Chrome in the one place this project refuses to have them.
 
 It carries **no cookie jar**, unlike the TCP engine, which keeps one inside its client. The caller's
@@ -209,26 +209,26 @@ Three facts have to line up, and `web_status.http3` reports each one separately 
 at a TCP fetch with an `Alt-Svc` in hand can see which said no: the binary was built
 `--features http3`, `http3 = true` in the config, and **this domain advertised h3**.
 
-That last one is Chrome's rule — a browser never opens a first connection over QUIC — and it is what
+That last one is Chrome's rule (a browser never opens a first connection over QUIC), and it is what
 keeps a first visit indistinguishable from what Svipall did before HTTP/3 existed.
 
 But the advertisement alone is not enough, because of how the ladder remembers. `domain_tiers`
-learns that a walled site needs `browser`, so the next fetch starts there and the http tier — the
-only place h3 is spoken — is never asked again. The domains with a learned tier above `http` are
+learns that a walled site needs `browser`, so the next fetch starts there and the http tier, the
+only place h3 is spoken, is never asked again. The domains with a learned tier above `http` are
 exactly the walled ones, which are exactly the ones where h3 could help. So:
 
 **One `http` attempt goes in front of the learned tier when the domain advertises h3 and has not
-already refused to deliver over it.** What was learned was learned over TCP; QUIC is a different
+already refused to deliver over it.** What was learned was learned over TCP. QUIC is a different
 request, not a repeat of a known-failed one.
 
 Three things keep that from becoming a tax:
 
 - **The outcome is remembered.** `core::altsvc::{verdict, remember_result}`: a probe that did not
   deliver is not paid again. It expires after six hours, because a dropped UDP port is usually the
-  network — a laptop moves, a firewall changes, a captive portal ends — and remembering "no" for
+  network (a laptop moves, a firewall changes, a captive portal ends), and remembering "no" for
   ever would let one bad café decide this machine never speaks h3 again.
 - **The handshake has a deadline of its own**, two seconds, separate from the page budget. A network
-  that refuses UDP says so at once; one that silently *drops* it says nothing, and this is the only
+  that refuses UDP says so at once. One that silently *drops* it says nothing, and this is the only
   thing that bounds that case. Once the connection is up the page gets the full budget: a slow large
   page is a different failure and must not be punished for someone else's firewall.
 - **`Alt-Svc` is read from every tier**, not just http. Otherwise a domain learned at `browser`
@@ -272,7 +272,7 @@ TCP, it is the difference between a browser per page and no browser at all.
 
 ## What is not Chrome yet
 
-Measured, not estimated. Ten extensions of Chrome's thirteen were there before any of this; the
+Measured. Ten extensions of Chrome's thirteen were there before any of this; the
 patches take it to twelve.
 
 | | |
@@ -283,31 +283,30 @@ patches take it to twelve.
 | the QUIC Initial itself | connection id lengths, padding, version negotiation — unmeasured |
 
 That second row is this project's own doctrine arriving somewhere new. `identity.rs` caps the Chrome
-major Svipall claims because *"TLS is the one layer that cannot lie"*; an h3 engine has a ceiling of
+major Svipall claims because *"TLS is the one layer that cannot lie"*. An h3 engine has a ceiling of
 its own, set by the age of the linked BoringSSL rather than by a user agent string. It has to be
 measured, it may be lower than the TCP ceiling, and until it is measured `http3` stays off by
 default and the TCP tier is the one with numbers behind it.
 
 It has now been measured against targets: see "What it is worth" above. The short version is that
 the evasion median does not move, that two thirds of these targets never offer h3 at all, and that
-where it does apply the page arrives three times faster with no browser opened — which is a cost
-result, not an evasion one, and is the honest claim to make for it.
+where it does apply the page arrives three times faster with no browser opened. That is a cost
+result, not an evasion one, and it is the honest claim to make for it.
 
 ## The SETTINGS frame, measured (2026-09-05)
 
-The row above stayed open longer than the others for a structural reason, and it is worth stating
-before the numbers: **a SETTINGS frame cannot be read the way a ClientHello can.** The ClientHello
+The row above stayed open longer than the others for a structural reason: **a SETTINGS frame cannot be read the way a ClientHello can.** The ClientHello
 is readable by anything holding the datagram, because its keys derive from a salt in RFC 9001 and a
-connection id in the clear header — which is why the reference for it needed no server. SETTINGS
+connection id in the clear header, which is why the reference for it needed no server. SETTINGS
 travels on an HTTP/3 control stream at 1-RTT. Nothing sees it without completing a handshake first.
 
 So `bench h3-ref` completes one. A certificate for the name `quic.test` is generated in the process
 that serves it and deleted when the run ends (`quiche::selfsigned`), Chrome is told to resolve that
 name to a UDP socket this process owns and to force QUIC to it, and `peer_settings_raw` hands back
-the frame in the order it arrived — the half a decoded struct would throw away.
+the frame in the order it arrived: the half a decoded struct would throw away.
 
 The certificate is made rather than committed on purpose. A `key.pem` in a public repository is
-inert here — it authenticates a name that resolves nowhere — and it is still a private key that
+inert here (it authenticates a name that resolves nowhere), and it is still a private key that
 every secret scanner will flag, some push protections will block, and every reader will have to
 triage. It would also expire one day and break a QUIC test for somebody with no idea why. BoringSSL
 is already linked into this binary, so generating a P-256 self-signed certificate is a dozen of its
@@ -331,7 +330,7 @@ Three things in that table were not what a reasonable guess would have produced,
 argument for measuring it rather than reading Chromium's source:
 
 - **The order does not move.** Four connections, one order. That is the opposite of the TLS
-  extension list, which Chrome permutes per connection — so there the *set* is the fingerprint and
+  extension list, which Chrome permutes per connection. There the *set* is the fingerprint and
   the order is not, and here the order is part of it.
 - **`ENABLE_CONNECT_PROTOCOL` is absent.** A plain fetch does not send it, and an extra setting is
   as visible as a missing one.
@@ -339,7 +338,7 @@ argument for measuring it rather than reading Chromium's source:
 
 ### What we were sending
 
-`svipall-http` built its connection with `quiche::h3::Config::new()` — upstream's defaults — which
+`svipall-http` built its connection with `quiche::h3::Config::new()` (upstream's defaults), which
 put this on the wire:
 
 ```
@@ -349,7 +348,7 @@ put this on the wire:
 ```
 
 Two settings against Chrome's four, **none** of the three QPACK or field-section values Chrome
-sends, and one codepoint — the draft datagram identifier — that Chrome does not send at all. A pair
+sends, and one codepoint, the draft datagram identifier, that Chrome does not send at all. A pair
 of `0x276` beside `0x33` is a constant that no browser produces, free for any server that logs raw
 settings.
 
@@ -359,7 +358,7 @@ narrow). `crates/svipall-http/src/h3_engine.rs` builds with it.
 
 **Asserted offline, in `qc`.** `crates/svipall-quic/tests/settings.rs` runs a client and a server in
 one process, passes datagrams between them through a buffer, and reads our own client's frame with
-`peer_settings_raw` — the same accessor `bench h3-ref` used on Chrome. Both halves of the comparison
+`peer_settings_raw`, the same accessor `bench h3-ref` used on Chrome. Both halves of the comparison
 are taken the same way, which is the only reason comparing them means anything.
 
 **What this does not say.** No target was measured. Nothing here changes an evasion number and none

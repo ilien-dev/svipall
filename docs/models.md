@@ -10,7 +10,7 @@ Build with the matching features: `cargo build --release --features onnx-ocr,onn
 **Every release build carries them**, on every platform, and so do both container images. The two
 Linux targets get there the long way: the prebuilt ONNX Runtime `ort` downloads references glibc
 2.38, so they build the runtime from source (`tools/onnxruntime/build.sh`) and link that instead.
-Intel macOS has no build at all — the runtime is not published for it and GitHub no longer schedules
+Intel macOS has no build at all: the runtime is not published for it and GitHub no longer schedules
 a machine that could test one, so that hardware is pointed at the container image. It is version-pinned in
 `tools/onnxruntime/VERSION`, and the pin is not free to move down: `ort` asks for ONNX Runtime API
 27, and an older runtime links cleanly and then refuses at the first session.
@@ -26,15 +26,15 @@ svipall models install     # the archive for this version, into ~/.svipall/model
 svipall models remove
 ```
 
-`install` downloads `svipall-models-<version>.zip` from the matching release — about 54 MB, the two
-torchvision models and their sidecars — checks it against the `sha256sums.txt` the release already
-publishes, and refuses on a mismatch. `--from-file archive.zip` installs one you already have, which
+`install` downloads `svipall-models-<version>.zip` from the matching release: about 54 MB, the two
+torchvision models and their sidecars. It checks the archive against the `sha256sums.txt` the
+release already publishes, and refuses on a mismatch. `--from-file archive.zip` installs one you already have, which
 is what an air-gapped machine and this project's own tests use, and `SVIPALL_RELEASES_URL` points
 the download at a mirror. Nothing here happens by itself: this is a command a person types, and the
 promise above that nothing is fetched at run time still holds.
 
 **It only helps a build that can read a model.** `svipall models status` reports `readable`, which
-is false for a binary compiled without any `onnx-*` feature — `--no-default-features` builds, and
+is false for a binary compiled without any `onnx-*` feature: `--no-default-features` builds, and
 anything that opted out of `local-models`. Installing weights there moves `svipall doctor` from
 `no_models` to `models_not_readable` and answers exactly as many captchas as before, which is none.
 No published artefact is in that state any more; the build this command exists for is
@@ -53,7 +53,7 @@ No published artefact is in that state any more; the build this command exists f
 | — (no feature) | no | how much is actually in a page: `junk`/`thin`/`ordinary`/`substantive` | yours — `svipall quality train` fits it from your own history and your own ratings |
 
 `tools/models/export.py` reproduces the embedded ones from torchvision on any machine with
-Python; the release workflow runs it before building. No GPU is needed for any of this: every
+Python. The release workflow runs it before building. No GPU is needed for any of this: every
 model runs on the CPU execution provider, and on a 320 px picture the detector answers in about
 10 ms and the segmenter in about 30 ms (`cargo run -p svipall-bench --release --features onnx -- micro`
 measures them, with a budget that fails the build if they regress).
@@ -63,7 +63,7 @@ measures them, with a budget that fails the build if they regress).
 A grid asks "which of these squares *contain* a bus". That is not "which of these is a picture of
 a bus": a square holding a wheel and a mirror contains a bus. The strongest box of the class
 anywhere in the tile is exactly that question, so `grid` scores tiles with the detector when
-there is no `grid.onnx`, and the selection threshold defaults to **0.2** — the value the one
+there is no `grid.onnx`, and the selection threshold defaults to **0.2**, the value the one
 peer-reviewed measurement of this task settled on (Plesner et al., *Breaking reCAPTCHAv2*,
 COMPSAC 2024), where 0.5 misses the partial tiles and a missed tile fails the grid. The same paper
 is why the 4×4 kind is segmented rather than classified.
@@ -124,12 +124,12 @@ Rules the code enforces, so a model cannot be misread:
 
 Drop the new `.onnx` (and its `.json`) into `~/.svipall/models/`. The session is rebuilt on the
 next solve: the loader compares the file's modification time and length with the one it has, and
-reloads when they differ. No restart, no registration. `web_status` reports which copy — file or
-embedded — answered.
+reloads when they differ. No restart, no registration. `web_status` reports whether the file or the
+embedded copy answered.
 
 ## The corpus: training data from what this machine has seen
 
-Every challenge Svipall answers — by a model, by zero-shot, or by a person at the dashboard — is
+Every challenge Svipall answers (by a model, by zero-shot, or by a person at the dashboard) is
 kept for `corpus_keep_days` (default 30, `0` disables) in `~/.svipall/jobs.db`: the tiles or
 picture, the prompt, the answer as given, who gave it, whether the page accepted it, and now which
 strategy answered and how long it took.
@@ -148,21 +148,21 @@ writes `corpus/manifest.jsonl` and one image per asset under `corpus/<modality>/
  "files": [{"file": "tiles/3f9c1a2b-tile-0.png", "kind": "tile", "idx": 0}, …]}
 ```
 
-Rows with `"source": "human", "ok": true` are labelled by a person and verified by the page — the
+Rows with `"source": "human", "ok": true` are labelled by a person and verified by the page: the
 best training data a captcha model can have. Rows where the model answered and `ok` is `false`
 are the ones to look at next.
 
-Training is yours: any framework that exports ONNX will do. Keep the sidecar contract — input
-size, channels, class order — and drop the result into `~/.svipall/models/`. It is used on the
+Training is yours: any framework that exports ONNX will do. Keep the sidecar contract (input
+size, channels, class order) and drop the result into `~/.svipall/models/`. It is used on the
 next solve, and it wins over the embedded copy. The measured recipe for a tile classifier: a
 small ImageNet-pretrained backbone fine-tuned on labelled tiles reached 82 % top-1 over thirteen
-classes on about twelve thousand images (the COMPSAC 2024 paper above); that is the bar the
+classes on about twelve thousand images (the COMPSAC 2024 paper above). That is the bar the
 embedded detector is standing in for.
 
 ## What a person sees
 
 When every strategy has spent its budget on a challenge that is still on the page, the page is
-parked, what it shows is posted to the dashboard with its pictures, and the answer — tiles,
-points, a slider position, a hold, a turn, a drag, a transcription — is replayed on the page by
+parked, what it shows is posted to the dashboard with its pictures, and the answer (tiles,
+points, a slider position, a hold, a turn, a drag, a transcription) is replayed on the page by
 the same behaviour layer the models use. The page decides, and the verdict joins the corpus. Set
 `SVIPALL_HUMAN_ASSIST=0` to skip this and report the wall at once.

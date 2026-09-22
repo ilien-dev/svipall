@@ -18,10 +18,10 @@ cargo install svipall
 
 That puts two binaries on `PATH`:
 
-- `svipall-mcp` — the MCP server, over stdio, plus the human dashboard on 8787
-- `svipall` — the same surface as a CLI, and `svipall doctor` to report on an install
+- `svipall-mcp`: the MCP server, over stdio, plus the human dashboard on 8787
+- `svipall`: the same surface as a CLI, and `svipall doctor` to report on an install
 
-A browser is not installed for you. The `http` tier needs none; the browser tiers do, and
+A browser is not installed for you. The `http` tier needs none, the browser tiers do, and
 `svipall browser install` fetches one when you want it.
 
 ## Use it from an MCP client
@@ -35,14 +35,14 @@ A browser is not installed for you. The `http` tier needs none; the browser tier
 ```
 
 If you would rather not install a Rust toolchain, the release publishes prebuilt binaries, an npm
-wrapper and a container image — see the [project README][repo].
+wrapper and a container image: see the [project README][repo].
 
 ## Links
 
 - Source, documentation and releases: [ilien-dev/svipall][repo]
 - MCP Registry name: `mcp-name: dev.ilien.svipall/mcp`
 
-The registry line above is deliberately visible rather than an HTML comment: crates.io strips
+The registry line above is deliberately not an HTML comment: crates.io strips
 comments when it renders a README, so the form that works for PyPI and NuGet would leave the
 registry's validator nothing to find.
 
