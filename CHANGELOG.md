@@ -60,8 +60,8 @@
 ## 1.0.3 — 2026-09-11
 
 - **The headless tiers stop announcing that nothing is holding the mouse.** A headless Chrome
-  answers `(pointer: fine)` and `(hover: hover)` with `false` — one media query, the oldest tell
-  there is — and `bench tells` had failed `input_modality` on `browser`, `stealth` and the reused
+  answers `(pointer: fine)` and `(hover: hover)` with `false` (one media query, the oldest tell
+  there is) and `bench tells` had failed `input_modality` on `browser`, `stealth` and the reused
   browser for as long as the probe has existed. The standing answer was the ladder: climb to a
   headful tier, which costs a real window and a compositor that may not cooperate with it. Blink
   takes the answer on the command line, so the headless launches now carry it. A touch identity
@@ -76,15 +76,15 @@
   has the rule.
 
 - **`a_cancelled_job_stops_fetching` is no longer a race the test usually won.** Its seven routes
-  are the whole crawl budget and loopback served all of them in under ten milliseconds — less than
-  one turn of the loop waiting to see the job running — so the crawl was regularly finished before
+  are the whole crawl budget and loopback served all of them in under ten milliseconds (less than
+  one turn of the loop waiting to see the job running) so the crawl was regularly finished before
   the cancel could land, and the test failed for having nothing left to stop. It failed twice in
   eight full-suite runs. `Reply::slow(ms)` gives a route a latency; at eighty milliseconds a page
   the cancel arrives with one page done and six to go. Ten consecutive runs clean.
 
 - **The global memory block stops repeating the tool list the MCP server already sends.** It is the
   one piece of svipall that sits in every session of every project on the machine, web or not, and
-  half of it was a per-tool routing table copied from the server's own `instructions` — read twice,
+  half of it was a per-tool routing table copied from the server's own `instructions`: read twice,
   and a second place to forget when a tool changes. It now points at those instructions and at the
   `svipall:svipall` skill, and keeps only what neither of them says: never set a tier by hand,
   never retry a blocked URL blindly, large results to `out_file`, credentials as `${NAME}`, stop
@@ -94,7 +94,7 @@
 - **`query` says what it actually saves, which the query decides and the page does not.** It is the
   first thing the instructions offer for cutting tokens, and how much it cuts had never been
   stated. Measured on two long articles: `"robots.txt"` left 4 748 characters of 35 469 and
-  `"Craigslist lawsuit"` left 2 017 — 13% and 6% of the page — while `"history of scraping"` left
+  `"Craigslist lawsuit"` left 2 017 (13% and 6% of the page) while `"history of scraping"` left
   31 135, or 88%, because a broad query matches most of a page about scraping. A model writing
   topics instead of facts gets none of the saving and no hint why. The description now carries the
   range and the rule it implies: name the fact, not the topic. That, and the three other measured
@@ -104,7 +104,7 @@
 - **Two parameter descriptions promised savings that were not there.** `mobile` said "often half
   the tokens for the same article". Measured on a Wikipedia article and a BBC section, at both the
   http and the browser tier: **byte-identical output**, 35 501 against 35 469 and 3 018 against
-  3 018. A responsive site — most of them — serves one document to every viewport, and the flag
+  3 018. A responsive site (most of them) serves one document to every viewport, and the flag
   does not rewrite the host. It is also not free: it takes a browser page of its own, because no
   warm page is reused, and it rules out the native last resort. All of that is in the description
   now, and the promise is gone. `out_file` said "about twenty tokens for what could be forty
@@ -114,7 +114,7 @@
 
 - **`web_snapshot`'s cost is stated from a measurement instead of a guess.** The skill said "~150
   tokens for a whole page". Measured: 12 tokens on `example.com` and 1 609 on a Wikipedia article,
-  where the node list hits its 200-node cap — an order of magnitude out, on a number a model uses
+  where the node list hits its 200-node cap. That is an order of magnitude out, on a number a model uses
   to decide whether a snapshot is worth taking. It now gives the range, the cap, and what the same
   page's prose costs (8 700) so the comparison the tool is for is the one being made. The snapshot
   response also drops a `final_url` that repeats the `url`, as the fetch path already did: pruning
@@ -122,8 +122,8 @@
 
 - **A link to the page's own site comes back the way the page wrote it, which is 14.7% of the
   delivered text.** The largest thing svipall puts in front of a model is the page itself, and on
-  four real pages — Hacker News, MDN's header list, a Wikipedia article, a newspaper front page,
-  112 KB of markdown between them — **40% of that was link URLs**. Most of it was one string
+  four real pages (Hacker News, MDN's header list, a Wikipedia article, a newspaper front page:
+  112 KB of markdown between them), **40% of that was link URLs**. Most of it was one string
   repeated: the page's own HTML said `/wiki/Web_crawler` and the renderer resolved it to
   `https://en.wikipedia.org/wiki/Web_crawler` for display, adding the scheme and host to every
   same-site link on a document whose `url` already says which site it is. Same-site links are now
@@ -136,12 +136,12 @@
 
   Measured, and one candidate measured away: stripping `utm_*` and the other tracking parameters
   from displayed links looked worth doing on a synthetic fixture and was worth **nothing** on the
-  four real pages — zero tracking bytes between them. It was not built.
+  four real pages: zero tracking bytes between them. It was not built.
 
 - **The strict-mode refusal names a tool that exists under either install.** The `WebFetch` hook
   denied the call and pointed at `mcp__svipall__web_fetch`. That prefix is not svipall's to choose:
   registered by hand with `claude mcp add -s user svipall` the tools do arrive under it, but
-  installed as the plugin — the path this repository ships and documents — the same server's tools
+  installed as the plugin (the path this repository ships and documents), the same server's tools
   arrive as `mcp__plugin_svipall_svipall__web_fetch`. So on a plugin install the refusal named
   something that is not there, at the one moment the agent has nothing else to go on. The tools are
   now named bare, `web_fetch` and `web_search`, which resolves under both.
@@ -159,8 +159,8 @@
 - **A response no longer spends tokens on fields that say nothing.** `"exit":null`,
   `"native_fallback":false`, `"stopped_reason":null` and a `final_url` repeating the `url`
   character for character were on every page svipall returned, and a response envelope is read once
-  per *page* — fifty times in one `web_fetch_many`, hundreds in one crawl. Measured on a page whose
-  content was 250 characters: 370 characters of envelope before, 295 after. Nothing is withheld —
+  per *page*: fifty times in one `web_fetch_many`, hundreds in one crawl. Measured on a page whose
+  content was 250 characters: 370 characters of envelope before, 295 after. Nothing is withheld:
   a `null` says exactly what a missing key says, and a flag that is false says what its absence
   says. Absent, each one becomes a signal: `native_fallback` now appears precisely when a native
   attempt was made, and `final_url` when something redirected. `identity_used` stays unconditional,
@@ -168,22 +168,22 @@
   not exposed. Held by `crates/svipall/tests/response_surface.rs`, which is to the response what
   `tool_surface.rs` is to the tool list.
 - **The MCP instructions no longer end with a sentence about language.** They closed with
-  "Instructions in English." — a note about the project's own source, sitting in the system prompt
+  "Instructions in English." That was a note about the project's own source, sitting in the system prompt
   for the whole session where it reads as a directive about the *answer*. What language a user is
   answered in was never svipall's call.
 
 ## 1.0.2 — 2026-09-11
 
 - **`/svipall:setup` asks its two consent questions in words a first-time user can answer.** The
-  memory-file step showed three lines of markup — `<!-- BEGIN SVIPALL -->`, `@svipall/SVIPALL.md`,
-  the end marker — and asked whether to add them. Somebody who has never seen `~/.claude/CLAUDE.md`
+  memory-file step showed three lines of markup (`<!-- BEGIN SVIPALL -->`, `@svipall/SVIPALL.md`,
+  the end marker) and asked whether to add them. Somebody who has never seen `~/.claude/CLAUDE.md`
   has no way to judge that: not what the file is, not what an import line does, not what stays
   untouched. The step now requires saying all four things before the block is shown, and phrases
   the choices as outcomes rather than yes/no.
 - **Strict mode is offered with its failure mode attached, and recommended against on a fresh
   install.** The hook `deny`s `WebFetch` and `WebSearch` with no fallback, so a machine where the
-  MCP server is not answering — not on PATH, not installed, failed to start — has no web access at
-  all rather than a degraded one. That is the whole risk and it was not being said out loud. It is
+  MCP server is not answering (not on PATH, not installed, failed to start) has no web access at
+  all rather than a degraded one. That is the whole risk, and the offer used to leave it out. It is
   now in the offer and in both option labels, since a dialog's labels are what gets read.
 
 ## 1.0.1 — 2026-09-11
@@ -200,7 +200,7 @@
   `detect` and `segment`, and `crates/svipall/tests/models.rs` runs real ONNX sessions there.
 - **The export step reaches aarch64 Linux, which it never had.** It installed torch from
   `download.pytorch.org/whl/cpu`, whose newest aarch64 wheel is 2.0.1 and which has none for Python
-  3.12 at all — so that leg had always been built without models. PyPI publishes a
+  3.12 at all. So that leg had always been built without models. PyPI publishes a
   `manylinux_2_28_aarch64` wheel, and the path was run on an emulated arm64 machine: `torch
   2.14.0+cu130`, both models exported at the same 13.8 MB and 44.1 MB as on x86-64. It is the
   CUDA-tagged wheel, the only aarch64 one published, so the download is large; the export runs on
@@ -217,12 +217,12 @@
   that the binary starts, and `crates/svipall/tests/models.rs` is what to run against any build made
   this way.
 - **The runtime is cached on `main`, not in the release.** Building ONNX Runtime takes the better
-  part of an hour per target, and a cache written under a tag is unreadable from the next one — the
-  same rule the dependency cache lives by. `cache-warm.yml` builds and caches it, keyed by the
+  part of an hour per target, and a cache written under a tag is unreadable from the next one (the
+  same rule the dependency cache lives by). `cache-warm.yml` builds and caches it, keyed by the
   version file; the release restores that key and builds its own on a miss, so a cold cache costs
   time and never a release.
 - **`svipall models install`, for a build that can read a model and has none.** `cargo install
-  svipall` compiles the ONNX path in — `local-models` is a default feature — and the published
+  svipall` compiles the ONNX path in (`local-models` is a default feature) and the published
   crate carries no weights, because crates.io is not where 54 MB of them belong. So it reported
   `no_models` with nothing a user could do about it short of cloning the repository and installing
   torch. The release now publishes one `svipall-models-<version>.zip` for every platform (a weights
@@ -232,34 +232,34 @@
   archive you already have and `SVIPALL_RELEASES_URL` points the download at a mirror, so an
   air-gapped machine is not locked out. Nothing downloads by itself: this is a command a person
   types, like `svipall browser install`. `svipall models status` reports `readable`, which is the
-  distinction that matters — a binary built without any `onnx-*` feature cannot read a model file,
+  distinction that matters: a binary built without any `onnx-*` feature cannot read a model file,
   and installing weights there would only trade `no_models` for `models_not_readable`. An archive's
   entries are checked before anything is written: only the five model names, only in the archive's
   root, and never an `.onnx` without its sidecar.
 - **The headful tiers' window carries its own X11 class.** `real` and `warm` open a real window on
-  purpose — a headless browser answers `pointer: fine` with `false` — and it was moved off the edge
+  purpose (a headless browser answers `pointer: fine` with `false`) and it was moved off the edge
   of the screen, which is a request a tiling compositor may ignore. Hyprland and sway do: the window
   lands in the layout, visible, and the page then reads a height the layout chose rather than the
   one the identity states. `svipall-browser` gives a compositor rule something to match that is not
   every Chrome window the user has open; `docs/configuration.md` carries the rule for Hyprland, sway
   and i3. Nothing on the page can read it: `WM_CLASS` never reaches the DOM.
 - **`svipall doctor` honours the port variables it tells you about.** `dashboard_port_busy`'s fix
-  names `SVIPALL_DASHBOARD_PORT`, and `svipall-mcp` binds what that variable says — but doctor read
+  names `SVIPALL_DASHBOARD_PORT`, and `svipall-mcp` binds what that variable says. But doctor read
   the config file alone, so on any machine with an mcp already listening, setting the variable
   changed nothing in the report and the problem read as permanent. Both ports now resolve through
   one `svipall_core::config::port_from_env`, which is also what the server uses, so the two cannot
   drift apart again.
 - **Intel macOS loses its build.** It was the only artefact that could be built and never started:
   `macos-latest` is arm64, so it was cross-compiled, and GitHub has retired the Intel image far
-  enough that a `macos-13` job sits queued with no runner rather than failing — measured, not
-  assumed. Apple discontinued its last Intel Mac in 2023 and macOS 26 is the last release that
+  enough that a `macos-13` job sits queued with no runner rather than failing (measured, not
+  assumed). Apple discontinued its last Intel Mac in 2023 and macOS 26 is the last release that
   supports one. **Anyone on that hardware moves to the container image**, which Docker Desktop runs
   natively there; `install.sh` and the npm package decline by name and point at it rather than
   404ing on a download, Homebrew no longer carries a formula for it, and the packaging manifests no
   longer list the archive. Reversing this is one entry in the release matrix.
 - **The `slim` image carries the models too, and both images now say so at build time.** `slim` is
   repackaged from the published Linux archive rather than compiled a second time, and that archive
-  has them now — the difference between the two flavours is the browser, which is what the tag
+  has them now. The difference between the two flavours is the browser, which is what the tag
   always meant. Its build asserted the opposite, demanding `no_models` from `svipall doctor`, so the
   image build broke the moment the archive gained them; that is how this was found. Both flavours
   now assert `detect`, `segment` and the absence of `no_models`, because an image that quietly lost
@@ -275,13 +275,13 @@ to end — and which failed twice doing it.
   token before checking whether anything was missing, got `No Trusted Publishing config found`
   with all nine crates already published, and the registry job that waits on it never ran. The job
   now lists what is missing first and asks for a credential only then. It publishes with a
-  `CARGO_REGISTRY_TOKEN` repository secret when there is one — the only route that can publish a
-  crate crates.io has never seen — and over OIDC when there is not;
+  `CARGO_REGISTRY_TOKEN` repository secret when there is one (the only route that can publish a
+  crate crates.io has never seen) and over OIDC when there is not;
   `scripts/crates-trusted-publishing.sh` is the one-time setup for the latter.
 - **The first version to move `latest`.** npm's `latest` and the image's `latest` and `slim` follow
   stable releases only, so every candidate before this one left them behind: npm stayed on
   `1.0.0-rc` and the image had neither tag, although the plugin's setup pulls `:latest`. Every
-  later pre-release — rc, beta, alpha — goes under its version tag and npm's `next`, and
+  later pre-release (rc, beta, alpha) goes under its version tag and npm's `next`, and
   `only_a_stable_release_moves_latest` holds that.
 - **rc.3's first run built every binary and died in `packages`.** Its artifact download took
   everything in the run, including the `.dockerbuild` records the image jobs upload, which
@@ -292,9 +292,9 @@ to end — and which failed twice doing it.
 ## 1.0.0-rc.3 — 2026-09-07
 
 **`1.0.0-rc.2` was tagged and never published.** Its release workflow ran twice and failed both
-times: three of the five targets — `x86_64-apple-darwin`, `x86_64-unknown-linux-gnu` and
-`aarch64-unknown-linux-gnu` — would not link, so no archive, no package and no image was ever
-produced under that version. `v1.0.0-rc` remains the only release anyone can install. The cause was
+times: three of the five targets (`x86_64-apple-darwin`, `x86_64-unknown-linux-gnu` and
+`aarch64-unknown-linux-gnu`) would not link, so no archive, no package and no image was ever
+produced under that version. `v1.0.0-rc` is still the only release anyone can install. The cause was
 still in the tree until this tag, which is why this is a third candidate rather than `1.0.0`: what
 has never once run green is the machinery, and it now has more of it than rc.2 did.
 
@@ -302,7 +302,7 @@ has never once run green is the machinery, and it now has more of it than rc.2 d
 
 `local-models` joined the top crate's default features in the rc.2 release commit itself. `bench`
 took that crate with its defaults, and cargo unifies features across every package the build
-selects — and the release job names binaries, not a package, so it selects the workspace. The
+selects. The release job names binaries, not a package, so it selects the workspace. The
 `--no-default-features --features impersonate` the three model-free targets are built with was
 therefore true of the flag and false of the graph: `dep:ort` came back in through `bench`, and
 those targets died on `undefined symbol: __isoc23_strtoll` out of `libort_sys`, plus an
@@ -312,13 +312,13 @@ those targets died on `undefined symbol: __isoc23_strtoll` out of `libort_sys`, 
 its own `onnx` feature, which is what `bench micro`'s model budgets needed all along.
 `crates/svipall/tests/release_build.rs` asserts that no workspace member takes `svipall`
 with its defaults, offline and in `qc`, because this failure is invisible on a machine that builds
-with the defaults on — which is every developer machine.
+with the defaults on, which is every developer machine.
 
 ### A release is a merge, and the tag is the last thing that happens
 
 `1.0.0-rc.2` is a tag with nothing under it. That shape is now impossible: the release workflow runs
 on a push to `main`, reads `[workspace.package] version`, and does nothing at all unless that
-version has no tag yet. The tag itself is created by the GitHub release, at the end — so a build
+version has no tag yet. The tag itself is created by the GitHub release, at the end, so a build
 that fails leaves none behind, and the same commit pushed again is still a release waiting to
 happen. Pushing a tag by hand still works and is the recovery path.
 
@@ -334,15 +334,15 @@ per repository that can touch nothing else. Until now a person copied them, and 
 ### The workspace is on crates.io
 
 Every crate except the benchmark harness is published, over OIDC and with no stored secret, the
-same mechanism the npm job uses. `cargo install svipall` is a supported way in, and — like any
-source build — it carries no captcha models: the weights are exported at release time and are not
+same mechanism the npm job uses. `cargo install svipall` is a supported way in, and like any
+source build it carries no captcha models: the weights are exported at release time and are not
 in the crate, so image challenges go to the human dashboard and `svipall doctor` reports
 `no_models`. `svipall-extract` is the one worth depending on alone, under `MIT OR Apache-2.0`.
 
 The two vendored forks, `svipall-cdp` and `svipall-quic`, go up under their own names because
 crates.io resolves every dependency of a published crate, optional ones included: `svipall` and
-`svipall-http` cannot exist there while either is missing. Publishing is permanent — there is no
-unpublish, only `yank` — so the crates go up one at a time, in dependency order, after the release
+`svipall-http` cannot exist there while either is missing. Publishing is permanent (there is no
+unpublish, only `yank`) so the crates go up one at a time, in dependency order, after the release
 exists, and a version already on the registry is skipped rather than reported. CI packages all nine
 manifests on every run, because a metadata error found on release day is found after the crates
 before it are already permanent.
@@ -369,7 +369,7 @@ Native mode builds a real browser rather than undoing individual JS patches afte
 `--disable-ipc-flooding-protection`, `IsolateOrigins`, `site-per-process` and client-side phishing
 detection are no longer switched off where a visitor would have them. `fetch_in_document` refetches
 same-origin HTML through the page's own fetch, keeping its SDK and in-memory state alive. The
-vendored CDP grows one deviation — `worker_init_script` is carried per browser instead of per
+vendored CDP grows one deviation: `worker_init_script` is carried per browser instead of per
 process, which is what lets an emulated pool and a native pool disagree in the same process without
 either contradicting its own workers, recorded in `crates/svipall-cdp/PATCHES.md`.
 
@@ -381,16 +381,16 @@ results.
 
 `bench/experiments/` now carries the raw responses rather than a summary of them.
 
-- **`local-20260905`** — a paired before/after comparison: 27 runs, 918 samples, three arms across
+- **`local-20260905`** is a paired before/after comparison: 27 runs, 918 samples, three arms across
   three rounds, frozen executable and browser hashes, target orders audited. Native mode raises
   `hard12` delivery from 9/12 and 8/12 to **11/12** on both visits, and the repeatable substantive
   recoveries are G2, Idealista and Crunchbase. The record also carries what went the other way: the
   default's Zillow regression, six challenge renewals that recovered nothing, zero live document
   reuses, and a content audit that disqualifies the Home Depot cells its own scoring rule had
   counted as delivered.
-- **`auto-20260905`** — the automatic policy verified offline: full QC, 1,177 test executions, 160
+- **`auto-20260905`** records the automatic policy verified offline: full QC, 1,177 test executions, 160
   automation probes, eight browser fixtures.
-- **`cpu-budgets-20260907`** — the CPU budget table had no log behind its `Measured` column. It now
+- **`cpu-budgets-20260907`**: the CPU budget table had no log behind its `Measured` column. It now
   has one, and the column names the machine and the date it was taken on, because a CPU timing
   depends on the machine and the table never said so. The budget column is the part that does not
   move, and `bench micro --assert` is what holds it.
@@ -407,9 +407,9 @@ WCXB development **0.806** over 1,476; the forum detector at precision **1.000**
 languages with **0.608** as its worst; TECO at **P 0.727, R 0.747, F1 0.676**, with cross-page
 template removal firing on 2 of 11 armed sites, saving 3.4% and costing one labelled word. TECO's
 licence requires published results, so this is also that. The three corpora are fetched on demand
-and gitignored — WCXB is 193 MB, DAnIEL 176 MB, and the TECO forum archive unpacks to 13 GB.
+and gitignored: WCXB is 193 MB, DAnIEL 176 MB, and the TECO forum archive unpacks to 13 GB.
 
-**Four claims the runs did not back, corrected rather than left standing:**
+**Four claims the runs did not back, corrected:**
 
 - *"third of fourteen on that benchmark's published leaderboard."* The harness scores Svipall; it
   does not rank it against other people's submissions, and nothing here computes a placement.
@@ -455,8 +455,8 @@ and gitignored — WCXB is 193 MB, DAnIEL 176 MB, and the TECO forum archive unp
 
 It was 1,863 lines, and four sections were 59% of it: somebody arriving at this repository scrolled
 past 487 lines of benchmark tables to find out how to install the thing. Nine sections move into
-`docs/` as files of their own — proof, features, captcha, configuration, privacy, limits,
-architecture, development, faq — with their links repointed for their new depth, and nothing
+`docs/` as files of their own (proof, features, captcha, configuration, privacy, limits,
+architecture, development, faq) with their links repointed for their new depth, and nothing
 deleted. Nineteen same-page anchors pointed at subheadings that had moved and now point into the
 file each landed in. What stays is what a reader needs first: what it is, how to install it, what it
 can do, how the ladder works, the tool table, the REST routes, how it compares, and the closing
@@ -465,7 +465,7 @@ matter. `docs/local-configuration.md` documents the new settings and their prese
 ### The gates, run against this tree
 
 Offline, on Windows 11, at the commit this tag names. No network, so these say nothing about
-delivery — the evasion sets are not re-taken here, and the figures `v1.0.0-rc.2` published for
+delivery. The evasion sets are not re-taken here, and the figures `v1.0.0-rc.2` published for
 them still carry the dates and policies they were measured under.
 
 | gate | result |
@@ -499,7 +499,7 @@ nothing said when to use `web_act` rather than `browser_open` + `browser_do`, or
 - **Schemas are slimmed on the way out**: `$schema`, `title`, `"default": null`, `nullable`, the
   integer `format` and `minimum: 0` are gone (`slim_schema`). Every parameter has a description; the
   measurement essays that lived in three of them moved to code comments. `web_fetch` went from
-  8 116 to 5 864 characters with more said, not less.
+  8 116 to 5 864 characters with more said.
 - **Annotations**: every tool declares `readOnlyHint` and `openWorldHint`, which is what a client
   uses to decide whether to ask before running it.
 - **`actions` on `web_act` and `browser_do` is typed**: `do` is an enum of the fourteen verbs and
@@ -545,7 +545,7 @@ are not moved, and GitHub's `/releases/latest` does not name a pre-release, so `
 ### What it is
 
 A local-first MCP server and CLI, in Rust, that gives an LLM agent a real window onto the web:
-**29 MCP tools**, **19 REST routes**, **nine crates** (seven of our own plus two vendored — a
+**29 MCP tools**, **19 REST routes**, **nine crates** (seven of our own plus two vendored: a
 patched Chrome DevTools Protocol client and a patched QUIC/HTTP-3 stack). No cloud, no API keys, no
 paid captcha service, no telemetry. Nothing leaves the machine it runs on.
 
@@ -561,20 +561,20 @@ ever been tagged. This is what it produces.
   saying which file they touched. `--uninstall` reverses it. Both are exercised end to end in CI,
   on every platform, against the binaries that job just built.
 - **`svipall --version`** and **`svipall doctor`**: what this build is (version, target triple,
-  compiled-in features) and whether it will work here — browser, captcha models, http engine,
-  ports, home directory — with the exact command that fixes anything that is wrong. The judgement
+  compiled-in features) and whether it will work here (browser, captcha models, http engine,
+  ports, home directory) with the exact command that fixes anything that is wrong. The judgement
   is a pure function of collected facts, so it is tested against machines this one is not.
 - **A Claude Code plugin** in `plugins/svipall/`, with a marketplace in this repository:
   `/plugin marketplace add ilien-dev/svipall`. It registers the MCP server, ships the skill, and
   adds `/svipall:setup`, `/svipall:doctor` and `/svipall:uninstall`. `setup` installs the binary if
-  it is missing, and offers — asking each time, never assuming — to add a routing block to the
-  user's global `CLAUDE.md` between removable markers. A test keeps the plugin's copy of
+  it is missing, and offers to add a routing block to the
+  user's global `CLAUDE.md` between removable markers, asking each time and never assuming. A test keeps the plugin's copy of
   `SKILL.md` byte-identical to the canonical one.
 - **`svipall hook claude-web`**, a `PreToolUse` answer that declines Claude Code's own `WebFetch`
   and `WebSearch` in favour of the svipall tool that does the same job. Registered by the plugin
   from the start and **inert** until `~/.svipall/claude_strict` exists, so installing the plugin
   changes nothing about how anybody's fetches behave.
-- **Package manager manifests**, plus `.deb`, `.rpm` and an npm wrapper — all rendered from the
+- **Package manager manifests**, plus `.deb`, `.rpm` and an npm wrapper, all rendered from the
   release's own `sha256sums.txt` by `scripts/render-packaging.sh`, so no checksum is ever typed
   twice. Homebrew and Scoop are published and installable. The winget and AUR manifests are
   rendered but not submitted, so neither is an install channel yet.
@@ -601,14 +601,14 @@ the arm64 binary on its own runner; the Intel one is cross-built and cannot be r
 
 ### Getting in
 
-- **A tiered fetch ladder** — `http → browser → stealth → real → warm` — learned per domain and
+- **A tiered fetch ladder** (`http → browser → stealth → real → warm`) learned per domain and
   remembered between runs, that climbs only as far as a page requires.
 - **Chrome- and Firefox-accurate TLS/HTTP2** on BoringSSL: JA4, SETTINGS order, header order,
   GREASE, and the post-quantum key share (`X25519MLKEM768`).
 - **An opt-in HTTP/3 engine** (`--features http3`) on a vendored quiche, whose QUIC ClientHello
   carries twelve of Chrome's thirteen extensions, permutes them as Chrome does, and GREASEs a
-  transport parameter as Chrome does. Triggered only by `Alt-Svc`, never on a first visit — which
-  is Chrome's own rule — with a two-second handshake deadline of its own so a network that silently
+  transport parameter as Chrome does. Triggered only by `Alt-Svc`, never on a first visit (Chrome's
+  own rule) with a two-second handshake deadline of its own so a network that silently
   drops UDP costs seconds rather than the page budget.
 - **One coherent identity per session** across TLS, headers, CDP, the stealth script and every
   worker realm, checked against itself offline in a gate that fails the build on a contradiction.
@@ -626,7 +626,7 @@ the arm64 binary on its own runner; the Intel one is cross-built and cannot be r
 - `schema: "auto"` induces a schema from a listing's own repeated structure, and a schema's
   selectors are fingerprinted per domain so a redesign relocates them by similarity rather than
   breaking.
-- `web_capture` returns the JSON the page fetched while loading — usually the site's real API.
+- `web_capture` returns the JSON the page fetched while loading, usually the site's real API.
 - Hidden text never reaches the model.
 
 ### What is measured, and what it says
@@ -646,7 +646,7 @@ cooldowns cleared, from **one residential address with no proxy**. Raw logs are 
 | `bench evasion --set hard12` | **7/12** (range 7..8) | yes |
 | `bench evasion --set vendors8` | **3/8** (range 2..3) | yes |
 
-`public31` was re-taken against this tree on 2026-09-05, once the reputation gate allowed it — it
+`public31` was re-taken against this tree on 2026-09-05, once the reputation gate allowed it. It
 refused for the better part of two hours first, and `--ignore-budget` was not used. It moved from
 25/31 to 26/31, which by this project's rule counts as an improvement because the median left the
 previous range. The annotation matters more than the number: **the one cell that moved is
@@ -654,7 +654,7 @@ previous range. The annotation matters more than the number: **the one cell that
 across four rounds, and what was different was that the address had rested two hours. A number that
 moves when the address rests is a number about the address.
 
-`hard12` (2026-09-04) and `vendors8` (2026-09-05) still carry their committed figures and **predate parts of this tree — the HTTP/3 SETTINGS work,
+`hard12` (2026-09-04) and `vendors8` (2026-09-05) still carry their committed figures and **predate parts of this tree: the HTTP/3 SETTINGS work,
 the CDP change and the window-geometry corrections in this release.** They were not re-taken because
 running `public31` spends the same addresses they score, and taking all three back to back is the
 exact thing that produced a round this project already published as a warning.
@@ -664,7 +664,7 @@ exact thing that produced a round this project already published as a warning.
 The six `public31` cells and the walls in `vendors8` that do not open are decided by **IP
 reputation**, not by fingerprint: the fingerprinting vendor returns `blocked visitor` for this
 address with a clean browser, a fresh profile and a rotated machine identity.
-Svipall's answer is `web_route` — send the domain through an exit you supply — and that is
+Svipall's answer is `web_route` (send the domain through an exit you supply) and that is
 the one thing a local-only tool cannot provide for itself. It will never bundle proxies, never call
 a captcha farm, and never report a block as a success.
 
@@ -676,7 +676,7 @@ one reads `"exit": null`. Until somebody does, that qualifier applies to every n
 
 - **The container image carried no captcha models.** The `Dockerfile` never ran
   `tools/models/export.py` and never passed the `onnx-*` features, so any image built from it
-  answered image challenges by sending them to the human dashboard — while the README said
+  answered image challenges by sending them to the human dashboard, while the README said
   "models ship in the release binary". True of the tarballs, false of the image. The `full` image
   now exports and compiles them in, and the release smoke test checks that they arrived.
 - **`-p 8787:8787` did not reach the dashboard.** `dashboard_bind` defaults to loopback, which
@@ -684,15 +684,15 @@ one reads `"exit": null`. Until somebody does, that qualifier applies to every n
   `0.0.0.0` on first start, and never touches one you wrote.
 - **The image was `linux/amd64` only** while arm64 tarballs were built. `slim` is now built for
   both. `full` stays amd64, because Chrome for Testing publishes no linux-arm64 build and an arm64
-  image with no browser in it is worse than an honest slim one — now stated rather than discovered.
+  image with no browser in it is worse than an honest slim one, and that is now stated up front.
 - **The Windows artefact was a `.tar.gz`**, which winget will not accept, Scoop will not accept,
   and Windows Explorer will not open without help. It is a `.zip`.
 - **Nothing about a release would have been verifiable.** macOS builds are now signed ad-hoc and every artefact
   carries a GitHub build attestation. Notarisation still needs an Apple Developer ID this project
-  does not have, and `docs/install.md` says so rather than implying otherwise.
+  does not have, and `docs/install.md` says so.
 - **The image build was not reproducible, and `slim` carried 223 MB it could not use.**
   `svipall-models` embeds whatever weights are in its directory, and that directory is gitignored
-  but present on any machine that has run the export — so the same `docker build` produced a
+  but present on any machine that has run the export, so the same `docker build` produced a
   different image depending on whose tree it ran in, and a `slim` image built on a developer's
   machine shipped 58 MB of ONNX with no `onnx-*` feature able to read it. The build context now
   excludes them; `slim` went from 449 MB to 226 MB.
@@ -704,7 +704,7 @@ one reads `"exit": null`. Until somebody does, that qualifier applies to every n
   completes a handshake with, so the frame can be read at all. Chrome for Testing 152.0.7977.75,
   four runs, sends `QPACK_MAX_TABLE_CAPACITY=65536`, `MAX_FIELD_SECTION_SIZE=262144`,
   `QPACK_BLOCKED_STREAMS=100`, `H3_DATAGRAM=1` and one fresh GREASE, in that order. We were sending
-  upstream quiche's two — one of them a draft codepoint Chrome does not use. Now matched, asserted
+  upstream quiche's two, one of them a draft codepoint Chrome does not use. Now matched, asserted
   offline. `crates/svipall-quic/PATCHES.md` entry 10.
 - **No private key in the repository.** The loopback server that reference needs a certificate for
   generates one in-process and deletes it when the run ends, on the BoringSSL already linked here.
@@ -712,7 +712,7 @@ one reads `"exit": null`. Until somebody does, that qualifier applies to every n
   scanner raises and some push protections block, and a committed certificate expires on somebody
   else's watch. `crates/svipall-quic/PATCHES.md` entry 11.
 - **A log that misreported its own severity.** The CDP client raised `error!` for every event from a
-  protocol domain newer than its pinned definitions — 55 lines per `tells` run, about a thousand per
+  protocol domain newer than its pinned definitions: 55 lines per `tells` run, about a thousand per
   evasion baseline. An event has no `id` and nothing waits on it; a response does, and still errors
   loudly. `crates/svipall-cdp/PATCHES.md` entry 9.
 - **The extraction gate, run rather than skipped.** `qc` has carried it for rounds and it printed
@@ -722,7 +722,7 @@ one reads `"exit": null`. Until somebody does, that qualifier applies to every n
 
 - **The Linux binary only ran on the distribution that built it.** `ubuntu-latest` is 24.04, so the
   first published artefact wanted `GLIBC_2.39` and would not start on Debian 12, Ubuntu 22.04,
-  RHEL 9 or Amazon Linux 2023 — nor would the `.deb` and `.rpm`, which carry the same binaries.
+  RHEL 9 or Amazon Linux 2023. Neither would the `.deb` and `.rpm`, which carry the same binaries.
   Linux builds on 22.04 now, and a release step starts the binary inside a `debian:bookworm-slim`
   container before packaging it, because this failure is invisible on the machine that produces it.
 - **Linux and macOS Intel gave up the model features to get there.** The ONNX Runtime builds `ort`
@@ -746,7 +746,7 @@ one reads `"exit": null`. Until somebody does, that qualifier applies to every n
 - `trust_anchors` is sent with an empty payload where Chrome sends a populated list.
 - Extension `0x12e0` is absent from the linked BoringSSL, which gives the h3 engine a Chrome
   version ceiling of its own, set by the age of that library rather than by a user agent.
-- The QUIC Initial's own shape — connection id lengths, padding, version negotiation — is
+- The QUIC Initial's own shape (connection id lengths, padding, version negotiation) is
   unmeasured.
 - `MAX_EMULATED_CHROME` is 149, bounded by the newest emulation profile available to the TCP
   engine, while the provisioned browser is 152.

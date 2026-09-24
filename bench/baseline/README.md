@@ -25,7 +25,7 @@ that benchmark's own four-way rule (`ok | gated | blocked | error`), ported verb
 
 Twenty-five of the 31 public targets pass for every tool including unpatched automation; the signal
 lives in six cells. Nine of the twelve targets here are walls. A 9/12 and a 28/31 are therefore not
-the same kind of number, and quoting one against the other — in either direction — is reading noise
+the same kind of number, and quoting one against the other (in either direction) is reading noise
 as signal. Both are published, each with its list, so nobody has to.
 
 Every evasion figure below and from now on is the **median of three runs with its range**, targets
@@ -41,7 +41,7 @@ extensions and signature algorithms and never supported groups. The engine had b
 
 Every check passes against `tls.peet.ws` and a real browser. Grew from 16 during Phase 3: the
 Runtime-domain watchdog, `navigator.languages`, `connection`, the heap ceiling, `devicePixelRatio`,
-and a stability check on text geometry that caught a real bug in the noise patch — it was redrawing
+and a stability check on text geometry that caught a real bug in the noise patch: it was redrawing
 per call, so one element measured twice gave two different widths. The post-quantum key share was
 listed here as a known gap; see "Two lists, two rules" above for why that was the check, not the
 engine.
@@ -59,7 +59,7 @@ The first time this was ever measured. It is the number the competition publishe
 ### What the failures actually say
 
 **Two of them are a shell-page gap, not a wall.** amazon and newegg come back `200` with a full page
-of navigation — 13,218 and 40,437 characters of real text — and `blocked_reason: null`. They are not
+of navigation (13,218 and 40,437 characters of real text) and `blocked_reason: null`. They are not
 challenge pages; the classifier is right that no wall is present. What is missing is the *content*:
 product listings that only exist after JavaScript runs. The ladder sees a healthy page and stops at
 the `http` tier, so it never escalates to a tier that would render them.
@@ -80,7 +80,7 @@ were never going to open.
 
 ## Two bugs this run found in the bench itself
 
-- Success required `body.len() > 200`, so example.com — whose entire markdown is 167 characters —
+- Success required `body.len() > 200`, so example.com (whose entire markdown is 167 characters)
   was scored as a failure while being fetched perfectly. The criterion is now "the expected text is
   there and the classifier did not call it a wall".
 - A run put blocked domains on a 15-minute cooldown, so the next run skipped them without making a
@@ -103,7 +103,7 @@ between two runs minutes apart, on a sample of twelve. Reporting it as a gain wo
 as signal.
 
 What did move, and is measured: the fingerprint checks went from 16 to 23, all passing, including
-two that did not exist before — a watchdog on the automation protocol, and a stability check on text
+two that did not exist before: a watchdog on the automation protocol, and a stability check on text
 geometry that caught a real bug in the noise patch.
 
 ### Why the stealth work did not show up here
@@ -112,10 +112,10 @@ Worth writing down, because it is the useful part:
 
 - **Six of the twelve failures are not about stealth.** Two are the same fingerprinting vendor,
   which never yields at any tier. Three come back `200` with a full page of navigation and no
-  article — a rendering problem, not a wall. One is a plain `403`.
-- **The bench runs from one address with no proxy.** The largest pieces of work — WebRTC no longer
+  article: a rendering problem, not a wall. One is a plain `403`.
+- **The bench runs from one address with no proxy.** The largest pieces of work (WebRTC no longer
   leaking the real address, identities drawn per session, sessions retired when a domain turns on
-  them, the country moving with the exit node — only do anything once there is more than one
+  them, the country moving with the exit node) only do anything once there is more than one
   identity and more than one exit. This benchmark exercises none of that.
 - **Twelve targets is too few to see a small change.** Distinguishing 42% from 50% at this sample
   size needs many more runs than three.
@@ -145,7 +145,7 @@ The composition of the failures has not changed and is still the honest story:
 
 - `captcha-delivery.com` on two sites: never yields, at any tier, from one address.
 - Amazon and Newegg return a real page with a `200` and a navigation shell; the products are
-  rendered by script the extractor does not run. That is a rendering gap, not a wall — the fix is
+  rendered by script the extractor does not run. That is a rendering gap, not a wall. The fix is
   `web_snapshot` or `web_capture`, both of which now exist.
 - StackOverflow is a genuine `403`.
 
@@ -157,8 +157,8 @@ measures at all.
 
 ## HTTP/3: measured, and abandoned on the evidence
 
-The plan carried an explicit abandonment criterion for HTTP/3 — *"if `bench fingerprint` does not
-confirm a Chrome QUIC fingerprint, the engine is not published"* — on the assumption that the cost
+The plan carried an explicit abandonment criterion for HTTP/3 (*"if `bench fingerprint` does not
+confirm a Chrome QUIC fingerprint, the engine is not published"*) on the assumption that the cost
 was effort. It is not. It is a link conflict, and it is total.
 
 `quiche` reaches BoringSSL through `boring-sys`. `wreq`, the engine that gives the http tier its
@@ -171,7 +171,7 @@ package which links to `boringssl` as well: package `btls-sys v0.5.6`
 ```
 
 Building `quiche` with `default-features = false` gets past resolution and fails at link time
-instead — 83 unresolved BoringSSL symbols — because there is then no TLS library under it at all.
+instead (83 unresolved BoringSSL symbols) because there is then no TLS library under it at all.
 
 So the three ways forward were: drop `impersonate` (trade a fingerprint measured at 23/23 for one
 that cannot be measured), use `quinn` over rustls (ship a QUIC fingerprint that is demonstrably not
@@ -183,7 +183,7 @@ the dependency graph and will not change by trying harder.
 One more measurement worth keeping: the fingerprinting endpoint the bench uses reports `tls`,
 `http1` and `tcpip` sections and **no QUIC section at all**. Even with an engine in hand, the
 abandonment criterion could not have been evaluated against it without first finding a service that
-reports QUIC fingerprints — which is a second dependency the project does not want.
+reports QUIC fingerprints. That is a second dependency the project does not want.
 
 ### Final run, and why the evasion number is reported as a range
 
@@ -205,7 +205,7 @@ five failures actually were rather than assume they were five anti-bot problems.
 not about anti-bot at all.
 
 **A page the extractor emptied out was reported as a successful fetch.** A shop listing arrived
-intact — `200`, correct title, 1.4 MB of markup — and came back as *zero characters*. A listing has
+intact (`200`, correct title, 1.4 MB of markup) and came back as *zero characters*. A listing has
 no prose, so its items look to the density pruner exactly like the navigation that pruner exists to
 remove; with no `<main>` it trusted, everything was dropped. Reproduced offline against the saved
 page: `main_content_only=true` gave 0 characters, `false` gave 45,551. `extraction::markdown_from`
@@ -213,7 +213,7 @@ now falls back to the whole document when the heuristics leave nothing, and only
 
 **A response with no document at all was classified as a delivered page.** A page with an empty
 `<body>` was caught by the classifier; a response with *no bytes whatsoever* fell through every
-check and returned `(None, WallKind::None)` — a success. That stopped the ladder from climbing and
+check and returned `(None, WallKind::None)`: a success. That stopped the ladder from climbing and
 handed the caller zero characters with no reason given. Two real sites did this: a `302` with an
 empty body, and a `200` from a tier that had been quietly refused.
 
@@ -231,8 +231,8 @@ nothing.
 
 **What did not move, and will not from here.** The two `captcha-delivery.com` sites fail in every
 run, at every tier, after 24 seconds. That is a fingerprinting wall combined with IP reputation, and
-this benchmark runs from a single residential address with no proxy. The remaining variance —
-Crunchbase and Zillow each failing in some runs and passing in others — is the same noise band the
+this benchmark runs from a single residential address with no proxy. The remaining variance
+(Crunchbase and Zillow each failing in some runs and passing in others) is the same noise band the
 whole file has been documenting, not a regression.
 
 ---
@@ -242,8 +242,8 @@ whole file has been documenting, not a regression.
 Asked to push the evasion number as far as it would go, the three remaining failures were looked
 at one by one rather than as "anti-bot".
 
-**The strategy loop was never running during a fetch.** Everything built to answer challenges —
-press-and-hold, the hash puzzles, the audio path — ran only from `solve_and_continue`. A plain
+**The strategy loop was never running during a fetch.** Everything built to answer challenges
+(press-and-hold, the hash puzzles, the audio path) ran only from `solve_and_continue`. A plain
 `web_fetch` at the warm tier nudged the page and hoped. Now every turn of the warm wait is a turn
 of the strategy loop, so a press-and-hold is answered in the fetch that met it.
 
@@ -255,12 +255,12 @@ extends its deadline once when the page reports progress ("verification successf
 the site to respond"), because a pass already earned is not worth throwing away for a timer.
 
 **A vendor's hard block was costing the whole budget.** The fingerprinting vendor's interstitial
-carries its verdict in the top document — `'t':'bv'`, blocked visitor — while the words explaining
+carries its verdict in the top document (`'t':'bv'`, blocked visitor) while the words explaining
 it sit in a frame in another process that this session cannot read. Reading the verdict ends the
 wait in four seconds instead of twenty-four, with the honest reason: the address is refused, and
 another exit is the only move.
 
-Also tried and measured: a retry of the last rung as a fresh visitor — new profile, a different
+Also tried and measured: a retry of the last rung as a fresh visitor: new profile, a different
 machine from the fleet. It doubled the cost on the target it was built for and did not change the
 answer, so it was removed from the ladder. The machine rotation stays, tied to `isolated`, where
 "nothing carried in" should include the hardware.
@@ -276,7 +276,7 @@ site passes in some runs and not others, and the pattern is the address, not the
 at six seconds early in the day and refused a fresh profile wearing a different machine after
 fifteen visits in an hour. The two fingerprinting-vendor sites name this IP on the page. From a
 single residential address without a proxy, 10 of 12 is the ceiling this benchmark can show; the
-tool's own answer to the last two — `web_route` — is the one thing it cannot supply for itself.
+tool's own answer to the last two (`web_route`) is the one thing it cannot supply for itself.
 
 ### Polish, measured
 
@@ -303,7 +303,7 @@ it is there.
 
 **The antivirus was in the page.** With that browser, every page carried a stylesheet and a
 script injected by a local security product, and on the vendor's silent device-check page the
-only network traffic the page ever made went to that product — the vendor's own check never left
+only network traffic the page ever made went to that product. The vendor's own check never left
 the machine. Any site's script sees an injection like that. Svipall now names it in the note of a
 blocked result and tells the operator what to exclude. With the browser and Svipall excluded from the
 product's web protection, the injection was gone in the next measurement.
@@ -331,26 +331,26 @@ another process.
 | identity vs engine | Chrome 147 on a 152 engine | **consistent** |
 | local injection | present on every page | **gone, and detected when present** |
 
-The number did not move, and the honest reason is that what remains is decided on the other end.
-The fingerprinting vendor still refuses this address (`bv`) with a clean browser and no injection —
-the address earned that today, one benchmark run at a time. The press-and-hold vendor's collector
+The number did not move, and the honest reason is that what is left is decided on the other end.
+The fingerprinting vendor still refuses this address (`bv`) with a clean browser and no injection.
+The address earned that today, one benchmark run at a time. The press-and-hold vendor's collector
 answers `"do":null` and keeps its button hidden; that is a verdict on the session, taken
 server-side. The managed-challenge site passes and fails by the visit. From one residential
 address with no proxy, this benchmark cannot show more than it does, and the tool's own answer to
-that — `web_route` — is the one thing it cannot supply for itself.
+that (`web_route`) is the one thing it cannot supply for itself.
 
 ### The profile the wall remembered
 
 The press-and-hold vendor keeps the session it once flagged in the cookies of the persistent
 profile. Opened on a profile nobody had seen, the same page cleared twice out of two; on the kept
 one it never did. So a hold that will not clear on a persistent profile now earns one retry on a
-fresh one, and when that works the flagged profile is retired — the browser holding it closed
-first, because on Windows the directory is locked while it runs. Measured end to end:
+fresh one, and when that works the flagged profile is retired (the browser holding it closed
+first, because on Windows the directory is locked while it runs). Measured end to end:
 `hold on the kept profile → retry on a fresh one → OK in five seconds → profile retired`.
 
 And the page behind it was a second extractor lesson: for this address the listing carried no
-listings, its trusted main region was the map, and what came back was the map's attribution line
-— a tenth of a page that was itself a few hundred characters. On a page that small the whole of it
+listings, its trusted main region was the map, and what came back was the map's attribution line:
+a tenth of a page that was itself a few hundred characters. On a page that small the whole of it
 is the answer, so a fragment under four hundred characters on a page under four thousand now
 yields the whole page. A short notice on a large site stays a short notice; that case is tested.
 
@@ -358,7 +358,7 @@ yields the whole page. A short notice on a large site stays a short notice; that
 |---|---|---|
 | evasion | 8–10 of 12 | **9 of 12**, the press-and-hold site now passing in every run |
 
-What remains is decided on the other end: the fingerprinting vendor's `bv` for this address, and
+What is left is decided on the other end: the fingerprinting vendor's `bv` for this address, and
 the managed-challenge site passing or failing by the visit.
 
 ---
@@ -366,15 +366,15 @@ the managed-challenge site passing or failing by the visit.
 ## HTTP/3, examined a second time (2026-09-03)
 
 The reason on record was a linking one: `quiche` and the emulating TLS engine both link
-BoringSSL and Cargo permits one. That is no longer true — the engine's binding builds BoringSSL
-with prefixed symbols, so two copies can share a binary — and it was never the real reason.
+BoringSSL and Cargo permits one. That is no longer true (the engine's binding builds BoringSSL
+with prefixed symbols, so two copies can share a binary) and it was never the real reason.
 
 The real one is shape. A QUIC connection's ClientHello has to look like Chrome's as much as the
 TCP one does, and Chrome's carries two extensions that no Rust QUIC stack's TLS API can produce:
 application settings (ALPS, 17513) and an ECH GREASE (65037). Cipher list, curves, signature
 algorithms, GREASE values and extension permutation are all settable; those two are not. A QUIC
 handshake with two extensions fewer than Chrome's is a QUIC handshake that says "not Chrome" in
-the first packet, on every site that looks — and the sites that offer h3 are exactly the ones
+the first packet, on every site that looks. And the sites that offer h3 are exactly the ones
 behind CDNs that look.
 
 So h3 stays off, and this time the file says why in terms that can be re-checked: when a Rust
@@ -398,13 +398,13 @@ cleared.
 
 **hard12.** Same composition as before: `captcha-delivery.com` on two sites never yields from one
 address, crunchbase is per-visit-per-address, and indeed is now the flaky one (1 of 3) where
-zillow used to be — zillow passed every run. Inside the spread this list has always shown; not a
+zillow used to be: zillow passed every run. Inside the spread this list has always shown; not a
 change in either direction.
 
 **public31, for the first time.** Twenty-four of thirty-one with zero hard blocks; the seven that
 do not pass are all `gated` (an interstitial or a panel that scored us), never `blocked`. On the
-published matrix that is the profile only one of seven tools had — the one that drives Chrome over
-CDP with no automation shim — and the count sits with the Playwright forks. Two of the seven
+published matrix that is the profile only one of seven tools had (the one that drives Chrome over
+CDP with no automation shim) and the count sits with the Playwright forks. Two of the seven
 gates are a `Just a moment…` the `http` tier was scored on before the ladder climbed; the public
 rule takes the final response of one attempt, and Svipall's own rule would have escalated. That is
 a real difference between the two rules, recorded here rather than adjusted away.
@@ -444,7 +444,7 @@ all three runs, where previously indeed and zillow traded places between runs. S
 higher number and is not reported as one, but on a twelve-target list it is the only thing three
 runs can honestly show.
 
-`vendors8` — 3 of 8, the same three every run:
+`vendors8`: 3 of 8, the same three every run:
 
 | vendor | target | result |
 |---|---|---|
@@ -458,7 +458,7 @@ runs can honestly show.
 **The proof-of-work vendor is passable, and one target shows exactly why it is hard.** Twitch clears
 at the plain `browser` tier in under two seconds. Hyatt does not, and the way it fails is the
 interesting part: 29 s, 62 s, then a timeout, across three runs minutes apart. That is the vendor's
-documented behaviour — the puzzle gets harder for an address it has seen repeatedly — not a
+documented behaviour (the puzzle gets harder for an address it has seen repeatedly), not a
 regression in svipall. It was checked: an uncapped re-navigation loop would have produced the same
 curve, so the reissue is now capped at one per wait, and the numbers were the same with and
 without the cap.
@@ -469,14 +469,14 @@ Nothing here is new information about them; that is why they are in a separate l
 
 ### `vendors8`: two targets each, four vendors, named
 
-`hard12` and `public31` are frozen — their numbers only mean anything against their own lists, so
+`hard12` and `public31` are frozen: their numbers only mean anything against their own lists, so
 a new target goes in a new list. `vendors8` answers a different question: how does Svipall do
 against each *vendor*, with the vendor named, two targets each so a single site cannot carry the
 row. It is expected to score worse than `hard12`, which is the point of publishing it.
 
 The vendor that had never been measured is the proof-of-work one. It is the only wall that is not
 a page: no challenge, no widget, nothing to answer. Its script burns CPU to earn a token that lives
-60–180 seconds, and **passing it once is not passing it** — the token has to be re-earned for the
+60–180 seconds, and **passing it once is not passing it**: the token has to be re-earned for the
 life of the session. A stateless HTTP client cannot hold it at all. Svipall's warm tier holds a live
 browser, so it can, and now does: `classify::warm_needs_reissue` re-navigates at 40 seconds, below
 the observed floor with room to spare, rather than waiting out the budget and collecting a 403.
@@ -502,13 +502,13 @@ buying anything.
 
 ### Identity coherence, offline and asserted
 
-`fingerprint --engine chrome` checks every identity Svipall would wear against itself — engine ↔
+`fingerprint --engine chrome` checks every identity Svipall would wear against itself: engine ↔
 user agent, client hints ↔ engine, screen ↔ availHeight ↔ viewport, form factor ↔ platform,
 timezone ↔ language, renderer ↔ engine, and the macOS OS-token spelling that differs between the
 two engines. Seven identities, no network, and it **fails the build** on a contradiction. It runs
 in `qc` and in CI.
 
-This is the check the leading patched-Firefox project says it keeps failing — not the spoofing
+This is the check the leading patched-Firefox project says it keeps failing: not the spoofing
 technique, the coherence between spoofed values. Here it is a test suite.
 
 ### Models, measured on the CPU
@@ -580,15 +580,15 @@ The median moved outside the previous range, which is this file's own rule for c
 improvement. The cell that moved is `x.com/explore`, and the cause is worth the paragraph:
 
 **The impersonating HTTP engine followed no redirects.** `reqwest` was configured with
-`Policy::limited(10)`; `wreq` — the default, the one every release build uses — was configured with
+`Policy::limited(10)`; `wreq` (the default, the one every release build uses) was configured with
 nothing, and its default is to follow none. So on the build everybody actually ships, every URL
 that redirects came back as its 3xx stub: `http` to `https`, a bare host to `www`, a trailing
 slash, a login gate. `x.com/explore` was returning seventy-four bytes reading "Found. Redirecting
 to /i/flow/login", and `classify` — reasonably — called that a delivered page and stopped the
 ladder from ever opening a browser.
 
-This was not a benchmark cell. It was every redirecting URL on the default build, and the benchmark
-is simply where it became visible. `classify` now also refuses a 3xx that carries only a notice,
+The bug covered every redirecting URL on the default build, and the benchmark cell is
+where it became visible. `classify` now also refuses a 3xx that carries only a notice,
 so a redirect that arrives anyway (a loop, a chain past ten) is escalated rather than returned.
 
 ### Two cells that are not failures
@@ -600,11 +600,11 @@ Cloudflare customer page carries that script whether or not a challenge was serv
 
 They stay in the failure column. The imported rule is scored as it was published, because a
 benchmark whose scoring function bends to the tool it is measuring is not measuring anything. What
-is *not* done is escalating those two to a browser to win them back — that would spend a browser
+is *not* done is escalating those two to a browser to win them back. That would spend a browser
 launch on a page already in hand, making the tool worse for the sake of the number.
 
 That leaves the six as: two detection panels and one WAF that are gated for every tool the public
-benchmark measured, two rule artefacts, and `indeed.com` — one genuine unclear wall.
+benchmark measured, two rule artefacts, and `indeed.com`, one genuine unclear wall.
 
 ### `vendors8`: 3 → 2, and what the lost cell actually was
 
@@ -624,7 +624,7 @@ What the site returns to this address, reproduced by hand at the `stealth` tier:
 ```
 
 and `403` with the same template on the http tier, which also put the domain on a cooldown. That is
-a soft block: no challenge, no wall, no status code on the browser tier — the site's own error page,
+a soft block: no challenge, no wall, no status code on the browser tier. It is the site's own error page,
 served to an address it has decided about after a day of benchmark runs against it.
 
 Two things follow, and only one of them is a number.
@@ -635,7 +635,7 @@ find out whether the cell returns; it is not a reason to hold the current figure
 
 **The classifier was wrong about it, and that is fixed.** Svipall was returning those 206 characters
 as the page with a `thin` quality label. A short `200` whose whole message is "something went wrong,
-please refresh" is a stand-in, not content, and it now escalates like every other stand-in — behind
+please refresh" is a stand-in, not content, and it now escalates like every other stand-in behind
 the same short-page gate that keeps an article *about* an outage from being caught by it. So the
 next run either gets the page from a higher tier or reports a wall, instead of handing back an error
 template and calling it a fetch.
@@ -649,13 +649,13 @@ one is what found something real.
 reached the long way round. "Just a moment…" is a script that lets you through and a stealth-patched
 headless browser clears it in seconds; the *managed* challenge scores the visitor instead, and
 headless has never once passed one here. They were both `WallKind::Cloudflare` and both escalated to
-`stealth`, so every managed challenge spent an attempt — and taught the site something — before
+`stealth`, so every managed challenge spent an attempt (and taught the site something) before
 arriving at the headful tier that had a chance all along.
 
 The discriminator has to be the challenge page's own markup (`cf_chl_opt`, `challenge-form`,
 `orchestrate/chl_page`) and not `cdn-cgi/challenge-platform`, which sits on every Cloudflare
 customer page whether or not a challenge was served. Keying on that would send half the web to the
-headful tier — and is the same mistake the ported public rule makes when it calls those pages
+headful tier. It is the same mistake the ported public rule makes when it calls those pages
 `gated`.
 
 ### `hard12`: 8 → 7, `zillow`, and a defect found while looking for the cause
@@ -665,7 +665,7 @@ then 63.3 s and 63.0 s failing.
 
 Looking for the cause turned up a real defect, which is worth separating from the number it did not
 explain. Replacing the forged `visibilitychange` with a genuine one meant
-`Page.setWebLifecycleState`, frozen then active — and `setWebLifecycleState` does what it says: it
+`Page.setWebLifecycleState`, frozen then active. And `setWebLifecycleState` does what it says: it
 **stops the page's JavaScript**. That call sat in a function the warm loop runs *while a challenge
 is on screen*, so a widget measuring how long a button was held had its own timers frozen
 underneath it, mid-hold. Whatever else is true, that is wrong, and it is gone.
@@ -677,7 +677,7 @@ press-and-hold vendor scores addresses, `hard12` was run four times against it i
 target sits in a noise band that a twelve-target list cannot resolve.
 
 What is left in that function is real pointer and wheel input, which costs the page nothing, plus
-the focus emulation that fixes the contradiction actually worth fixing — a window parked off-screen
+the focus emulation that fixes the contradiction actually worth fixing: a window parked off-screen
 otherwise reports `document.hasFocus() === false` for the entire life of the session. A forged
 event is not an alternative: `isTrusted: false` beside a `document.hidden` that never moved is a
 page telling on itself.
@@ -694,15 +694,15 @@ This file has declined h3 twice, and the second entry closed with a criterion th
 re-checked: *"when a Rust TLS binding exposes ALPS and ECH GREASE for QUIC, the gate opens."* Taken
 literally, it opens.
 
-**The linking reason.** `quiche` and the http engine now resolve together — not because of symbol
+**The linking reason.** `quiche` and the http engine now resolve together, not because of symbol
 prefixing, as the 2026-09-03 entry assumed, but because `quiche` 0.24.9 defaults to
 `boringssl-vendored`, which builds BoringSSL in its own build script and declares no `links` key.
 They still do not link: `LNK1169: one or more multiply defined symbols found`. Prefixing would have
-fixed it, and `btls-sys` can prefix — but the feature is opt-in and its build script prints *"the
+fixed it, and `btls-sys` can prefix. But the feature is opt-in and its build script prints *"the
 `prefix_symbols` feature is not supported on macOS/iOS or Windows targets"* and skips it. So the
 retraction was wrong, the original conclusion was right, and neither matters for the route below.
 
-**The shape reason.** `btls` — the binding this binary already links, through `wreq` — emits both
+**The shape reason.** `btls` (the binding this binary already links, through `wreq`) emits both
 extensions in QUIC mode. Offline, with no server and no socket, because BoringSSL in QUIC mode hands
 the ClientHello to an `SSL_QUIC_METHOD` the caller installs:
 
@@ -719,13 +719,13 @@ ALPS API to wrap. That is one crate pairing, and it was written down as a fact a
 stack.
 
 **A QUIC reference now exists, and it is offline.** The measurement objection was the one that
-survived — the fingerprinting endpoint has `tls`, `http1` and `tcpip` sections and no QUIC one. So
+survived: the fingerprinting endpoint has `tls`, `http1` and `tcpip` sections and no QUIC one. So
 the reference was made here: Chrome is pointed at a UDP socket this process owns, and its Initial is
 decrypted with the RFC 9001 salt and the connection id in its own clear header. Chrome for Testing
 **152.0.7977.75**, three runs, same thirteen extensions every time, and:
 
 * Chrome uses **ALPS 17613**, not the 17513 on file.
-* The extension **order is permuted per connection** — three runs, three orders, no shared position.
+* The extension **order is permuted per connection**: three runs, three orders, no shared position.
 * **No GREASE cipher and no GREASE extension**, but a GREASE transport parameter with a fresh random
   62-bit id each connection. The cipher list is `1301 1302 1303` and `legacy_session_id` is empty.
 
@@ -740,8 +740,8 @@ fingerprint, and the QUIC Initial around them is where the rest of the work is.
 reading of the wrong link: quiche declares `crate-type = ["lib", "staticlib", "cdylib"]`, and a
 **cdylib** has to resolve every symbol by itself. The rlib does not. A local copy of quiche 0.24.9
 with `crate-type = ["lib"]`, `default = []`, three `extern "C"` declarations and about thirty-five
-lines compiles and links against `btls-sys`'s BoringSSL — one copy in the graph, no `links` conflict
-to have — and brings `quiche::h3` with it. Its first flight, taken out of `send()` and decrypted the
+lines compiles and links against `btls-sys`'s BoringSSL (one copy in the graph, no `links` conflict
+to have) and brings `quiche::h3` with it. Its first flight, taken out of `send()` and decrypted the
 same way Chrome's was:
 
 ```
@@ -750,22 +750,22 @@ legacy_session_id: 0 bytes   cipher suites: 1301 1302 1303   key_share 1258 byte
 ```
 
 Against the Chrome reference that is **ten extensions of thirteen**, with the three matching values
-that are hardest to get right — cipher list, empty session id, post-quantum key share — already
+that are hardest to get right (cipher list, empty session id, post-quantum key share) already
 matching. What is missing is `compress_certificate` (`SSL_CTX_add_cert_compression_alg`),
 `trust_anchors` (`SSL_CTX_set1_requested_trust_anchors`), extension permutation
-(`SSL_set_permute_extensions`), a GREASE transport parameter and the transport parameter values —
+(`SSL_set_permute_extensions`), a GREASE transport parameter and the transport parameter values,
 plus one extension, `0x12e0`, that is **not in this BoringSSL at all**, because Chrome ships a newer
 one. That last is `identity.rs`'s own rule arriving somewhere new: an h3 engine has a Chrome version
 ceiling set by the age of the linked BoringSSL, and it will have to be measured like the others.
 
 **And then it was built, the same day.** `crates/svipall-quic` is a vendored quiche 0.24.9 on
-btls-sys's BoringSSL — one copy, no `links` conflict, `quiche::h3` included. Ten patches, all in its
+btls-sys's BoringSSL: one copy, no `links` conflict, `quiche::h3` included. Ten patches, all in its
 `PATCHES.md`, take its QUIC ClientHello from ten of Chrome's thirteen extensions to twelve, add the
 extension permutation Chrome does, and give the transport parameters a GREASE and a shuffle. Every
 one is asserted offline in `crates/svipall-quic/tests/handshake.rs`, by decrypting the client's own
 first flight with the same RFC 9001 derivation that read Chrome's.
 
-`svipall-http` gained an `H3Fetcher` behind `--features http3`, triggered by `core::altsvc` — the
+`svipall-http` gained an `H3Fetcher` behind `--features http3`, triggered by `core::altsvc` on the
 second visit to a domain that advertised h3, never the first, which is Chrome's own rule. It fetched
 `https://cloudflare-quic.com/` end to end: **200, 125,959 bytes, `text/html`, `HTTP/3.0`**, with a
 fallback wired to fail loudly so a pass could only mean QUIC carried it.
@@ -774,7 +774,7 @@ fallback wired to fail loudly so a pass could only mean QUIC carried it.
 moves and none is claimed to. What is left, and written down in `docs/http3.md` rather than left to
 be discovered: the `trust_anchors` payload is empty where Chrome sends a list, the HTTP/3 SETTINGS
 frame has not been compared, and one extension Chrome sends (`0x12e0`) is not in this BoringSSL at
-all — which means an h3 engine has a Chrome version ceiling of its own, set by the age of the
+all. That means an h3 engine has a Chrome version ceiling of its own, set by the age of the
 linked BoringSSL. That is `identity.rs`'s rule arriving in a new place, and it is the reason `http3`
 stays off by default until it has been measured like everything else here.
 
@@ -786,8 +786,8 @@ The engine works and the evasion number did not move. Both halves are the findin
 
 ### The ceiling: how many of these sites even offer h3
 
-`bench h3` reads `Alt-Svc` off an ordinary TCP fetch — the same thing `core::altsvc` reads at run
-time — and then fetches the same URL over QUIC with a fallback wired to fail, so a page that comes
+`bench h3` reads `Alt-Svc` off an ordinary TCP fetch (the same thing `core::altsvc` reads at run
+time) and then fetches the same URL over QUIC with a fallback wired to fail, so a page that comes
 back can only have come over h3.
 
 | set | advertise h3 | fetched over it |
@@ -800,7 +800,7 @@ could change their cell.
 
 ### Where it makes a difference
 
-Five runs of `hard12`, and one with the order reversed to rule out the obvious confound — these
+Five runs of `hard12`, and one with the order reversed to rule out the obvious confound. These
 vendors score an address, so whichever request goes second is asking a server that has already seen
 us:
 
@@ -831,11 +831,11 @@ not a regression either.
 ### Why, and it is not what it looks like
 
 `RUST_LOG=svipall_mcp=debug` on a run says it outright: *"amazon.com has not advertised Alt-Svc, so
-this visit is TCP"* — on a run where amazon had already been fetched. The store was not empty; the
+this visit is TCP"*, on a run where amazon had already been fetched. The store was not empty; the
 http tier was never asked.
 
 **The learned ladder and h3 are wired past each other.** `domain_tiers` remembers that amazon needs
-`browser`, so the next fetch starts there and `tier_http` — the only place h3 is consulted — never
+`browser`, so the next fetch starts there and `tier_http` (the only place h3 is consulted) never
 runs. And the domains with a learned tier above `http` are exactly the ones with walls, which are
 exactly the ones where h3 was measured to win. The feature is real, the trigger is real, and the
 ladder routes around both.
@@ -864,7 +864,7 @@ is a wall. That is a target definition to tighten, unrelated to h3.
 ## HTTP/3, wired to the ladder and measured properly (2026-09-05)
 
 The previous entry found that h3 worked, won two of twelve walled cells at the http tier, and
-changed no number — because `domain_tiers` learns a higher tier for exactly those domains and the
+changed no number because `domain_tiers` learns a higher tier for exactly those domains and the
 http tier, the only place h3 is spoken, is never asked again. This entry closes that, and reports
 what it was worth.
 
@@ -877,15 +877,15 @@ Four things, and three of them are bugs found by measuring rather than features:
    learned was learned over TCP, and QUIC is a different request rather than a repeat.
 2. **A memory of the outcome**, `core::altsvc::{verdict, remember_result}`. Without it the probe is
    paid on every fetch for ever. It expires after six hours, because a dropped UDP port is usually
-   the network — a laptop moves, a firewall changes — and remembering "no" permanently would let one
+   the network (a laptop moves, a firewall changes) and remembering "no" permanently would let one
    bad café decide this machine never speaks h3 again.
 3. **A handshake deadline of its own**, two seconds, separate from the page budget. This is the
    number that decides whether h3 can make the tool *slower*: a network that refuses UDP says so at
    once, but one that silently **drops** it says nothing, and without this the attempt sat there for
    the whole 45-second navigation budget before falling back. Asserted offline against TEST-NET-3.
 4. **`Alt-Svc` is now read from every tier, not just http.** A trap with a long fuse: a domain
-   learned at `browser` makes no http request, so once the advertisement expired — a day, by the
-   specification's default — it could never be re-learned and h3 was off for that domain for ever.
+   learned at `browser` makes no http request, so once the advertisement expired (a day, by the
+   specification's default), it could never be re-learned and h3 was off for that domain for ever.
 
 Two bugs the measurement exposed on the way, both now fixed: the probe outcome was recorded on the
 ladder's success path only, so a probe that *threw* was never remembered and was paid again every
@@ -909,7 +909,7 @@ and it swamps anything h3 does. **By this file's rule, no improvement and no reg
 ### The number that is not noise: cost per page
 
 Five consecutive steady-state fetches of one h3-capable, http-walled target (`amazon`), through the
-product, cache bypassed, after one ordinary first visit — the shape a caller pulling many pages
+product, cache bypassed, after one ordinary first visit, the shape a caller pulling many pages
 actually has:
 
 | | tier | per page | browsers opened |
@@ -939,7 +939,7 @@ tool, and the memory is what makes that true.
 ### What this does not say
 
 Nothing here measured a target the h3 engine reaches and the TCP one does not. `indeed` looked like
-one in the previous entry — 2 MB over QUIC against a 403 over TCP, four runs of five — and did not
+one in the previous entry (2 MB over QUIC against a 403 over TCP, four runs of five) and did not
 reproduce as a changed *verdict* in any run here. Four of twelve `hard12` targets advertise h3 at
 all, so the ceiling on this was always low, and one of those four is where the whole measured gain
 sits.
@@ -950,12 +950,12 @@ sits.
 stopped with *"this address has already spent its standing with g2 (2h03m), idealista (1h44m),
 zillow (2h42m), crunchbase (1h45m)"*. The reputation gate did exactly what it exists for. It also
 means the evasion figures above were taken while several targets were already near or over that
-line, which is the likeliest source of the 90-second timeouts and the 123–369s spread — so treat
+line, which is the likeliest source of the 90-second timeouts and the 123–369s spread. So treat
 them as "no difference measurable today" rather than as a clean 8/12 on either arm. `amazon`, where
 the cost result was measured, sat at pressure 0.20 and is unaffected.
 
 **`bench tells` was passing on a third of its probes.** It reported `56/56 probes clean` all day and
-now reports `116/128` — the same binary, the same command. The eighteen probes per tier that were
+now reports `116/128`: the same binary, the same command. The eighteen probes per tier that were
 missing are the ones that read the injected surface (`cross_realm_tostring`,
 `navigator_getters_are_native`, `iframe_realm_agrees`, `permission_state_is_valid`, and others), and
 twelve of them now fail. This reproduces in a build with **no** `http3` feature at all, so it is not
@@ -987,7 +987,7 @@ It is worth keeping rather than deleting, because the reason it was hard to tell
 now fixed. `bench/src/tells.rs` carries a frozen `PROBES` list, `missing()` counts a probe that
 never reported as a failure, and two offline tests fail if the list and the page disagree in either
 direction. Before that, a probe lost to a JavaScript error before its `put(...)` lowered `total` and
-failed nothing — which is the shape of bug the entry above thought it was seeing, and which could
+failed nothing, which is the shape of bug the entry above thought it was seeing, and which could
 have happened.
 
 ### What the strict rule caught, and why it was not headless being candid
@@ -1002,9 +1002,9 @@ tier:
 ok   screen_plausible   screen=1920x1080 avail=1920x1080 outer=1366x768
 ```
 
-availHeight equal to height is a desktop with no taskbar, dock or menu bar — exactly what
+availHeight equal to height is a desktop with no taskbar, dock or menu bar: exactly what
 `stealth_js` was written to remove at the other three tiers. Tightening the probe to `<` failed that
-cell, and `window_chrome_height` — new this round — failed the same tier with
+cell, and `window_chrome_height` (new this round) failed the same tier with
 `outerHeight - innerHeight = 0`.
 
 The cause is the part worth recording. **Neither number was the host's.** Every tier launches with
@@ -1012,8 +1012,8 @@ The cause is the part worth recording. **Neither number was the host's.** Every 
 `setDeviceMetricsOverride`, and Blink then reports the whole of that display as available. The
 `browser` tier was not being honest about a headless default; it was wearing an override this code
 sends, with the available area and the window around it forgotten. Correcting them is arithmetic on
-numbers this session already chose, not a stealth surface — the same argument `identity_core_js`
-already makes for that tier — and the line stays where it was: no canvas, audio or text-geometry
+numbers this session already chose, not a stealth surface (the same argument `identity_core_js`
+already makes for that tier), and the line stays where it was: no canvas, audio or text-geometry
 noise, no plugin list, no WebGL spoof and no timezone override reach `browser`.
 
 ### The four the new probes found
@@ -1045,7 +1045,7 @@ Removed; all four tiers now read `value=false in navigator=true descriptor="get 
 asserted) is deleted, and four tests in `crates/svipall-mcp/tests/stealth.rs` with it. None of them
 needed the network: the `https://example.com/` navigation was a "have a real document" requirement,
 and the loopback page is a real document that also runs at three tiers those checks never saw.
-`canvas_noise_is_deterministic_within_a_page` survived, because it was not a duplicate — it computed
+`canvas_noise_is_deterministic_within_a_page` survived, because it was not a duplicate: it computed
 `same: a === b` and then asserted only that the canvas produced bytes, so it never tested the thing
 it is named for. It asserts it now, and the same question is a `tells` probe (`canvas_noise_stable`)
 with a third draw after an intervening `getImageData`, which is what would catch a counter that
@@ -1057,7 +1057,7 @@ advances per call rather than a seed that does not move.
 `connection_coherent`, `device_pixel_ratio`, `text_geometry_stable`, `plugins_present`,
 `brave_absent`, `no_duplicate_navigator_getters` and `patched_functions_are_native` passed at all
 four tiers on the first run. They are watchdogs on fixes that already shipped and whose regression
-would otherwise be silent — `SetFocusEmulationEnabled` on the parked headful tiers is the clearest
+would otherwise be silent. `SetFocusEmulationEnabled` on the parked headful tiers is the clearest
 of them, since a window that reports `hasFocus() === false` for the life of a session makes every
 challenge that waits for interaction wait forever, and nothing asserted it until now.
 
@@ -1066,7 +1066,7 @@ Three candidates were considered and dropped rather than written: `speechSynthes
 spoofed surface whose wrong answer would be worse than the empty one), `screen.orientation` (follows
 the same device-metrics override `screen_plausible` already checks), and
 `Intl.DateTimeFormat().resolvedOptions().timeZone` against `getTimezoneOffset()` (both read the same
-ICU default and cannot disagree unless something patched one in JS, and nothing does — the timezone
+ICU default and cannot disagree unless something patched one in JS, and nothing does: the timezone
 is a CDP override, which moves both together).
 
 ### What was not re-measured, and what still has to be
@@ -1095,14 +1095,14 @@ three, so this is a smoke test against a regression and **not** a new baseline f
 | `http_firefox = true` | **25/31** | `ok` at `http`, 0.1 s | `{http 14, real 10, warm 1}` |
 
 Same total, same failing cells (`bot-incolumitas`, `browserscan-bot`, `sedarplus`, `medium`,
-`canadianinsider`, `indeed-jobs`), and `devto` — the cell `docs/firefox.md` argued was at risk from
-a Firefox TLS shape — passes on the first rung in both arms. The Gecko arm was in fact *faster*
+`canadianinsider`, `indeed-jobs`), and `devto` (the cell `docs/firefox.md` argued was at risk from
+a Firefox TLS shape) passes on the first rung in both arms. The Gecko arm was in fact *faster*
 (109 s against 148 s for the run), which is one run's worth of noise and is reported rather than
 claimed.
 
 Two things this does not say. It does not say `http_firefox` is free in general: one address, one
 afternoon, one run, and `public31` is a list where twenty-five of thirty-one pass for every tool
-ever measured on it. And it does not say the tier histogram is stable — `domain_tiers.json`
+ever measured on it. And it does not say the tier histogram is stable: `domain_tiers.json`
 remembers where each domain was last served, and this address had been run repeatedly that day, so
 `browser` does not appear in either arm where the committed baseline shows twenty-one of its cells.
 That drift belongs to the memory, not to either arm, and it is the reason the committed baseline
@@ -1113,8 +1113,8 @@ anybody can reproduce.
 
 ### A note on the noise in these artifacts
 
-Both runs emitted about a thousand lines of `svipall_cdp` WS errors — *"Failed to deserialize WS
-response: data did not match any variant of untagged enum Message"* — one per CDP event Chrome 152
+Both runs emitted about a thousand lines of `svipall_cdp` WS errors (*"Failed to deserialize WS
+response: data did not match any variant of untagged enum Message"*), one per CDP event Chrome 152
 sends that the pinned protocol definition in the vendored client does not know. The client logs each
 one at `error` and carries on, and every page still came back, so it is log noise rather than a
 fault. It is stripped from the committed `.txt` with a header saying so, and it is worth a
@@ -1128,8 +1128,8 @@ is a log that trains its reader to skip it.
 A vendor announces itself on one of three channels: the page body, a response header, or a cookie it
 sets. `classify` declared all three kinds of sign and then searched for every one of them **in the
 body**. A header name never appears in a body and a cookie name rarely does, so two of the three
-channels were declared and never read. On top of that, `tier_browser` returned `headers: Vec::new()`
-— the browser tiers had no response headers to give the classifier even if it had known to ask.
+channels were declared and never read. On top of that, `tier_browser` returned `headers: Vec::new()`:
+the browser tiers had no response headers to give the classifier even if it had known to ask.
 
 The proof-of-work vendor's whole tell is a header. So its wall was reported as
 `near-empty body (unrendered SPA, interstitial or silent wall)`, `is_proof_of_work_wall` never fired
@@ -1142,7 +1142,7 @@ be given the response headers and the cookie names; the document's real headers 
 browser tiers from the CDP subscription that was already running; and a warm wait that emits one
 structured event saying why it stopped.
 
-**A wire sign never invents a wall.** It renames one already found — only `Empty` and `Status`, the
+**A wire sign never invents a wall.** It renames one already found: only `Empty` and `Status`, the
 two verdicts that mean "blocked, cause unknown", are upgraded. Everything else in the cascade is
 untouched, and `wall_vendor` is reported on a page that arrived whole as readily as on one that did
 not. It says who is watching the domain; it never withholds anything.
@@ -1158,7 +1158,7 @@ Regenerate with the commands in the section above.
 
 **The headline number is not attributable to this change, and is not claimed as one.** Detection
 renames a block; it cannot make a page arrive. Two other things moved underneath this run: the
-reputation/budget work landed in the same tree, and the tier distribution changed completely —
+reputation/budget work landed in the same tree, and the tier distribution changed completely:
 `{"http": 5, "real": 3}` where the previous file recorded `{"browser": 6}`. Cost also rose to a
 median of 399.6s per run of 8. None of that is separable from this change with one run, so none of
 it is credited to it.
@@ -1205,7 +1205,7 @@ not, on either count.
 once. That is the state a held page is in when the next fetch gets it, and it is the only way to
 catch the largest risk in holding pages at all: `prepare` installs the identity script with
 `evaluate_on_new_document`, which persists across navigations, so a reused page that were
-re-prepared would carry two copies of the patches — readable from the page, and invisible to every
+re-prepared would carry two copies of the patches: readable from the page, and invisible to every
 probe that only ever looks at a fresh tab. 160/160 clean, `residue`,
 `no_duplicate_navigator_getters` and `patched_functions_are_native` among them.
 
@@ -1223,8 +1223,8 @@ SVIPALL_WARM_KEEP=0 cargo run -p svipall-bench --release -- evasion --set vendor
 SVIPALL_WARM_KEEP=2 cargo run -p svipall-bench --release -- evasion --set vendors8 --runs 3 --repeat 2 > baseline/vendors8-repeat-on.json  2> baseline/vendors8-repeat-on.txt
 ```
 
-**Neither arm has been run.** The budget gate refused both — this address had already spent its
-standing with four of the eight targets, about two and a quarter hours from recovering — and
+**Neither arm has been run.** The budget gate refused both (this address had already spent its
+standing with four of the eight targets, about two and a quarter hours from recovering), and
 `--ignore-budget` was not used, because a forced run's numbers are not comparable with the baseline,
 which is the whole reason that gate exists.
 
@@ -1233,8 +1233,8 @@ tested against a real browser, and `bench tells` asserts that a reused page give
 claim that it is *worth* anything is unmade. Three outcomes were named before the arms are run, so
 the write-up cannot avoid them: if the second fetch is fast anyway, the clearance was cookie-borne
 and the predicate is wrong; if it is *slower*, a reused page is a tell and the change is reverted
-rather than tuned; and if no cell exercises the path — which this run makes likely, since
-`kasada-hyatt` never clears and so can never park anything — the change is unmeasured and should not
+rather than tuned; and if no cell exercises the path (which this run makes likely, since
+`kasada-hyatt` never clears and so can never park anything), the change is unmeasured and should not
 be counted as a win.
 
 ---
@@ -1242,15 +1242,15 @@ be counted as a win.
 ## The HTTP/3 SETTINGS frame, and a log that had been lying about its own severity (2026-09-05)
 
 Two items this file had been carrying as open. Both are closed, both are offline, and **neither
-moves an evasion number** — nor is claimed to.
+moves an evasion number**, nor is claimed to.
 
 ### `docs/http3.md` had one row that could never be checked, and now can
 
 The row read *"HTTP/3 SETTINGS — not compared against Chrome's. Its contents and order are a
 fingerprint exactly as HTTP/2's are."* It stayed open for a structural reason worth writing down,
 because it is the same reason it was easy to leave open: **a SETTINGS frame cannot be read the way
-a ClientHello can.** An Initial packet is decryptable by anything holding the datagram — the keys
-come from a salt in RFC 9001 and a connection id in the clear header — which is why the ClientHello
+a ClientHello can.** An Initial packet is decryptable by anything holding the datagram (the keys
+come from a salt in RFC 9001 and a connection id in the clear header), which is why the ClientHello
 reference in `docs/http3.md` needed no server at all. SETTINGS travels on an HTTP/3 control stream
 at 1-RTT. Nothing sees it without finishing a handshake first.
 
@@ -1262,12 +1262,12 @@ order.
 **The certificate is made, not committed, and that was a second decision.** The first version of
 this committed a `cert.pem` and a `key.pem`, which is what rustls, hyper and quiche itself all do.
 It is defensible and it was still wrong here: a private key in a public repository is a finding
-every secret scanner will raise and some push protections will block, whatever it authenticates —
-and a committed certificate expires, so the failure lands years later on somebody with no idea why
+every secret scanner will raise and some push protections will block, whatever it authenticates.
+And a committed certificate expires, so the failure lands years later on somebody with no idea why
 a QUIC test stopped handshaking. BoringSSL is already linked into this binary, so the alternative
 cost a dozen of its calls and no new dependency (`crates/svipall-quic/PATCHES.md` entry 11). The
-SPKI pin Chrome is given is computed from the certificate in the same run, so the two cannot drift
-— which is the other failure a committed pair invites.
+SPKI pin Chrome is given is computed from the certificate in the same run, so the two cannot drift.
+That is the other failure a committed pair invites.
 
 **Chrome for Testing 152.0.7977.75, four runs, identical every time:**
 
@@ -1279,8 +1279,8 @@ SPKI pin Chrome is given is computed from the certificate in the same run, so th
       GREASE                    fresh id and fresh value per connection
 ```
 
-**What we were sending.** `svipall-http` built its connection with `quiche::h3::Config::new()` —
-upstream's defaults:
+**What we were sending.** `svipall-http` built its connection with `quiche::h3::Config::new()`
+(upstream's defaults):
 
 ```
 0x276  H3_DATAGRAM (draft 00)   1
@@ -1290,13 +1290,13 @@ upstream's defaults:
 
 Two settings against four, none of the three QPACK or field-section values, and a draft codepoint
 Chrome does not send at all. A `0x276` beside a `0x33` is a constant no browser produces, free to
-any server that logs raw settings — and it had been on the wire of every h3 fetch since the engine
+any server that logs raw settings. And it had been on the wire of every h3 fetch since the engine
 was built.
 
 Three things in the capture were not what a reasonable guess would have produced, which is the
 whole argument for measuring rather than reading someone's source:
 
-- **The order does not move.** Four connections, one order — the opposite of the TLS extension
+- **The order does not move.** Four connections, one order: the opposite of the TLS extension
   list, which Chrome permutes per connection. There the set is the fingerprint and the order is
   not; here the order is part of it.
 - **`ENABLE_CONNECT_PROTOCOL` is absent** on a plain fetch. An extra setting is as visible as a
@@ -1304,13 +1304,13 @@ whole argument for measuring rather than reading someone's source:
 - **The GREASE value is random too**, not just its identifier.
 
 Fixed in `crates/svipall-quic/PATCHES.md` entry 10, asserted offline in
-`crates/svipall-quic/tests/settings.rs` — a client and a server in one process, datagrams passed
+`crates/svipall-quic/tests/settings.rs`: a client and a server in one process, datagrams passed
 through a buffer, and our own frame read back with `peer_settings_raw`, the same accessor the
 reference was taken with. Three tests, and they were **red before the patch and green after**: the
 recorded red state is `[(630, 1), (51, 1), <grease>]`.
 
 `cloudflare-quic.com` still answers `200`, 125,959 bytes, over HTTP/3, with the fallback wired to
-fail — so the new frame did not cost the engine a page.
+fail. So the new frame did not cost the engine a page.
 
 ### `bench tells` was emitting fifty-five errors that were not errors
 
@@ -1342,8 +1342,8 @@ the numbers would not be comparable with the baseline.
 ```
 
 `--ignore-budget` exists and was not used. A forced run is exactly the thing this file spent a
-round learning not to publish, and the alternative — quoting the committed `25/31` against a tree
-that is 126 source files newer — is the thing the entry above already called out. So the honest
+round learning not to publish, and the alternative (quoting the committed `25/31` against a tree
+that is 126 source files newer) is the thing the entry above already called out. So the honest
 state is recorded rather than patched over: **the committed evasion figures predate the h3 SETTINGS
 work, the CDP change and the geometry corrections, and none of those has been measured against a
 target.** Neither is expected to move a cell; that expectation is not a measurement either.
@@ -1353,7 +1353,7 @@ target.** Neither is expected to move a cell; that expectation is not a measurem
 `evasion --exit URL` has existed for two rounds. Every committed baseline still reads
 `"exit": null`. It is not a code gap and never was: it needs an exit address the operator supplies,
 and this project will not bundle one. Until somebody runs it, *"Svipall cannot do this"* and
-*"this address cannot do this"* stay the same sentence in every number here — which is the single
+*"this address cannot do this"* stay the same sentence in every number here. That is the single
 largest qualifier on everything above.
 
 ### The extraction gate, run rather than skipped
@@ -1367,14 +1367,14 @@ ok   extraction: median F1 0.920 (floor 0.900), content loss 11.8% (ceiling 15.0
 extract finished in 901.5s
 ```
 
-3,975 gradable pages, 15 minutes, **exactly the figures `docs/extraction.md` already publishes** —
+3,975 gradable pages, 15 minutes, **exactly the figures `docs/extraction.md` already publishes**:
 0.920 median against readability 0.963, trafilatura 0.958 and resiliparse 0.936, all three of which
 this project is below and says so. Nothing moved; that is the point. A gate that has never been run
 on a tree is not a gate, and now this one has been.
 
 The one number worth re-reading beside it is `content reachable and then dropped: 11.82% of gold
 words, on 1,940 of 3,975 pages`. It is under its ceiling and it is not small, and it is the
-measurement that would catch the class of bug this file found twice by accident — a page fetched
+measurement that would catch the class of bug this file found twice by accident: a page fetched
 successfully whose *answer* never reached the caller.
 
 ---
@@ -1383,7 +1383,7 @@ successfully whose *answer* never reached the caller.
 
 The entry above recorded that the committed `public31` figure predated 126 source files and could
 not honestly be quoted against this tree. It has now been re-taken, on the same address, once the
-reputation gate allowed it — it refused for the better part of two hours first, and
+reputation gate allowed it. It refused for the better part of two hours first, and
 `--ignore-budget` was not used.
 
 | | runs | median | range | `blocked` |
@@ -1398,7 +1398,7 @@ is worth applying to itself here, because of *which* cell moved.
 
 Six cells failed every run before: `bot-incolumitas`, `browserscan-bot`, `sedarplus`, `medium`,
 `canadianinsider`, `indeed-jobs`. Five of them still fail every run, for the reasons already on
-file — two detection panels with no article to return, a WAF, and two pages that answer `200` with
+file: two detection panels with no article to return, a WAF, and two pages that answer `200` with
 their own content and are scored `gated` by the ported rule for carrying a script every Cloudflare
 customer page carries.
 
@@ -1406,8 +1406,8 @@ The sixth, `indeed-jobs`, went from **0 of 3 to 2 of 3**. That is the entire dif
 and 26.
 
 **So the honest reading is not that anything got better.** `indeed` is a Cloudflare managed
-challenge, and this file has recorded it flipping in both directions across four separate rounds —
-it and `crunchbase` and `zillow` are the three cells this list has always shown swapping places,
+challenge, and this file has recorded it flipping in both directions across four separate rounds.
+It and `crunchbase` and `zillow` are the three cells this list has always shown swapping places,
 decided per visit and per address on the server's side. What is different about this run is not the
 code: it is that the address had been left alone for two hours, which is longer than it had been
 left alone all day. A number that moves when the address rests is a number about the address.
@@ -1418,14 +1418,14 @@ something.
 
 ### What did not change, and is the number worth reading
 
-**Zero `blocked`, again** — 77 `ok` and 16 `gated` across 93 cells, no cell where a site made a
+**Zero `blocked`, again**: 77 `ok` and 16 `gated` across 93 cells, no cell where a site made a
 decision about this address rather than about a request. That is the column the public benchmark
 published for all seven tools it measured, where only one of the seven reached zero.
 
 ### The tier histogram moved a lot, and that is memory rather than code
 
 `{http 44, real 29, warm 4}` where the previous baseline recorded `{http 36, browser 22, warm 15,
-stealth 2}`. `browser` does not appear at all. That is `domain_tiers.json` — this machine has
+stealth 2}`. `browser` does not appear at all. That is `domain_tiers.json`: this machine has
 fetched these domains many times today and the ladder starts each one where it last succeeded. The
 protocol clears cooldowns before a run and deliberately does not clear the learned tiers or the
 reputation spend, because both are the product's own state. Worth stating so nobody reads a
@@ -1434,6 +1434,6 @@ histogram shift as a stealth result.
 ### Still owed
 
 `vendors8` and `hard12` were **not** re-taken. Running `public31` spends the same addresses they
-score — `crunchbase`, `indeed` — so taking all three back to back is the exact thing that produced
+score (`crunchbase`, `indeed`), so taking all three back to back is the exact thing that produced
 the round this file already published as a warning. They keep their committed figures, and those
 figures still predate this tree.

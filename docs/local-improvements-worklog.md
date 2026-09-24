@@ -13,7 +13,7 @@ Requested outcome: implement the local improvements identified in the review and
 - [x] Verify bundled local model availability and report capability limits accurately.
 - [x] Fix invalid-status and UTF-8 benchmark defects; retain the historical score beside delivery/error metrics.
 - [x] Record all repeat positions, configuration, seed, state, latency and failures in measurements.
-- [x] Run meaningful regression tests, browser checks and required quality gates.
+- [x] Run the regression tests that cover these changes, browser checks and required quality gates.
 - [x] Measure original and changed product with controlled local state and explicit network-history limitations.
 - [x] Publish comparison and completion evidence, including regressions or unchanged results.
 
