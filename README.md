@@ -1,7 +1,7 @@
 <p align="center">
   <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="assets/brand/svipall-lockup-dark.svg">
-    <img src="assets/brand/svipall-lockup.svg" alt="Svipall, a local-first web scraping and browsing MCP server for AI agents" width="400">
+    <source media="(prefers-color-scheme: dark)" srcset="assets/brand/svipall-hero-dark.gif">
+    <img src="assets/brand/svipall-hero-light.gif" alt="Svipall, a local-first web scraping and browsing MCP server for AI agents" width="800">
   </picture>
 </p>
 
