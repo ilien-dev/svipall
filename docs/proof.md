@@ -118,7 +118,7 @@ pairs where both returned useful content, auto accumulated **368.41 seconds** ve
 **735.33 seconds**, so the time difference is not only fast refusals. Native was slightly faster
 on that subset in round 3 and retained more useful content under the secondary blocked-excerpt
 measure. The one-result primary difference does not establish a quality winner or statistical
-equivalence. Neither arm consistently dominates all sites or rounds.
+equivalence. Neither arm wins on every site or in every round.
 
 Current useful counts by round were **58/45/27 auto** and **54/44/31 native**. Production local
 deferrals numbered **171/155** as shared accounting accumulated. The lower final totals and
