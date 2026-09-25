@@ -119,7 +119,9 @@ pub const VENDOR_SIGNS: &[VendorSign] = &{
         sign!("perimeterx.net", Cookie, "_pxhd"),
         sign!("perimeterx.net", Cookie, "_px"),
         sign!("perimeterx.net", Body, "px-captcha"),
-        sign!("perimeterx.net", Body, "_px_"),
+        // Its block page boots with `window._pxAppId`. A bare `_px_` was matched by a video
+        // player's `web_player_px_controls` flag and called a whole watch page a wall.
+        sign!("perimeterx.net", Body, "window._pxappid"),
         // A hosting-side product that announces itself in the page and nowhere else.
         sign!("sitelock.com", Body, "powered and protected by"),
     ]
@@ -1061,6 +1063,28 @@ mod tests {
             reason.as_deref().unwrap_or_default().contains("x-kpsdk-ct"),
             "the reason names the evidence: {reason:?}"
         );
+    }
+
+    #[test]
+    fn a_player_flag_that_happens_to_contain_px_is_not_a_fingerprinting_wall() {
+        // Measured on a video watch page: its player config carries `web_player_px_controls`, and
+        // the bare `_px_` needle called the whole page a vendor wall and sent the ladder to warm,
+        // while the http tier had the complete page.
+        // Little visible text in a large document, as a script-built page arrives at the http tier.
+        let words = "Never gonna give you up. ".repeat(20);
+        let html = format!(
+            "<html><head><script>var cfg = {{\"web_player_px_controls\":true}};</script></head><body><h1>Video</h1><p>{words}</p></body></html>"
+        );
+        let (reason, kind) = classify(200, &html, &words);
+        assert_ne!(kind, WallKind::Vendor, "{reason:?}");
+    }
+
+    #[test]
+    fn the_fingerprinting_vendors_block_page_is_still_named_from_its_body() {
+        // Without its captcha mount (which the hold check names first): only the boot script.
+        let html = "<html><head><script>window._pxAppId = 'PXabc123';window._pxJsClientSrc = '/abc123/init.js';</script></head><body></body></html>";
+        let (_, kind) = classify(403, html, "");
+        assert_eq!(kind, WallKind::Vendor);
     }
 
     #[test]

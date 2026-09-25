@@ -50,10 +50,17 @@ No published artefact is in that state any more; the build this command exists f
 | `onnx-ocr` | no | text captchas (image → string) | yours |
 | `onnx-audio` | no | audio captchas (clip → digits or words) | yours |
 | `onnx-zeroshot` | no | grid subjects no classifier was taught | a CLIP-style pair you install (`clip_image.onnx`, `clip_text.onnx`, `clip.json`, `vocab.json`, `merges.txt`) — too large to embed |
+| `onnx-asr` | no | a video with no captions: its audio as timed text, for `web_video` | Whisper base, multilingual (MIT), int8; four files (`asr_encoder.onnx`, `asr_decoder.onnx`, `asr.json`, `asr_vocab.json`), about 100 MB, in the release's models archive |
 | — (no feature) | no | how much is actually in a page: `junk`/`thin`/`ordinary`/`substantive` | yours — `svipall quality train` fits it from your own history and your own ratings |
 
 `tools/models/export.py` reproduces the embedded ones from torchvision on any machine with
-Python. The release workflow runs it before building. No GPU is needed for any of this: every
+Python. The release workflow runs it before building. `tools/models/export_asr.py` exports the
+speech recogniser and writes the parity fixture its front end is tested against: the log-mel Svipall
+computes is checked against the model's own feature extractor, on the same synthetic signal, to
+within 0.002. Measured by hand on this project's development machine, release build, CPU only: a
+30 s English clip in 4.1 s and a 61 s Spanish recording in 5.5 s, download included; 10.3% word
+error rate on the English clip against its published captions (58 words, one clip, so a spot
+check rather than a benchmark). Proper names are where it errs. No GPU is needed for any of this: every
 model runs on the CPU execution provider, and on a 320 px picture the detector answers in about
 10 ms and the segmenter in about 30 ms (`cargo run -p svipall-bench --release --features onnx -- micro`
 measures them, with a budget that fails the build if they regress).

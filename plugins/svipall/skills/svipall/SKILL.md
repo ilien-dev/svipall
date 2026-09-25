@@ -67,6 +67,7 @@ arrived too — it says who is watching, not that anything was withheld.
 | Only what is relevant | `svipall fetch URL --query "shipping costs"` |
 | Something to click | `svipall snapshot URL` — roles, names and refs. Measured: 12 tokens on a plain page, 1 600 on a dense one (the node list is capped at 200), against 8 700 for the same page's prose |
 | The site's real API | `svipall capture URL` — the JSON the page itself fetched while loading |
+| What a video says | `svipall video URL --lang es` — captions and chapters as one `[m:ss]` timeline, not the description; `--frames 8` adds keyframes where the picture changes, as PNG paths in the timeline; no captions and a media file means local speech recognition once `svipall models install` has run |
 | A lot of pages | `svipall crawl URL --out pages.csv` — writes a file, returns a path and a count |
 | A table, as rows | `svipall fetch URL --tables --out rows.csv` — typed rows with their columns, not a markdown grid |
 | A listing, as rows | `svipall fetch URL --schema auto` — reads the page's own repeated structure, names the columns for what they hold, and returns the schema it worked out in `induced_schema`. Keep that and pass it as `--schema '{…}'` next time. A page with no clear record set returns neither rather than guessing |
@@ -129,6 +130,7 @@ slow is a domain whose learned tier is wrong.
 | A site's own search box | `web_site_search` |
 | The API behind a listing | `web_capture` — the JSON the page itself fetched; `page=2` beats following links |
 | Something to click, type or scroll | `web_snapshot` first, then `web_act` with `ref` (one shot), or `browser_open` → `browser_do` … → `browser_close` when cookies must stay alive |
+| What a video says: captions and chapters as one timeline | `web_video` — a watch page, a page that embeds a player, a `<video>` or a media file; `frames=8` for keyframes |
 | A picture of a page | `web_screenshot` (`mobile` for a phone); a screenshot cannot be clicked |
 | To get past a login or a gate by hand, once | `web_login` — the cookies are kept |
 | To send a domain through a proxy | `web_route` |

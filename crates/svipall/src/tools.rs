@@ -334,6 +334,30 @@ pub struct WebScreenshotParams {
     pub timeout: Option<u64>,
 }
 
+#[derive(Debug, Default, Deserialize, JsonSchema)]
+pub struct WebVideoParams {
+    /// A video page, a page embedding a player, or a player address.
+    pub url: String,
+    /// Caption language to prefer, e.g. "es".
+    #[serde(default)]
+    pub lang: Option<String>,
+    /// Keyframes to capture where the picture changes, up to 24; paths land in the timeline.
+    #[serde(default)]
+    pub frames: Option<u32>,
+    /// Cap on the timeline returned. Default 25000.
+    #[serde(default)]
+    pub max_tokens: Option<usize>,
+    /// The `cursor` of a truncated result.
+    #[serde(default)]
+    pub cursor: Option<String>,
+    /// Write the timeline here and return the path.
+    #[serde(default)]
+    pub out_file: Option<String>,
+    /// Profile saved by web_login whose cookies to use.
+    #[serde(default)]
+    pub profile: Option<String>,
+}
+
 #[derive(Debug, Deserialize, JsonSchema)]
 pub struct WebSearchParams {
     /// What to search for, as you would type it into a search box.
