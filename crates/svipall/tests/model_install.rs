@@ -119,6 +119,39 @@ fn an_archive_missing_a_sidecar_is_refused() {
     assert!(!dir.join("detect.onnx").exists(), "nothing is left behind");
 }
 
+/// A model of several files (the speech recogniser: two networks, a sidecar and a vocabulary)
+/// installs as one model, and is refused whole when any of its files is missing.
+#[test]
+fn a_model_of_several_files_installs_whole_or_not_at_all() {
+    let dir = scratch("multi");
+    let group: Vec<(&str, &[u8])> = vec![
+        ("asr_encoder.onnx", b"enc"),
+        ("asr_decoder.onnx", b"dec"),
+        ("asr.json", b"{}"),
+        ("asr_vocab.json", b"[]"),
+    ];
+    let mut written = model_install::unpack(&archive(&group), &dir).expect("unpack");
+    written.sort();
+    assert_eq!(
+        written,
+        vec![
+            "asr.json",
+            "asr_decoder.onnx",
+            "asr_encoder.onnx",
+            "asr_vocab.json"
+        ]
+    );
+
+    let other = scratch("multi-half");
+    let err = model_install::unpack(&archive(&group[..3]), &other)
+        .expect_err("a recogniser without its vocabulary must be refused");
+    assert!(err.to_string().contains("asr_vocab.json"), "{err}");
+    assert!(
+        !other.join("asr_encoder.onnx").exists(),
+        "nothing is left behind"
+    );
+}
+
 /// The end of the road: a file on disk becomes models this installation can find. `SVIPALL_HOME`
 /// points the whole thing at a temporary directory, which is what makes this test something other
 /// than a description of the machine it runs on.
@@ -130,10 +163,23 @@ async fn a_local_archive_becomes_models_this_installation_reports() {
     let file = home.join("models.zip");
     std::fs::write(&file, archive(&a_model_pair())).expect("write the archive");
 
+    let mut entries = a_model_pair();
+    entries.extend([
+        ("asr_encoder.onnx", b"enc" as &[u8]),
+        ("asr_decoder.onnx", b"dec" as &[u8]),
+        ("asr.json", b"{}" as &[u8]),
+        ("asr_vocab.json", b"[]" as &[u8]),
+    ]);
+    std::fs::write(&file, archive(&entries)).expect("write the archive");
     let report = model_install::install(Source::File(file), &mut |_| {})
         .await
         .expect("install from a file");
-    assert_eq!(report.installed, vec!["detect", "segment"]);
+    assert_eq!(report.installed, vec!["asr", "detect", "segment"]);
+    assert_eq!(
+        model_install::status()["installed"],
+        serde_json::json!(["detect", "segment", "asr"]),
+        "status reports the recogniser once, by name"
+    );
     assert_eq!(report.dir, svipall::model_source::models_dir());
     for name in ["detect.onnx", "detect.json", "segment.onnx", "segment.json"] {
         assert!(report.dir.join(name).is_file(), "{name} is not on disk");

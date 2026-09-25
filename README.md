@@ -218,6 +218,7 @@ content check, because the classifier cannot show that the requested records arr
 | Read one page cleanly | `web_fetch` → Markdown with heuristic boilerplate removal and sanitization; `query=` ranks text by lexical relevance |
 | Turn a listing into rows | `schema: "auto"` reads the page's own repeated structure, names the columns and hands back typed rows, with no model and no API call, in one parse |
 | Pull a data table | `tables=true` → typed rows; `out_file: rows.csv` writes them to disk so thousands of rows never touch your context |
+| Read what a video says | `web_video` → captions and chapters as one `[m:ss]` timeline, from a watch page, a page that embeds a player, `<video>` tracks or the stream manifest |
 | Skip the scraping entirely | `web_capture` returns the JSON the page fetched while loading, usually the site's real API, with `?page=2` waiting for you |
 | Turn a docs site into a corpus | `web_crawl` with `llms.txt` output, near-duplicate labels, resumable frontier and lexical saturation stopping, subject to page/token/traffic limits |
 | Search without a key | `web_search` scrapes DuckDuckGo, Bing and Brave; `engine="all"` merges them by agreement |
@@ -227,7 +228,7 @@ content check, because the classifier cannot show that the requested records arr
 | Log in once and stay in | `web_login` opens a real window; you sign in; the cookies are kept in a profile you can export |
 | Watch a page | `web_watch` checks the whole page or one CSS region while the server runs; saved selector fingerprints can help recover some redesigns |
 | Read PDFs and Office files | docx, xlsx, pptx, odt, epub, rtf, csv and pdf come back as Markdown, from the web or from `file://` |
-| Drive it from any language | `svipall serve` → 19 local REST routes, one per tool, behind a bearer key it generates for you |
+| Drive it from any language | `svipall serve` → 20 local REST routes, one per tool, behind a bearer key it generates for you |
 
 ### Who it is for
 
@@ -292,6 +293,7 @@ Twenty-nine tools, all local.
 | `web_snapshot` | The page as roles, accessible names and short refs that `web_act` accepts. Deterministic, no vision model |
 | `web_act` | click, type, fill, press, hover, select, scroll, wait, eval, goto, screenshot, hold, verify, console; supported pointer/keyboard/wheel actions use the behavior layer, while `eval` runs caller-supplied JavaScript |
 | `web_capture` | Observe matching JSON/network responses during a bounded browser visit; API usability and completeness are not guaranteed |
+| `web_video` | A video's captions (a person's first, else the platform's automatic ones, in `lang` when asked) and chapters as one timeline. Reads a known player's boot JSON, JSON-LD `VideoObject`, `<track>`, and HLS/DASH caption renditions; a player whose caption addresses only answer its own requests is read through a borrowed request in a live page. `frames` adds keyframes where the picture changes, found in the player's storyboard or by comparing sampled frames, captured from the page's own `<video>` and returned as PNG paths inside the timeline. A video with no captions and a media file behind it is transcribed on this machine when the speech model is installed (`svipall models install`). Encrypted streams are reported as `drm` and never read |
 | `browser_open` / `browser_do` / `browser_close` | Persistent session with cookies and page state across calls |
 | `web_screenshot` | PNG of the rendered page, `full_page` or `mobile` |
 | `web_diff` | What changed on a page since Svipall last saw it |

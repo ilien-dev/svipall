@@ -4,6 +4,7 @@
 pub mod content;
 pub mod heal;
 pub mod induce;
+pub mod media;
 pub mod meta;
 pub mod prune;
 pub mod sanitize;
@@ -12,6 +13,7 @@ pub mod signals;
 pub mod table;
 
 pub use heal::{Fingerprint, Fingerprints, Healed};
+pub use media::PageMedia;
 pub use meta::{Link, Links, Media, Metadata};
 pub use schema::{CompiledSchema, SchemaResult};
 pub use signals::Signals;
@@ -134,6 +136,8 @@ pub struct ParseWants {
     pub links_detailed: Option<String>,
     /// Every data table on the page as typed rows, from the same parse.
     pub tables: bool,
+    /// The page's `<video>`, `<source>`, `<track>` and iframe addresses, resolved against this URL.
+    pub media: Option<String>,
     /// The structural counts a page's degree of optimisation is read from. Off by default: they
     /// cost a handful of selector passes, and only the fetch path wants them.
     pub signals: bool,
@@ -175,6 +179,7 @@ pub struct PageParts {
     pub metadata: Option<Metadata>,
     pub links_detailed: Option<Links>,
     pub tables: Vec<table::Table>,
+    pub media: Option<PageMedia>,
     /// What the page is structurally made of, when asked for.
     pub signals: Option<Signals>,
     /// The schema the page's own structure suggested, when one was asked for and one was found.
@@ -276,6 +281,7 @@ pub fn parse_page(html: &str, wants: &ParseWants) -> PageParts {
         } else {
             Vec::new()
         },
+        media: wants.media.as_deref().map(|b| media::media_from(&doc, b)),
     }
 }
 

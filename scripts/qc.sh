@@ -29,6 +29,7 @@ step 'clippy (onnx-audio)' cargo clippy -p svipall --all-targets --features onnx
 step 'clippy (onnx-detect)' cargo clippy -p svipall --all-targets --features onnx-detect -- -D warnings
 step 'clippy (onnx-segment)' cargo clippy -p svipall --all-targets --features onnx-segment -- -D warnings
 step 'clippy (onnx-zeroshot)' cargo clippy -p svipall --all-targets --features onnx-zeroshot -- -D warnings
+step 'clippy (onnx-asr)' cargo clippy -p svipall --all-targets --features onnx-asr -- -D warnings
 # The QUIC stack is off by default, so nothing else in this list ever compiles it.
 step 'clippy (http3)' cargo clippy -p svipall --all-targets --features http3 -- -D warnings
 step 'tests' cargo test --workspace

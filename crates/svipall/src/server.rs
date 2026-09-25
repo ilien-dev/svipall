@@ -178,6 +178,10 @@ pub struct FetchOutcome {
     pub value: Value,
     pub links: Vec<String>,
     pub final_url: String,
+    /// The whole document when the ladder called it a wall; `value` carries 2 000 characters of
+    /// it. A caller that reads markup rather than prose (a player's boot JSON on a page that is
+    /// near-empty as text) needs the rest, and should not have to write a file to get it.
+    pub blocked_body: Option<String>,
 }
 
 /// A screenshot and the JSON about it.
@@ -1134,7 +1138,7 @@ impl SvipallServer {
     /// Charge a page opened outside the ladder.
     ///
     /// `throttle` charges every rung the ladder walks, but a browser opened by `web_act`,
-    /// `web_snapshot`, `web_capture`, `web_map`, `web_site_search`, `web_screenshot`,
+    /// `web_snapshot`, `web_capture`, `web_map`, `web_site_search`, `web_screenshot`, `web_video`,
     /// `browser_open` or the solver never passes through it — and those are real visits that a
     /// host scores exactly like a fetch. Left uncharged, an agent told "this address has spent its
     /// budget" could go on spending it through any of them, which would make the whole ledger a
@@ -1332,6 +1336,8 @@ impl SvipallServer {
                 || p.include_quality.unwrap_or(false))
             .then(|| final_url.to_string()),
             tables: p.tables.unwrap_or(false),
+            // web_video asks for its own parse; a page fetch never needs the video elements.
+            media: None,
             // Always: the degree of optimisation is reported on every delivered page, and there is
             // no second parse to collect it from later.
             signals: true,
@@ -2192,6 +2198,7 @@ impl SvipallServer {
                     .into(),
             };
             return FetchOutcome {
+                blocked_body: None,
                 value: json!({
                     "url": url,
                     "blocked_reason": why.to_string(),
@@ -2223,6 +2230,7 @@ impl SvipallServer {
         };
         if disallowed && policy == svipall_core::RobotsPolicy::Obey {
             return FetchOutcome {
+                blocked_body: None,
                 value: json!({
                     "url": url, "status": 0,
                     "blocked_reason": "robots.txt disallows this URL",
@@ -2250,6 +2258,7 @@ impl SvipallServer {
         {
             Ok(o) => annotate(o),
             Err(_) => FetchOutcome {
+                blocked_body: None,
                 value: json!({"url": url, "status": 0, "blocked_reason": "timeout", "wall_kind": "timeout", "note": format!("No tier answered within {}ms. Raise timeout or lower max_tier.", timeout), "attempts": []}),
                 links: Vec::new(),
                 final_url: url,
@@ -2316,6 +2325,7 @@ impl SvipallServer {
                 };
                 self.budget_into(&mut value, content, p);
                 return FetchOutcome {
+                    blocked_body: None,
                     value,
                     links: Vec::new(),
                     final_url: hit.final_url,
@@ -2332,6 +2342,7 @@ impl SvipallServer {
             if let Some(v) = value {
                 if v != "auto" && !crate::steer::TIERS.contains(&v) {
                     return FetchOutcome {
+                        blocked_body: None,
                         value: json!({"url": url, "status": 0, "error": crate::steer::not_a_tier(field, v)}),
                         links: Vec::new(),
                         final_url: url,
@@ -2355,6 +2366,7 @@ impl SvipallServer {
         if !local {
             if let Some(left) = svipall_core::check_cooldown(&domain) {
                 return FetchOutcome {
+                    blocked_body: None,
                     value: json!({"url": url, "status": 0, "blocked_reason": "cooldown", "wall_kind": "status", "cooldown_seconds_left": left, "attempts": [],
                         "note": format!("This site is cooling down. Wait {left}s before trying again; changing identity does not reset the limit.")}),
                     links: Vec::new(),
@@ -2370,6 +2382,7 @@ impl SvipallServer {
         // entry, since nothing charges one.
         if let Some(r) = svipall_core::reputation::refusal(&domain, proxy.as_deref()) {
             return FetchOutcome {
+                blocked_body: None,
                 value: json!({"url": url, "status": 0, "blocked_reason": "address_budget",
                     "wall_kind": "reputation", "reputation_seconds_left": r.seconds_left,
                     "reputation_spent": (r.spent * 10.0).round() / 10.0, "reputation_budget": r.budget,
@@ -2721,6 +2734,7 @@ impl SvipallServer {
                     };
                     self.budget_into(&mut value, content, p);
                     return FetchOutcome {
+                        blocked_body: None,
                         value,
                         links: Vec::new(),
                         final_url: cached.final_url,
@@ -3207,6 +3221,7 @@ impl SvipallServer {
                     }
                 }
                 return FetchOutcome {
+                    blocked_body: None,
                     value,
                     links: parts.links,
                     final_url: o.final_url,
@@ -3291,6 +3306,7 @@ impl SvipallServer {
         }
         let Some((o, parts, reason, kind, tier)) = last else {
             return FetchOutcome {
+                blocked_body: None,
                 value: json!({"url": url, "status": 0, "blocked_reason": if stopped.is_some() { stopped_kind } else { "no tier could fetch the page" }, "wall_kind": stopped_kind, "attempts": attempts,
                     "native_fallback": native_attempted,
                     "network_attempted": made > 0,
@@ -3413,6 +3429,7 @@ impl SvipallServer {
             value,
             links: parts.links,
             final_url: o.final_url,
+            blocked_body: Some(o.html),
         }
     }
 
@@ -5081,6 +5098,698 @@ impl SvipallServer {
     }
 
     #[tool(
+        description = "Read a video: captions and chapters as one `[m:ss]` timeline, from a watch page, an embedded player, <video> tracks or the stream manifest. Use instead of web_fetch on a video page, which returns only the description. Returns `content`, `captions` (manual, auto or asr), `chapters`, `notes`; an encrypted stream is reported as `drm`, never read.",
+        annotations(read_only_hint = true, open_world_hint = true)
+    )]
+    async fn web_video(
+        &self,
+        params: Parameters<WebVideoParams>,
+    ) -> Result<CallToolResult, McpError> {
+        ok(self.video_json(params.0).await.map_err(err)?)
+    }
+
+    /// `web_video` without the protocol wrapper, for the REST API, the CLI and tests.
+    pub async fn video_json(&self, p: WebVideoParams) -> anyhow::Result<Value> {
+        let limit = Duration::from_secs(90);
+        match tokio::time::timeout(limit, self.video_inner(&p)).await {
+            Ok(r) => r,
+            Err(_) => Ok(json!({
+                "url": p.url, "status": 0, "error": "web_video timed out",
+                "note": "Read the page itself with web_fetch, or try again: a player can be slow to ask for its captions.",
+            })),
+        }
+    }
+
+    async fn video_inner(&self, p: &WebVideoParams) -> anyhow::Result<Value> {
+        use crate::video::{self as vid, Found};
+        use svipall_core::video::{self as v, StreamKind};
+
+        let mut url = p.url.clone();
+        let mut notes: Vec<String> = Vec::new();
+        let mut followed = false;
+        let (page, mut info) = loop {
+            if let Some(info) = v::direct(&url) {
+                break (json!({"final_url": url, "tier_used": "http"}), info);
+            }
+            let (page, found) = self.video_page(&url, p).await;
+            match found {
+                Found::Video(info) => break (page, *info),
+                Found::Embed(next) if !followed => {
+                    notes.push(format!("the video plays from {next}; read there"));
+                    url = next;
+                    followed = true;
+                }
+                _ => {
+                    // A wall is not an absence: say what stopped the page, in its own words.
+                    let note = match page["blocked_reason"].as_str() {
+                        Some(_) => page["note"].clone(),
+                        None => json!("No video found: no known player, no <video>, no VideoObject, no og:video. web_fetch reads it as a page."),
+                    };
+                    let mut out = json!({"url": p.url, "video": null, "note": note});
+                    for k in ["final_url", "status", "tier_used", "blocked_reason"] {
+                        if !page[k].is_null() {
+                            out[k] = page[k].clone();
+                        }
+                    }
+                    return Ok(out);
+                }
+            }
+        };
+        let final_url = page["final_url"].as_str().unwrap_or(&url).to_string();
+
+        // A stream's manifest can list caption renditions the page did not, and it is where
+        // encryption is declared.
+        let mut drm: Option<String> = None;
+        if info.tracks.is_empty() {
+            let manifests: Vec<_> = info
+                .streams
+                .iter()
+                .filter(|s| s.kind != StreamKind::Progressive)
+                .take(2)
+                .cloned()
+                .collect();
+            for s in manifests {
+                let Ok(body) = self.video_text(&s.url).await else {
+                    continue;
+                };
+                let m = match s.kind {
+                    StreamKind::Hls => v::manifest::hls(&body, &s.url),
+                    _ => v::manifest::dash(&body, &s.url),
+                };
+                drm = drm.or(m.drm);
+                info.tracks.extend(m.subtitles);
+            }
+        }
+        if info.chapters.is_empty() {
+            if let Some(u) = info.chapter_tracks.first().cloned() {
+                if let Some(c) = self
+                    .video_text(&u)
+                    .await
+                    .ok()
+                    .and_then(|b| v::cues::parse(&b, false))
+                {
+                    info.chapters = vid::chapters_from_cues(&c);
+                }
+            }
+        }
+
+        let track = vid::pick_track(&info.tracks, p.lang.as_deref()).cloned();
+        let borrow = v::sources::spec(info.source).and_then(|r| r.borrow.as_ref());
+        let want_frames = p.frames.unwrap_or(0).min(crate::video_frames::MAX_FRAMES) as usize;
+        let mut cues = match (&track, borrow) {
+            (Some(t), None) => self.video_captions(t, &mut notes).await,
+            (None, _) => {
+                notes.push("no caption track on the page or in its stream manifests".into());
+                Vec::new()
+            }
+            (Some(_), Some(_)) => Vec::new(),
+        };
+        let borrowing = track.as_ref().zip(borrow);
+        let mut frames = Vec::new();
+        if borrowing.is_some() || want_frames > 0 {
+            let moments = if want_frames > 0 {
+                self.video_storyboard_moments(&info, want_frames).await
+            } else {
+                None
+            };
+            let plan = (want_frames > 0).then_some((want_frames, moments));
+            let live = self
+                .video_live(&final_url, &info, borrowing, plan, &mut notes)
+                .await;
+            if let Some(c) = live.0 {
+                cues = c;
+            }
+            frames = live.1;
+        }
+        let mut track = track;
+        if cues.is_empty() {
+            if let Some((heard, asr_track, length)) = self.video_asr(&info, p, &mut notes).await {
+                cues = heard;
+                track = Some(asr_track);
+                info.duration = info.duration.or(Some(length));
+            }
+        }
+        if track.is_some() && cues.is_empty() {
+            notes.push("the caption track came back with nothing to read".into());
+        }
+        if drm.is_some() {
+            notes.push("the stream is encrypted: reported, not read".into());
+        }
+        let reading = vid::Reading {
+            cues,
+            track,
+            frames,
+            notes,
+        };
+        let mut value = vid::summary(&info, &reading);
+        value["url"] = json!(p.url);
+        value["final_url"] = json!(final_url);
+        value["tier_used"] = page["tier_used"].clone();
+        if let Some(d) = drm {
+            value["drm"] = json!(d);
+        }
+        let content = vid::content(&info, &reading);
+        self.budget_into(
+            &mut value,
+            content,
+            &WebFetchParams {
+                max_tokens: p.max_tokens,
+                cursor: p.cursor.clone(),
+                out_file: p.out_file.clone(),
+                ..Default::default()
+            },
+        );
+        if value.get("continue").is_some() {
+            value["continue"] = json!("call web_video again with this cursor for the rest");
+        }
+        Ok(value)
+    }
+
+    /// Fetch a video page and say what it is.
+    ///
+    /// The http tier first: a player page carries its boot JSON in the first response, and judged
+    /// as prose it looks near-empty, which climbs the ladder for nothing (measured: 40 s up to the
+    /// native tier on a page the http tier had whole). The full ladder only when the http answer
+    /// held no video and was a wall.
+    async fn video_page(&self, url: &str, p: &WebVideoParams) -> (Value, crate::video::Found) {
+        use crate::video::Found;
+        let ceilings: &[Option<&str>] = if p.profile.is_some() {
+            &[None]
+        } else {
+            &[Some("http"), None]
+        };
+        let mut last = (json!({}), Found::Nothing);
+        for ceiling in ceilings {
+            let out = self
+                .fetch_json(WebFetchParams {
+                    url: url.to_string(),
+                    extraction: Some("html".into()),
+                    main_content_only: Some(false),
+                    max_tokens: Some(10_000_000),
+                    max_tier: ceiling.map(str::to_string),
+                    cache: Some("bypass".into()),
+                    profile: p.profile.clone(),
+                    timeout: Some(60_000),
+                    ..Default::default()
+                })
+                .await;
+            let mut value = out.value;
+            let preview = value
+                .as_object_mut()
+                .and_then(|o| o.remove("content"))
+                .and_then(|c| c.as_str().map(str::to_string))
+                .unwrap_or_default();
+            // A player page is near-empty as prose, so the ladder calls it a wall and keeps only a
+            // preview; the boot JSON is in the rest.
+            let html = out.blocked_body.unwrap_or(preview);
+            let base = if out.final_url.is_empty() {
+                url.to_string()
+            } else {
+                out.final_url
+            };
+            let parts = extraction::parse_page(
+                &html,
+                &ParseWants {
+                    metadata: true,
+                    metadata_base_url: Some(base.clone()),
+                    media: Some(base.clone()),
+                    ..Default::default()
+                },
+            );
+            let (media, meta) = (parts.media.as_ref(), parts.metadata.as_ref());
+            let found = match svipall_core::video::discover(&base, &html, media, meta) {
+                Some(info) => Found::Video(Box::new(info)),
+                None => match svipall_core::video::embedded_player(media, meta)
+                    .or_else(|| svipall_core::video::sources::player_page(&base))
+                {
+                    Some(next) => Found::Embed(next),
+                    None => Found::Nothing,
+                },
+            };
+            value["final_url"] = json!(base);
+            // A delivered page with no video is a page with no video; only a wall is climbed.
+            if !matches!(found, Found::Nothing) || value["blocked_reason"].is_null() {
+                return (value, found);
+            }
+            last = (value, found);
+        }
+        last
+    }
+
+    /// A caption file, playlist or manifest by the http tier, or why it did not come.
+    async fn video_text(&self, url: &str) -> Result<String, String> {
+        let out = self
+            .fetch_json(WebFetchParams {
+                url: url.to_string(),
+                extraction: Some("html".into()),
+                max_tokens: Some(10_000_000),
+                max_tier: Some("http".into()),
+                cache: Some("bypass".into()),
+                timeout: Some(20_000),
+                ..Default::default()
+            })
+            .await;
+        let status = out.value["status"].as_u64().unwrap_or(0);
+        if !(200..300).contains(&status) {
+            let why = out.value["blocked_reason"]
+                .as_str()
+                .or(out.value["error"].as_str())
+                .unwrap_or("no answer");
+            return Err(format!("{status}: {why}"));
+        }
+        // A short caption file is thin as prose and can come back labelled; the body is the body.
+        match out.blocked_body {
+            Some(b) => Ok(b),
+            None => out.value["content"]
+                .as_str()
+                .map(str::to_string)
+                .ok_or_else(|| "an answer with no body".to_string()),
+        }
+    }
+
+    /// Captions whose address answers anyone: a file, or a segmented rendition.
+    async fn video_captions(
+        &self,
+        t: &svipall_core::video::Track,
+        notes: &mut Vec<String>,
+    ) -> Vec<svipall_core::video::Cue> {
+        use svipall_core::video::{cues, manifest, CaptionKind};
+        let rolling = t.kind == CaptionKind::Auto;
+        let body = match self.video_text(&t.url).await {
+            Ok(b) => b,
+            Err(why) => {
+                notes.push(format!("the caption file did not come: {why}"));
+                return Vec::new();
+            }
+        };
+        if !body.trim_start().starts_with("#EXTM3U") {
+            return cues::parse(&body, rolling).unwrap_or_else(|| {
+                notes.push("the caption file is not WebVTT, SRT or JSON events".into());
+                Vec::new()
+            });
+        }
+        let segments = manifest::hls(&body, &t.url).segments;
+        if segments.len() > crate::video::MAX_SEGMENTS {
+            notes.push(format!(
+                "captions come in {} segments; the first {} were read",
+                segments.len(),
+                crate::video::MAX_SEGMENTS
+            ));
+        }
+        let mut out = Vec::new();
+        for s in segments.iter().take(crate::video::MAX_SEGMENTS) {
+            if let Some(c) = self
+                .video_text(s)
+                .await
+                .ok()
+                .and_then(|b| cues::parse(&b, rolling))
+            {
+                out.extend(c);
+            }
+        }
+        out
+    }
+
+    /// No captions anywhere: transcribe the audio of a media file with the local speech model.
+    ///
+    /// A file, not a segmented stream: the audio of an HLS or DASH rendition comes in pieces
+    /// (often MPEG-TS, which is not decoded here), and a file is what a `<video src>`, a
+    /// JSON-LD `contentUrl` or a direct link usually is. Bounded by a deadline: a long video is
+    /// transcribed from the start, and the note says how far it got.
+    async fn video_asr(
+        &self,
+        info: &svipall_core::video::VideoInfo,
+        p: &WebVideoParams,
+        notes: &mut Vec<String>,
+    ) -> Option<(
+        Vec<svipall_core::video::Cue>,
+        svipall_core::video::Track,
+        f64,
+    )> {
+        use svipall_core::video::{align::clock, CaptionKind, StreamKind, Track};
+        /// A video file larger than this is not downloaded to be listened to.
+        const MAX_BYTES: usize = 300 * 1024 * 1024;
+
+        let file = info
+            .streams
+            .iter()
+            .find(|s| s.kind == StreamKind::Progressive)?;
+        if !crate::asr::available() {
+            notes.push(
+                "no captions: with the speech model installed (svipall models install) the audio would be transcribed"
+                    .into(),
+            );
+            return None;
+        }
+        let fetcher = self.fetcher_for(self.exit_for(&domain_from_url(&file.url)).as_deref());
+        let bytes = match fetcher.send(HttpRequest::get(file.url.clone())).await {
+            Ok(r) if (200..300).contains(&r.status) && r.body.len() <= MAX_BYTES => r.body,
+            Ok(r) if r.body.len() > MAX_BYTES => {
+                notes.push("the media file is over 300 MB; not downloaded to transcribe".into());
+                return None;
+            }
+            Ok(r) => {
+                notes.push(format!("the media file answered {}", r.status));
+                return None;
+            }
+            Err(e) => {
+                notes.push(format!("the media file did not come: {e:#}"));
+                return None;
+            }
+        };
+        let lang = p.lang.clone();
+        let deadline = Instant::now() + Duration::from_secs(60);
+        let done = tokio::task::spawn_blocking(move || {
+            crate::asr::transcribe(&bytes, lang.as_deref(), deadline)
+        })
+        .await;
+        let heard = match done {
+            Ok(Ok(t)) => t,
+            Ok(Err(e)) => {
+                notes.push(format!(
+                    "speech recognition could not read the audio: {e:#}"
+                ));
+                return None;
+            }
+            Err(e) => {
+                notes.push(format!("speech recognition stopped: {e}"));
+                return None;
+            }
+        };
+        if heard.covered + 1.0 < heard.total {
+            notes.push(format!(
+                "transcribed the first {} of {}; the rest did not fit the time",
+                clock(heard.covered),
+                clock(heard.total)
+            ));
+        }
+        Some((
+            heard.cues,
+            Track {
+                url: file.url.clone(),
+                lang: heard.lang,
+                label: Some("local speech recognition".into()),
+                kind: CaptionKind::Asr,
+            },
+            heard.total,
+        ))
+    }
+
+    /// The storyboard's scene changes, as the moments to capture. `None` when there is no
+    /// storyboard or none of its sheets came: the live page then samples evenly instead.
+    async fn video_storyboard_moments(
+        &self,
+        info: &svipall_core::video::VideoInfo,
+        n: usize,
+    ) -> Option<Vec<f64>> {
+        use crate::video_frames as vf;
+        if info.storyboard.is_empty() {
+            return None;
+        }
+        let mut sheets: HashMap<String, Option<image::DynamicImage>> = HashMap::new();
+        let fetcher = self.fetcher_for(
+            self.exit_for(&domain_from_url(&info.storyboard[0].sheet))
+                .as_deref(),
+        );
+        let (mut times, mut hists) = (Vec::new(), Vec::new());
+        for f in &info.storyboard {
+            if !sheets.contains_key(&f.sheet) {
+                // A two-hour video is a few dozen sheets; past that, its start is what is read.
+                if sheets.len() >= 40 {
+                    break;
+                }
+                let img = match fetcher.send(HttpRequest::get(f.sheet.clone())).await {
+                    Ok(r) if (200..300).contains(&r.status) => {
+                        image::load_from_memory(&r.body).ok()
+                    }
+                    _ => None,
+                };
+                sheets.insert(f.sheet.clone(), img);
+            }
+            if let Some(Some(sheet)) = sheets.get(&f.sheet) {
+                times.push(f.t);
+                hists.push(vf::histogram(&vf::crop(sheet, f.x, f.y, f.w, f.h)));
+            }
+        }
+        if times.is_empty() {
+            return None;
+        }
+        let span = info
+            .duration
+            .unwrap_or_else(|| times.last().copied().unwrap_or(0.0));
+        let gap = (span / (n as f64 * 4.0)).max(1.0);
+        Some(
+            vf::pick(&times, &hists, n, gap)
+                .into_iter()
+                .map(|i| times[i])
+                .collect(),
+        )
+    }
+
+    /// One live page for everything that needs the player running: captions whose address only
+    /// answers the player's own request (borrowed from the network, pointed at the wanted track,
+    /// fetched from inside the page), and keyframes (the main `<video>` seeked and captured).
+    ///
+    /// Returns the cues when captions were borrowed, and the frames written.
+    async fn video_live(
+        &self,
+        page_url: &str,
+        info: &svipall_core::video::VideoInfo,
+        borrow: Option<(
+            &svipall_core::video::Track,
+            &svipall_core::video::sources::Borrow,
+        )>,
+        frames: Option<(usize, Option<Vec<f64>>)>,
+        notes: &mut Vec<String>,
+    ) -> (
+        Option<Vec<svipall_core::video::Cue>>,
+        Vec<svipall_core::video::align::FrameRef>,
+    ) {
+        use svipall_cdp::cdp::browser_protocol::network::{EnableParams, EventRequestWillBeSent};
+        use svipall_core::video::{cues, sources, CaptionKind};
+
+        if !self.pool.available() {
+            notes.push(format!("this needs a browser: {}", no_browser_hint()));
+            return (None, Vec::new());
+        }
+        // Headless: a windowed tier's compositor paints a paused, occluded window when it likes,
+        // and measured on one video, seven of nine captures there waited out a 4 s limit; the
+        // same nine took 2.7 s headless.
+        let tier = BrowserTier::Stealth;
+        let proxy = self.exit_for(&domain_from_url(page_url));
+        let profile_dir = self.profile_dir_for(tier, page_url, None);
+        let opts = PageOpts {
+            mobile: false,
+            tier,
+            identity_seed: identity_seed_for(profile_dir.as_deref(), page_url, None),
+            profile_dir,
+            proxy,
+            visible: false,
+        };
+        if let Err(e) = self
+            .charge_visit(page_url, tier, opts.proxy.as_deref())
+            .await
+        {
+            notes.push(e.to_string());
+            return (None, Vec::new());
+        }
+        let (_pooled, page) = match self.pool.page(&opts).await {
+            Ok(x) => x,
+            Err(e) => {
+                notes.push(format!("no browser page: {e}"));
+                return (None, Vec::new());
+            }
+        };
+        let mut out_cues = None;
+        let mut out_frames = Vec::new();
+        let run =
+            async {
+                let seen = Arc::new(StdMutex::new(Vec::<String>::new()));
+                let collector = match borrow {
+                    Some((_, b)) => {
+                        page.execute(EnableParams::default()).await?;
+                        let mut events = page.event_listener::<EventRequestWillBeSent>().await?;
+                        let sink = seen.clone();
+                        let endpoint = b.endpoint;
+                        // Live before navigation: the player asks for captions while the page arrives.
+                        Some(tokio::spawn(async move {
+                            while let Some(ev) = events.next().await {
+                                if ev.request.url.contains(endpoint) {
+                                    match sink.lock() {
+                                        Ok(mut s) => s.push(ev.request.url.clone()),
+                                        Err(_) => break,
+                                    }
+                                }
+                            }
+                        }))
+                    }
+                    None => None,
+                };
+                self.pool.navigate(&page, page_url).await?;
+
+                if let Some((t, b)) = borrow {
+                    // An advert plays first and asks for its own captions; the video's come after.
+                    let deadline = Instant::now() + Duration::from_secs(30);
+                    let borrowed = loop {
+                        let hit = seen.lock().ok().and_then(|s| {
+                            crate::video::borrowed_request(&s, b, info.id.as_deref()).cloned()
+                        });
+                        if hit.is_some() || Instant::now() > deadline {
+                            break hit;
+                        }
+                        tokio::time::sleep(Duration::from_millis(500)).await;
+                    };
+                    if let Some(c) = &collector {
+                        c.abort();
+                    }
+                    match borrowed.and_then(|u| sources::retarget(&u, &t.url, b)) {
+                    Some(target) => {
+                        let r = page.evaluate(crate::video::in_page_text_js(&target)).await?;
+                        let body = r.value().and_then(|v| v.as_str()).unwrap_or_default();
+                        out_cues = Some(
+                            cues::parse(body, t.kind == CaptionKind::Auto).unwrap_or_default(),
+                        );
+                    }
+                    None => notes.push(
+                        "the player asked for no captions within 30 s, so none could be borrowed"
+                            .into(),
+                    ),
+                }
+                }
+
+                if let Some((n, moments)) = frames {
+                    out_frames = self.video_capture(&page, info, n, moments, notes).await?;
+                }
+                Ok::<_, anyhow::Error>(())
+            }
+            .await;
+        self.pool.close_page(page).await;
+        if let Err(e) = run {
+            notes.push(format!("{e:#}"));
+        }
+        (out_cues, out_frames)
+    }
+
+    /// Seek the page's main video to each moment and capture it. Without moments from a
+    /// storyboard, candidates are sampled evenly and the ones where the picture changes are kept.
+    async fn video_capture(
+        &self,
+        page: &svipall_cdp::Page,
+        info: &svipall_core::video::VideoInfo,
+        n: usize,
+        moments: Option<Vec<f64>>,
+        notes: &mut Vec<String>,
+    ) -> anyhow::Result<Vec<svipall_core::video::align::FrameRef>> {
+        use crate::video_frames as vf;
+        use svipall_cdp::cdp::browser_protocol::page::CaptureScreenshotFormat;
+
+        // An advert plays in the same element first. The video is on screen when the element's
+        // length is the video's; with no length to compare, when it has one at all.
+        let deadline = Instant::now() + Duration::from_secs(45);
+        let length = loop {
+            let probe = page.evaluate(vf::probe_js()).await?;
+            let d = probe
+                .value()
+                .and_then(|v| v.get("d"))
+                .and_then(|d| d.as_f64());
+            let settled = match (d, info.duration) {
+                (Some(d), Some(want)) => (d - want).abs() < 3.0,
+                (Some(d), None) => d > 0.0,
+                _ => false,
+            };
+            if settled {
+                // A picture of no size is a stream this browser cannot decode (a codec it dropped),
+                // playing its sound and nothing else.
+                if probe
+                    .value()
+                    .and_then(|v| v.get("w"))
+                    .and_then(|w| w.as_f64())
+                    == Some(0.0)
+                {
+                    notes.push(
+                        "the browser decodes no picture for this video (its codec), so no frames"
+                            .into(),
+                    );
+                    return Ok(Vec::new());
+                }
+                break d;
+            }
+            if Instant::now() > deadline {
+                notes.push(
+                    "the player never showed the video itself within 45 s, so no frames".into(),
+                );
+                return Ok(Vec::new());
+            }
+            tokio::time::sleep(Duration::from_millis(500)).await;
+        };
+        let duration = info.duration.or(length).unwrap_or(0.0);
+        let sampled = moments.is_none();
+        let times = moments
+            .unwrap_or_else(|| vf::uniform(duration, (n * vf::CANDIDATES_PER_FRAME).min(48)));
+
+        let mut shots: Vec<(f64, Vec<u8>)> = Vec::new();
+        for t in times {
+            let r = page.evaluate(vf::seek_js(t)).await?;
+            let Some(v) = r.value() else { continue };
+            if v.get("ok").and_then(|o| o.as_bool()) != Some(true) {
+                continue;
+            }
+            let num = |k: &str| v.get(k).and_then(|x| x.as_f64()).unwrap_or(0.0);
+            let at = v.get("t").and_then(|x| x.as_f64()).unwrap_or(t);
+            // Where the player is, as the page itself measures it on this seek: a layout that
+            // moved (a banner, a theatre mode) moves the clip with it.
+            let params = svipall_cdp::page::ScreenshotParams::builder()
+                .format(CaptureScreenshotFormat::Png)
+                .clip(svipall_cdp::cdp::browser_protocol::page::Viewport {
+                    x: num("x"),
+                    y: num("y"),
+                    width: num("w"),
+                    height: num("h"),
+                    scale: 1.0,
+                })
+                .capture_beyond_viewport(true)
+                .build();
+            // One capture sometimes waits seconds on the compositor; a frame is not worth that.
+            let shot = tokio::time::timeout(Duration::from_secs(4), page.screenshot(params)).await;
+            if let Ok(Ok(png)) = shot {
+                shots.push((at, png));
+            }
+        }
+        if sampled && shots.len() > n {
+            let times: Vec<f64> = shots.iter().map(|s| s.0).collect();
+            let hists: Vec<Vec<f32>> = shots
+                .iter()
+                .map(|(_, png)| {
+                    image::load_from_memory(png)
+                        .map(|i| vf::histogram(&i.thumbnail(64, 64).to_rgb8()))
+                        .unwrap_or_default()
+                })
+                .collect();
+            let gap = (duration / (n as f64 * 4.0)).max(1.0);
+            let keep = vf::pick(&times, &hists, n, gap);
+            shots = keep.into_iter().map(|i| shots[i].clone()).collect();
+        }
+        let root = svipall_core::config::home_dir().join("out").join("video");
+        let name = match &info.id {
+            Some(id) => id.clone(),
+            None => domain_from_url(&page.url().await.ok().flatten().unwrap_or_default()),
+        };
+        let mut out = Vec::new();
+        for (t, png) in shots {
+            let path = vf::frame_path(&root, &name, t);
+            if let Some(dir) = path.parent() {
+                std::fs::create_dir_all(dir)?;
+            }
+            std::fs::write(&path, &png)?;
+            out.push(svipall_core::video::align::FrameRef {
+                t,
+                path: path.to_string_lossy().into_owned(),
+            });
+        }
+        Ok(out)
+    }
+
+    #[tool(
         description = "Open a persistent stealth browser session and return a `session_id` for browser_do. Use for multi-step work where cookies and page state must survive between calls: log in, then browse; add to cart, then check out. For one page and a few actions web_act is simpler. `profile` reuses cookies saved by web_login. Close it with browser_close.",
         annotations(read_only_hint = false, open_world_hint = true)
     )]
@@ -5933,6 +6642,7 @@ impl SvipallServer {
                 "ocr": crate::ocr::locate().map(|l| l.describe()),
                 "audio": crate::audio::locate().map(|l| l.describe()),
                 "zeroshot": crate::zeroshot::available(),
+                "asr": crate::asr::available(),
                 "substance": crate::substance::locate().map(|l| l.describe()),
             },
         });

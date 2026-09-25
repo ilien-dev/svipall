@@ -27,10 +27,32 @@ fn releases_base() -> String {
     std::env::var("SVIPALL_RELEASES_URL").unwrap_or_else(|_| RELEASES.to_string())
 }
 
-/// The models a published archive is allowed to contain, with the sidecar each one needs. Anything
+/// The models a published archive is allowed to contain, and the files that make each one. Anything
 /// else in the archive is not a model this build knows how to read, and an entry that is not in
 /// this list is not written: an archive is somebody else's file, and `../../.bashrc` is a name.
-const ALLOWED: &[&str] = &["detect", "segment", "grid", "ocr", "audio"];
+///
+/// Most models are a network and its sidecar. The speech recogniser is two networks sharing one
+/// sidecar, plus the vocabulary its output is read with.
+const MODELS: &[(&str, &[&str])] = &[
+    ("detect", &["detect.onnx", "detect.json"]),
+    ("segment", &["segment.onnx", "segment.json"]),
+    ("grid", &["grid.onnx", "grid.json"]),
+    ("ocr", &["ocr.onnx", "ocr.json"]),
+    ("audio", &["audio.onnx", "audio.json"]),
+    (
+        "asr",
+        &[
+            "asr_encoder.onnx",
+            "asr_decoder.onnx",
+            "asr.json",
+            "asr_vocab.json",
+        ],
+    ),
+];
+
+fn is_model_file(name: &str) -> bool {
+    MODELS.iter().any(|(_, files)| files.contains(&name))
+}
 
 /// Where the archive comes from.
 pub enum Source {
@@ -76,9 +98,9 @@ pub fn sha_for(sums: &str, name: &str) -> Option<String> {
 
 /// Write the models an archive carries into `dir`, and nothing else.
 ///
-/// Returns the file names written. Both halves of a model have to be there: the build script
-/// refuses to embed a model without its sidecar, and installing half of one would move the failure
-/// from here to the first captcha.
+/// Returns the file names written. Every file of a model has to be there once any of its networks
+/// is: the build script refuses to embed a model without its sidecar, and installing half of one
+/// would move the failure from here to the first captcha.
 pub fn unpack(bytes: &[u8], dir: &Path) -> Result<Vec<String>> {
     let mut zip = zip::ZipArchive::new(std::io::Cursor::new(bytes))
         .context("the models archive is not a zip file")?;
@@ -98,10 +120,7 @@ pub fn unpack(bytes: &[u8], dir: &Path) -> Result<Vec<String>> {
             continue;
         }
         let name = path.to_string_lossy().to_string();
-        let Some((stem, ext)) = name.rsplit_once('.') else {
-            continue;
-        };
-        if !ALLOWED.contains(&stem) || !matches!(ext, "onnx" | "json") {
+        if !is_model_file(&name) {
             continue;
         }
         let mut body = Vec::new();
@@ -109,11 +128,11 @@ pub fn unpack(bytes: &[u8], dir: &Path) -> Result<Vec<String>> {
         pending.push((name, body));
     }
 
-    for (name, _) in &pending {
-        if let Some(stem) = name.strip_suffix(".onnx") {
-            let sidecar = format!("{stem}.json");
-            if !pending.iter().any(|(n, _)| *n == sidecar) {
-                bail!("the archive has {name} but no {sidecar}; half a model is no model");
+    let has = |f: &str| pending.iter().any(|(n, _)| n == f);
+    for (_, files) in MODELS {
+        if let Some(net) = files.iter().find(|f| f.ends_with(".onnx") && has(f)) {
+            if let Some(missing) = files.iter().find(|f| !has(f)) {
+                bail!("the archive has {net} but no {missing}; half a model is no model");
             }
         }
     }
@@ -150,9 +169,11 @@ pub async fn install(source: Source, progress: &mut (dyn FnMut(String) + Send)) 
         }
         Source::Release => download(progress).await?,
     };
-    let mut installed: Vec<String> = unpack(&bytes, &dir)?
+    let written = unpack(&bytes, &dir)?;
+    let mut installed: Vec<String> = MODELS
         .iter()
-        .filter_map(|f| f.strip_suffix(".onnx").map(String::from))
+        .filter(|(_, files)| files.iter().all(|f| written.iter().any(|w| w == f)))
+        .map(|(name, _)| name.to_string())
         .collect();
     installed.sort();
     Ok(Report {
@@ -247,11 +268,11 @@ pub async fn run(action: &str, from_file: Option<String>) -> Result<serde_json::
         "remove" => {
             let dir = crate::model_source::models_dir();
             let mut removed = Vec::new();
-            for name in ALLOWED {
-                for ext in ["onnx", "json"] {
-                    let path = dir.join(format!("{name}.{ext}"));
+            for (_, files) in MODELS {
+                for f in *files {
+                    let path = dir.join(f);
                     if path.is_file() && std::fs::remove_file(&path).is_ok() {
-                        removed.push(format!("{name}.{ext}"));
+                        removed.push(f.to_string());
                     }
                 }
             }
@@ -267,12 +288,10 @@ pub async fn run(action: &str, from_file: Option<String>) -> Result<serde_json::
 /// feature to read them answer no captcha, and installing more of them will not change that.
 pub fn status() -> serde_json::Value {
     let dir = crate::model_source::models_dir();
-    let installed: Vec<String> = ALLOWED
+    let installed: Vec<String> = MODELS
         .iter()
-        .filter(|name| {
-            dir.join(format!("{name}.onnx")).is_file() && dir.join(format!("{name}.json")).is_file()
-        })
-        .map(|n| n.to_string())
+        .filter(|(_, files)| files.iter().all(|f| dir.join(f).is_file()))
+        .map(|(name, _)| name.to_string())
         .collect();
     serde_json::json!({
         "embedded": svipall_models::compiled_in(),
