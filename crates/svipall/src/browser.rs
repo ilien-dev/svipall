@@ -2776,6 +2776,11 @@ mod tests {
     /// Two browsers with no profile must never be pointed at the same directory.
     #[test]
     fn scratch_profiles_are_never_the_same_and_live_with_the_sessions() {
+        // Both paths are read from `SVIPALL_HOME`, which the model tests point elsewhere for a
+        // moment: without the lock this failed whenever one of them ran in between.
+        let _guard = crate::model_source::ENV_LOCK
+            .lock()
+            .unwrap_or_else(|e| e.into_inner());
         let (a, b) = (scratch_profile(), scratch_profile());
         assert_ne!(a, b);
         assert!(a.starts_with(sessions_dir()));
