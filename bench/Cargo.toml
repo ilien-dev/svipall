@@ -13,6 +13,8 @@ svipall-http = { path = "../crates/svipall-http", version = "1.0.6" }
 # Default features off deliberately: `local-models` is one of svipall's defaults, and cargo
 # unifies features across every package the release job selects, so taking them here would link
 # ort into the three targets that are built without it. `onnx` below asks for what `micro` needs.
+# `tells` evaluates web_video's own scripts on the probe page, which needs the page type.
+svipall-cdp = { workspace = true }
 svipall = { path = "../crates/svipall", version = "1.0.6", default-features = false, features = ["impersonate"] }
 anyhow = { workspace = true }
 tokio = { version = "1.53", features = ["full"] }

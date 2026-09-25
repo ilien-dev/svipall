@@ -370,6 +370,10 @@ jobs:
           python -m pip install --quiet torch torchvision --index-url https://download.pytorch.org/whl/cpu
           python -m pip install --quiet onnx
           python tools/models/export.py
+          # The speech recogniser `web_video` falls back on when a video has no captions. Disk-only,
+          # never embedded: at about 100 MB it would double every binary for one fallback.
+          python -m pip install --quiet optimum-onnx onnxruntime transformers
+          python tools/models/export_asr.py --out crates/svipall-models/models
           ls -la crates/svipall-models/models
       - name: Package
         env:
@@ -377,7 +381,8 @@ jobs:
         run: |
           cd crates/svipall-models/models
           zip -9 "$GITHUB_WORKSPACE/svipall-models-$VERSION.zip" \
-            detect.onnx detect.json segment.onnx segment.json
+            detect.onnx detect.json segment.onnx segment.json \
+            asr_encoder.onnx asr_decoder.onnx asr.json asr_vocab.json
           ls -la "$GITHUB_WORKSPACE/svipall-models-$VERSION.zip"
       - uses: actions/upload-artifact@v4
         with:

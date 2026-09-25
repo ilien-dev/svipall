@@ -1,5 +1,51 @@
 # Changelog
 
+## Unreleased
+
+- **`web_video` reads what a video says instead of the box it sits in.** A watch page fetched as
+  a page was its description and a sidebar. The captions were never
+  requested, and they are most of what a video says. `web_video` finds them in the player's own boot JSON, JSON-LD
+  `VideoObject`, `<track>` elements, or the caption renditions of an HLS or DASH manifest, and
+  returns them with the chapters as one `[m:ss]` timeline. A page that only embeds a known player
+  is followed to it. Measured by hand: an English lecture with 31 caption tracks read in English
+  (286 cues, 12 chapters from its description) in 35 s, a player page in Spanish (14 cues) in
+  1.4 s, and a plain `<video>` with a WebVTT track over the http tier alone.
+
+  One platform's caption addresses answer an empty body (200, 0 bytes) to anything but the player
+  that minted them, from outside the page and inside it. The player's own request carries the
+  proof, so `web_video` takes that request from the network, never from the page, and points it
+  at the wanted track.
+  That needs a live page and waits out an advert, which is where most of the 35 s go. Encrypted
+  streams are reported as `drm` and nothing more.
+
+- **`web_video` shows the picture, where it changes.** `frames: N` captures up to 24 keyframes
+  from the page's own `<video>`, seeked in place and clipped to the player, and puts their paths
+  in the timeline next to what was being said. Where the player publishes a storyboard, it finds
+  the scene changes in the sprite sheets before anything plays. Otherwise it captures evenly spaced
+  candidates and keeps the ones where the colour histogram moves most. Headless on purpose: on
+  one video, seven of nine captures in a windowed browser waited out a 4 s limit on
+  the compositor, and the same nine took 2.7 s headless. A stream the browser plays without a
+  picture (Theora, which Chrome no longer decodes) says so instead of returning blank frames.
+
+- **A video with no captions can still be read.** When a page has no caption track and a media
+  file behind it, `web_video` transcribes the audio locally with a Whisper base model the release's
+  models archive now carries (`asr_encoder.onnx`, `asr_decoder.onnx`, `asr.json`, `asr_vocab.json`,
+  about 100 MB, installed by `svipall models install`). Svipall computes the log-mel front end itself,
+  and a test holds it to within 0.002 of the model's own feature extractor. Decoding is greedy under
+  the timestamp rules. Measured by hand, release build, CPU: 30 s of English in 4.1 s, 61 s of Spanish
+  in 5.5 s, download included, and 10.3% word error rate on the English clip. A direct link to a
+  media or audio file is read the same way. Not for one platform whose audio only arrives over its
+  own streaming protocol: it has machine captions already, and those are what is read there.
+
+- **WAV files decode.** The audio decoder had the WAV container and not the PCM codec inside it, so
+  every WAV (an audio captcha served as one included) failed with an unsupported codec. Ogg Vorbis
+  and FLAC decode too now, all in pure Rust.
+
+- **A video player's config is no longer a fingerprinting wall.** The body needle `_px_` matched
+  `web_player_px_controls` in a watch page's player flags, called the page a vendor wall, and sent
+  the ladder to the warm tier for a page the http tier already had whole. The needle is now the
+  vendor's boot script, `window._pxAppId`.
+
 ## 1.0.6 — 2026-09-17
 
 - **Contributions are now taken under a Contributor Licence Agreement.** [`CLA.md`](CLA.md) asks

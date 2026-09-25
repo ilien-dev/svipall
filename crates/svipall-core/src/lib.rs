@@ -52,6 +52,8 @@ pub mod throttle;
 pub mod token;
 pub mod traffic;
 pub mod types;
+/// Video pages: captions, chapters, storyboards and manifests, read without playing anything.
+pub mod video;
 pub mod warm;
 pub mod watch;
 pub mod widget;

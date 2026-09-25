@@ -35,6 +35,9 @@ COMMANDS:
     snapshot <url>          The page as roles, names and refs — a fraction of the tokens.
     capture <url> [--pattern P] [--bodies]
                             The JSON the page itself fetched: usually the site's real API.
+    video <url> [--lang L] [--frames N] [--out FILE]
+                            A video's captions and chapters as one timeline, from its player,
+                            an embed, <video> tracks, JSON-LD or the stream manifest.
     search <query> [--engine E]
                             Search without an API key. --engine all merges every engine.
     map <url>               A site's URLs from robots.txt, sitemaps and feeds.
@@ -59,7 +62,8 @@ COMMANDS:
                             Which browser runs, or download Chrome for Testing (~190 MB).
     models [status|install|remove] [--from-file FILE]
                             Which captcha models this build has, and install the ones it does not
-                            carry into ~/.svipall/models/ from the matching release (~58 MB). A
+                            carry into ~/.svipall/models/ from the matching release (~58 MB, and
+                            about 100 MB more for the speech model web_video uses). A
                             build with no `onnx-*` feature cannot read them: `status` says so.
     update [--check|--install]
                             Compare this build with the latest stable release. Checking is read-only;
@@ -242,6 +246,20 @@ async fn run(args: &[String]) -> anyhow::Result<Value> {
             server
                 .snapshot_json(serde_json::from_value(json!({"url": url}))?)
                 .await
+        }
+        "video" => {
+            let url = first.ok_or_else(|| anyhow::anyhow!("video needs a url"))?;
+            let mut p = json!({"url": url});
+            if let Some(lang) = flags.value("lang") {
+                p["lang"] = json!(lang);
+            }
+            if let Some(n) = flags.value("frames").and_then(|v| v.parse::<u32>().ok()) {
+                p["frames"] = json!(n);
+            }
+            if let Some(out) = flags.value("out") {
+                p["out_file"] = json!(out);
+            }
+            server.video_json(serde_json::from_value(p)?).await
         }
         "capture" => {
             let url = first.ok_or_else(|| anyhow::anyhow!("capture needs a url"))?;
@@ -679,6 +697,7 @@ mod tests {
             "svipall crawl",
             "svipall snapshot",
             "svipall capture",
+            "svipall video",
             "svipall search",
             "svipall map",
             "svipall log",
@@ -717,6 +736,7 @@ mod tests {
             "crawl",
             "snapshot",
             "capture",
+            "video",
             "search",
             "map",
             "log",
