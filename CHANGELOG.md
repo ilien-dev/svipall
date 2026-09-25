@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 1.1.0 — 2026-09-25
 
 - **`web_video` reads what a video says instead of the box it sits in.** A watch page fetched as
   a page was its description and a sidebar. The captions were never
