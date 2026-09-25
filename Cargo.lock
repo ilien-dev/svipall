@@ -3907,7 +3907,7 @@ checksum = "13c2bddecc57b384dee18652358fb23172facb8a2c51ccc10d74c157bdea3292"
 
 [[package]]
 name = "svipall"
-version = "1.0.6"
+version = "1.1.0"
 dependencies = [
  "anyhow",
  "axum",
@@ -3944,7 +3944,7 @@ dependencies = [
 
 [[package]]
 name = "svipall-bench"
-version = "1.0.6"
+version = "1.1.0"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -3954,6 +3954,7 @@ dependencies = [
  "scraper",
  "serde_json",
  "svipall",
+ "svipall-cdp",
  "svipall-core",
  "svipall-http",
  "svipall-models",
@@ -3964,7 +3965,7 @@ dependencies = [
 
 [[package]]
 name = "svipall-cdp"
-version = "1.0.6"
+version = "1.1.0"
 dependencies = [
  "async-tungstenite",
  "base64 0.22.1",
@@ -3989,7 +3990,7 @@ dependencies = [
 
 [[package]]
 name = "svipall-core"
-version = "1.0.6"
+version = "1.1.0"
 dependencies = [
  "anydoc",
  "anyhow",
@@ -4012,7 +4013,7 @@ dependencies = [
 
 [[package]]
 name = "svipall-dashboard"
-version = "1.0.6"
+version = "1.1.0"
 dependencies = [
  "axum",
  "serde_json",
@@ -4024,7 +4025,7 @@ dependencies = [
 
 [[package]]
 name = "svipall-extract"
-version = "1.0.6"
+version = "1.1.0"
 dependencies = [
  "ego-tree",
  "regex",
@@ -4036,7 +4037,7 @@ dependencies = [
 
 [[package]]
 name = "svipall-http"
-version = "1.0.6"
+version = "1.1.0"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -4056,11 +4057,11 @@ dependencies = [
 
 [[package]]
 name = "svipall-models"
-version = "1.0.6"
+version = "1.1.0"
 
 [[package]]
 name = "svipall-quic"
-version = "1.0.6"
+version = "1.1.0"
 dependencies = [
  "brotli",
  "btls-sys",
@@ -4078,7 +4079,7 @@ dependencies = [
 
 [[package]]
 name = "svipall-solver"
-version = "1.0.6"
+version = "1.1.0"
 dependencies = [
  "anyhow",
  "axum",
@@ -4101,12 +4102,28 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "5773a4c030a19d9bfaa090f49746ff35c75dfddfa700df7a5939d5e076a57039"
 dependencies = [
  "lazy_static",
+ "symphonia-bundle-flac",
  "symphonia-bundle-mp3",
  "symphonia-codec-aac",
+ "symphonia-codec-pcm",
+ "symphonia-codec-vorbis",
  "symphonia-core",
  "symphonia-format-isomp4",
+ "symphonia-format-ogg",
  "symphonia-format-riff",
  "symphonia-metadata",
+]
+
+[[package]]
+name = "symphonia-bundle-flac"
+version = "0.5.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "c91565e180aea25d9b80a910c546802526ffd0072d0b8974e3ebe59b686c9976"
+dependencies = [
+ "log",
+ "symphonia-core",
+ "symphonia-metadata",
+ "symphonia-utils-xiph",
 ]
 
 [[package]]
@@ -4133,6 +4150,27 @@ dependencies = [
 ]
 
 [[package]]
+name = "symphonia-codec-pcm"
+version = "0.5.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "4e89d716c01541ad3ebe7c91ce4c8d38a7cf266a3f7b2f090b108fb0cb031d95"
+dependencies = [
+ "log",
+ "symphonia-core",
+]
+
+[[package]]
+name = "symphonia-codec-vorbis"
+version = "0.5.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f025837c309cd69ffef572750b4a2257b59552c5399a5e49707cc5b1b85d1c73"
+dependencies = [
+ "log",
+ "symphonia-core",
+ "symphonia-utils-xiph",
+]
+
+[[package]]
 name = "symphonia-core"
 version = "0.5.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4152,6 +4190,18 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "243739585d11f81daf8dac8d9f3d18cc7898f6c09a259675fc364b382c30e0a5"
 dependencies = [
  "encoding_rs",
+ "log",
+ "symphonia-core",
+ "symphonia-metadata",
+ "symphonia-utils-xiph",
+]
+
+[[package]]
+name = "symphonia-format-ogg"
+version = "0.5.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "2b4955c67c1ed3aa8ae8428d04ca8397fbef6a19b2b051e73b5da8b1435639cb"
+dependencies = [
  "log",
  "symphonia-core",
  "symphonia-metadata",

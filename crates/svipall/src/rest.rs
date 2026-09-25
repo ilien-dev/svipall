@@ -75,6 +75,7 @@ pub const ROUTES: &[&str] = &[
     "/v1/snapshot",
     "/v1/solve_and_continue",
     "/v1/status",
+    "/v1/video",
     "/v1/watch",
 ];
 
@@ -362,6 +363,10 @@ pub fn router(
         .route(
             "/v1/map",
             tool(|s: SvipallServer, p: WebMapParams| async move { s.map_json(p).await }),
+        )
+        .route(
+            "/v1/video",
+            tool(|s: SvipallServer, p: WebVideoParams| async move { s.video_json(p).await }),
         )
         .route(
             "/v1/diff",

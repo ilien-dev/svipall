@@ -27,11 +27,11 @@ name = "svipall"
 path = "src/bin/svipall.rs"
 
 [dependencies]
-svipall-core = { path = "../svipall-core", version = "1.0.6" }
-svipall-http = { path = "../svipall-http", version = "1.0.6", default-features = false }
-svipall-solver = { path = "../svipall-solver", version = "1.0.6" }
-svipall-dashboard = { path = "../svipall-dashboard", version = "1.0.6" }
-svipall-models = { path = "../svipall-models", version = "1.0.6" }
+svipall-core = { path = "../svipall-core", version = "1.1.0" }
+svipall-http = { path = "../svipall-http", version = "1.1.0", default-features = false }
+svipall-solver = { path = "../svipall-solver", version = "1.1.0" }
+svipall-dashboard = { path = "../svipall-dashboard", version = "1.1.0" }
+svipall-models = { path = "../svipall-models", version = "1.1.0" }
 tokio = { workspace = true }
 axum = { workspace = true }
 serde = { workspace = true }
@@ -60,7 +60,7 @@ md5 = "0.7"
 ort = { version = "=2.0.0-rc.13", features = ["download-binaries"], optional = true }
 # Audio decoding for the audio-captcha path. Pure Rust, so a solve never depends on what happens
 # to be installed on the machine.
-symphonia = { version = "0.5", default-features = false, features = ["mp3", "wav", "isomp4", "aac"], optional = true }
+symphonia = { version = "0.5", default-features = false, features = ["mp3", "wav", "pcm", "isomp4", "aac", "ogg", "vorbis", "flac"], optional = true }
 # Image geometry for slider and rotation captchas, which need no model at all. On by default via
 # the `vision` feature; `ort` stays optional because a model file is a different kind of ask.
 image = { version = "0.25" }
@@ -76,7 +76,7 @@ tower = { workspace = true }
 default = ["impersonate", "local-models"]
 # The shipped desktop build can use the embedded detector and segmentation model without
 # installing model files. Source-only / unsupported-runtime builds can opt out explicitly.
-local-models = ["onnx-grid", "onnx-detect", "onnx-segment"]
+local-models = ["onnx-grid", "onnx-detect", "onnx-segment", "onnx-asr"]
 impersonate = ["svipall-http/impersonate"]
 # HTTP/3 over QUIC for sites that advertised it. Off by default; `config.http3` still has to be
 # true, so building with this costs a binary that is larger and nothing else.
@@ -100,6 +100,10 @@ onnx-segment = ["dep:ort", "onnx"]
 # A grid subject the classifier was never taught, scored by a contrastive image-text pair the
 # operator installs (clip_image.onnx, clip_text.onnx, clip.json, vocab.json, merges.txt).
 onnx-zeroshot = ["dep:ort", "onnx"]
+# Speech to text for a video without captions: an encoder-decoder pair the operator installs
+# (asr_encoder.onnx, asr_decoder.onnx, asr.json, asr_vocab.json), from the release's models archive.
+# Audio is decoded in pure Rust, as for audio captchas.
+onnx-asr = ["dep:ort", "dep:symphonia", "onnx"]
 
 # Native Linux packages, built with `--no-build` from the release tarball unpacked into
 # `packaging/staging/`. Nothing is compiled twice, and the .deb and the .rpm therefore contain

@@ -165,7 +165,7 @@ async fn probe(
     // The worker probe is asynchronous, so the page says when it is finished rather than the
     // runner guessing at a sleep.
     let deadline = Instant::now() + Duration::from_secs(10);
-    let value;
+    let value: Value;
     loop {
         let seen = page
             .evaluate("window.__TELLS_DONE__ === true ? window.__TELLS__ : null")
@@ -179,11 +179,47 @@ async fn probe(
         }
         tokio::time::sleep(Duration::from_millis(100)).await;
     }
+    let mut value = value;
+    if let Value::Object(m) = &mut value {
+        m.insert(
+            "video_scripts_residue".into(),
+            video_scripts(&page, url).await,
+        );
+    }
     pool.close_page(page).await;
     match value {
         Value::Object(m) => Ok(m),
         _ => Err("the page never reported its probes".into()),
     }
+}
+
+/// The scripts `web_video` evaluates in a page it reads (probe the player, seek it, fetch a caption
+/// file from inside the session) must leave the page as they found it: the same names on `window`,
+/// the same markup. Run on the probe page after its own probes have reported, so this row sees the
+/// page a video read leaves behind.
+async fn video_scripts(page: &svipall_cdp::Page, url: &str) -> Value {
+    const SNAPSHOT: &str = "JSON.stringify([Object.getOwnPropertyNames(window).sort(), \
+        document.documentElement.outerHTML])";
+    let snap = || async {
+        page.evaluate(SNAPSHOT)
+            .await
+            .ok()
+            .and_then(|r| r.value().and_then(|v| v.as_str()).map(str::to_string))
+    };
+    let before = snap().await;
+    for js in [
+        svipall::video_frames::probe_js(),
+        svipall::video_frames::seek_js(1.0),
+        svipall::video::in_page_text_js(url),
+    ] {
+        let _ = page.evaluate(js).await;
+    }
+    let after = snap().await;
+    let ok = before.is_some() && before == after;
+    json!({
+        "ok": ok,
+        "detail": if ok { "window and markup unchanged" } else { "the page changed after the video scripts ran" },
+    })
 }
 
 pub async fn run(assert: bool) -> usize {

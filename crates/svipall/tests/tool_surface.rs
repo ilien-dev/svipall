@@ -82,12 +82,16 @@ fn the_whole_tool_list_fits_a_budget() {
     // actually returns, and `web_fetch`/`web_crawl` say that a link to the page's own site comes
     // back as a path. A turn spent reading that is worth a query that leaves 6% of a page instead
     // of 88%. The cap is the measured result plus room for one tool.
+    //
+    // 38 953 with `web_video`, which took that room (944 chars: seven parameters, the description
+    // trimmed to what routes a video page away from web_fetch). The cap moves by the same 591 of
+    // room it had before.
     let total: usize = tools()
         .iter()
         .map(|t| t.name.len() + description(t).len() + schema_len(t))
         .sum();
     assert!(
-        total <= 38_600,
+        total <= 39_550,
         "the tool list is {total} chars; the model reads all of it on every request"
     );
 }
@@ -161,6 +165,7 @@ fn each_description_names_the_tool_to_prefer_or_the_field_that_matters() {
         ("browser_close", &["browser_open"]),
         ("web_screenshot", &["web_snapshot"]),
         ("web_capture", &["pattern", "bodies"]),
+        ("web_video", &["web_fetch", "drm"]),
         ("web_search", &["web_site_search"]),
         ("web_site_search", &["web_search"]),
         ("web_diff", &["web_watch"]),

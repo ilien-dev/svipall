@@ -258,6 +258,66 @@ pub fn words_to_digits(text: &str) -> String {
     out
 }
 
+#[cfg(any(feature = "onnx-audio", feature = "onnx-asr"))]
+/// Decode whatever container was served into mono samples at its own rate: a captcha's clip, or
+/// the audio track of a video for speech recognition.
+pub fn decode(bytes: &[u8]) -> Result<(Vec<f32>, u32)> {
+    use symphonia::core::audio::SampleBuffer;
+    use symphonia::core::codecs::DecoderOptions;
+    use symphonia::core::formats::FormatOptions;
+    use symphonia::core::io::MediaSourceStream;
+    use symphonia::core::meta::MetadataOptions;
+    use symphonia::core::probe::Hint;
+
+    let source = std::io::Cursor::new(bytes.to_vec());
+    let stream = MediaSourceStream::new(Box::new(source), Default::default());
+    let probed = symphonia::default::get_probe().format(
+        &Hint::new(),
+        stream,
+        &FormatOptions::default(),
+        &MetadataOptions::default(),
+    )?;
+    let mut format = probed.format;
+    // A video file's default track is usually the picture. The sound is the first track that has
+    // a sample rate and a decoder here.
+    let codecs = symphonia::default::get_codecs();
+    let track = format
+        .tracks()
+        .iter()
+        .find(|t| {
+            t.codec_params.sample_rate.is_some()
+                && codecs
+                    .make(&t.codec_params, &DecoderOptions::default())
+                    .is_ok()
+        })
+        .ok_or_else(|| anyhow!("no audio track this build can decode"))?;
+    let track_id = track.id;
+    let mut decoder = codecs.make(&track.codec_params, &DecoderOptions::default())?;
+    let mut samples: Vec<f32> = Vec::new();
+    let mut rate = 0u32;
+    let mut channels = 1usize;
+    while let Ok(packet) = format.next_packet() {
+        if packet.track_id() != track_id {
+            continue;
+        }
+        let decoded = match decoder.decode(&packet) {
+            Ok(d) => d,
+            // A truncated final packet is normal and not a reason to lose the clip.
+            Err(_) => break,
+        };
+        let spec = *decoded.spec();
+        rate = spec.rate;
+        channels = spec.channels.count().max(1);
+        let mut buf = SampleBuffer::<f32>::new(decoded.capacity() as u64, spec);
+        buf.copy_interleaved_ref(decoded);
+        samples.extend_from_slice(buf.samples());
+    }
+    if samples.is_empty() {
+        return Err(anyhow!("nothing decoded from the clip"));
+    }
+    Ok((to_mono(&samples, channels), rate))
+}
+
 #[cfg(not(feature = "onnx-audio"))]
 pub fn solve_bytes(_bytes: &[u8]) -> Result<String> {
     Err(anyhow!(
@@ -274,56 +334,8 @@ pub fn solve_bytes(bytes: &[u8]) -> Result<String> {
 mod imp {
     use super::*;
     use crate::model_source::SessionCache;
-    use symphonia::core::audio::SampleBuffer;
-    use symphonia::core::codecs::DecoderOptions;
-    use symphonia::core::formats::FormatOptions;
-    use symphonia::core::io::MediaSourceStream;
-    use symphonia::core::meta::MetadataOptions;
-    use symphonia::core::probe::Hint;
 
     static SESSION: SessionCache = SessionCache::new();
-
-    /// Decode whatever container the widget served into mono samples at its own rate.
-    fn decode(bytes: &[u8]) -> Result<(Vec<f32>, u32)> {
-        let source = std::io::Cursor::new(bytes.to_vec());
-        let stream = MediaSourceStream::new(Box::new(source), Default::default());
-        let probed = symphonia::default::get_probe().format(
-            &Hint::new(),
-            stream,
-            &FormatOptions::default(),
-            &MetadataOptions::default(),
-        )?;
-        let mut format = probed.format;
-        let track = format
-            .default_track()
-            .ok_or_else(|| anyhow!("the clip has no audio track"))?;
-        let track_id = track.id;
-        let mut decoder = symphonia::default::get_codecs()
-            .make(&track.codec_params, &DecoderOptions::default())?;
-        let mut samples: Vec<f32> = Vec::new();
-        let mut rate = 0u32;
-        let mut channels = 1usize;
-        while let Ok(packet) = format.next_packet() {
-            if packet.track_id() != track_id {
-                continue;
-            }
-            let decoded = match decoder.decode(&packet) {
-                Ok(d) => d,
-                // A truncated final packet is normal and not a reason to lose the clip.
-                Err(_) => break,
-            };
-            let spec = *decoded.spec();
-            rate = spec.rate;
-            channels = spec.channels.count().max(1);
-            let mut buf = SampleBuffer::<f32>::new(decoded.capacity() as u64, spec);
-            buf.copy_interleaved_ref(decoded);
-            samples.extend_from_slice(buf.samples());
-        }
-        if samples.is_empty() {
-            return Err(anyhow!("nothing decoded from the clip"));
-        }
-        Ok((to_mono(&samples, channels), rate))
-    }
 
     pub fn solve_bytes(bytes: &[u8]) -> Result<String> {
         let located = locate().ok_or_else(|| anyhow!("no audio model installed or embedded"))?;

@@ -44,6 +44,7 @@ fn features() -> Vec<&'static str> {
         (cfg!(feature = "onnx-detect"), "onnx-detect"),
         (cfg!(feature = "onnx-segment"), "onnx-segment"),
         (cfg!(feature = "onnx-zeroshot"), "onnx-zeroshot"),
+        (cfg!(feature = "onnx-asr"), "onnx-asr"),
     ] {
         if on {
             out.push(name);
@@ -214,6 +215,7 @@ const STALE_MAJORS: u16 = 2;
 /// The whole report, as the one JSON object `svipall doctor` prints.
 pub fn report_from(f: &Facts) -> Value {
     let found = problems(f);
+    let asr = f.installed_models.iter().any(|m| m == "asr");
     json!({
         "ok": found.is_empty(),
         "version": f.version,
@@ -240,6 +242,15 @@ pub fn report_from(f: &Facts) -> Value {
             // Without this the two lists read as a capability, and on a build with no `onnx-*`
             // feature they are bytes nothing opens.
             "inference": f.inference,
+        },
+        // A video with no captions is transcribed only with the speech model on disk; without it the
+        // video still reads, from its captions, and this is where the difference is said.
+        "video": {
+            "asr": {
+                "compiled": cfg!(feature = "onnx-asr"),
+                "installed": asr,
+                "fix": (!asr).then_some("svipall models install"),
+            },
         },
         "dashboard": { "port": f.dashboard_port, "free": f.dashboard_free },
         "rest": { "port": f.rest_port, "enabled": f.rest_port != 0 },
@@ -317,6 +328,18 @@ fn installed_models() -> Vec<String> {
             path.with_extension("json").is_file().then_some(stem)
         })
         .collect();
+    // The speech recogniser is four files sharing one sidecar; it counts once, by name.
+    if [
+        crate::asr::encoder_path(),
+        crate::asr::decoder_path(),
+        crate::asr::config_path(),
+        crate::asr::vocab_path(),
+    ]
+    .iter()
+    .all(|p| p.is_file())
+    {
+        out.push("asr".into());
+    }
     out.sort();
     out.dedup();
     out

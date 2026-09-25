@@ -117,6 +117,18 @@ fn a_model_the_operator_installed_answers_for_the_one_that_is_missing() {
 }
 
 #[test]
+fn whether_a_video_without_captions_can_be_heard_is_reported_with_its_fix() {
+    let mut f = healthy();
+    let r = svipall::doctor::report_from(&f);
+    assert_eq!(r["video"]["asr"]["installed"], false);
+    assert_eq!(r["video"]["asr"]["fix"], "svipall models install");
+    f.installed_models = vec!["asr".into()];
+    let r = svipall::doctor::report_from(&f);
+    assert_eq!(r["video"]["asr"]["installed"], true);
+    assert!(r["video"]["asr"].get("fix").is_none_or(|v| v.is_null()));
+}
+
+#[test]
 fn weights_with_nothing_to_run_them_are_reported_as_inert() {
     // A build can carry 58 MB of ONNX weights and not one `onnx-*` feature to read them: the
     // build script embeds whatever files are on disk, the features are separate. `models.embedded`

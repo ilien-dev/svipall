@@ -1,5 +1,6 @@
 //! svipall library re-exports.
 
+pub mod asr;
 pub mod audio;
 pub mod behavior;
 pub mod blocklists;
@@ -41,6 +42,8 @@ pub mod substance;
 pub mod tools;
 /// Explicit release checks and user-confirmed updates of the shared installation.
 pub mod update;
+pub mod video;
+pub mod video_frames;
 /// Slider and rotation captchas: geometry, no model.
 pub mod vision;
 pub mod wire;
