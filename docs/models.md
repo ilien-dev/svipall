@@ -51,6 +51,7 @@ No published artefact is in that state any more; the build this command exists f
 | `onnx-audio` | no | audio captchas (clip → digits or words) | yours |
 | `onnx-zeroshot` | no | grid subjects no classifier was taught | a CLIP-style pair you install (`clip_image.onnx`, `clip_text.onnx`, `clip.json`, `vocab.json`, `merges.txt`) — too large to embed |
 | `onnx-asr` | no | a video with no captions: its audio as timed text, for `web_video` | Whisper base, multilingual (MIT), int8; four files (`asr_encoder.onnx`, `asr_decoder.onnx`, `asr.json`, `asr_vocab.json`), about 100 MB, in the release's models archive |
+| `onnx-read` | no | the text in an image or a scanned PDF page, for `web_fetch` | PP-OCRv5 mobile (Apache-2.0): a text detector and a Latin line recogniser, accents and ñ included; three files (`ocr_det.onnx`, `ocr_rec.onnx`, `ocr_rec.json`), 12.7 MB, in the release's models archive |
 | — (no feature) | no | how much is actually in a page: `junk`/`thin`/`ordinary`/`substantive` | yours — `svipall quality train` fits it from your own history and your own ratings |
 
 `tools/models/export.py` reproduces the embedded ones from torchvision on any machine with
@@ -60,7 +61,12 @@ computes is checked against the model's own feature extractor, on the same synth
 within 0.002. Measured by hand on this project's development machine, release build, CPU only: a
 30 s English clip in 4.1 s and a 61 s Spanish recording in 5.5 s, download included; 10.3% word
 error rate on the English clip against its published captions (58 words, one clip, so a spot
-check rather than a benchmark). Proper names are where it errs. No GPU is needed for any of this: every
+check rather than a benchmark). Proper names are where it errs. `tools/models/export_ocr.py` fetches the text reader from its public release, checks both files
+against pinned SHA-256 hashes, and takes the character list from the recogniser's own metadata.
+Measured on a fixed set of 24 rendered pictures in four typefaces, Spanish and English, clean,
+JPEG-compressed and blurred: 0.12% character error rate and a median of 74 ms a picture, release
+build, CPU only ([`bench/experiments/ocr-20260926`](../bench/experiments/ocr-20260926/README.md)).
+Rendered text is easier than paper through a scanner, so that is a floor, not a forecast. No GPU is needed for any of this: every
 model runs on the CPU execution provider, and on a 320 px picture the detector answers in about
 10 ms and the segmenter in about 30 ms (`cargo run -p svipall-bench --release --features onnx -- micro`
 measures them, with a budget that fails the build if they regress).

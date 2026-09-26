@@ -176,14 +176,36 @@ pub fn iso_duration(s: &str) -> Option<f64> {
     Some(total)
 }
 
+/// schema.org types that describe a recording: a video, a sound, or a podcast episode whose
+/// recording hangs off it.
+const RECORDING_TYPES: &[&str] = &["VideoObject", "AudioObject", "PodcastEpisode"];
+
 fn from_json_ld(meta: &Metadata) -> Option<VideoInfo> {
-    let is_video = |v: &&Value| match &v["@type"] {
-        Value::String(t) => t == "VideoObject",
-        Value::Array(a) => a.iter().any(|t| t == "VideoObject"),
+    let is_recording = |v: &&Value| match &v["@type"] {
+        Value::String(t) => RECORDING_TYPES.contains(&t.as_str()),
+        Value::Array(a) => a
+            .iter()
+            .any(|t| t.as_str().is_some_and(|t| RECORDING_TYPES.contains(&t))),
         _ => false,
     };
-    let v = meta.json_ld.iter().find(is_video)?;
+    let v = meta.json_ld.iter().find(is_recording)?;
     let s = |k: &str| v[k].as_str().map(str::to_string);
+    // An episode names its recording in `associatedMedia` or `audio`, as an object or a list.
+    let media = ["associatedMedia", "audio"]
+        .iter()
+        .flat_map(|k| match &v[*k] {
+            Value::Array(a) => a.iter().collect::<Vec<_>>(),
+            Value::Null => Vec::new(),
+            other => vec![other],
+        })
+        .find(|m| m["contentUrl"].is_string());
+    let (content_url, format) = match media {
+        Some(m) => (
+            m["contentUrl"].as_str().map(str::to_string),
+            m["encodingFormat"].as_str().map(str::to_string),
+        ),
+        None => (s("contentUrl"), s("encodingFormat")),
+    };
     let chapters = v["hasPart"]
         .as_array()
         .map(|parts| {
@@ -200,19 +222,22 @@ fn from_json_ld(meta: &Metadata) -> Option<VideoInfo> {
                 .collect()
         })
         .unwrap_or_default();
-    let streams = s("contentUrl")
+    let streams = content_url
         .map(|u| Stream {
-            kind: stream_kind(&u, s("encodingFormat").as_deref()),
-            mime: s("encodingFormat"),
+            kind: stream_kind(&u, format.as_deref()),
+            mime: format,
             url: u,
         })
         .into_iter()
         .collect();
+    let duration = s("duration")
+        .or_else(|| media.and_then(|m| m["duration"].as_str().map(str::to_string)))
+        .or_else(|| s("timeRequired"));
     Some(VideoInfo {
         source: "json-ld",
         title: s("name"),
         description: s("description"),
-        duration: s("duration").as_deref().and_then(iso_duration),
+        duration: duration.as_deref().and_then(iso_duration),
         transcript: s("transcript"),
         chapters,
         streams,
@@ -251,14 +276,22 @@ fn from_html5(media: &PageMedia) -> Option<VideoInfo> {
 
 fn from_open_graph(meta: &Metadata) -> Option<VideoInfo> {
     let og = &meta.open_graph;
-    let url = ["og:video:secure_url", "og:video:url", "og:video"]
+    // A video when there is one, else the sound: an episode page declares `og:audio`.
+    let (url, mime) = ["video", "audio"].iter().find_map(|kind| {
+        // Keys as `Metadata` files them: without the `og:` prefix.
+        let url = [
+            format!("{kind}:secure_url"),
+            format!("{kind}:url"),
+            kind.to_string(),
+        ]
         .iter()
-        .find_map(|k| og.get(*k))?;
-    let mime = og.get("og:video:type").cloned();
+        .find_map(|k| og.get(k))?;
+        Some((url, og.get(&format!("{kind}:type")).cloned()))
+    })?;
     Some(VideoInfo {
         source: "og",
-        title: og.get("og:title").cloned(),
-        description: og.get("og:description").cloned(),
+        title: og.get("title").cloned(),
+        description: og.get("description").cloned(),
         streams: vec![Stream {
             kind: stream_kind(url, mime.as_deref()),
             url: url.clone(),
@@ -291,6 +324,15 @@ fn percent_decoded(s: &str) -> String {
         }
     }
     String::from_utf8_lossy(&out).into_owned()
+}
+
+/// The last segment of an address, decoded: how a person refers to a file they were given.
+pub fn file_name(url: &str) -> Option<String> {
+    let u = url::Url::parse(url).ok()?;
+    u.path_segments()
+        .and_then(|mut s| s.next_back())
+        .filter(|s| !s.is_empty())
+        .map(percent_decoded)
 }
 
 /// An address that is a media file or a stream manifest rather than a page: read as the stream.
@@ -398,6 +440,53 @@ mod tests {
             discover(url, html, parts.media.as_ref(), parts.metadata.as_ref()),
             embedded_player(parts.media.as_ref(), parts.metadata.as_ref()),
         )
+    }
+
+    #[test]
+    fn a_podcast_episode_page_is_read_for_its_recording() {
+        let html = r#"<html><head><title>Episode 12</title>
+            <script type="application/ld+json">{"@context":"https://schema.org","@type":"PodcastEpisode",
+              "name":"Episode 12: the queue","description":"We talk about queues.",
+              "timeRequired":"PT41M","associatedMedia":{"@type":"MediaObject",
+              "contentUrl":"/media/ep12.mp3","encodingFormat":"audio/mpeg"}}</script>
+            </head><body><h1>Episode 12</h1></body></html>"#;
+        let (info, _) = read("https://pod.example/episodes/12", html);
+        let info = info.expect("an episode is a recording");
+        assert_eq!(info.source, "json-ld");
+        assert_eq!(info.title.as_deref(), Some("Episode 12: the queue"));
+        assert_eq!(info.duration, Some(2460.0));
+        assert_eq!(info.streams[0].url, "https://pod.example/media/ep12.mp3");
+        assert_eq!(info.streams[0].kind, StreamKind::Progressive);
+    }
+
+    #[test]
+    fn an_audio_element_and_og_audio_are_recordings_too() {
+        let (info, _) = read(
+            "https://pod.example/e/3",
+            r#"<html><body><audio controls src="/a/3.m4a"></audio></body></html>"#,
+        );
+        assert_eq!(info.unwrap().streams[0].url, "https://pod.example/a/3.m4a");
+        let (info, _) = read(
+            "https://pod.example/e/4",
+            r#"<html><head><meta property="og:audio" content="https://cdn.pod.example/4.mp3">
+               <meta property="og:audio:type" content="audio/mpeg"></head><body></body></html>"#,
+        );
+        let info = info.unwrap();
+        assert_eq!(info.source, "og");
+        assert_eq!(info.streams[0].mime.as_deref(), Some("audio/mpeg"));
+    }
+
+    #[test]
+    fn og_video_is_read_as_metadata_files_it() {
+        let (info, _) = read(
+            "https://clips.example/c/9",
+            r#"<html><head><meta property="og:title" content="Clip nine">
+               <meta property="og:video:secure_url" content="https://cdn.clips.example/9.mp4">
+               <meta property="og:video:type" content="video/mp4"></head><body></body></html>"#,
+        );
+        let info = info.expect("og:video declares a video");
+        assert_eq!(info.title.as_deref(), Some("Clip nine"));
+        assert_eq!(info.streams[0].url, "https://cdn.clips.example/9.mp4");
     }
 
     #[test]

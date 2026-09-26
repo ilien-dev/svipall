@@ -34,6 +34,8 @@ pub mod lan;
 pub mod llms_txt;
 pub mod pagination;
 pub mod pdf;
+#[cfg(feature = "pdf")]
+pub mod pdf_images;
 pub mod policy;
 pub mod pow;
 pub mod profiles;
