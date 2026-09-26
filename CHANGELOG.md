@@ -1,5 +1,28 @@
 # Changelog
 
+## 1.1.1 — 2026-09-26
+
+- **`web_video` frames show the video again, on every visit.** On a second visit to a watch
+  page, `frames` came back as 24 blank PNGs with the site's header at the bottom, and the
+  captions were empty too. The player keeps a video it hasn't started, and the one it preloads
+  behind an advert, above the page (`top: -1050px`), and Svipall captured that parked element.
+  Now only a video that sits inside the page and shows counts. Svipall runs an advert through
+  muted at 16x before it takes any frame, starts a parked video, and presses play through
+  `behavior` for a player that loads nothing until someone does. Measured by hand: one server
+  read the same watch page twice, and both visits returned 850 caption cues and 6 frames. On
+  the second, two adverts took 20 s.
+
+- **Frames come from the video element itself.** Svipall reads them into a canvas that never
+  joins the page, so the player's controls and captions aren't in them, and they're as wide as
+  the stream, up to 1280 px. A file from another origin that forbids this gets the old
+  screenshot, and the notes say so. Blank and repeated captures are left out and counted in the
+  notes. Frame paths now appear in the timeline, which the tool description promised and the
+  timeline never did.
+
+- **An encrypted stream gets no frames and says why.** A player page whose manifest declares
+  DRM used to wait 45 s and then blame the codec. Now it reports `drm` at once. A video with no
+  frame loaded yet no longer passes for one without a picture.
+
 ## 1.1.0 — 2026-09-25
 
 - **`web_video` reads what a video says instead of the box it sits in.** A watch page fetched as
