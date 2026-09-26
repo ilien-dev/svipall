@@ -166,11 +166,77 @@ fn session_of(domain: &str, proxy: &str, h: Option<&Health>) -> Session {
     s
 }
 
+/// An exit that could not be reached is passed over for this long, on every domain.
+///
+/// Unreachable is a fact about the exit (a tunnel that died, a proxy that wants credentials), not
+/// about any site, so unlike health it is kept per exit rather than per `(domain, exit)`, and it
+/// costs the exit none of its standing anywhere. It expires on its own because nothing else says
+/// when a tunnel is back; two minutes is short enough that a restarted one is used again soon, and
+/// long enough that a dead one is not asked on every fetch in between.
+pub const DOWN_SECS: i64 = 120;
+
+#[derive(Debug, Clone)]
+struct Down {
+    at: i64,
+    reason: String,
+}
+
+static DOWN: LazyLock<Mutex<HashMap<String, Down>>> = LazyLock::new(Default::default);
+
+/// Is this transport error the exit failing, rather than the site?
+///
+/// Only called with a proxy in use, and only the failures that can only be the proxy's: nothing
+/// answered on its address, or the proxy handshake itself failed. With a proxy the transport
+/// never opens a connection to the site (an HTTP proxy is sent the request, a `socks5h` one
+/// resolves the name itself), so a refused TCP connection is the exit's. A timeout is left out on
+/// purpose: a slow site and a slow exit look the same from here.
+pub fn transport_fault(error: &str) -> bool {
+    const NEEDLES: &[&str] = &[
+        // Both http engines, connecting to the proxy.
+        "tcp connect error",
+        "proxy connect error",
+        "(ProxyConnect)",
+        // The browser tier, as Chrome names it.
+        "net::ERR_PROXY_CONNECTION_FAILED",
+        "net::ERR_SOCKS_CONNECTION_FAILED",
+    ];
+    NEEDLES.iter().any(|n| error.contains(n))
+}
+
+/// Pass `proxy` over for `DOWN_SECS`, on every domain, without touching its health.
+pub fn mark_down(proxy: &str, reason: &str) {
+    DOWN.lock().unwrap().insert(
+        proxy.to_string(),
+        Down {
+            at: now_secs(),
+            reason: reason.to_string(),
+        },
+    );
+}
+
+/// `proxy` answers again.
+pub fn mark_up(proxy: &str) {
+    DOWN.lock().unwrap().remove(proxy);
+}
+
+/// Was `proxy` found unreachable within the last `DOWN_SECS`?
+pub fn is_down(proxy: &str) -> bool {
+    let mut down = DOWN.lock().unwrap();
+    match down.get(proxy) {
+        Some(d) if now_secs().saturating_sub(d.at) < DOWN_SECS => true,
+        Some(_) => {
+            down.remove(proxy);
+            false
+        }
+        None => false,
+    }
+}
+
 /// The exit to use for this domain now, or `None` when it has no route at all.
 ///
 /// `sticky` keeps the last exit while it is usable; `round_robin` takes the next usable one after
-/// it. Either way a retired exit is skipped, and when every exit is retired the healthiest is
-/// used anyway — refusing to fetch is not a strategy, and the caller's cooldown logic still
+/// it. Either way a retired or unreachable exit is skipped, and when every exit is retired the
+/// healthiest is used anyway — refusing to fetch is not a strategy, and the caller's cooldown logic still
 /// applies.
 pub fn choose(domain: &str, strategy: Strategy) -> Option<String> {
     choose_inner(domain, strategy, false)
@@ -200,6 +266,7 @@ fn choose_inner(domain: &str, strategy: Strategy, mind_the_budget: bool) -> Opti
     let health = ledger.by_domain.get(domain).cloned().unwrap_or_default();
     let usable = |p: &String| {
         session_of(domain, p, health.get(p)).is_usable()
+            && !is_down(p)
             && !(mind_the_budget && crate::reputation::refusal(domain, Some(p)).is_some())
     };
     let last = ledger.last.get(domain).cloned();
@@ -238,7 +305,7 @@ fn healthiest(
     let mut best: Option<(&String, i32)> = None;
     for p in exits {
         let s = session_of(domain, p, health.get(p));
-        if only_usable && !s.is_usable() {
+        if only_usable && (!s.is_usable() || is_down(p)) {
             continue;
         }
         if best.is_none_or(|(_, h)| s.health > h) {
@@ -281,7 +348,7 @@ pub fn record(domain: &str, proxy: &str, verdict: Verdict, latency_ms: u32) {
     persist(&ledger);
 }
 
-/// Is there a usable exit for this domain other than `proxy`? When there is, a block is a reason
+/// Is there a usable, reachable exit for this domain other than `proxy`? When there is, a block is a reason
 /// to switch, not to put the whole domain on a cooldown.
 pub fn has_alternative(domain: &str, proxy: &str) -> bool {
     let exits = exits_for(domain);
@@ -292,13 +359,30 @@ pub fn has_alternative(domain: &str, proxy: &str) -> bool {
     let health = ledger.by_domain.get(domain);
     exits
         .iter()
-        .filter(|p| p.as_str() != proxy)
+        .filter(|p| p.as_str() != proxy && !is_down(p))
         .any(|p| session_of(domain, p, health.and_then(|h| h.get(p))).is_usable())
 }
 
 /// The ledger, for `web_status`: per domain, each exit's healed health, retirement, latency and
-/// blocks, so the operator can see which proxy is slow and which is getting burnt where.
+/// blocks, so the operator can see which proxy is slow and which is getting burnt where; and the
+/// exits that could not be reached at all.
 pub fn status() -> serde_json::Value {
+    let now = now_secs();
+    let down: HashMap<String, serde_json::Value> = DOWN
+        .lock()
+        .unwrap()
+        .iter()
+        .filter(|(_, d)| now.saturating_sub(d.at) < DOWN_SECS)
+        .map(|(p, d)| {
+            (
+                p.clone(),
+                serde_json::json!({
+                    "reason": d.reason,
+                    "seconds_left": DOWN_SECS - now.saturating_sub(d.at),
+                }),
+            )
+        })
+        .collect();
     let ledger = LEDGER.lock().unwrap();
     let by_domain: HashMap<String, serde_json::Value> = ledger
         .by_domain
@@ -326,6 +410,7 @@ pub fn status() -> serde_json::Value {
     serde_json::json!({
         "by_domain": by_domain,
         "last_used": ledger.last,
+        "down": down,
     })
 }
 
@@ -529,6 +614,80 @@ mod tests {
             identity_for_exit(&id, None).accept_language,
             id.accept_language
         );
+    }
+
+    #[test]
+    fn an_unreachable_exit_is_passed_over_everywhere_and_loses_no_standing() {
+        let _g = isolate();
+        let exits = fresh("down.example");
+        set_pool("down-too.example", &exits);
+        forget("down-too.example");
+        let dead = exits[0].clone();
+        assert_eq!(choose("down.example", Strategy::Sticky).unwrap(), dead);
+        mark_down(&dead, "tcp connect error");
+        for d in ["down.example", "down-too.example"] {
+            for _ in 0..4 {
+                assert_ne!(
+                    choose_for_fetch(d, Strategy::RoundRobin).unwrap(),
+                    dead,
+                    "{d}"
+                );
+            }
+            assert_ne!(choose(d, Strategy::Sticky).unwrap(), dead, "{d}");
+        }
+        assert!(status()["down"][&dead].is_object());
+        assert!(
+            status()["by_domain"]["down.example"][&dead].is_null(),
+            "unreachable is not a verdict on the domain"
+        );
+        mark_up(&dead);
+        assert!(!is_down(&dead));
+    }
+
+    #[test]
+    fn an_unreachable_exit_comes_back_on_its_own() {
+        let _g = isolate();
+        let exits = fresh("back.example");
+        mark_down(&exits[0], "tcp connect error");
+        DOWN.lock().unwrap().get_mut(&exits[0]).unwrap().at = now_secs() - DOWN_SECS;
+        assert!(!is_down(&exits[0]));
+        assert!(status()["down"][&exits[0]].is_null());
+    }
+
+    #[test]
+    fn when_every_exit_is_unreachable_one_is_still_returned() {
+        let _g = isolate();
+        let exits = fresh("alldown.example");
+        for x in &exits {
+            mark_down(x, "tcp connect error");
+        }
+        let pick = choose_for_fetch("alldown.example", Strategy::Sticky);
+        assert!(pick.is_some_and(|p| exits.contains(&p)));
+        assert!(!has_alternative("alldown.example", &exits[0]));
+        for x in &exits {
+            mark_up(x);
+        }
+    }
+
+    #[test]
+    fn only_the_proxy_failing_counts_as_a_transport_fault() {
+        for e in [
+            "error sending request for url (http://a.test/): client error (Connect): tcp connect error: Connection refused (os error 111)",
+            "error sending request for uri (http://a.test/): client error (ProxyConnect): proxy connect error: tcp connect error: Connection refused (os error 111)",
+            "goto: net::ERR_PROXY_CONNECTION_FAILED at http://a.test/",
+            "goto: net::ERR_SOCKS_CONNECTION_FAILED at http://a.test/",
+        ] {
+            assert!(transport_fault(e), "{e}");
+        }
+        for e in [
+            "error sending request for url (http://a.test/): operation timed out",
+            "goto: net::ERR_NAME_NOT_RESOLVED at http://a.test/",
+            "goto: net::ERR_TUNNEL_CONNECTION_FAILED at http://a.test/",
+            "launching browser: no display",
+            "http 403",
+        ] {
+            assert!(!transport_fault(e), "{e}");
+        }
     }
 
     #[test]

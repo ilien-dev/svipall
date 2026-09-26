@@ -57,6 +57,9 @@ arrived too — it says who is watching, not that anything was withheld.
   with that host and is being rested. The result says how many seconds until it has not. Route the
   domain through a proxy, wait, or `web_status(clear_budget="shop.example")` if you mean to spend it
   anyway. `svipall status` shows what every address has spent where.
+- `blocked_reason: "exit_down"` → the proxy itself did not answer, so the site was never asked.
+  The exit is passed over for two minutes with its standing intact. With a pool, fetch once more
+  and it leaves through another exit. With a single route, bring the proxy back first.
 - A login wall → `web_login` once, by hand, and the profile keeps the cookies.
 
 ## Reading a page cheaply
