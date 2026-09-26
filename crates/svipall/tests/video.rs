@@ -247,3 +247,128 @@ async fn a_media_file_gets_frames_where_the_picture_changes() {
         "{v}"
     );
 }
+
+/// A player the way a big platform builds one, served from loopback: an advert on screen first,
+/// the video preloaded above the page and parked there until something starts it, and controls
+/// drawn over the picture. Frames come from the video, after the advert, without the controls.
+/// Needs a browser. Run by hand.
+#[tokio::test]
+#[ignore = "browser"]
+async fn frames_wait_out_the_advert_and_come_from_the_video_itself() {
+    let main = include_bytes!("fixtures/video/main.webm");
+    let ad = include_bytes!("fixtures/video/ad.webm");
+    let page = r#"<!doctype html><html><head><title>Local talk</title>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"VideoObject",
+"name":"Local talk","duration":"PT20S","contentUrl":"/main.webm"}</script></head>
+<body style="margin:0"><div style="position:relative;width:660px;height:371px">
+<video id="ad" src="/ad.webm" muted autoplay playsinline
+ style="position:absolute;left:0;top:0;width:640px;height:360px"></video>
+<video id="main" src="/main.webm" preload="auto" muted playsinline
+ style="position:absolute;left:0;top:-1050px;width:660px;height:371px"></video>
+<div style="position:absolute;left:0;bottom:0;width:660px;height:60px;background:#f0f">controls</div>
+</div><p>A talk about things, long enough to be a page and not a stub.</p>
+<script>
+const ad = document.getElementById('ad'), main = document.getElementById('main');
+ad.addEventListener('ended', () => ad.remove());
+main.addEventListener('play', () => { main.style.top = '0px'; });
+</script></body></html>"#;
+    let site = Site::start(vec![
+        ("/talk", Reply::html(page)),
+        ("/main.webm", Reply::bytes(main, "video/webm")),
+        ("/ad.webm", Reply::bytes(ad, "video/webm")),
+    ])
+    .await;
+    let v = server()
+        .video_json(WebVideoParams {
+            url: site.url("/talk"),
+            frames: Some(4),
+            ..Default::default()
+        })
+        .await
+        .expect("web_video");
+    let frames = v["frames"].as_array().cloned().unwrap_or_default();
+    assert!(frames.len() >= 3, "{v}");
+    let notes = v["notes"].to_string();
+    assert!(notes.contains("advert played first"), "{v}");
+    assert!(!notes.contains("blank"), "{v}");
+    let mut seen = Vec::new();
+    for f in &frames {
+        let path = f["path"].as_str().unwrap();
+        let img = image::open(path).expect("frame written").to_rgb8();
+        assert_eq!(
+            img.dimensions(),
+            (160, 90),
+            "the video's own picture, not a clip of the page with its controls: {path}"
+        );
+        assert!(!svipall::video_frames::blank(&img), "{path}");
+        seen.push(svipall::video_frames::histogram(&img));
+    }
+    for (i, a) in seen.iter().enumerate() {
+        for b in &seen[i + 1..] {
+            assert!(svipall::video_frames::distance(a, b) > 0.002, "{v}");
+        }
+    }
+}
+
+/// A watch page read twice by one server: the second visit is the one that gets adverts, and it
+/// used to come back with no captions and every frame blank. Network + browser; run by hand.
+#[tokio::test]
+#[ignore = "network + browser"]
+async fn a_real_watch_page_gives_captions_and_frames_on_every_visit() {
+    let s = server();
+    for visit in 1..=2 {
+        let v = s
+            .video_json(WebVideoParams {
+                url: "https://www.youtube.com/watch?v=ejjBbaq9RmY".into(),
+                frames: Some(6),
+                ..Default::default()
+            })
+            .await
+            .expect("web_video");
+        eprintln!("visit {visit}: {}", v["notes"]);
+        assert!(v["captions"]["cues"].as_u64().unwrap_or(0) > 10, "{v}");
+        let frames = v["frames"].as_array().cloned().unwrap_or_default();
+        assert!(frames.len() >= 5, "{v}");
+        for f in &frames {
+            let path = f["path"].as_str().unwrap();
+            let img = image::open(path).expect("frame written").to_rgb8();
+            assert!(!svipall::video_frames::blank(&img), "{path}");
+            assert!(img.width() >= 640, "{path}: {:?}", img.dimensions());
+        }
+    }
+}
+
+/// A video served from another origin without CORS: its picture cannot be read from the element,
+/// so the frame is a screenshot of where it sits, and the answer says so. Needs a browser.
+#[tokio::test]
+#[ignore = "browser"]
+async fn a_cross_origin_video_falls_back_to_a_screenshot_and_says_so() {
+    let media = Site::start(vec![(
+        "/main.webm",
+        Reply::bytes(include_bytes!("fixtures/video/main.webm"), "video/webm"),
+    )])
+    .await;
+    // Same loopback, another origin: `localhost` is not `127.0.0.1`.
+    let src = format!("http://localhost:{}/main.webm", media.port);
+    let page = format!(
+        r#"<!doctype html><html><head><title>Elsewhere</title></head><body style="margin:0">
+<video src="{src}" muted autoplay playsinline style="width:320px;height:180px"></video>
+<p>A page whose video lives on another origin, and says enough to be a page.</p></body></html>"#
+    );
+    let site = Site::start(vec![("/p", Reply::html(&page))]).await;
+    let v = server()
+        .video_json(WebVideoParams {
+            url: site.url("/p"),
+            frames: Some(3),
+            ..Default::default()
+        })
+        .await
+        .expect("web_video");
+    let frames = v["frames"].as_array().cloned().unwrap_or_default();
+    assert!(!frames.is_empty(), "{v}");
+    assert!(v["notes"].to_string().contains("screenshots"), "{v}");
+    for f in &frames {
+        let img = image::open(f["path"].as_str().unwrap()).unwrap().to_rgb8();
+        assert!(!svipall::video_frames::blank(&img), "{v}");
+    }
+}
