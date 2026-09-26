@@ -12,6 +12,15 @@
   exit. Timeouts are not counted, since a slow site and a slow exit look alike. Tested offline
   against a closed loopback port on both http engines.
 
+- **Svipall can start and keep alive the tunnels it leaves through.** A `[[tunnels]]` entry in
+  `config.toml` names a command (`ssh -N -D 1081 …`, `tor --SocksPort 9050`) and the SOCKS5 port it
+  serves. `svipall-mcp` and `svipall serve` start it and send it a SOCKS5 greeting every 10 s. The
+  greeting reaches no site. If the process exits or stops answering, it is marked unreachable and
+  restarted, with backoff from 1 s to 5 min. It is marked up the moment it answers. A process
+  already on the port is adopted and never killed. `web_status` shows each tunnel under `tunnels`,
+  and `svipall doctor` reports one whose program is not installed. Tested with a SOCKS5 responder
+  that exits after 4 s: it was restarted and answering again within the 16 s the test took.
+
 ## 1.2.0 — 2026-09-26
 
 - **Svipall tells you when a newer version is out.** Once per session, at the end of the

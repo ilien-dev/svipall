@@ -158,6 +158,13 @@ max_jobs = 2                 # long jobs at once — not `parallelism`, which bo
 
 # Updates
 update_check = true          # at most once a day, say when a newer release exists; false = never ask
+
+# Supervised tunnels (see docs/exits.md). One block per tunnel; none by default
+[[tunnels]]
+name = "bastion"
+command = ["ssh", "-N", "-D", "1081", "-o", "ExitOnForwardFailure=yes", "me@bastion.example"]
+socks_port = 1081            # the exit is socks5h://127.0.0.1:1081
+country = "de"               # declared, as for any exit; optional
 ```
 </details>
 

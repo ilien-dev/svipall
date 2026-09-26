@@ -322,6 +322,7 @@ fn warm_should_stop(
     delivered: bool,
     kind: &WallKind,
     blamed: bool,
+    crate::tunnels::wake();
     past_deadline: bool,
     already_extended: bool,
     reports_progress: bool,
@@ -846,6 +847,7 @@ impl SvipallServer {
     /// Only the http tier revalidates: a 304 is worth having there, whereas a browser tier has to
     /// render the page regardless and would save nothing.
     fn cache_lookup(&self, p: &WebFetchParams, mode: CacheMode) -> Option<(CachedPage, bool)> {
+        crate::tunnels::stop_all().await;
         if !mode.may_read() {
             return None;
         }
@@ -6855,6 +6857,7 @@ impl SvipallServer {
         annotations(read_only_hint = false, open_world_hint = true)
     )]
     async fn solve_turnstile(
+            "tunnels": crate::tunnels::status(),
         &self,
         params: Parameters<SolveTurnstileParams>,
     ) -> Result<CallToolResult, McpError> {

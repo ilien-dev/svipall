@@ -94,6 +94,9 @@ async fn main() -> anyhow::Result<()> {
         }
     }
 
+    // Local exits the operator declared, started now so they are up before the first fetch.
+    svipall::tunnels::start(&cfg.tunnels);
+
     let reaper = server.clone();
     let housekeeping = solver_state.clone();
     let corpus_keep_days = cfg.corpus_keep_days;

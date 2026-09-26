@@ -28,6 +28,7 @@ fn healthy() -> Facts {
         dashboard_port: 8787,
         dashboard_free: true,
         rest_port: 0,
+        tunnels_missing: vec![],
     }
 }
 
@@ -163,6 +164,32 @@ fn a_taken_dashboard_port_is_a_problem_because_the_url_would_point_at_nothing() 
     let mut f = healthy();
     f.dashboard_free = false;
     assert!(codes(&f).contains(&"dashboard_port_busy".to_string()));
+}
+
+#[test]
+fn a_tunnel_whose_program_is_not_installed_is_a_problem_that_names_it() {
+    let f = Facts {
+        tunnels_missing: vec![("bastion".into(), "autossh".into())],
+        ..healthy()
+    };
+    let found = doctor::problems(&f);
+    let p = found
+        .iter()
+        .find(|p| p.code == "tunnel_program_missing")
+        .expect("reported");
+    assert!(p.message.contains("bastion") && p.message.contains("autossh"));
+    assert_eq!(
+        doctor::report_from(&f)["tunnels"]["missing"][0]["name"],
+        "bastion"
+    );
+}
+
+#[test]
+fn a_program_is_found_on_the_path_or_by_its_own_path() {
+    let exe = std::env::current_exe().unwrap();
+    assert!(doctor::program_exists(exe.to_str().unwrap()));
+    assert!(!doctor::program_exists("svipall-no-such-program-anywhere"));
+    assert!(!doctor::program_exists("/nowhere/at/all/ssh"));
 }
 
 #[test]

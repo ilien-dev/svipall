@@ -59,7 +59,8 @@ arrived too — it says who is watching, not that anything was withheld.
   anyway. `svipall status` shows what every address has spent where.
 - `blocked_reason: "exit_down"` → the proxy itself did not answer, so the site was never asked.
   The exit is passed over for two minutes with its standing intact. With a pool, fetch once more
-  and it leaves through another exit. With a single route, bring the proxy back first.
+  and it leaves through another exit. With a single route, bring the proxy back first. A tunnel
+  declared as `[[tunnels]]` in the config comes back by itself; `svipall status` shows it.
 - A login wall → `web_login` once, by hand, and the profile keeps the cookies.
 
 ## Reading a page cheaply
