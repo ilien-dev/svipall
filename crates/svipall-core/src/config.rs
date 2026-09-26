@@ -158,6 +158,33 @@ pub struct Config {
     /// Look up the latest release at most once a day and say when this one is older. Off, the
     /// only request to GitHub is the one `svipall update` makes when asked.
     pub update_check: bool,
+    /// Local exits svipall starts and keeps alive: an `ssh -D` tunnel, a Tor daemon, anything that
+    /// ends up serving SOCKS5 on a loopback port. Each one is the exit
+    /// `socks5h://127.0.0.1:<socks_port>`, which a `web_route` pool then names like any proxy.
+    /// Supervised by the long-lived servers (`svipall-mcp`, `svipall serve`), not the one-shot CLI.
+    pub tunnels: Vec<Tunnel>,
+}
+
+/// One supervised local exit, declared as `[[tunnels]]` in `config.toml`.
+#[derive(Debug, Clone, Default, Deserialize, Serialize, PartialEq, Eq)]
+#[serde(default)]
+pub struct Tunnel {
+    /// Shown in `web_status` and `doctor`.
+    pub name: String,
+    /// The program and its arguments, run directly with no shell. `${NAME}` is taken from
+    /// `secrets.env`, so a key path or a password never sits in this file.
+    pub command: Vec<String>,
+    /// The loopback port the command serves SOCKS5 on.
+    pub socks_port: u16,
+    /// The exit's country, declared: svipall never looks an address up.
+    pub country: String,
+}
+
+impl Tunnel {
+    /// The proxy URL this tunnel is reached at.
+    pub fn exit(&self) -> String {
+        format!("socks5h://127.0.0.1:{}", self.socks_port)
+    }
 }
 
 impl Default for Config {
@@ -212,6 +239,7 @@ impl Default for Config {
             api_key: String::new(),
             max_jobs: 2,
             update_check: true,
+            tunnels: Vec::new(),
         }
     }
 }
@@ -365,6 +393,24 @@ impl Config {
                 || (self.warm_keep_secs > 0 && self.warm_keep_secs < self.browser_idle_secs),
             "held-page lifetime must be positive and shorter than browser_idle_secs"
         );
+        let mut names = std::collections::HashSet::new();
+        let mut ports = std::collections::HashSet::new();
+        for t in &self.tunnels {
+            anyhow::ensure!(
+                !t.name.trim().is_empty() && names.insert(t.name.as_str()),
+                "every tunnel needs a name of its own"
+            );
+            anyhow::ensure!(
+                t.command.first().is_some_and(|p| !p.trim().is_empty()),
+                "tunnel {}: command must name a program",
+                t.name
+            );
+            anyhow::ensure!(
+                t.socks_port != 0 && ports.insert(t.socks_port),
+                "tunnel {}: socks_port must be set, and not shared with another tunnel",
+                t.name
+            );
+        }
         Ok(())
     }
 }
@@ -549,6 +595,37 @@ mod tests {
         assert_eq!(cfg.parallelism, 8);
         assert_eq!(cfg.rest_port, 0);
         assert_eq!(cfg.max_jobs, 2);
+    }
+
+    #[test]
+    fn tunnels_are_read_from_config_toml_and_checked() {
+        let home = std::env::temp_dir().join(format!(
+            "svipall-tunnels-{}-{}",
+            std::process::id(),
+            std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .map(|d| d.as_nanos())
+                .unwrap_or(0)
+        ));
+        std::fs::create_dir_all(&home).unwrap();
+        let write = |text: &str| std::fs::write(home.join("config.toml"), text).unwrap();
+        write(
+            "[[tunnels]]\nname = \"bastion\"\ncommand = [\"ssh\", \"-N\", \"-D\", \"1081\", \"me@bastion\"]\nsocks_port = 1081\ncountry = \"de\"\n",
+        );
+        let cfg = load_in(&home).expect("a declared tunnel loads");
+        assert_eq!(cfg.tunnels.len(), 1);
+        assert_eq!(cfg.tunnels[0].command[0], "ssh");
+        assert_eq!(cfg.tunnels[0].exit(), "socks5h://127.0.0.1:1081");
+        for bad in [
+            "[[tunnels]]\nname = \"a\"\ncommand = []\nsocks_port = 1081\n",
+            "[[tunnels]]\nname = \"a\"\ncommand = [\"tor\"]\n",
+            "[[tunnels]]\nname = \"a\"\ncommand = [\"tor\"]\nsocks_port = 9050\n[[tunnels]]\nname = \"b\"\ncommand = [\"tor\"]\nsocks_port = 9050\n",
+            "[[tunnels]]\nname = \"a\"\ncommand = [\"tor\"]\nsocks_port = 9050\n[[tunnels]]\nname = \"a\"\ncommand = [\"tor\"]\nsocks_port = 9051\n",
+        ] {
+            write(bad);
+            assert!(load_in(&home).is_err(), "{bad}");
+        }
+        let _ = std::fs::remove_dir_all(&home);
     }
 }
 

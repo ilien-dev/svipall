@@ -84,6 +84,8 @@ pub struct Facts {
     pub dashboard_port: u16,
     pub dashboard_free: bool,
     pub rest_port: u16,
+    /// Declared `[[tunnels]]` whose program is not installed, as `(name, program)`.
+    pub tunnels_missing: Vec<(String, String)>,
 }
 
 /// One thing that is wrong, and the command that fixes it.
@@ -191,6 +193,17 @@ pub fn problems(f: &Facts) -> Vec<Problem> {
         ));
     }
 
+    for (name, program) in &f.tunnels_missing {
+        out.push(problem(
+            "tunnel_program_missing",
+            &format!(
+                "Tunnel {name} runs {program}, which is not installed, so the exit it stands for \
+                 never comes up and every fetch routed through it stops with exit_down."
+            ),
+            "Install that program, or correct the tunnel's command in config.toml.",
+        ));
+    }
+
     if !f.dashboard_free {
         out.push(problem(
             "dashboard_port_busy",
@@ -254,6 +267,11 @@ pub fn report_from(f: &Facts) -> Value {
         },
         "dashboard": { "port": f.dashboard_port, "free": f.dashboard_free },
         "rest": { "port": f.rest_port, "enabled": f.rest_port != 0 },
+        "tunnels": {
+            "missing": f.tunnels_missing.iter().map(|(name, program)| json!({
+                "name": name, "program": program,
+            })).collect::<Vec<_>>(),
+        },
         "problems": found.iter().map(|p| json!({
             "code": p.code, "message": p.message, "fix": p.fix,
         })).collect::<Vec<_>>(),
@@ -301,7 +319,31 @@ pub fn collect(cfg: &Config) -> Facts {
         dashboard_port,
         dashboard_free: port_free(&cfg.dashboard_bind, dashboard_port),
         rest_port: svipall_core::config::port_from_env("SVIPALL_REST_PORT", cfg.rest_port),
+        tunnels_missing: cfg
+            .tunnels
+            .iter()
+            .filter_map(|t| {
+                let program = t.command.first()?;
+                (!program_exists(program)).then(|| (t.name.clone(), program.clone()))
+            })
+            .collect(),
     }
+}
+
+/// Would a tunnel's `command[0]` start? A path is checked as written; a bare name is looked up on
+/// `PATH`, with `.exe` on Windows, the way the process spawn will look it up.
+pub fn program_exists(program: &str) -> bool {
+    let p = std::path::Path::new(program);
+    if p.components().count() > 1 {
+        return p.is_file();
+    }
+    let Some(path) = std::env::var_os("PATH") else {
+        return false;
+    };
+    std::env::split_paths(&path).any(|dir| {
+        dir.join(program).is_file()
+            || (cfg!(windows) && dir.join(format!("{program}.exe")).is_file())
+    })
 }
 
 /// The report for this machine.

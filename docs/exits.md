@@ -69,6 +69,44 @@ A timeout is not counted. A slow site and a slow exit look the same from here, s
 still an ordinary failure. `web_status` lists the unreachable exits under `exit_health.down`, each
 with its cause and the seconds left.
 
+## Supervised tunnels
+
+A tunnel that Svipall starts itself is declared in `config.toml`:
+
+```toml
+[[tunnels]]
+name = "bastion"
+command = ["ssh", "-N", "-D", "1081", "-o", "ExitOnForwardFailure=yes", "me@bastion.example"]
+socks_port = 1081
+country = "de"
+
+[[tunnels]]
+name = "tor"
+command = ["tor", "--SocksPort", "9050"]
+socks_port = 9050
+```
+
+Each one is the exit `socks5h://127.0.0.1:<socks_port>`, and a pool names it like any other proxy:
+
+```
+web_route domain=example.com proxies=["socks5h://127.0.0.1:1081","socks5h://127.0.0.1:9050"]
+```
+
+`svipall-mcp` and `svipall serve` start every tunnel when they come up. The command runs without a
+shell, and `${NAME}` in any argument is read from `secrets.env`. They send each tunnel a SOCKS5
+greeting every 10 seconds, or every 2 while one is starting or down. The greeting asks for no
+connection, so no site sees it. When a tunnel's process exits, or it has not answered 45 seconds
+after starting, the supervisor marks the exit unreachable and starts the command again. It waits
+1 s before the first retry and doubles the wait each time, up to 5 minutes. The moment the tunnel
+answers, the exit is usable again, without waiting out the 120 seconds. If something already
+answers on the port when the server starts, the supervisor uses it as it is (`adopted`) and never
+kills it. The processes Svipall started stop with it.
+
+`web_status` shows each tunnel under `tunnels`: whether it is `up`, its `pid`, how many times it
+was restarted and its last error. `svipall doctor` reports a tunnel whose program is not installed.
+The one-shot `svipall` command does not supervise: it uses a tunnel while one of the servers keeps
+it alive. A change to `[[tunnels]]` takes effect when the server restarts.
+
 ## Pacing
 
 `throttle.rs` keys pacing and strikes by `(domain, exit)` as well, so ten exits actually buy
@@ -154,7 +192,6 @@ recording it as one would lose the page for that crawl id forever.
 
 ## What is not here
 
-There is no exit Svipall can create for itself: no Tor control port, no VPN interface binding, no
-device on the LAN. A `socks5h://127.0.0.1:PORT` from an `ssh -D` tunnel or a local Tor daemon works
-today as an ordinary proxy URL. When it dies, the exit is marked unreachable and keeps its
-health (see above), but nothing restarts it.
+Svipall does not provide an exit of its own. A supervised tunnel runs a command the operator wrote,
+to a server the operator has. There is no Tor control port (a new circuit is a restart), no VPN
+interface binding and no device on the LAN.
