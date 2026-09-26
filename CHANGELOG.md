@@ -1,5 +1,17 @@
 # Changelog
 
+## Unreleased
+
+- **A proxy that does not answer is no longer taken for a site that refused.** When nothing
+  listened on an exit's port, the ladder recorded an error and climbed every tier through the
+  same dead exit. The pool kept choosing it, because a transport failure never reached the exit
+  ledger. A `407` from the proxy counted as a block by the site and put the domain on a 15-minute
+  cooldown. Now a refused connection to the proxy, a failed proxy handshake, or a `407` stops the
+  fetch at once with `blocked_reason: "exit_down"`. The exit is passed over on every domain for
+  120 s, with no health or budget spent. The next fetch through a pool leaves through another
+  exit. Timeouts are not counted, since a slow site and a slow exit look alike. Tested offline
+  against a closed loopback port on both http engines.
+
 ## 1.2.0 — 2026-09-26
 
 - **Svipall tells you when a newer version is out.** Once per session, at the end of the

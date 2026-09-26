@@ -299,6 +299,21 @@ fn exc_attempt(route: &str, e: &anyhow::Error, ms: u128) -> String {
     format!("{route}: EXC {one_line} ({ms}ms)")
 }
 
+/// Mark `exit` unreachable and say so, naming it without its credentials.
+fn exit_down_note(domain: &str, exit: &str, cause: &str) -> String {
+    svipall_core::exits::mark_down(exit, cause);
+    let shown = crate::browser::split_proxy_auth(exit).0;
+    let next = if svipall_core::exits::has_alternative(domain, exit) {
+        "The pool has another exit, and the next fetch leaves through it."
+    } else {
+        "It is this domain's only exit: start it again, or declare another with web_route."
+    };
+    format!(
+        "exit_down: the exit {shown} could not be reached ({cause}). It is passed over for {}s and loses no standing with the site. {next}",
+        svipall_core::exits::DOWN_SECS
+    )
+}
+
 /// Should the wait stop now, and what would it say if asked why?
 ///
 /// Pure, so the truth table — especially the extension, which is allowed exactly once and only on
@@ -2624,6 +2639,17 @@ impl SvipallServer {
                 Ok(o) => o,
                 Err(e) => {
                     attempts.push(exc_attempt(&route, &e, ms));
+                    // Nothing answered at the exit, so no tier will do better through it: stop
+                    // here, pass it over, and charge neither it nor the domain for it.
+                    if let Some(exit) = proxy.as_deref() {
+                        if svipall_core::exits::transport_fault(&format!("{e:#}")) {
+                            // The attempt line has the whole chain; the note needs only its end.
+                            let cause = e.root_cause().to_string();
+                            stopped = Some(exit_down_note(&domain, exit, &cause));
+                            stopped_kind = "exit_down";
+                            break;
+                        }
+                    }
                     if automatic {
                         svipall_core::automatic::record(
                             &route_context,
@@ -2646,6 +2672,20 @@ impl SvipallServer {
             } else {
                 identity_mode
             };
+            // A 407 is the exit asking for credentials, never the site refusing: the site was
+            // not reached. Charging it as a block would cool the domain down for the exit's fault.
+            if o.status == 407 {
+                if let Some(exit) = proxy.as_deref() {
+                    attempts.push(format!("{route}: 407 from the exit ({ms}ms)"));
+                    stopped = Some(exit_down_note(
+                        &domain,
+                        exit,
+                        "the exit answered 407 Proxy Authentication Required",
+                    ));
+                    stopped_kind = "exit_down";
+                    break;
+                }
+            }
             let rate_limited = matches!(o.status, 429 | 503);
             if !local && rate_limited {
                 let wait = o

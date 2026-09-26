@@ -56,6 +56,19 @@ is usable again after roughly ninety minutes of not being used, which is long en
 score retired it has likely moved on. A dead exit list that never recovers is a pool that shrinks
 to nothing over a week.
 
+## Unreachable exits
+
+An exit that does not answer at all is a different failure from one a site has blocked, and it is
+kept apart. Nothing listening on the proxy's port, a failed proxy handshake, or a `407` asking for
+credentials all mean the site was never reached. So the fetch stops there instead of climbing
+tiers through the same dead exit. The result says `blocked_reason: "exit_down"` and names the exit
+without its credentials, and the exit is passed over **on every domain** for 120 seconds. It loses no
+health and spends no reputation budget, and the domain gets no cooldown for it.
+
+A timeout is not counted. A slow site and a slow exit look the same from here, so a timeout is
+still an ordinary failure. `web_status` lists the unreachable exits under `exit_health.down`, each
+with its cause and the seconds left.
+
 ## Pacing
 
 `throttle.rs` keys pacing and strikes by `(domain, exit)` as well, so ten exits actually buy
@@ -143,5 +156,5 @@ recording it as one would lose the page for that crawl id forever.
 
 There is no exit Svipall can create for itself: no Tor control port, no VPN interface binding, no
 device on the LAN. A `socks5h://127.0.0.1:PORT` from an `ssh -D` tunnel or a local Tor daemon works
-today as an ordinary proxy URL, but nothing supervises that tunnel, and `Health` cannot yet tell
-"the tunnel died" from "the site blocked me": both arrive as a failure and cost the exit 35 points.
+today as an ordinary proxy URL. When it dies, the exit is marked unreachable and keeps its
+health (see above), but nothing restarts it.
