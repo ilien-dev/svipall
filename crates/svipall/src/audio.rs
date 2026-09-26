@@ -258,6 +258,12 @@ pub fn words_to_digits(text: &str) -> String {
     out
 }
 
+/// What the decoder reads, said wherever it cannot read something, so the reader knows it is the
+/// format and not the file.
+#[cfg(any(feature = "onnx-audio", feature = "onnx-asr"))]
+const DECODED: &str =
+    "MP3, AAC in MP4, WAV, Ogg Vorbis and FLAC are read; Opus, WebM and MPEG-TS are not";
+
 #[cfg(any(feature = "onnx-audio", feature = "onnx-asr"))]
 /// Decode whatever container was served into mono samples at its own rate: a captcha's clip, or
 /// the audio track of a video for speech recognition.
@@ -271,12 +277,14 @@ pub fn decode(bytes: &[u8]) -> Result<(Vec<f32>, u32)> {
 
     let source = std::io::Cursor::new(bytes.to_vec());
     let stream = MediaSourceStream::new(Box::new(source), Default::default());
-    let probed = symphonia::default::get_probe().format(
-        &Hint::new(),
-        stream,
-        &FormatOptions::default(),
-        &MetadataOptions::default(),
-    )?;
+    let probed = symphonia::default::get_probe()
+        .format(
+            &Hint::new(),
+            stream,
+            &FormatOptions::default(),
+            &MetadataOptions::default(),
+        )
+        .map_err(|e| anyhow!("{e}: {DECODED}"))?;
     let mut format = probed.format;
     // A video file's default track is usually the picture. The sound is the first track that has
     // a sample rate and a decoder here.
@@ -290,7 +298,7 @@ pub fn decode(bytes: &[u8]) -> Result<(Vec<f32>, u32)> {
                     .make(&t.codec_params, &DecoderOptions::default())
                     .is_ok()
         })
-        .ok_or_else(|| anyhow!("no audio track this build can decode"))?;
+        .ok_or_else(|| anyhow!("no audio track this build can decode: {DECODED}"))?;
     let track_id = track.id;
     let mut decoder = codecs.make(&track.codec_params, &DecoderOptions::default())?;
     let mut samples: Vec<f32> = Vec::new();
@@ -385,6 +393,17 @@ mod tests {
         (0..n)
             .map(|i| (2.0 * PI * hz * i as f32 / rate as f32).sin())
             .collect()
+    }
+
+    #[cfg(any(feature = "onnx-audio", feature = "onnx-asr"))]
+    #[test]
+    fn a_format_that_is_not_decoded_says_which_ones_are() {
+        // A WebM header: a container this decoder does not open.
+        let webm = [
+            0x1a, 0x45, 0xdf, 0xa3, 0x9f, 0x42, 0x86, 0x81, 0x01, 0x42, 0xf7, 0x81,
+        ];
+        let e = decode(&webm).expect_err("webm is not decoded").to_string();
+        assert!(e.contains("Opus, WebM"), "{e}");
     }
 
     #[test]

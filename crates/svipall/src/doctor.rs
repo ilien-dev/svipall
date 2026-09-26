@@ -45,6 +45,7 @@ fn features() -> Vec<&'static str> {
         (cfg!(feature = "onnx-segment"), "onnx-segment"),
         (cfg!(feature = "onnx-zeroshot"), "onnx-zeroshot"),
         (cfg!(feature = "onnx-asr"), "onnx-asr"),
+        (cfg!(feature = "onnx-read"), "onnx-read"),
     ] {
         if on {
             out.push(name);
@@ -229,6 +230,7 @@ const STALE_MAJORS: u16 = 2;
 pub fn report_from(f: &Facts) -> Value {
     let found = problems(f);
     let asr = f.installed_models.iter().any(|m| m == "asr");
+    let read = f.installed_models.iter().any(|m| m == "read");
     json!({
         "ok": found.is_empty(),
         "version": f.version,
@@ -263,6 +265,14 @@ pub fn report_from(f: &Facts) -> Value {
                 "compiled": cfg!(feature = "onnx-asr"),
                 "installed": asr,
                 "fix": (!asr).then_some("svipall models install"),
+            },
+        },
+        // An image, or a PDF of scanned pages, is read only with the text reader on disk.
+        "images": {
+            "text": {
+                "compiled": cfg!(feature = "onnx-read"),
+                "installed": read,
+                "fix": (!read).then_some("svipall models install"),
             },
         },
         "dashboard": { "port": f.dashboard_port, "free": f.dashboard_free },
@@ -381,6 +391,18 @@ fn installed_models() -> Vec<String> {
     .all(|p| p.is_file())
     {
         out.push("asr".into());
+    }
+    // The text reader is two networks sharing the recogniser's sidecar; it counts once, as `read`.
+    out.retain(|m| m != "ocr_rec");
+    if [
+        crate::read_text::det_path(),
+        crate::read_text::rec_path(),
+        crate::read_text::config_path(),
+    ]
+    .iter()
+    .all(|p| p.is_file())
+    {
+        out.push("read".into());
     }
     out.sort();
     out.dedup();

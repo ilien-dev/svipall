@@ -21,6 +21,33 @@
   and `svipall doctor` reports one whose program is not installed. Tested with a SOCKS5 responder
   that exits after 4 s: it was restarted and answering again within the 16 s the test took.
 
+- **`web_fetch` reads an audio or video file instead of decoding it as text.** A response typed
+  `audio/*` or `video/*` used to come back as its bytes read as UTF-8. It is now transcribed by
+  the local speech model when `svipall models install` has put it there. Without the model, a
+  note says so. The result carries `media` (kind, type, size, captions) and no other tier is
+  tried. The type decides, not the extension, so `/episode?id=3` served as `audio/mpeg` is read,
+  by `web_video` too. `file://` knows the common audio, video and image extensions.
+- **Episode pages and podcast feeds.** `web_video` finds a recording in `<audio>`, `og:audio` and
+  JSON-LD `AudioObject` and `PodcastEpisode`. A transcript published with it is read before any
+  recognition, and the recording is then never downloaded. `web_map` rows from a feed carry the
+  episode's `enclosure` (address, type, `itunes:duration`) and its `podcast:transcript`.
+- **A PDF of scanned pages is labelled, not passed off as empty.** When most pages have no text
+  layer, the result carries `document.scanned` with the page counts and a note in the content,
+  and the fetch stops at the http tier.
+- **The text in an image or a scanned page is read.** `svipall models install` now also puts a
+  text reader in place: PP-OCRv5 mobile (Apache-2.0), a detector and a Latin line recogniser,
+  12.7 MB, fetched and hash-checked by `tools/models/export_ocr.py`. `web_fetch` on an image
+  returns its text, and a scanned PDF is read page by page (up to 30 pages, one minute). Pages
+  stored as JBIG2 or CCITT, common for black and white, are listed in `document.skipped` rather
+  than guessed at. Measured on 24 rendered pictures in four typefaces, Spanish and English,
+  clean, JPEG-compressed and blurred: 0.12% character error rate, no accent or ñ lost, median 74 ms
+  a picture, release build, CPU (`bench/experiments/ocr-20260926`). Rendered text is easier than a
+  real scan, so that number is a floor.
+- **Two fixes found on the way.** `web_video` never read `og:video`, because it looked up keys
+  with the `og:` prefix that the metadata parser strips. `web_map` dropped the port from the
+  site's origin, so a site on `:8080` had its robots.txt, sitemaps and feeds looked up on `:80`.
+  An audio format that is not decoded now names the ones that are.
+
 ## 1.2.0 — 2026-09-26
 
 - **Svipall tells you when a newer version is out.** Once per session, at the end of the

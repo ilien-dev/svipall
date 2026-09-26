@@ -38,6 +38,7 @@ pub struct TextTrack {
 /// What the page's markup says about video.
 #[derive(Debug, Clone, Default, PartialEq, Serialize)]
 pub struct PageMedia {
+    /// Every `<video>` and `<audio>` element, in page order.
     pub videos: Vec<Video>,
     /// Every iframe `src`, resolved: an embedded player is found by its address, and which
     /// addresses are players is the caller's table, not this crate's.
@@ -66,7 +67,8 @@ fn attr(el: &ElementRef<'_>, name: &str) -> Option<String> {
 pub(crate) fn media_from(doc: &Html, base_url: &str) -> PageMedia {
     let base = url::Url::parse(base_url).ok();
     let base = base.as_ref();
-    let video = Selector::parse("video").expect("static selector");
+    // `<audio>` is read the same way: a recording with no picture has sources and tracks too.
+    let video = Selector::parse("video, audio").expect("static selector");
     let source = Selector::parse("source").expect("static selector");
     let track = Selector::parse("track").expect("static selector");
     let iframe = Selector::parse("iframe[src]").expect("static selector");
@@ -121,6 +123,19 @@ mod tests {
             &Html::parse_document(html),
             "https://example.org/talks/one.html",
         )
+    }
+
+    #[test]
+    fn an_audio_element_is_read_like_a_video_one() {
+        let m = parse(
+            r#"<audio controls src="ep/12.mp3"><source src="ep/12.ogg" type="audio/ogg"></audio>"#,
+        );
+        assert_eq!(m.videos.len(), 1);
+        assert_eq!(
+            m.videos[0].sources[0].src,
+            "https://example.org/talks/ep/12.mp3"
+        );
+        assert_eq!(m.videos[0].sources[1].mime.as_deref(), Some("audio/ogg"));
     }
 
     #[test]

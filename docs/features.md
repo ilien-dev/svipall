@@ -13,8 +13,18 @@ Lifted out of the README so that file stays readable. Everything here is the sam
   (CSV/JSON/JSONL to a file), and docx, xlsx, pptx, odt, epub, rtf, csv and pdf come back as
   Markdown, from the web or from `file://` under a declared root. `raw:<html>` extracts markup you
   already have, with no request at all. Document conversion is bounded and format-dependent:
-  PDF extraction reads embedded text, not OCR of scanned pages. Default PDF limits are 50 MiB
-  and 100 pages, so a large, malformed or image-only file can fail or yield incomplete text.
+  A PDF whose pages are mostly images of text is labelled `document.scanned`, and with the text
+  reader installed (`svipall models install`) each page's picture is read, up to 30 pages. JBIG2
+  and CCITT pages, which scanners use for black and white, are listed as skipped rather than
+  guessed at. Default PDF limits are 50 MiB and 100 pages, so a large or malformed file can fail
+  or yield incomplete text.
+- **Recordings as what they say**: an audio or video file, recognised by its declared type and not
+  only by its extension, is transcribed by the local speech model (`svipall models install`)
+  instead of being decoded as text, and `media` says what it was. An image is read for the text in
+  it by the same install's text reader. An episode page is read through
+  its `<audio>`, `og:audio` or JSON-LD `PodcastEpisode`, and a transcript the publisher wrote is
+  read before any recognition. `web_map` lists a podcast feed's episodes with their `enclosure`
+  and `transcript`.
 - **Observe JSON responses**: `web_capture` records matching responses during a bounded browser
   capture. Results may reveal an endpoint worth investigating but do not guarantee a public,
   reusable or paginated API, and authentication and site restrictions still apply.

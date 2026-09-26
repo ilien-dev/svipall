@@ -25,6 +25,7 @@ pub mod profiles;
 pub mod progress;
 pub mod provision;
 pub mod quality_cli;
+pub mod read_text;
 /// The same server over HTTP: one endpoint per tool, behind a bearer key.
 pub mod rest;
 pub mod search;
