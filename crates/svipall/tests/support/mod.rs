@@ -41,7 +41,7 @@ pub fn isolate() -> std::path::PathBuf {
 pub struct Reply {
     pub status: u16,
     pub content_type: String,
-    pub body: String,
+    pub body: Vec<u8>,
     pub headers: Vec<(String, String)>,
     /// How long this route takes to answer.
     ///
@@ -90,6 +90,17 @@ impl Reply {
         }
     }
 
+    /// A file served as is: media, images, anything that is not text.
+    pub fn bytes(body: &[u8], content_type: &str) -> Self {
+        Self {
+            status: 200,
+            content_type: content_type.into(),
+            body: body.to_vec(),
+            headers: Vec::new(),
+            delay_ms: 0,
+        }
+    }
+
     pub fn with_status(mut self, status: u16) -> Self {
         self.status = status;
         self
@@ -125,6 +136,25 @@ impl Reply {
         )
         .with_status(401)
     }
+}
+
+/// The `Range: bytes=a-b` of a request, clamped to a body of `len` bytes.
+fn byte_range(head: &str, len: usize) -> Option<(usize, usize)> {
+    let spec = head
+        .lines()
+        .find_map(|l| {
+            l.strip_prefix("Range: ")
+                .or_else(|| l.strip_prefix("range: "))
+        })?
+        .trim()
+        .strip_prefix("bytes=")?;
+    let (a, b) = spec.split_once('-')?;
+    let a: usize = a.parse().ok()?;
+    let b = b
+        .parse()
+        .unwrap_or(len.saturating_sub(1))
+        .min(len.saturating_sub(1));
+    (a <= b).then_some((a, b))
 }
 
 pub struct Site {
@@ -168,9 +198,19 @@ impl Site {
                     *h.lock().unwrap().entry(path.clone()).or_insert(0) += 1;
 
                     let reply = t.get(&target).or_else(|| t.get(&path)).cloned();
-                    let reply = reply.unwrap_or_else(|| {
+                    let mut reply = reply.unwrap_or_else(|| {
                         Reply::html("<html><body>not found</body></html>").with_status(404)
                     });
+                    // A media element seeks by range; without one it can only play from the top.
+                    if let Some((a, b)) = byte_range(&head, reply.body.len()) {
+                        let total = reply.body.len();
+                        reply.body = reply.body[a..=b].to_vec();
+                        reply.status = 206;
+                        reply
+                            .headers
+                            .push(("Content-Range".into(), format!("bytes {a}-{b}/{total}")));
+                    }
+                    reply.headers.push(("Accept-Ranges".into(), "bytes".into()));
                     let mut out = format!(
                         "HTTP/1.1 {} X\r\nContent-Type: {}\r\nContent-Length: {}\r\nConnection: close\r\n",
                         reply.status,
@@ -181,11 +221,12 @@ impl Site {
                         out.push_str(&format!("{k}: {v}\r\n"));
                     }
                     out.push_str("\r\n");
-                    out.push_str(&reply.body);
+                    let mut out = out.into_bytes();
+                    out.extend_from_slice(&reply.body);
                     if reply.delay_ms > 0 {
                         tokio::time::sleep(std::time::Duration::from_millis(reply.delay_ms)).await;
                     }
-                    let _ = sock.write_all(out.as_bytes()).await;
+                    let _ = sock.write_all(&out).await;
                     let _ = sock.flush().await;
                 });
             }

@@ -5158,9 +5158,11 @@ impl SvipallServer {
         let final_url = page["final_url"].as_str().unwrap_or(&url).to_string();
 
         // A stream's manifest can list caption renditions the page did not, and it is where
-        // encryption is declared.
+        // encryption is declared: read before frames are asked of a picture nobody can decode.
+        let want_frames = p.frames.unwrap_or(0).min(crate::video_frames::MAX_FRAMES) as usize;
         let mut drm: Option<String> = None;
-        if info.tracks.is_empty() {
+        let read_tracks = info.tracks.is_empty();
+        if read_tracks || want_frames > 0 {
             let manifests: Vec<_> = info
                 .streams
                 .iter()
@@ -5177,7 +5179,9 @@ impl SvipallServer {
                     _ => v::manifest::dash(&body, &s.url),
                 };
                 drm = drm.or(m.drm);
-                info.tracks.extend(m.subtitles);
+                if read_tracks {
+                    info.tracks.extend(m.subtitles);
+                }
             }
         }
         if info.chapters.is_empty() {
@@ -5195,7 +5199,9 @@ impl SvipallServer {
 
         let track = vid::pick_track(&info.tracks, p.lang.as_deref()).cloned();
         let borrow = v::sources::spec(info.source).and_then(|r| r.borrow.as_ref());
-        let want_frames = p.frames.unwrap_or(0).min(crate::video_frames::MAX_FRAMES) as usize;
+        // No browser here decodes a protected picture: asking would only wait out the player.
+        let frames_refused = drm.is_some() && want_frames > 0;
+        let want_frames = if frames_refused { 0 } else { want_frames };
         let mut cues = match (&track, borrow) {
             (Some(t), None) => self.video_captions(t, &mut notes).await,
             (None, _) => {
@@ -5233,7 +5239,11 @@ impl SvipallServer {
             notes.push("the caption track came back with nothing to read".into());
         }
         if drm.is_some() {
-            notes.push("the stream is encrypted: reported, not read".into());
+            notes.push(if frames_refused {
+                "the stream is encrypted: reported, not read, and no frames captured".into()
+            } else {
+                "the stream is encrypted: reported, not read".into()
+            });
         }
         let reading = vid::Reading {
             cues,
@@ -5628,17 +5638,23 @@ impl SvipallServer {
                 self.pool.navigate(&page, page_url).await?;
 
                 if let Some((t, b)) = borrow {
-                    // An advert plays first and asks for its own captions; the video's come after.
-                    let deadline = Instant::now() + Duration::from_secs(30);
-                    let borrowed = loop {
-                        let hit = seen.lock().ok().and_then(|s| {
+                    // An advert plays first and asks for its own captions; the video's come after,
+                    // once it is on screen, which the watch waits for.
+                    let hit = || {
+                        seen.lock().ok().and_then(|s| {
                             crate::video::borrowed_request(&s, b, info.id.as_deref()).cloned()
-                        });
-                        if hit.is_some() || Instant::now() > deadline {
-                            break hit;
-                        }
-                        tokio::time::sleep(Duration::from_millis(500)).await;
+                        })
                     };
+                    watch_player(
+                        &page,
+                        info.duration,
+                        Duration::from_secs(30),
+                        |_| hit().is_some(),
+                        self.pool.identity().noise_seed,
+                        notes,
+                    )
+                    .await?;
+                    let borrowed = hit();
                     if let Some(c) = &collector {
                         c.abort();
                     }
@@ -5683,59 +5699,65 @@ impl SvipallServer {
         use crate::video_frames as vf;
         use svipall_cdp::cdp::browser_protocol::page::CaptureScreenshotFormat;
 
-        // An advert plays in the same element first. The video is on screen when the element's
-        // length is the video's; with no length to compare, when it has one at all.
-        let deadline = Instant::now() + Duration::from_secs(45);
-        let length = loop {
-            let probe = page.evaluate(vf::probe_js()).await?;
-            let d = probe
-                .value()
-                .and_then(|v| v.get("d"))
-                .and_then(|d| d.as_f64());
-            let settled = match (d, info.duration) {
-                (Some(d), Some(want)) => (d - want).abs() < 3.0,
-                (Some(d), None) => d > 0.0,
-                _ => false,
-            };
-            if settled {
-                // A picture of no size is a stream this browser cannot decode (a codec it dropped),
-                // playing its sound and nothing else.
-                if probe
-                    .value()
-                    .and_then(|v| v.get("w"))
-                    .and_then(|w| w.as_f64())
-                    == Some(0.0)
-                {
-                    notes.push(
-                        "the browser decodes no picture for this video (its codec), so no frames"
-                            .into(),
-                    );
-                    return Ok(Vec::new());
-                }
-                break d;
-            }
-            if Instant::now() > deadline {
+        // An advert plays first, and a player that has not started keeps the video off the page.
+        let state = watch_player(
+            page,
+            info.duration,
+            Duration::from_secs(45),
+            |p| matches!(p, vf::Playing::Main { .. }),
+            self.pool.identity().noise_seed,
+            notes,
+        )
+        .await?;
+        let length = match state {
+            vf::Playing::Main { picture: false, .. } => {
+                // A picture of no size is a stream this browser cannot decode (a codec it
+                // dropped), playing its sound and nothing else.
                 notes.push(
-                    "the player never showed the video itself within 45 s, so no frames".into(),
+                    "the browser decodes no picture for this video (its codec), so no frames"
+                        .into(),
                 );
                 return Ok(Vec::new());
             }
-            tokio::time::sleep(Duration::from_millis(500)).await;
+            vf::Playing::Main { length, .. } => length,
+            vf::Playing::Advert { .. } => {
+                notes.push(
+                    "an advert was still on screen when the wait ran out, so no frames".into(),
+                );
+                return Ok(Vec::new());
+            }
+            _ => {
+                notes.push("the player never showed the video itself, so no frames".into());
+                return Ok(Vec::new());
+            }
         };
-        let duration = info.duration.or(length).unwrap_or(0.0);
+        let duration = info.duration.unwrap_or(length);
         let sampled = moments.is_none();
         let times = moments
             .unwrap_or_else(|| vf::uniform(duration, (n * vf::CANDIDATES_PER_FRAME).min(48)));
 
         let mut shots: Vec<(f64, Vec<u8>)> = Vec::new();
+        let mut clipped = 0usize;
         for t in times {
-            let r = page.evaluate(vf::seek_js(t)).await?;
-            let Some(v) = r.value() else { continue };
+            let Some(v) = quiet_eval(page, vf::seek_js(t)).await? else {
+                continue;
+            };
             if v.get("ok").and_then(|o| o.as_bool()) != Some(true) {
                 continue;
             }
-            let num = |k: &str| v.get(k).and_then(|x| x.as_f64()).unwrap_or(0.0);
             let at = v.get("t").and_then(|x| x.as_f64()).unwrap_or(t);
+            // The element's own picture first: no controls, no captions drawn over it.
+            let grabbed = quiet_eval(page, vf::grab_js(vf::GRAB_MAX_WIDTH))
+                .await?
+                .and_then(|g| g.get("png").and_then(|p| p.as_str()).map(str::to_string))
+                .and_then(|b| {
+                    base64::Engine::decode(&base64::engine::general_purpose::STANDARD, b).ok()
+                });
+            if let Some(png) = grabbed {
+                shots.push((at, png));
+                continue;
+            }
+            let num = |k: &str| v.get(k).and_then(|x| x.as_f64()).unwrap_or(0.0);
             // Where the player is, as the page itself measures it on this seek: a layout that
             // moved (a banner, a theatre mode) moves the clip with it.
             let params = svipall_cdp::page::ScreenshotParams::builder()
@@ -5752,22 +5774,43 @@ impl SvipallServer {
             // One capture sometimes waits seconds on the compositor; a frame is not worth that.
             let shot = tokio::time::timeout(Duration::from_secs(4), page.screenshot(params)).await;
             if let Ok(Ok(png)) = shot {
+                clipped += 1;
                 shots.push((at, png));
             }
         }
+        if clipped > 0 {
+            notes.push(format!(
+                "{clipped} frame(s) could not be read from the player itself (a cross-origin or \
+                 protected stream), so they are screenshots and can show its controls"
+            ));
+        }
+        // A capture of nothing is not a frame: say how many there were rather than hand them over.
+        let thumbs: Vec<image::RgbImage> = shots
+            .iter()
+            .map(|(_, png)| {
+                image::load_from_memory(png)
+                    .map(|i| i.thumbnail(64, 64).to_rgb8())
+                    .unwrap_or_default()
+            })
+            .collect();
+        let (keep, blanks, repeats) = vf::informative(&thumbs);
+        if blanks > 0 {
+            notes.push(format!(
+                "{blanks} capture(s) came back blank and were left out"
+            ));
+        }
+        if repeats > 0 {
+            notes.push(format!(
+                "{repeats} capture(s) repeated an earlier picture and were left out"
+            ));
+        }
+        let hists: Vec<Vec<f32>> = keep.iter().map(|&i| vf::histogram(&thumbs[i])).collect();
+        shots = keep.into_iter().map(|i| shots[i].clone()).collect();
         if sampled && shots.len() > n {
             let times: Vec<f64> = shots.iter().map(|s| s.0).collect();
-            let hists: Vec<Vec<f32>> = shots
-                .iter()
-                .map(|(_, png)| {
-                    image::load_from_memory(png)
-                        .map(|i| vf::histogram(&i.thumbnail(64, 64).to_rgb8()))
-                        .unwrap_or_default()
-                })
-                .collect();
             let gap = (duration / (n as f64 * 4.0)).max(1.0);
-            let keep = vf::pick(&times, &hists, n, gap);
-            shots = keep.into_iter().map(|i| shots[i].clone()).collect();
+            let picked = vf::pick(&times, &hists, n, gap);
+            shots = picked.iter().map(|&i| shots[i].clone()).collect();
         }
         let root = svipall_core::config::home_dir().join("out").join("video");
         let name = match &info.id {
@@ -7041,6 +7084,77 @@ fn scroll_rounds(p: &WebFetchParams) -> u32 {
         None => 0,
     }
 }
+
+/// Evaluate in the isolated world: the page's own scripts see neither the call nor what it
+/// builds. Falls back to the page's world when the isolated one is not there yet.
+async fn quiet_eval(page: &svipall_cdp::Page, js: String) -> anyhow::Result<Option<Value>> {
+    let mut p = svipall_cdp::cdp::js_protocol::runtime::EvaluateParams::new(js);
+    p.context_id = page.secondary_execution_context().await.ok().flatten();
+    Ok(page.evaluate_expression(p).await?.value().cloned())
+}
+
+/// Watch the page's player until `done` says so or `patience` runs out, and return what it was
+/// showing last. An advert extends the wait (to [`ADVERT_WAIT`] in all) and is run through at
+/// speed; a video the player has parked off the page is started, muted, since nothing else will
+/// start it headless; and a player that loads nothing until its play button is pressed gets a
+/// press, through `behavior`.
+async fn watch_player(
+    page: &svipall_cdp::Page,
+    want: Option<f64>,
+    patience: Duration,
+    done: impl Fn(crate::video_frames::Playing) -> bool,
+    seed: u64,
+    notes: &mut Vec<String>,
+) -> anyhow::Result<crate::video_frames::Playing> {
+    use crate::video_frames::{self as vf, Playing};
+    let start = Instant::now();
+    let cap = start + ADVERT_WAIT;
+    let mut deadline = start + patience;
+    let (mut advert, mut woke): (bool, Option<Instant>) = (false, None);
+    let mut pressed = 0u8;
+    loop {
+        let probe = quiet_eval(page, vf::probe_js())
+            .await?
+            .unwrap_or(Value::Null);
+        let now = vf::playing(&probe, want);
+        let due = woke.is_none_or(|w| w.elapsed() > Duration::from_secs(3));
+        if let (Playing::Advert { .. }, Some(want)) = (now, want) {
+            advert = true;
+            deadline = deadline.max((Instant::now() + Duration::from_secs(20)).min(cap));
+            if due {
+                quiet_eval(page, vf::hurry_js(want)).await?;
+                woke = Some(Instant::now());
+            }
+        } else if now == Playing::Cued && due {
+            quiet_eval(page, vf::wake_js()).await?;
+            woke = Some(Instant::now());
+        } else if let (Playing::Nothing, Some((x, y, w, h))) = (now, vf::idle_box(&probe)) {
+            // Nothing loads until play is pressed: press it, as a person would, twice at most.
+            if pressed < 2 && due {
+                let (px, py) = crate::behavior::aim(x, y, w, h, seed ^ pressed as u64);
+                crate::behavior::Cursor::at_page(page)
+                    .click_at(page, px, py, seed)
+                    .await?;
+                pressed += 1;
+                woke = Some(Instant::now());
+            }
+        }
+        if done(now) || Instant::now() > deadline {
+            if advert {
+                notes.push(format!(
+                    "an advert played first, run through muted at speed; the video came on after {} s",
+                    start.elapsed().as_secs()
+                ));
+            }
+            return Ok(now);
+        }
+        tokio::time::sleep(Duration::from_millis(500)).await;
+    }
+}
+
+/// The longest an advert is waited out, from the start of the watch. Run at speed, a pod of two
+/// takes seconds; this bounds a player that resets the rate.
+const ADVERT_WAIT: Duration = Duration::from_secs(60);
 
 #[cfg(test)]
 mod tests {
