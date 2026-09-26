@@ -118,7 +118,7 @@ pub fn content(info: &VideoInfo, reading: &Reading) -> String {
     let segments = align::timeline(
         &reading.cues,
         &info.chapters,
-        &[],
+        &reading.frames,
         WINDOW_SECS,
         (None, None),
     );
@@ -126,7 +126,7 @@ pub fn content(info: &VideoInfo, reading: &Reading) -> String {
     if let Some(t) = &info.title {
         out.push_str(&format!("# {t}\n\n"));
     }
-    if segments.is_empty() {
+    if reading.cues.is_empty() {
         match (&info.transcript, &info.description) {
             (Some(t), _) => out.push_str(&format!("Transcript published with the video:\n\n{t}\n")),
             (None, Some(d)) => out.push_str(&format!("No captions. Description:\n\n{d}\n")),
@@ -137,6 +137,10 @@ pub fn content(info: &VideoInfo, reading: &Reading) -> String {
             for c in &info.chapters {
                 out.push_str(&format!("[{}] {}\n", align::clock(c.start), c.title));
             }
+        }
+        if !reading.frames.is_empty() {
+            out.push_str("\nFrames:\n");
+            out.push_str(&align::render(&segments));
         }
         return out;
     }
@@ -285,6 +289,41 @@ mod tests {
         };
         let c = content(&info, &r);
         assert!(c.contains("# Talk") && c.contains("About things.") && c.contains("[0:00] Intro"));
+    }
+
+    #[test]
+    fn frames_land_in_the_timeline_with_captions_or_without() {
+        let info = VideoInfo {
+            title: Some("Talk".into()),
+            description: Some("About things.".into()),
+            ..VideoInfo::default()
+        };
+        let frame = FrameRef {
+            t: 6.0,
+            path: "/f/00-00-06.png".into(),
+        };
+        let mut r = Reading {
+            cues: vec![],
+            track: None,
+            frames: vec![frame],
+            notes: vec![],
+        };
+        let silent = content(&info, &r);
+        assert!(silent.contains("About things."), "{silent}");
+        assert!(
+            silent.contains("[0:06] (frame: /f/00-00-06.png)"),
+            "{silent}"
+        );
+        r.cues = vec![Cue {
+            start: 5.0,
+            end: 8.0,
+            text: "hello".into(),
+        }];
+        let spoken = content(&info, &r);
+        assert!(
+            spoken.contains("[0:05] hello (frame: /f/00-00-06.png)"),
+            "{spoken}"
+        );
     }
 
     #[test]
