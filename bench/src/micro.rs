@@ -1,7 +1,7 @@
 //! CPU budgets, no network.
 //!
-//! Two kinds of check. The timing budgets have 25% headroom before they fail, so an unloaded
-//! machine passes and a real regression does not. The *structural* ones — how many times the DOM
+//! Two kinds of check. The timing budgets compare the fastest of several runs, with 25% headroom,
+//! so a busy CI runner passes and a real regression does not. The *structural* ones — how many times the DOM
 //! is parsed, how many times state is read from disk — are exact and cannot flake, and they are
 //! what actually pins the work down: a timing number drifts with the hardware, "exactly one parse"
 //! does not.
@@ -99,33 +99,64 @@ struct Budget {
 }
 
 impl Budget {
-    fn ok(&self) -> bool {
-        // 25% headroom: a busy machine should not turn into a red build.
-        self.measured <= self.limit.mul_f32(1.25)
+    fn ok(&self, reference: Duration) -> bool {
+        // 25% headroom on top of the machine's own speed: a busy machine should not turn into a
+        // red build.
+        self.measured <= scaled(self.limit, reference).mul_f32(1.25)
     }
 }
 
+/// What [`reference_work`] takes on the machine the budgets were written on (Linux, x86-64,
+/// release build). Measure it again when the budgets are set again, never to make a run pass.
+const REFERENCE: Duration = Duration::from_micros(REFERENCE_MICROS);
+const REFERENCE_MICROS: u64 = 2_000;
+
+/// Work that owes nothing to Svipall: fill and sort a fixed vector, allocation included, which is
+/// the same mix of memory and branches a DOM parse is. A slower runner is slower at this too, and
+/// a regression in Svipall's code cannot make it slower, so dividing by it takes the hardware out
+/// of the comparison and leaves the regression in.
+fn reference_work() -> u64 {
+    let mut state = 0x9e37_79b9_7f4a_7c15u64;
+    let mut v: Vec<u64> = (0..200_000)
+        .map(|_| {
+            state ^= state << 13;
+            state ^= state >> 7;
+            state ^= state << 17;
+            state
+        })
+        .collect();
+    v.sort_unstable();
+    v[v.len() / 2]
+}
+
+/// `limit` for a machine that ran [`reference_work`] in `reference`. Only ever loosened: a machine
+/// faster than the one the budgets were written on keeps the written budget.
+fn scaled(limit: Duration, reference: Duration) -> Duration {
+    if reference <= REFERENCE || REFERENCE.is_zero() {
+        return limit;
+    }
+    limit.mul_f64(reference.as_secs_f64() / REFERENCE.as_secs_f64())
+}
+
+/// The fastest of `reps` timed runs. A mean took every preemption of a shared CI runner into the
+/// number and failed budgets the code had not broken; the fastest run is the code's own cost,
+/// which only a real regression raises.
 fn time<T>(reps: u32, mut f: impl FnMut() -> T) -> Duration {
     // One warm-up so allocator and cache effects do not land in the measurement.
     let _ = f();
-    let t0 = Instant::now();
-    for _ in 0..reps {
-        let _ = f();
-    }
-    t0.elapsed() / reps
+    (0..reps.max(1))
+        .map(|_| {
+            let t0 = Instant::now();
+            let _ = std::hint::black_box(f());
+            t0.elapsed()
+        })
+        .min()
+        .unwrap_or_default()
 }
 
-pub fn run(assert: bool) -> usize {
-    let page = news_page(200_000);
-    let text = extraction::extract_text(&page);
-    let markdown = extraction::extract_markdown_opts(&page, &extraction::ExtractOpts::default());
-    eprintln!(
-        "fixture: {} KB html, {} KB text, {} KB markdown\n",
-        page.len() / 1024,
-        text.len() / 1024,
-        markdown.len() / 1024
-    );
-
+/// Every timing budget, and the machine's speed measured right after them.
+fn measure(page: &str, text: &str, markdown: &str) -> (Vec<Budget>, Duration) {
+    let (page, text, markdown) = (page.to_string(), text.to_string(), markdown.to_string());
     let mut budgets = Vec::new();
 
     budgets.push(Budget {
@@ -322,14 +353,66 @@ pub fn run(assert: bool) -> usize {
         }
     }
 
+    (budgets, time(20, reference_work))
+}
+
+/// The budgets over on both passes. One that recovered on the second was the machine.
+fn over_twice(first: &[&'static str], second: &[&'static str]) -> Vec<&'static str> {
+    second
+        .iter()
+        .copied()
+        .filter(|n| first.contains(n))
+        .collect()
+}
+
+pub fn run(assert: bool) -> usize {
+    let page = news_page(200_000);
+    let text = extraction::extract_text(&page);
+    let markdown = extraction::extract_markdown_opts(&page, &extraction::ExtractOpts::default());
+    eprintln!(
+        "fixture: {} KB html, {} KB text, {} KB markdown\n",
+        page.len() / 1024,
+        text.len() / 1024,
+        markdown.len() / 1024
+    );
+
+    // A budget that is over is measured again, with the machine's speed measured again beside
+    // it, and fails only when it is over both times: a busy runner is slow once, a regression is
+    // slow every time.
+    let (mut budgets, mut reference) = measure(&page, &text, &markdown);
+    let first_over: Vec<&'static str> = budgets
+        .iter()
+        .filter(|b| !b.ok(reference))
+        .map(|b| b.name)
+        .collect();
+    if !first_over.is_empty() {
+        eprintln!(
+            "{} over budget on the first pass; measuring everything again\n",
+            first_over.len()
+        );
+        (budgets, reference) = measure(&page, &text, &markdown);
+    }
+    let second_over: Vec<&'static str> = budgets
+        .iter()
+        .filter(|b| !b.ok(reference))
+        .map(|b| b.name)
+        .collect();
+    let over = over_twice(&first_over, &second_over);
+
+    eprintln!(
+        "machine: reference work {reference:.3?} against {REFERENCE:?} where the budgets were set\n"
+    );
     let mut failures = 0;
     for b in &budgets {
-        let status = if b.ok() { "ok  " } else { "OVER" };
+        let ok = !over.contains(&b.name);
+        let status = if ok { "ok  " } else { "OVER" };
         eprintln!(
-            "{status} {:<34} {:>9.3?}  (budget {:?})",
-            b.name, b.measured, b.limit
+            "{status} {:<34} {:>9.3?}  (budget {:.3?})",
+            b.name,
+            b.measured,
+            scaled(b.limit, reference)
         );
-        if !b.ok() {
+        if !ok {
             failures += 1;
         }
     }
@@ -447,4 +530,42 @@ fn structural() -> usize {
     }
 
     failures
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// A shared CI runner preempts a process now and then. One slow repetition in ten must not
+    /// move the number a budget is compared with, or every budget is a coin toss on a busy host.
+    #[test]
+    fn one_preempted_repetition_does_not_move_the_measurement() {
+        let mut call = 0;
+        let measured = time(10, || {
+            call += 1;
+            if call == 4 {
+                std::thread::sleep(Duration::from_millis(50));
+            }
+        });
+        assert!(
+            measured < Duration::from_millis(5),
+            "a single 50 ms stall read as {measured:?}"
+        );
+    }
+
+    /// A runner half as fast as the machine the budgets were set on gets twice the budget; a
+    /// faster one keeps the written budget, never a tighter one.
+    #[test]
+    fn budgets_follow_the_speed_of_the_machine_and_never_tighten() {
+        let limit = Duration::from_millis(8);
+        assert_eq!(scaled(limit, REFERENCE * 2), Duration::from_millis(16));
+        assert_eq!(scaled(limit, REFERENCE / 2), limit);
+        assert_eq!(scaled(limit, REFERENCE), limit);
+    }
+
+    #[test]
+    fn only_a_budget_over_on_both_passes_fails() {
+        assert_eq!(over_twice(&["a", "b"], &["b", "c"]), vec!["b"]);
+        assert!(over_twice(&["a"], &[]).is_empty());
+    }
 }
