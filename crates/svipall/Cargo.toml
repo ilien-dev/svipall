@@ -50,6 +50,7 @@ futures = { workspace = true }
 urlencoding = { workspace = true }
 scraper = { workspace = true }
 semver = { workspace = true }
+dirs = { workspace = true }
 url = { workspace = true }
 zip = { version = "2.2", default-features = false, features = ["deflate", "aes-crypto"] }
 # Checking a downloaded models archive against the release's own sha256sums.txt.

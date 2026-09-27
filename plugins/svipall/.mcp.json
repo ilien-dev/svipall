@@ -1,7 +1,8 @@
 {
   "mcpServers": {
     "svipall": {
-      "command": "svipall-mcp"
+      "command": "svipall-mcp",
+      "env": { "SVIPALL_INTEGRATION": "claude-plugin" }
     }
   }
 }

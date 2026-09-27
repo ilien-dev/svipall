@@ -25,7 +25,11 @@ Install and configure Svipall by following the instructions here:
 https://raw.githubusercontent.com/ilien-dev/svipall/main/docs/install.md
 ```
 
-It will work out which version your computer needs and ask how you want to use it:
+In Claude Code it installs the official plugin, unless you ask for something else. The plugin
+brings the MCP tools, the skills and the `/svipall:` commands, and the marketplace keeps it current.
+
+In any other assistant, it works out which version your computer needs and asks how you want to
+use it:
 
 - **CLI + Skill** (recommended) uses less context and runs Svipall through the assistant's shell.
 - **MCP + Skill** adds Svipall to the assistant's MCP tools for the full interactive surface.
@@ -47,7 +51,8 @@ Three lines, in the Claude Code prompt:
 
 `/svipall:setup` installs the program if it is not there yet, connects it, and asks whether you want
 Claude to use it for all web access from now on. Say no to anything you would rather not have.
-Later, `/svipall:update` checks the current and latest versions and asks before replacing anything.
+When a new version comes out, Claude Code tells you after its answer. Run `/svipall:update` and
+restart Claude Code.
 
 ## Doing it yourself
 
@@ -82,8 +87,8 @@ svipall doctor
 That prints a report. If it says `"ok": true`, you are done. Otherwise each problem it lists comes
 with the exact command that fixes it.
 
-To check for a newer Svipall later without changing anything, run `svipall update --check`. Run
-`svipall update --install` only after you decide to replace the shared user installation.
+When a newer Svipall comes out, your assistant tells you at the end of its answer. To update, run
+`svipall update`, then close your assistant and open it again.
 
 ## Trying it
 

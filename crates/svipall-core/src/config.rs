@@ -155,6 +155,9 @@ pub struct Config {
     /// eight Chrome pages — more than `capacity::concurrency` would ever grant one crawl. Over the
     /// cap a job stays queued, which is what a queue is for.
     pub max_jobs: usize,
+    /// Look up the latest release at most once a day and say when this one is older. Off, the
+    /// only request to GitHub is the one `svipall update` makes when asked.
+    pub update_check: bool,
 }
 
 impl Default for Config {
@@ -208,6 +211,7 @@ impl Default for Config {
             rest_bind: "127.0.0.1".into(),
             api_key: String::new(),
             max_jobs: 2,
+            update_check: true,
         }
     }
 }

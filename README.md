@@ -139,12 +139,15 @@ checksum file, entry or hashing utility only warns, so a successful exit is not 
 the archive was verified: read the output. If the destination already contains another version,
 the installer states that the binaries are shared by every harness and asks before replacing them.
 
-Check for a release without changing anything, or update after reviewing the report:
+When a newer release exists, Svipall says so once per session. One command updates both
+binaries with the channel that installed them and refreshes the skills you copied by hand:
 
 ```bash
-svipall update --check
-svipall update --install       # only after choosing to update the shared installation
+svipall update                 # --check only compares versions
 ```
+
+Then close every session that uses Svipall and open it again. An agent can do the same from
+[docs/update.md](docs/update.md).
 
 Platform builds, what ships where, building from source and wiring it into any MCP client are all
 in [docs/install.md](docs/install.md). If you have never installed anything from a terminal,
