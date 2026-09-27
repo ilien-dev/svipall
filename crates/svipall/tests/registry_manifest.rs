@@ -313,9 +313,69 @@ fn every_setup_checks_an_existing_version_before_writing_the_integration() {
         "the universal updater skill and Claude's /svipall:update must have one behavior"
     );
     assert!(update.contains("svipall update --check"));
-    assert!(update.contains("svipall update --install"));
+    assert!(
+        update.contains("```bash\nsvipall update\n```"),
+        "one command updates"
+    );
     let opencode = read(&root, "integrations/opencode/commands/svipall-update.md");
-    assert!(opencode.contains("svipall-update") && opencode.contains("chosen to update"));
+    assert!(opencode.contains("svipall-update"));
+}
+
+/// An update is one install and a restart.  The only thing worth checking afterwards is whether
+/// the dashboard port the restarted `svipall-mcp` will bind is still ours; anything else is noise.
+#[test]
+fn an_update_is_one_install_then_a_port_check_and_a_restart() {
+    let root = workspace_root();
+    let update = read(&root, "skills/svipall-update/SKILL.md");
+
+    for required in [
+        "do not ask again",
+        "close every session",
+        "dashboard_port",
+        "ss -ltnpH",
+        "lsof -nP -iTCP",
+        "Get-NetTCPConnection",
+        "restart",
+    ] {
+        assert!(
+            update.contains(required),
+            "the updater is missing the short flow: {required}"
+        );
+    }
+    assert!(
+        !update.contains("Wait for the choice"),
+        "asking for the update is the consent; the updater must not ask a second time"
+    );
+    let opencode = read(&root, "integrations/opencode/commands/svipall-update.md");
+    assert!(
+        !opencode.contains("has chosen to update"),
+        "the command must not reintroduce the second confirmation the skill dropped"
+    );
+}
+
+/// Inside Claude Code the official plugin is the default: it carries the MCP entry, the skills and
+/// its own update path, so the guide must detect the harness and offer it before anything manual.
+#[test]
+fn in_claude_code_the_installer_prefers_the_official_plugin() {
+    let install = read(&workspace_root(), "docs/install.md");
+
+    for required in [
+        "Claude Code plugin (recommended)",
+        "CLAUDECODE",
+        "claude plugin marketplace add ilien-dev/svipall",
+        "claude plugin install svipall@svipall",
+    ] {
+        assert!(
+            install.contains(required),
+            "docs/install.md is missing the Claude Code plugin path: {required}"
+        );
+    }
+    let plugin = install.find("Claude Code plugin (recommended)").unwrap();
+    let cli = install.find("CLI + Skill (recommended)").unwrap();
+    assert!(
+        plugin < cli,
+        "the plugin choice must be offered before the generic choices"
+    );
 }
 
 #[test]
@@ -353,4 +413,17 @@ fn the_crate_readme_carries_the_name_where_crates_io_will_still_render_it() {
         read(&root, "crates/svipall/Cargo.toml").contains("readme = \"README.md\""),
         "crates/svipall/Cargo.toml does not name its README, so crates.io renders none"
     );
+}
+
+/// The plugin shows the update notice through its own hook, so its MCP server is told it runs
+/// inside the plugin and stays quiet; everywhere else the MCP server says it once per session.
+#[test]
+fn the_plugin_carries_the_update_notice_and_tells_its_server_so() {
+    let root = workspace_root();
+    let hooks = read(&root, "plugins/svipall/hooks/hooks.json");
+    assert!(hooks.contains("\"Stop\"") && hooks.contains("svipall hook turn-end"));
+    let mcp = read(&root, "plugins/svipall/.mcp.json");
+    assert!(mcp.contains("SVIPALL_INTEGRATION") && mcp.contains("claude-plugin"));
+    let guide = read(&root, "docs/update.md");
+    assert!(guide.contains("svipall update") && guide.to_lowercase().contains("close"));
 }

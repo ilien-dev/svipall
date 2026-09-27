@@ -15,8 +15,22 @@ A person can follow it too. Every command is exact, and none of them needs an ad
 ## 0. Rules for whoever is running this
 
 - **Explain the selected installation channel.** An installation request authorizes its normal setup.
-- **Before writing anything, ask which integration the user wants.** Offer these outcomes in these
-  words, with the trade-off in the choice itself:
+- **Inside Claude Code, the official plugin comes first.** Claude Code sets `CLAUDECODE=1` in the
+  environment of every command it runs, so check that variable before anything else. When it is
+  set, offer these three outcomes, the plugin first:
+
+  - **Claude Code plugin (recommended)**: the MCP server, the skills, and `/svipall:setup`,
+    `/svipall:update` and `/svipall:doctor`, kept current by the marketplace. Run
+    `claude plugin marketplace add ilien-dev/svipall`, then
+    `claude plugin install svipall@svipall --scope user` (or `--scope project`), and tell the user
+    to restart Claude Code and run `/svipall:setup`. That skill checks the version and installs the
+    binary if it is missing, so sections 1 to 6 do not apply.
+  - **CLI + Skill**: the plugin always registers MCP, so this choice skips the plugin and copies
+    the skill by hand, as described below.
+  - **MCP + Skill** without the plugin: manual registration, for someone who declines the plugin.
+
+- **In any other harness, ask which integration the user wants before writing anything.** Offer
+  these outcomes in these words, with the trade-off in the choice itself:
 
   - **CLI + Skill (recommended)**: lower context use: the agent runs `svipall` through its shell.
     This does not register an MCP server, so Svipall will not appear in the client's MCP list and
@@ -72,7 +86,7 @@ channel-specific update command and ask the user to choose:
 
 An integration install never implies consent to update the shared binaries. On update, stay with
 the detected installation channel. Release-script installations on 1.0.5 and newer can run
-`svipall update --install` after confirmation. On keep, use the current version when selecting the
+`svipall update` after confirmation. On keep, use the current version when selecting the
 matching skill. If the versions are equal, say so and go to [step 4](#4-check-the-installation).
 `command not found` means there is no existing binary, so continue to step 2.
 
@@ -238,9 +252,8 @@ list. Cursor exposes the skill directly as `/svipall-update`. For OpenCode, also
 `/svipall-update` and delegates to the skill. The Claude plugin supplies the same workflow as
 `/svipall:update`, so do not copy a duplicate updater when using that plugin.
 
-Exception: for user-wide **MCP + Skill** in Claude Code, ask whether to use the recommended plugin
-before copying a standalone skill. If the user accepts, continue to the Claude Code plugin steps in
-section 6. The plugin supplies its own namespaced skill, so do not install a duplicate here.
+In Claude Code, a user who chose the plugin never reaches this section: the plugin supplies its
+own namespaced skills, so do not install a duplicate.
 
 If the destination already exists and differs, show that fact and ask before replacing it. After
 copying, compare the source and destination hashes. A client that was already open may need a new
@@ -264,16 +277,8 @@ inside the `svipall` package, not a package of its own.
 
 ### Claude Code
 
-For a user-wide MCP setup, recommend the plugin because it already bundles the MCP entry and skill:
-
-```
-/plugin marketplace add ilien-dev/svipall
-/plugin install svipall@svipall
-/svipall:setup
-```
-
-The plugin's setup keeps its existing optional memory and strict-mode questions. Do not install the
-plugin for **CLI + Skill**, because the plugin registers MCP. For manual registration use:
+The plugin (section 0) is the normal path and bundles this entry. It never belongs to a
+**CLI + Skill** setup, because it registers MCP. For a user who declined it, register by hand:
 
 ```bash
 claude mcp add --scope user svipall -- /absolute/path/to/svipall-mcp

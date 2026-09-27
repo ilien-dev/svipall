@@ -79,6 +79,15 @@ pub fn claude_web(event: &Value, strict: bool) -> Value {
     })
 }
 
+/// A `Stop` answer: the update notice as a `systemMessage`, which Claude Code prints after the
+/// agent's answer in its own style. Nothing at all when there is no notice.
+pub fn turn_end(notice: Option<String>) -> Value {
+    match notice {
+        Some(text) => json!({ "systemMessage": text }),
+        None => json!({}),
+    }
+}
+
 /// Run one hook event end to end: read the harness's JSON from stdin, write the answer to stdout.
 ///
 /// Unknown event names answer with an empty object rather than an error. A hook that fails is a
@@ -89,6 +98,17 @@ pub fn run(event: &str) -> anyhow::Result<Value> {
     let parsed: Value = serde_json::from_str(&raw).unwrap_or(Value::Null);
     Ok(match event {
         "claude-web" => claude_web(&parsed, strict_armed()),
+        "turn-end" => {
+            let session = parsed
+                .get("session_id")
+                .and_then(Value::as_str)
+                .unwrap_or("");
+            let notice = crate::update::pending_notice(crate::update::Harness::ClaudePlugin)
+                .filter(|_| {
+                    crate::update::first_in_session(&svipall_core::config::home_dir(), session)
+                });
+            turn_end(notice)
+        }
         _ => json!({}),
     })
 }

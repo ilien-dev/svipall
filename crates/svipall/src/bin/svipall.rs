@@ -65,9 +65,9 @@ COMMANDS:
                             carry into ~/.svipall/models/ from the matching release (~58 MB, and
                             about 100 MB more for the speech model web_video uses). A
                             build with no `onnx-*` feature cannot read them: `status` says so.
-    update [--check|--install]
-                            Compare this build with the latest stable release. Checking is read-only;
-                            --install updates only after the caller obtained the user's consent.
+    update [--check]        Update both binaries to the latest stable release through the channel
+                            that installed them, and refresh the skills copied by hand. --check
+                            only compares versions.
     config show             Show effective settings (secrets redacted).
     config set key=value... Save validated settings; the next command uses them automatically.
     config preset local|auto|emulated|native
@@ -144,6 +144,15 @@ async fn main() {
                 "{}",
                 serde_json::to_string_pretty(&value).unwrap_or_default()
             );
+            // A skill drives this CLI, so stderr is where its agent reads that a newer release
+            // exists. `update` reports versions itself, and `config` is the operator's own.
+            if !matches!(args[0].as_str(), "update" | "config") {
+                if let Some(notice) =
+                    svipall::update::pending_notice(svipall::update::Harness::from_env())
+                {
+                    eprintln!("{}", svipall::update::for_the_agent(&notice));
+                }
+            }
         }
         Err(e) => {
             eprintln!("svipall: {e}");
@@ -162,7 +171,7 @@ async fn run(args: &[String]) -> anyhow::Result<Value> {
         if action.is_some_and(|a| !matches!(a, "check" | "install")) {
             anyhow::bail!("update knows check and install, not {action:?}");
         }
-        return svipall::update::run(flags.has("install") || action == Some("install")).await;
+        return svipall::update::run(svipall::update::wants_install(&args[1..])).await;
     }
     let mut cfg = svipall_core::config::load_in(&svipall_core::config::home_dir())?;
     if !matches!(

@@ -16,8 +16,9 @@ Lifted out of the README so that file stays readable. Everything here is the sam
   `http://localhost` is an ordinary thing to ask a local-first tool to do, so turn it on for an
   installation where an agent chooses its own URLs.
 - **robots.txt** is reported by default and can be made binding with `robots=obey`.
-- **No Svipall telemetry or periodic update polling.** The explicit `svipall update --check` and
-  `svipall update --install` commands contact GitHub release metadata only when you run them.
+- **No Svipall telemetry.** To say when a newer release exists, Svipall reads GitHub's latest
+  release metadata at most once a day and sends nothing about you or your pages. Set
+  `update_check = false` to stop it; then only `svipall update` contacts GitHub, when you run it.
   Browsing can contact page resources, redirects, challenge endpoints and other origins a page uses, and optional
   DNS-over-HTTPS contacts the configured resolver. Results go to your connected client, and what
   happens to them there depends on that client. Startup can download Chrome for Testing when no browser

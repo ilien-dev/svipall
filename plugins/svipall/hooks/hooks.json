@@ -11,6 +11,17 @@
           }
         ]
       }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "svipall hook turn-end",
+            "timeout": 5
+          }
+        ]
+      }
     ]
   }
 }
