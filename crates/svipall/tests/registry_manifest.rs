@@ -32,8 +32,12 @@ fn workspace_root() -> PathBuf {
         .to_path_buf()
 }
 
+/// With `\r\n` folded: a Windows checkout has them, and an assertion spanning a line break would
+/// otherwise pass on one platform and fail on the other.
 fn read(root: &Path, relative: &str) -> String {
-    fs::read_to_string(root.join(relative)).unwrap_or_else(|e| panic!("{relative}: {e}"))
+    fs::read_to_string(root.join(relative))
+        .unwrap_or_else(|e| panic!("{relative}: {e}"))
+        .replace("\r\n", "\n")
 }
 
 /// The one hand-written version: `[workspace.package] version`, same source `release_version.rs`
