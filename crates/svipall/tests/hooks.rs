@@ -121,3 +121,13 @@ fn a_malformed_event_is_a_no_op_rather_than_a_denial() {
         assert_eq!(hooks::claude_web(&bad, true), json!({}), "{bad:?}");
     }
 }
+
+#[test]
+fn the_notice_follows_the_answer_as_a_system_message_or_says_nothing() {
+    assert_eq!(hooks::turn_end(None), json!({}));
+    let out = hooks::turn_end(Some("Svipall 1.2.0 is available".into()));
+    assert_eq!(
+        out,
+        json!({ "systemMessage": "Svipall 1.2.0 is available" })
+    );
+}

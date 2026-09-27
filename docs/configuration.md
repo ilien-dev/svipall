@@ -155,6 +155,9 @@ rest_port = 0                # 0 = off. `svipall serve` starts it anyway; this i
 rest_bind = "127.0.0.1"
 api_key = ""                 # empty = ~/.svipall/api_key, generated on first use and printed once
 max_jobs = 2                 # long jobs at once — not `parallelism`, which bounds one job's fetches
+
+# Updates
+update_check = true          # at most once a day, say when a newer release exists; false = never ask
 ```
 </details>
 
@@ -168,6 +171,7 @@ max_jobs = 2                 # long jobs at once — not `parallelism`, which bo
 | `SVIPALL_DASHBOARD_PORT` | `dashboard_port` | Port the human dashboard listens on |
 | `SVIPALL_REST_PORT` | `rest_port` | Port the REST API listens on inside `svipall-mcp`. The Docker knob |
 | `SVIPALL_API_KEY` | — | Pin the bearer key, for a container whose home is not writable |
+| `SVIPALL_INTEGRATION` | — | Set to `claude-plugin` by the Claude Code plugin, whose hook shows the update notice instead of `svipall-mcp` |
 | `SVIPALL_RELEASES_URL` | GitHub releases | Where `svipall models install` fetches the models archive and its `sha256sums.txt`; point it at a mirror inside a network that cannot reach GitHub |
 
 

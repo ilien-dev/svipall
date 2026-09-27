@@ -191,19 +191,31 @@ pub async fn check() -> Result<UpdateReport> {
 /// one implementation.  Other channels return their manager's command instead of mixing installs.
 pub async fn run(install: bool) -> Result<serde_json::Value> {
     let mut report = check().await?;
-    if !install || !report.update_available {
+    let home = svipall_core::config::home_dir();
+    if home.is_dir() {
+        let _ = remember(&home, &report.latest, now());
+    }
+    if !install {
         return serde_json::to_value(report).context("serializing update report");
+    }
+    if !report.update_available {
+        // Nothing newer, but a skill copied by hand may still be older than this binary: that
+        // is how a Windows update, which the PowerShell command finished, gets its skills.
+        let refreshed = refresh_skill_copies(&report.current).await;
+        let mut value = serde_json::to_value(report).context("serializing update report")?;
+        value["skills_refreshed"] = serde_json::json!(refreshed);
+        return Ok(value);
     }
     if report.channel != InstallChannel::Installer {
         report.note = Some(format!(
-            "This installation belongs to the {:?} channel. Run install_command after confirmation; Svipall will not create a second installation.",
+            "This installation belongs to the {:?} channel. Run install_command; Svipall will not create a second installation. Then run `svipall update` once more to refresh the skills.",
             report.channel
         ));
         return serde_json::to_value(report).context("serializing update report");
     }
     if cfg!(windows) {
         report.note = Some(
-            "Windows cannot replace the svipall.exe process that is running this command. Close every harness using svipall-mcp, then run install_command in PowerShell; no files were changed by this command."
+            "Windows cannot replace the svipall.exe process that is running this command. Close every harness using svipall-mcp, run install_command in PowerShell, then `svipall update` once more to refresh the skills; no files were changed by this command."
                 .into(),
         );
         return serde_json::to_value(report).context("serializing update report");
@@ -213,11 +225,11 @@ pub async fn run(install: bool) -> Result<serde_json::Value> {
     report.installed = true;
     report.current = report.latest.clone();
     report.update_available = false;
-    report.note = Some(
-        "Updated the shared user-owned binaries. Restart harnesses with a running svipall-mcp process so they load the new executable."
-            .into(),
-    );
-    serde_json::to_value(report).context("serializing update report")
+    report.note = Some(finished_note(&report.latest));
+    let refreshed = refresh_skill_copies(&report.latest).await;
+    let mut value = serde_json::to_value(report).context("serializing update report")?;
+    value["skills_refreshed"] = serde_json::json!(refreshed);
+    Ok(value)
 }
 
 async fn install_release(report: &UpdateReport) -> Result<()> {
@@ -270,4 +282,275 @@ async fn install_release(report: &UpdateReport) -> Result<()> {
         );
     }
     Ok(())
+}
+
+// ---- The notice ----------------------------------------------------------------------------
+//
+// A newer release is announced where the person will see it, once, with the one step that
+// installs it: the plugin's `SessionStart` hook in Claude Code, the first tool result of an MCP
+// session elsewhere, and a stderr line from the CLI a skill drives. The latest version is looked
+// up at most once a day and remembered in `~/.svipall`; `update_check = false` turns all of it off.
+
+/// Instructions any agent can follow, whether or not an updater skill was installed.
+pub const UPDATE_GUIDE: &str =
+    "https://raw.githubusercontent.com/ilien-dev/svipall/main/docs/update.md";
+const REMEMBERED: &str = "update-check.json";
+const ASK_AGAIN_AFTER: u64 = 24 * 60 * 60;
+
+/// Where the notice will be read, which decides the command it names.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum Harness {
+    ClaudePlugin,
+    ClaudeCode,
+    Codex,
+    Cursor,
+    OpenCode,
+    Unknown,
+}
+
+impl Harness {
+    /// From `clientInfo.name` in the MCP `initialize` handshake.
+    pub fn from_mcp_client(name: &str) -> Self {
+        let name = name.to_lowercase();
+        if name.contains("claude") {
+            Self::ClaudeCode
+        } else if name.contains("codex") {
+            Self::Codex
+        } else if name.contains("cursor") {
+            Self::Cursor
+        } else if name.contains("opencode") {
+            Self::OpenCode
+        } else {
+            Self::Unknown
+        }
+    }
+
+    /// For the CLI, which has no handshake: only Claude Code says so in the environment.
+    pub fn from_env() -> Self {
+        if std::env::var_os("CLAUDECODE").is_some() {
+            Self::ClaudeCode
+        } else {
+            Self::Unknown
+        }
+    }
+}
+
+/// "Svipall X is available" and the single step that installs it, or None when nothing is newer.
+pub fn notice(current: &str, latest: &str, harness: Harness) -> Option<String> {
+    let (Ok(have), Ok(new)) = (
+        semver::Version::parse(current),
+        semver::Version::parse(latest),
+    ) else {
+        return None;
+    };
+    if new <= have {
+        return None;
+    }
+    let prompt = format!("ask the agent: \"Update Svipall by following {UPDATE_GUIDE}\"");
+    let step = match harness {
+        Harness::ClaudePlugin => "run /svipall:update".to_string(),
+        Harness::Codex => format!("run $svipall-update, or {prompt}"),
+        Harness::ClaudeCode | Harness::Cursor | Harness::OpenCode => {
+            format!("run /svipall-update, or {prompt}")
+        }
+        Harness::Unknown => prompt,
+    };
+    Some(format!(
+        "Svipall {latest} is available; this machine runs {current}. To update, {step}."
+    ))
+}
+
+#[derive(Serialize, Deserialize)]
+struct Remembered {
+    latest: String,
+    checked_at: u64,
+}
+
+/// The remembered latest version, and whether it is old enough to ask again.
+pub fn remembered(home: &Path, now: u64) -> (Option<String>, bool) {
+    let found = std::fs::read(home.join(REMEMBERED))
+        .ok()
+        .and_then(|raw| serde_json::from_slice::<Remembered>(&raw).ok());
+    match found {
+        Some(r) => {
+            let stale = now.saturating_sub(r.checked_at) > ASK_AGAIN_AFTER;
+            (Some(r.latest), stale)
+        }
+        None => (None, true),
+    }
+}
+
+pub fn remember(home: &Path, latest: &str, now: u64) -> Result<()> {
+    let body = serde_json::to_vec(&Remembered {
+        latest: latest.to_string(),
+        checked_at: now,
+    })?;
+    std::fs::write(home.join(REMEMBERED), body).context("remembering the latest version")
+}
+
+fn now() -> u64 {
+    std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map(|d| d.as_secs())
+        .unwrap_or_default()
+}
+
+fn notices_enabled() -> bool {
+    let home = svipall_core::config::home_dir();
+    svipall_core::config::load_in(&home)
+        .map(|c| c.update_check)
+        .unwrap_or(true)
+}
+
+/// The notice for this machine from what is remembered. When that is a day old, a detached
+/// `svipall update --check` refreshes it for next time: nobody waits on the network for a notice.
+pub fn pending_notice(harness: Harness) -> Option<String> {
+    if !notices_enabled() {
+        return None;
+    }
+    let (latest, stale) = remembered(&svipall_core::config::home_dir(), now());
+    if stale {
+        refresh_detached();
+    }
+    notice(env!("CARGO_PKG_VERSION"), &latest?, harness)
+}
+
+fn refresh_detached() {
+    let Some(exe) = std::env::current_exe()
+        .ok()
+        .map(|e| e.with_file_name(svipall_exe()))
+    else {
+        return;
+    };
+    let _ = std::process::Command::new(exe)
+        .args(["update", "--check"])
+        .stdin(std::process::Stdio::null())
+        .stdout(std::process::Stdio::null())
+        .stderr(std::process::Stdio::null())
+        .spawn();
+}
+
+fn svipall_exe() -> &'static str {
+    if cfg!(windows) {
+        "svipall.exe"
+    } else {
+        "svipall"
+    }
+}
+
+/// For `svipall-mcp`, once per process, appended to the first tool result that finds one. Inside
+/// the Claude Code plugin the `SessionStart` hook already said it, so the server stays quiet.
+pub fn mcp_notice_once(client: Option<&str>) -> Option<String> {
+    use std::sync::atomic::{AtomicBool, Ordering};
+    static SAID: AtomicBool = AtomicBool::new(false);
+    if SAID.load(Ordering::Relaxed)
+        || std::env::var("SVIPALL_INTEGRATION").as_deref() == Ok("claude-plugin")
+    {
+        return None;
+    }
+    let harness = client.map_or(Harness::Unknown, Harness::from_mcp_client);
+    let text = pending_notice(harness)?;
+    (!SAID.swap(true, Ordering::Relaxed)).then(|| for_the_agent(&text))
+}
+
+/// Outside the plugin nothing but the agent reaches the person, so the notice asks it to close
+/// its answer with the line, where it is read last.
+pub fn for_the_agent(notice: &str) -> String {
+    format!(
+        "svipall update notice: at the end of your final answer this turn, after everything else, \
+         add this line for the user: {notice}"
+    )
+}
+
+/// True the first time a Claude Code session asks; the plugin shows its notice once per session.
+pub fn first_in_session(home: &Path, session: &str) -> bool {
+    let file = home.join("update-noticed-session");
+    if std::fs::read_to_string(&file).is_ok_and(|seen| seen == session) {
+        return false;
+    }
+    let _ = std::fs::write(&file, session);
+    true
+}
+
+/// At `svipall-mcp` startup: refresh what is remembered in the background when it is a day old.
+pub async fn refresh_if_stale() {
+    let home = svipall_core::config::home_dir();
+    if !notices_enabled() || !remembered(&home, now()).1 {
+        return;
+    }
+    if let Ok(report) = check().await {
+        let _ = remember(&home, &report.latest, now());
+    }
+}
+
+// ---- One command ---------------------------------------------------------------------------
+
+/// `svipall update` installs; only `--check` (or `check`) is read-only.
+pub fn wants_install(args: &[String]) -> bool {
+    !args.iter().any(|a| a == "--check" || a == "check")
+}
+
+/// The skill files a person copied by hand, paired with their path in the repository. Only files
+/// that exist are listed: an update refreshes an integration, it never creates one.
+pub fn skill_copies(home: &Path, project: &Path) -> Vec<(PathBuf, &'static str)> {
+    const SKILL_DIRS: [&str; 4] = [
+        ".claude/skills",
+        ".agents/skills",
+        ".cursor/skills",
+        ".opencode/skills",
+    ];
+    let mut roots: Vec<PathBuf> = SKILL_DIRS.iter().map(|d| home.join(d)).collect();
+    roots.push(home.join(".config/opencode/skills"));
+    roots.extend(SKILL_DIRS.iter().map(|d| project.join(d)));
+    let mut files = Vec::new();
+    for root in &roots {
+        files.push((root.join("svipall/SKILL.md"), "skill/SKILL.md"));
+        files.push((
+            root.join("svipall-update/SKILL.md"),
+            "skills/svipall-update/SKILL.md",
+        ));
+    }
+    for commands in [
+        home.join(".config/opencode/commands"),
+        project.join(".opencode/commands"),
+    ] {
+        files.push((
+            commands.join("svipall-update.md"),
+            "integrations/opencode/commands/svipall-update.md",
+        ));
+    }
+    files.retain(|(path, _)| path.is_file());
+    files.dedup();
+    files
+}
+
+async fn refresh_skill_copies(version: &str) -> Vec<String> {
+    let home = dirs::home_dir().unwrap_or_default();
+    let project = std::env::current_dir().unwrap_or_default();
+    let copies = skill_copies(&home, &project);
+    if copies.is_empty() {
+        return Vec::new();
+    }
+    let Ok(http) = http().await else {
+        return Vec::new();
+    };
+    let base = raw_release_base();
+    let mut refreshed = Vec::new();
+    for (path, source) in copies {
+        let url = format!("{}/v{version}/{source}", base.trim_end_matches('/'));
+        if let Ok(body) = get(&http, &url).await {
+            if std::fs::write(&path, body).is_ok() {
+                refreshed.push(path.display().to_string());
+            }
+        }
+    }
+    refreshed
+}
+
+/// The last thing an update says.
+pub fn finished_note(version: &str) -> String {
+    format!(
+        "Svipall is now {version}. Close every session that uses Svipall (Claude Code, Codex, \
+         Cursor, OpenCode...) and open it again so it runs the new version."
+    )
 }

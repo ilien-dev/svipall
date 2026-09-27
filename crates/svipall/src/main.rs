@@ -24,6 +24,8 @@ async fn main() -> anyhow::Result<()> {
     svipall_core::ensure_dirs();
     svipall::provision::ensure_browser(&mut cfg).await?;
     svipall_core::evict_old_profiles();
+    // What the update notice compares against, looked up at most once a day and never waited on.
+    tokio::spawn(svipall::update::refresh_if_stale());
 
     // Tokenised dashboard URL, surfaced through web_status so the operator can find it.
     let mut dashboard_url: Option<String> = None;
