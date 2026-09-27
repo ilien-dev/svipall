@@ -1,5 +1,29 @@
 # Changelog
 
+## 1.2.0 — 2026-09-26
+
+- **Svipall tells you when a newer version is out.** Once per session, at the end of the
+  agent's answer, with the one step that installs it. In the Claude Code plugin a hook prints it
+  after the answer and names `/svipall:update`. Registered as an MCP server anywhere else, the
+  first tool result asks the agent to end its answer with the line. The command follows the
+  client: `$svipall-update` in Codex, `/svipall-update` in Claude Code, Cursor and OpenCode. The
+  line always carries a prompt too, which works without any updater skill:
+  `Update Svipall by following https://raw.githubusercontent.com/ilien-dev/svipall/main/docs/update.md`.
+  Installed as a skill, the CLI prints the same line on stderr. Svipall asks GitHub for the
+  latest release at most once a day and never waits for the answer.
+  `update_check = false` turns it off, and [privacy.md](docs/privacy.md) now says so.
+
+- **`svipall update` is the whole update.** Without flags it now installs (`--check` only
+  compares) and refreshes every Svipall skill someone copied by hand, in the user's or the
+  project's skills folder, from the same release. The copied skill used to stay on the old
+  version. It ends by saying to close and reopen every session. `/svipall:update` and
+  `$svipall-update` no longer ask a second time. After the update they check that the dashboard
+  port is still free for Svipall, and name the program if it isn't.
+
+- **Inside Claude Code the install guide uses the official plugin.** Given to Claude Code,
+  [install.md](docs/install.md) detects it and offers the plugin first, installed with
+  `claude plugin install`. CLI + Skill and manual MCP stay available.
+
 ## 1.1.1 — 2026-09-26
 
 - **`web_video` frames show the video again, on every visit.** On a second visit to a watch
