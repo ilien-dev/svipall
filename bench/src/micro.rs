@@ -106,10 +106,11 @@ impl Budget {
     }
 }
 
-/// What [`reference_work`] takes on the machine the budgets were written on (Linux, x86-64,
-/// release build). Measure it again when the budgets are set again, never to make a run pass.
+/// What [`reference_work`] takes on GitHub's `ubuntu-latest` runner, the machine the budgets fit
+/// (2.594 ms in run 36286230785, where macOS measured 2.826 and Windows 3.899). Measure it there
+/// again when the budgets are set again, never to make a run pass.
 const REFERENCE: Duration = Duration::from_micros(REFERENCE_MICROS);
-const REFERENCE_MICROS: u64 = 2_000;
+const REFERENCE_MICROS: u64 = 2_600;
 
 /// Work that owes nothing to Svipall: fill and sort a fixed vector, allocation included, which is
 /// the same mix of memory and branches a DOM parse is. A slower runner is slower at this too, and
