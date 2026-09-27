@@ -1,67 +1,56 @@
 ---
 name: update
-description: Check the installed Svipall version against the latest stable release and, only after the user chooses, update the shared user-owned binaries through their existing installation channel. Use when the user runs /svipall:update or asks to check for, install, or manage Svipall updates.
+description: Update Svipall to the latest stable release in one step, through its existing installation channel, and refresh the skills copied by hand. Use when the user runs /svipall:update or asks to check for, install, or manage Svipall updates.
 ---
 
 # Update Svipall
 
-Checking is read-only. Updating replaces the user-owned `svipall` and `svipall-mcp` binaries used
-by all harnesses configured on this machine; it does not erase `~/.svipall`, profiles, cookies,
-configuration, cache, models, or the managed browser.
+Asking to update is the consent: do not ask again. If the user only asked whether a newer version
+exists, run `svipall update --check`, report `current` and `latest`, and stop.
 
-## 1. Compare versions
-
-Run:
+## 1. Update
 
 ```bash
-svipall update --check
+svipall update
 ```
 
-Read `current`, `latest`, `update_available`, `channel`, `install_command`, and `note`. If this is an
-older binary that does not know `update`, run `svipall --version` and read the latest stable
-`tag_name` from `https://api.github.com/repos/ilien-dev/svipall/releases/latest` instead. A failed
-check is not permission to install anything.
+It replaces the `svipall` and `svipall-mcp` binaries shared by every harness, through the channel
+that installed them, and refreshes each Svipall skill copied by hand (`skills_refreshed`).
+`~/.svipall` (configuration, profiles, cookies, cache, models, managed browser) is never touched.
 
-If no binary exists, offer the ordinary setup flow rather than calling an update an installation.
-If it is current, state both the current version and latest version and stop.
+If `installed` is false and `update_available` is still true, `note` says why:
 
-## 2. Let the user choose
+- Another channel (Homebrew, Scoop, Cargo, npm, container): run `install_command`, then
+  `svipall update` once more.
+- Windows: the running executable cannot replace itself. Ask the user to close every harness
+  running `svipall-mcp`, run `install_command` in PowerShell, then `svipall update` once more.
+- `channel` is `unknown`: stop and say where the executable lives; never put a second copy on
+  `PATH`.
 
-When `update_available` is true, show the current version, latest version, detected channel, exact
-command and these two outcomes:
+No binary at all → offer the setup flow; an update is not an installation. A binary older than
+1.0.5 answers `svipall update` with an error: read `tag_name` from
+`https://api.github.com/repos/ilien-dev/svipall/releases/latest` and run that tag's installer with
+`--version <tag> --prefix <directory of the current svipall> --yes` (`-Version`, `-Prefix`, `-Yes`
+in PowerShell). The older `svipall update --install` spelling still works.
 
-- **Update the shared installation** — replace `svipall` and `svipall-mcp` for all harnesses on
-  this user account; keep all Svipall data and configuration. Harnesses with a running MCP process
-  must be restarted afterwards.
-- **Keep the current version** — make no binary or data changes. An integration being installed may
-  continue using this version.
+## 2. Check the dashboard port
 
-Wait for the choice. Never interpret a request to install a plugin, MCP entry, or skill as consent
-to update the shared binaries.
+The restarted `svipall-mcp` must bind the same dashboard port. Read `dashboard.port` from
+`svipall doctor` and see who is listening on it:
 
-## 3. Update only after confirmation
+| Platform | Command |
+|---|---|
+| Linux | `ss -ltnpH "sport = :PORT"` |
+| macOS | `lsof -nP -iTCP:PORT -sTCP:LISTEN` |
+| Windows | `Get-Process -Id (Get-NetTCPConnection -LocalPort PORT -State Listen).OwningProcess` |
 
-For release-script installations, run:
+Nobody, or `svipall-mcp`: nothing to do. Another program: name it and its PID, and ask whether to
+move Svipall to a free port. On yes, set `dashboard_port = <port>` in `~/.svipall/config.toml`,
+keeping every other key. On no, say the captcha dashboard cannot start until that program frees
+the port.
 
-```bash
-svipall update --install
-```
+## 3. End with the restart
 
-On Windows, the running executable cannot replace itself. The command therefore makes no changes
-and returns an exact PowerShell `install_command`; ask the user to close every harness running
-`svipall-mcp`, then run that command in PowerShell. Do not report the update complete until a new
-`svipall --version` confirms it.
-
-For another channel, `--install` deliberately returns without mixing installation methods. Run the
-reported `install_command` only after the same confirmation. If the channel is `unknown`, stop and
-identify who owns the executable; do not create a second copy on `PATH`.
-
-An old binary without `update --install` must be updated through its existing channel. For a
-release-script install, fetch the installer from the `latest` version tag, pass that exact version
-and the existing prefix, and use its non-interactive flag because consent was already obtained.
-Package-manager, Cargo, npm and container installations stay with their own manager.
-
-Afterwards run `svipall --version` and `svipall doctor`. Report the version actually running and
-name every harness that must restart. A Claude marketplace owns the plugin files separately; its
-normal auto-update or a named reinstall refreshes those files, while this workflow owns the shared
-binaries.
+Finish with the `note` the update printed: the user must close every session that uses Svipall
+(Claude Code, Codex, Cursor, OpenCode...) and open it again, which is how the harness restarts
+with the new version. A Claude marketplace refreshes the plugin files on its own.

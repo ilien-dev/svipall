@@ -7038,9 +7038,23 @@ impl ServerHandler for SvipallServer {
                 }
             }
         }
+        let client = context
+            .peer
+            .peer_info()
+            .map(|info| info.client_info.name.clone());
         let call =
             rmcp::handler::server::tool::ToolCallContext::new(active.as_ref(), request, context);
-        active.tool_router.call(call).await
+        let mut result = active.tool_router.call(call).await?;
+        // Once per process, and never inside the Claude Code plugin, whose hook says it itself.
+        if self.cfg.update_check {
+            if let Some(notice) = crate::update::mcp_notice_once(client.as_deref()) {
+                result
+                    .content
+                    .get_or_insert_with(Vec::new)
+                    .push(Content::text(notice));
+            }
+        }
+        Ok(result)
     }
 
     async fn list_tools(
