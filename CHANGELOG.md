@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 1.3.0 — 2026-09-26
 
 - **A proxy that does not answer is no longer taken for a site that refused.** When nothing
   listened on an exit's port, the ladder recorded an error and climbed every tier through the
