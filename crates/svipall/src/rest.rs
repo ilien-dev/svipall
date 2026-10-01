@@ -681,6 +681,7 @@ pub async fn serve(server: SvipallServer, bind: &str, port: u16) -> anyhow::Resu
     // finds out a crawl was killed rather than finished.
     let runner = JobRunner::new(server.clone(), server.config().max_jobs);
     runner.start();
+    crate::tunnels::start(&server.config().tunnels);
     let reaper = server.clone();
     let housekeeping = tokio::spawn(async move {
         loop {

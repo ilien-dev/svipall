@@ -36,6 +36,7 @@ Step 'clippy (onnx-detect)'   { cargo clippy -p svipall --all-targets --features
 Step 'clippy (onnx-segment)'  { cargo clippy -p svipall --all-targets --features onnx-segment -- -D warnings }
 Step 'clippy (onnx-zeroshot)' { cargo clippy -p svipall --all-targets --features onnx-zeroshot -- -D warnings }
 Step 'clippy (onnx-asr)' { cargo clippy -p svipall --all-targets --features onnx-asr -- -D warnings }
+Step 'clippy (onnx-read)' { cargo clippy -p svipall --all-targets --features onnx-read -- -D warnings }
 # The QUIC stack is off by default, so nothing else in this list ever compiles it.
 Step 'clippy (http3)' { cargo clippy -p svipall --all-targets --features http3 -- -D warnings }
 # Tests are the contract (TDD): they must pass.

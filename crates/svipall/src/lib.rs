@@ -25,6 +25,7 @@ pub mod profiles;
 pub mod progress;
 pub mod provision;
 pub mod quality_cli;
+pub mod read_text;
 /// The same server over HTTP: one endpoint per tool, behind a bearer key.
 pub mod rest;
 pub mod search;
@@ -40,6 +41,7 @@ pub mod solver_engine;
 pub mod steer;
 pub mod substance;
 pub mod tools;
+pub mod tunnels;
 /// Explicit release checks and user-confirmed updates of the shared installation.
 pub mod update;
 pub mod video;
