@@ -32,7 +32,21 @@ impl Default for PdfLimits {
 pub struct PdfDoc {
     pub text: String,
     pub pages: usize,
+    /// Pages with any text to speak of. A page that is a picture of text (a scan, a fax, a
+    /// photographed receipt) has none: its words are pixels, and this extractor reads characters.
+    pub text_pages: usize,
     pub truncated: bool,
+}
+
+/// Fewer characters than this on a page and it has no text layer worth the name: a page number, a
+/// stamp, a scanner's own footer.
+const TEXT_PAGE_CHARS: usize = 40;
+
+impl PdfDoc {
+    /// Most of its pages are images of text rather than text.
+    pub fn scanned(&self) -> bool {
+        self.pages > 0 && self.text_pages * 2 < self.pages
+    }
 }
 
 pub fn looks_like_pdf(bytes: &[u8], content_type: &str) -> bool {
@@ -138,6 +152,10 @@ fn finish(raw: &str, limits: &PdfLimits) -> PdfDoc {
     PdfDoc {
         text: out.trim().to_string(),
         pages: kept.len(),
+        text_pages: kept
+            .iter()
+            .filter(|p| p.chars().filter(|c| !c.is_whitespace()).count() >= TEXT_PAGE_CHARS)
+            .count(),
         truncated,
     }
 }
@@ -145,6 +163,29 @@ fn finish(raw: &str, limits: &PdfLimits) -> PdfDoc {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn pages_that_are_pictures_of_text_are_counted_as_such() {
+        let words = "Delivered to the warehouse on the third of March, in two crates.";
+        let scan = finish("\u{c}  3 \u{c}", &PdfLimits::default());
+        assert_eq!((scan.pages, scan.text_pages), (3, 0));
+        assert!(scan.scanned());
+        let typed = finish(&format!("{words}\u{c}{words}\u{c}4"), &PdfLimits::default());
+        assert_eq!(typed.text_pages, 2);
+        assert!(
+            !typed.scanned(),
+            "one short page among typed ones is not a scan"
+        );
+    }
+
+    #[cfg(feature = "pdf")]
+    #[test]
+    fn a_real_image_only_pdf_is_scanned() {
+        let bytes = include_bytes!("../fixtures/pdf/scanned.pdf");
+        let doc = extract(bytes, &PdfLimits::default()).expect("it is a valid PDF");
+        assert_eq!(doc.pages, 1);
+        assert!(doc.scanned(), "{:?}", doc.text);
+    }
 
     #[test]
     fn something_that_is_not_a_pdf_is_refused() {

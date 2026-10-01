@@ -57,6 +57,10 @@ arrived too — it says who is watching, not that anything was withheld.
   with that host and is being rested. The result says how many seconds until it has not. Route the
   domain through a proxy, wait, or `web_status(clear_budget="shop.example")` if you mean to spend it
   anyway. `svipall status` shows what every address has spent where.
+- `blocked_reason: "exit_down"` → the proxy itself did not answer, so the site was never asked.
+  The exit is passed over for two minutes with its standing intact. With a pool, fetch once more
+  and it leaves through another exit. With a single route, bring the proxy back first. A tunnel
+  declared as `[[tunnels]]` in the config comes back by itself; `svipall status` shows it.
 - A login wall → `web_login` once, by hand, and the profile keeps the cookies.
 
 ## Reading a page cheaply
@@ -71,7 +75,8 @@ arrived too — it says who is watching, not that anything was withheld.
 | A lot of pages | `svipall crawl URL --out pages.csv` — writes a file, returns a path and a count |
 | A table, as rows | `svipall fetch URL --tables --out rows.csv` — typed rows with their columns, not a markdown grid |
 | A listing, as rows | `svipall fetch URL --schema auto` — reads the page's own repeated structure, names the columns for what they hold, and returns the schema it worked out in `induced_schema`. Keep that and pass it as `--schema '{…}'` next time. A page with no clear record set returns neither rather than guessing |
-| A document, not a page | `svipall fetch https://x/report.docx` — docx, xlsx, pptx, odt, epub, rtf, csv and pdf read as markdown, from the web or from `file://` |
+| A document, not a page | `svipall fetch https://x/report.docx` — docx, xlsx, pptx, odt, epub, rtf, csv and pdf read as markdown, from the web or from `file://`. A PDF of scanned pages says so in `document.scanned`, and is read page by page, like an image, once `svipall models install` has run |
+| A recording, not a page | `svipall fetch https://x/episode?id=3` — an audio or video file, known by its type, comes back as what it says once `svipall models install` has run; `media` says what it was. A podcast feed read with `svipall map` gives each episode's `enclosure` and published `transcript` |
 | Markup you already have | `svipall fetch raw: --stdin < page.html`, or `svipall fetch file:///…/page.html` (under `~/.svipall/in` or `local_roots`) |
 
 `svipall capture` is the one people forget. Most sites render from an endpoint their own JavaScript

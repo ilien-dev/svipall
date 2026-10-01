@@ -33,6 +33,20 @@ pub struct FeedItem {
     pub url: String,
     pub title: String,
     pub published: Option<String>,
+    /// The file an item carries: a podcast episode's recording, as `<enclosure>` or Atom's
+    /// `<link rel="enclosure">` gives it.
+    pub enclosure: Option<Enclosure>,
+    /// A transcript the publisher wrote (`<podcast:transcript>`): read before any recognition,
+    /// because it is the publisher's own words.
+    pub transcript: Option<String>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Enclosure {
+    pub url: String,
+    pub mime: Option<String>,
+    /// As the feed writes it (`itunes:duration`): seconds, or `h:mm:ss`.
+    pub duration: Option<String>,
 }
 
 /// Decompress when the bytes actually are gzip.
@@ -60,6 +74,15 @@ fn reader(xml: &str) -> Reader<&[u8]> {
 }
 
 /// Local name of a tag, ignoring any namespace prefix.
+/// An attribute's value, unescaped, when the element has it.
+fn attr(e: &quick_xml::events::BytesStart<'_>, key: &[u8]) -> Option<String> {
+    e.attributes()
+        .flatten()
+        .find(|a| local(a.key.as_ref()) == key)
+        .and_then(|a| a.unescape_value().ok().map(|v| v.trim().to_string()))
+        .filter(|v| !v.is_empty())
+}
+
 fn local(name: &[u8]) -> &[u8] {
     match name.iter().rposition(|b| *b == b':') {
         Some(i) => &name[i + 1..],
@@ -173,6 +196,9 @@ pub fn parse_feed(bytes: &[u8], max_items: usize) -> anyhow::Result<Vec<FeedItem
     let mut url = String::new();
     let mut title = String::new();
     let mut published: Option<String> = None;
+    let mut enclosure: Option<Enclosure> = None;
+    let mut transcript: Option<String> = None;
+    let mut duration: Option<String> = None;
     let mut field: Option<Vec<u8>> = None;
 
     loop {
@@ -185,6 +211,29 @@ pub fn parse_feed(bytes: &[u8], max_items: usize) -> anyhow::Result<Vec<FeedItem
                         url.clear();
                         title.clear();
                         published = None;
+                        enclosure = None;
+                        transcript = None;
+                        duration = None;
+                    }
+                    b"enclosure" if in_item && enclosure.is_none() => {
+                        enclosure = attr(&e, b"url").map(|url| Enclosure {
+                            url,
+                            mime: attr(&e, b"type"),
+                            duration: None,
+                        });
+                    }
+                    b"transcript" if in_item && transcript.is_none() => {
+                        transcript = attr(&e, b"url");
+                    }
+                    b"duration" if in_item => field = Some(name),
+                    b"link" if in_item && attr(&e, b"rel").as_deref() == Some("enclosure") => {
+                        if enclosure.is_none() {
+                            enclosure = attr(&e, b"href").map(|url| Enclosure {
+                                url,
+                                mime: attr(&e, b"type"),
+                                duration: None,
+                            });
+                        }
                     }
                     // Atom keeps the URL in an attribute rather than the element body.
                     b"link" if in_item => {
@@ -216,6 +265,9 @@ pub fn parse_feed(bytes: &[u8], max_items: usize) -> anyhow::Result<Vec<FeedItem
                         published.get_or_insert(value);
                     }
                     Some(b"guid") if url.is_empty() && value.starts_with("http") => url = value,
+                    Some(b"duration") => {
+                        duration.get_or_insert(value);
+                    }
                     _ => {}
                 }
             }
@@ -229,6 +281,11 @@ pub fn parse_feed(bytes: &[u8], max_items: usize) -> anyhow::Result<Vec<FeedItem
                             url: std::mem::take(&mut url),
                             title: std::mem::take(&mut title),
                             published: published.take(),
+                            enclosure: enclosure.take().map(|mut e| {
+                                e.duration = duration.take();
+                                e
+                            }),
+                            transcript: transcript.take(),
                         });
                     }
                 }
@@ -383,6 +440,37 @@ mod tests {
         assert_eq!(items.len(), 1);
         assert_eq!(items[0].url, "https://example.com/atom-1");
         assert_eq!(items[0].title, "Atom post");
+    }
+
+    #[test]
+    fn a_podcast_item_carries_its_recording_and_its_transcript() {
+        let rss = r#"<?xml version="1.0"?>
+<rss version="2.0" xmlns:itunes="http://www.itunes.com/dtds/podcast-1.0.dtd" xmlns:podcast="https://podcastindex.org/namespace/1.0">
+<channel><title>A show</title>
+<item><title>Episode 12</title><link>https://pod.example/12</link>
+<enclosure url="https://cdn.pod.example/12.mp3" length="39000000" type="audio/mpeg"/>
+<itunes:duration>41:02</itunes:duration>
+<podcast:transcript url="https://pod.example/12.vtt" type="text/vtt"/></item>
+<item><title>Episode 11</title><link>https://pod.example/11</link></item>
+</channel></rss>"#;
+        let items = parse_feed(rss.as_bytes(), 50).unwrap();
+        let e = items[0].enclosure.as_ref().expect("the recording");
+        assert_eq!(e.url, "https://cdn.pod.example/12.mp3");
+        assert_eq!(e.mime.as_deref(), Some("audio/mpeg"));
+        assert_eq!(e.duration.as_deref(), Some("41:02"));
+        assert_eq!(
+            items[0].transcript.as_deref(),
+            Some("https://pod.example/12.vtt")
+        );
+        assert_eq!(items[1].enclosure, None);
+        let atom = r#"<feed xmlns="http://www.w3.org/2005/Atom"><entry><title>T</title>
+<link href="https://a.example/1"/><link rel="enclosure" href="https://a.example/1.ogg" type="audio/ogg"/></entry></feed>"#;
+        let items = parse_feed(atom.as_bytes(), 50).unwrap();
+        assert_eq!(items[0].url, "https://a.example/1");
+        assert_eq!(
+            items[0].enclosure.as_ref().unwrap().url,
+            "https://a.example/1.ogg"
+        );
     }
 
     #[test]

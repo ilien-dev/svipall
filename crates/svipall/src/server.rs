@@ -161,6 +161,12 @@ struct TierOutcome {
     /// The key this attempt's page is filed under when it was worth keeping. `None` when nothing
     /// was kept — an isolated fetch, the http tier, or a page not worth returning to.
     kept_key: Option<String>,
+    /// Set when the response was a media file read for what it says rather than a page: what it
+    /// was and what reading it found. The file is the answer, so no other tier is tried.
+    media: Option<Value>,
+    /// Set when the response was a document whose text is not all there to read: a PDF of
+    /// scanned pages. A label, reported beside the content; no other tier would read it better.
+    document: Option<Value>,
 }
 
 impl TierOutcome {
@@ -287,6 +293,23 @@ impl WarmEnd {
     }
 }
 
+/// `audio`, `video` or `image` when a response is one, by its declared type. Container types that
+/// hold sound are read as sound; a playlist or a manifest is text and is not one of these.
+fn media_kind(content_type: &str) -> Option<&'static str> {
+    let ct = content_type.trim().to_ascii_lowercase();
+    let main = ct.split(';').next().unwrap_or("").trim();
+    if main.contains("mpegurl") || main.contains("dash+xml") || main == "image/svg+xml" {
+        return None;
+    }
+    match main.split('/').next() {
+        Some("audio") => Some("audio"),
+        Some("video") => Some("video"),
+        Some("image") => Some("image"),
+        _ if main == "application/ogg" => Some("audio"),
+        _ => None,
+    }
+}
+
 /// The attempt line for a tier that raised.
 ///
 /// The whole chain, not the outermost context: "launching browser" says where it failed, and the
@@ -297,6 +320,22 @@ fn exc_attempt(route: &str, e: &anyhow::Error, ms: u128) -> String {
     let chain = format!("{e:#}");
     let one_line = chain.split_whitespace().collect::<Vec<_>>().join(" ");
     format!("{route}: EXC {one_line} ({ms}ms)")
+}
+
+/// Mark `exit` unreachable and say so, naming it without its credentials.
+fn exit_down_note(domain: &str, exit: &str, cause: &str) -> String {
+    svipall_core::exits::mark_down(exit, cause);
+    crate::tunnels::wake();
+    let shown = crate::browser::split_proxy_auth(exit).0;
+    let next = if svipall_core::exits::has_alternative(domain, exit) {
+        "The pool has another exit, and the next fetch leaves through it."
+    } else {
+        "It is this domain's only exit: start it again, or declare another with web_route."
+    };
+    format!(
+        "exit_down: the exit {shown} could not be reached ({cause}). It is passed over for {}s and loses no standing with the site. {next}",
+        svipall_core::exits::DOWN_SECS
+    )
 }
 
 /// Should the wait stop now, and what would it say if asked why?
@@ -811,6 +850,7 @@ impl SvipallServer {
     }
 
     pub async fn shutdown_configuration(&self) {
+        crate::tunnels::stop_all().await;
         self.pool.shutdown().await;
         self.native_pool.shutdown().await;
         if let Some(live) = &self.live_policy {
@@ -1034,6 +1074,22 @@ impl SvipallServer {
                 "csv" => "text/csv",
                 "xml" | "rss" | "atom" => "application/xml",
                 "json" => "application/json",
+                // Read for what they say, not decoded as text.
+                "mp3" => "audio/mpeg",
+                "m4a" => "audio/mp4",
+                "wav" => "audio/wav",
+                "ogg" | "oga" | "opus" => "audio/ogg",
+                "flac" => "audio/flac",
+                "mp4" | "m4v" => "video/mp4",
+                "webm" => "video/webm",
+                "mov" => "video/quicktime",
+                "mkv" => "video/x-matroska",
+                "png" => "image/png",
+                "jpg" | "jpeg" => "image/jpeg",
+                "gif" => "image/gif",
+                "webp" => "image/webp",
+                "tif" | "tiff" => "image/tiff",
+                "bmp" => "image/bmp",
                 _ => "text/plain",
             };
             (body, ct.to_string())
@@ -1627,9 +1683,22 @@ impl SvipallServer {
         } else {
             fetcher.send(req).await?
         };
+        // Sound, a picture, or both: read for what it says, never decoded as text.
+        let media_kind = (200..300)
+            .contains(&r.status)
+            .then(|| media_kind(&r.content_type))
+            .flatten();
+        let mut media = None;
+        let mut document = None;
         // Only decode to text once the type says it is text. `r.text()` on every response is what
         // used to mangle PDFs into lossy UTF-8 before anything could look at them.
-        let html = if svipall_core::pdf::looks_like_pdf(&r.body, &r.content_type) {
+        let mut html = if let Some(kind) = media_kind {
+            let (text, found) = self
+                .read_media(kind, &r.content_type, &r.final_url, r.body.clone(), None)
+                .await;
+            media = Some(found);
+            text
+        } else if svipall_core::pdf::looks_like_pdf(&r.body, &r.content_type) {
             // CPU-bound, synchronous, and capable of panicking on a malformed file: it belongs on
             // a blocking thread behind a timeout, not on the reactor.
             let body = r.body.clone();
@@ -1642,7 +1711,7 @@ impl SvipallServer {
             .await;
             match extracted {
                 Ok(Ok(Ok(doc))) => {
-                    let note = if doc.truncated {
+                    let mut note = if doc.truncated {
                         format!(
                             "\n\n*(truncated at {} pages)*",
                             svipall_core::pdf::PdfLimits::default().max_pages
@@ -1650,7 +1719,19 @@ impl SvipallServer {
                     } else {
                         String::new()
                     };
-                    format!("{}{}", doc.text, note)
+                    if doc.scanned() {
+                        note.push_str(&format!(
+                            "\n\n*({} of {} pages have no text layer: they are images of text, \
+                             read only with the text reader installed)*",
+                            doc.pages - doc.text_pages,
+                            doc.pages
+                        ));
+                        document = Some(json!({
+                            "kind": "pdf", "scanned": true,
+                            "pages": doc.pages, "text_pages": doc.text_pages,
+                        }));
+                    }
+                    format!("{}{}", doc.text, note).trim_start().to_string()
                 }
                 Ok(Ok(Err(e))) => format!("Could not read this PDF: {e}"),
                 Ok(Err(e)) => format!("PDF extraction task failed: {e}"),
@@ -1684,9 +1765,36 @@ impl SvipallServer {
         } else {
             String::from_utf8_lossy(&r.body).into_owned()
         };
+        // A PDF of scanned pages: read the picture on each page, when the reader is installed.
+        if let Some(doc) = document.as_mut() {
+            if crate::read_text::available() {
+                let body = r.body.clone();
+                let deadline = Instant::now() + Duration::from_secs(60);
+                let read = tokio::task::spawn_blocking(move || {
+                    crate::read_text::read_pdf(&body, 30, deadline)
+                })
+                .await;
+                match read {
+                    Ok(Ok(found)) => {
+                        doc["pages_read"] = json!(found.pages_read);
+                        if !found.skipped.is_empty() {
+                            doc["skipped"] = json!(found.skipped);
+                        }
+                        if !found.text.trim().is_empty() {
+                            html = found.text;
+                        }
+                    }
+                    Ok(Err(e)) => doc["read_error"] = json!(format!("{e:#}")),
+                    Err(e) => doc["read_error"] = json!(e.to_string()),
+                }
+            } else {
+                doc["fix"] = json!("svipall models install");
+            }
+        }
         // Extracted PDF or document text is already prose; telling the pipeline it is HTML would
         // send it through the markdown walker for nothing.
-        let content_type = if svipall_core::pdf::looks_like_pdf(&r.body, &r.content_type)
+        let content_type = if media.is_some()
+            || svipall_core::pdf::looks_like_pdf(&r.body, &r.content_type)
             || svipall_core::document::looks_like_document(&r.body, &r.content_type, &r.final_url)
                 .is_some()
         {
@@ -1704,6 +1812,8 @@ impl SvipallServer {
             warm: None,
             kept_key: None,
             headers: r.headers,
+            media,
+            document,
         })
     }
 
@@ -2134,6 +2244,8 @@ impl SvipallServer {
             cookies,
             warm,
             kept_key,
+            media: None,
+            document: None,
         })
     }
 
@@ -2624,6 +2736,17 @@ impl SvipallServer {
                 Ok(o) => o,
                 Err(e) => {
                     attempts.push(exc_attempt(&route, &e, ms));
+                    // Nothing answered at the exit, so no tier will do better through it: stop
+                    // here, pass it over, and charge neither it nor the domain for it.
+                    if let Some(exit) = proxy.as_deref() {
+                        if svipall_core::exits::transport_fault(&format!("{e:#}")) {
+                            // The attempt line has the whole chain; the note needs only its end.
+                            let cause = e.root_cause().to_string();
+                            stopped = Some(exit_down_note(&domain, exit, &cause));
+                            stopped_kind = "exit_down";
+                            break;
+                        }
+                    }
                     if automatic {
                         svipall_core::automatic::record(
                             &route_context,
@@ -2646,6 +2769,20 @@ impl SvipallServer {
             } else {
                 identity_mode
             };
+            // A 407 is the exit asking for credentials, never the site refusing: the site was
+            // not reached. Charging it as a block would cool the domain down for the exit's fault.
+            if o.status == 407 {
+                if let Some(exit) = proxy.as_deref() {
+                    attempts.push(format!("{route}: 407 from the exit ({ms}ms)"));
+                    stopped = Some(exit_down_note(
+                        &domain,
+                        exit,
+                        "the exit answered 407 Proxy Authentication Required",
+                    ));
+                    stopped_kind = "exit_down";
+                    break;
+                }
+            }
             let rate_limited = matches!(o.status, 429 | 503);
             if !local && rate_limited {
                 let wait = o
@@ -2762,6 +2899,12 @@ impl SvipallServer {
                 && !parts.text.trim().is_empty()
             {
                 reason = None;
+            }
+            // A media file is its own answer: a short transcript, or a note that nothing could
+            // listen, is not a wall a browser would get past.
+            if (o.media.is_some() || o.document.is_some()) && (200..300).contains(&o.status) {
+                reason = None;
+                kind = WallKind::None;
             }
 
             // How much of the page arrived. Judged here rather than where the response is built,
@@ -2931,6 +3074,12 @@ impl SvipallServer {
                     "title": parts.title, "attempts": attempts,
                 });
                 let obj = value.as_object_mut().expect("object");
+                if let Some(m) = &o.media {
+                    obj.insert("media".into(), m.clone());
+                }
+                if let Some(d) = &o.document {
+                    obj.insert("document".into(), d.clone());
+                }
                 // A vendor on the wire is reported on a page that arrived, too. It says who is
                 // watching this domain — worth knowing before the next fetch — and saying it here
                 // is what keeps it a label rather than a reason to withhold.
@@ -5139,6 +5288,27 @@ impl SvipallServer {
                     url = next;
                     followed = true;
                 }
+                _ if page["media"].is_object() => {
+                    // The address is a media file known only by its type: the fetch already read
+                    // it, and there is nothing more a page could add.
+                    let mut out = page["media"].clone();
+                    out["url"] = json!(p.url);
+                    for k in ["final_url", "status", "tier_used"] {
+                        out[k] = page[k].clone();
+                    }
+                    let content = page["content"].as_str().unwrap_or_default().to_string();
+                    self.budget_into(
+                        &mut out,
+                        content,
+                        &WebFetchParams {
+                            max_tokens: p.max_tokens,
+                            cursor: p.cursor.clone(),
+                            out_file: p.out_file.clone(),
+                            ..Default::default()
+                        },
+                    );
+                    return Ok(out);
+                }
                 _ => {
                     // A wall is not an absence: say what stopped the page, in its own words.
                     let note = match page["blocked_reason"].as_str() {
@@ -5228,7 +5398,8 @@ impl SvipallServer {
             frames = live.1;
         }
         let mut track = track;
-        if cues.is_empty() {
+        // A transcript the publisher wrote is read before anything a model hears.
+        if cues.is_empty() && info.transcript.is_none() {
             if let Some((heard, asr_track, length)) = self.video_asr(&info, p, &mut notes).await {
                 cues = heard;
                 track = Some(asr_track);
@@ -5309,6 +5480,11 @@ impl SvipallServer {
                 .and_then(|o| o.remove("content"))
                 .and_then(|c| c.as_str().map(str::to_string))
                 .unwrap_or_default();
+            // A media file known only by its type was read by the fetch itself.
+            if value["media"].is_object() {
+                value["content"] = json!(preview);
+                return (value, Found::Nothing);
+            }
             // A player page is near-empty as prose, so the ladder calls it a wall and keeps only a
             // preview; the boot JSON is in the rest.
             let html = out.blocked_body.unwrap_or(preview);
@@ -5420,6 +5596,100 @@ impl SvipallServer {
         out
     }
 
+    /// A response that is a media file rather than a page, read for what it says: sound through
+    /// the speech model, and an image said to be one. Returns the text a model reads and the
+    /// `media` record the result carries.
+    async fn read_media(
+        &self,
+        kind: &'static str,
+        mime: &str,
+        url: &str,
+        bytes: Vec<u8>,
+        lang: Option<String>,
+    ) -> (String, Value) {
+        use svipall_core::video::{Stream, StreamKind, VideoInfo};
+        let size = bytes.len();
+        let title = svipall_core::video::file_name(url);
+        let mut notes: Vec<String> = Vec::new();
+        let mut info = VideoInfo {
+            source: "file",
+            title: title.clone(),
+            streams: vec![Stream {
+                url: url.to_string(),
+                kind: StreamKind::Progressive,
+                mime: Some(mime.to_string()),
+            }],
+            ..VideoInfo::default()
+        };
+        let mut reading = crate::video::Reading {
+            cues: Vec::new(),
+            track: None,
+            frames: Vec::new(),
+            notes: Vec::new(),
+        };
+        let mut read_text: Option<String> = None;
+        if kind == "image" {
+            if crate::read_text::available() {
+                let deadline = Instant::now() + Duration::from_secs(60);
+                match tokio::task::spawn_blocking(move || crate::read_text::read(&bytes, deadline))
+                    .await
+                {
+                    Ok(Ok(t)) if !t.trim().is_empty() => read_text = Some(t),
+                    Ok(Ok(_)) => notes.push("no text found in the image".into()),
+                    Ok(Err(e)) => notes.push(format!("the image could not be read: {e:#}")),
+                    Err(e) => notes.push(format!("reading the image stopped: {e}")),
+                }
+            } else {
+                notes.push(
+                    "the text reader is not installed; with it (svipall models install) the text in the image is read"
+                        .into(),
+                );
+            }
+        } else if !crate::asr::available() {
+            notes.push(
+                "the speech model is not installed; with it (svipall models install) the audio is transcribed"
+                    .into(),
+            );
+        } else if let Some((cues, track, total)) =
+            Self::transcribe(bytes, url, lang, &mut notes).await
+        {
+            reading.cues = cues;
+            reading.track = Some(track);
+            info.duration = Some(total);
+        }
+        let head = format!(
+            "# {}
+
+",
+            title.as_deref().unwrap_or("Untitled media file")
+        );
+        let content = if let Some(text) = &read_text {
+            format!("{head}{text}\n")
+        } else if reading.cues.is_empty() {
+            let what = match kind {
+                "image" => "An image",
+                "video" => "A video file",
+                _ => "An audio file",
+            };
+            format!(
+                "{head}{what} ({mime}, {} KB), not a page. {}.\n",
+                size.div_ceil(1024),
+                notes.join("; ")
+            )
+        } else {
+            crate::video::content(&info, &reading)
+        };
+        reading.notes = notes;
+        let mut record = crate::video::summary(&info, &reading);
+        record["kind"] = json!(kind);
+        record["mime"] = json!(mime);
+        record["bytes"] = json!(size);
+        if read_text.is_some() {
+            record["text_read"] = json!(true);
+        }
+        (content, record)
+    }
+
     /// No captions anywhere: transcribe the audio of a media file with the local speech model.
     ///
     /// A file, not a segmented stream: the audio of an HLS or DASH rendition comes in pieces
@@ -5436,7 +5706,7 @@ impl SvipallServer {
         svipall_core::video::Track,
         f64,
     )> {
-        use svipall_core::video::{align::clock, CaptionKind, StreamKind, Track};
+        use svipall_core::video::StreamKind;
         /// A video file larger than this is not downloaded to be listened to.
         const MAX_BYTES: usize = 300 * 1024 * 1024;
 
@@ -5452,7 +5722,7 @@ impl SvipallServer {
             return None;
         }
         let fetcher = self.fetcher_for(self.exit_for(&domain_from_url(&file.url)).as_deref());
-        let bytes = match fetcher.send(HttpRequest::get(file.url.clone())).await {
+        let bytes: Vec<u8> = match fetcher.send(HttpRequest::get(file.url.clone())).await {
             Ok(r) if (200..300).contains(&r.status) && r.body.len() <= MAX_BYTES => r.body,
             Ok(r) if r.body.len() > MAX_BYTES => {
                 notes.push("the media file is over 300 MB; not downloaded to transcribe".into());
@@ -5467,7 +5737,22 @@ impl SvipallServer {
                 return None;
             }
         };
-        let lang = p.lang.clone();
+        Self::transcribe(bytes, &file.url, p.lang.clone(), notes).await
+    }
+
+    /// Transcribe a media file's audio with the local speech model, within a minute. The caller
+    /// has checked that the model is there.
+    async fn transcribe(
+        bytes: Vec<u8>,
+        url: &str,
+        lang: Option<String>,
+        notes: &mut Vec<String>,
+    ) -> Option<(
+        Vec<svipall_core::video::Cue>,
+        svipall_core::video::Track,
+        f64,
+    )> {
+        use svipall_core::video::{align::clock, CaptionKind, Track};
         let deadline = Instant::now() + Duration::from_secs(60);
         let done = tokio::task::spawn_blocking(move || {
             crate::asr::transcribe(&bytes, lang.as_deref(), deadline)
@@ -5496,7 +5781,7 @@ impl SvipallServer {
         Some((
             heard.cues,
             Track {
-                url: file.url.clone(),
+                url: url.to_string(),
                 lang: heard.lang,
                 label: Some("local speech recognition".into()),
                 kind: CaptionKind::Asr,
@@ -6144,11 +6429,8 @@ impl SvipallServer {
             .ok()
             .filter(|u| matches!(u.scheme(), "http" | "https"))
             .ok_or_else(|| anyhow::anyhow!(crate::steer::needs_http_url("web_map", &p.url)))?;
-        let origin = format!(
-            "{}://{}",
-            base.scheme(),
-            base.host_str().unwrap_or_default()
-        );
+        // With its port: a site on `:8080` has its robots.txt and feeds there too.
+        let origin = base.origin().ascii_serialization();
         let mut used: Vec<&str> = Vec::new();
         let mut urls: Vec<Value> = Vec::new();
         let mut seen: HashSet<String> = HashSet::new();
@@ -6252,10 +6534,20 @@ impl SvipallServer {
                         if urls.len() >= limit || !seen.insert(it.url.clone()) {
                             continue;
                         }
-                        urls.push(json!({
+                        let mut row = json!({
                             "url": it.url, "title": it.title,
                             "lastmod": it.published, "source": "feed"
-                        }));
+                        });
+                        // A podcast's episode is its recording: `web_fetch` reads that address
+                        // for what is said, and a published transcript before it.
+                        if let Some(e) = it.enclosure {
+                            row["enclosure"] =
+                                json!({"url": e.url, "mime": e.mime, "duration": e.duration});
+                        }
+                        if let Some(t) = it.transcript {
+                            row["transcript"] = json!(t);
+                        }
+                        urls.push(row);
                     }
                 }
             }
@@ -6641,6 +6933,7 @@ impl SvipallServer {
             "proxy_routes": self.routes(),
             "exit_pools": svipall_core::exits::pools(),
             "exit_health": svipall_core::exits::status(),
+            "tunnels": crate::tunnels::status(),
             "reputation": svipall_core::reputation::status(),
             "h3_offered_by": self.store.as_ref().map(|s| svipall_core::altsvc::offered(s, chrono::Utc::now().timestamp())),
             // Three separate things, and a caller wondering why a site with an `Alt-Svc` is still
@@ -6686,6 +6979,7 @@ impl SvipallServer {
                 "audio": crate::audio::locate().map(|l| l.describe()),
                 "zeroshot": crate::zeroshot::available(),
                 "asr": crate::asr::available(),
+                "read": crate::read_text::available(),
                 "substance": crate::substance::locate().map(|l| l.describe()),
             },
         });
@@ -7074,7 +7368,7 @@ impl ServerHandler for SvipallServer {
             },
             instructions: Some(
                 "svipall does all web access, locally. \
-                 Read a page: web_fetch (omit mode: auto picks the tier http -> browser -> stealth -> real -> warm and remembers it per domain). PDF and office documents read the same way; a JSON endpoint comes back as is. \
+                 Read a page: web_fetch (omit mode: auto picks the tier http -> browser -> stealth -> real -> warm and remembers it per domain). PDF and office documents read the same way, and an audio or video file as what it says; a JSON endpoint comes back as is. \
                  Cut tokens: query=, css_selector, out_file, or max_tokens + cursor. Rows instead of prose: tables=true, or schema=auto. Several known URLs: web_fetch_many. \
                  The API behind a listing (page=2 beats following links): web_capture. A page to click: web_snapshot, then web_act with ref (one shot) or browser_open + browser_do (several steps, cookies kept). \
                  A picture of a page: web_screenshot. A site's pages: web_map first (cheap), then web_crawl (out_file for many rows). \

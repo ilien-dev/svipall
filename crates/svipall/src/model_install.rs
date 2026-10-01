@@ -32,7 +32,8 @@ fn releases_base() -> String {
 /// this list is not written: an archive is somebody else's file, and `../../.bashrc` is a name.
 ///
 /// Most models are a network and its sidecar. The speech recogniser is two networks sharing one
-/// sidecar, plus the vocabulary its output is read with.
+/// sidecar, plus the vocabulary its output is read with; the text reader is two networks sharing
+/// the recogniser's sidecar.
 const MODELS: &[(&str, &[&str])] = &[
     ("detect", &["detect.onnx", "detect.json"]),
     ("segment", &["segment.onnx", "segment.json"]),
@@ -48,6 +49,7 @@ const MODELS: &[(&str, &[&str])] = &[
             "asr_vocab.json",
         ],
     ),
+    ("read", &["ocr_det.onnx", "ocr_rec.onnx", "ocr_rec.json"]),
 ];
 
 fn is_model_file(name: &str) -> bool {
