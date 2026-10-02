@@ -13,6 +13,36 @@ env:
   CARGO_TERM_COLOR: always
 
 jobs:
+  # A merge to `main` releases only once `ci` passed on that same commit. v1.3.0 shipped while its
+  # `ci` was red, because this workflow ran beside `ci` instead of after it. Waiting here rather
+  # than being called by `ci.yml` keeps this file the one that publishes: npm trusts `release.yml`
+  # by name, and a called workflow publishes under its caller's name. A tag pushed by hand or a
+  # manual run is the recovery path and does not wait.
+  ci-green:
+    name: ci green
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    permissions:
+      actions: read
+    steps:
+      - name: Wait for ci on this commit
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          while :; do
+            run=$(gh run list -R "$GITHUB_REPOSITORY" --workflow ci.yml --commit "$GITHUB_SHA" \
+              --event push --limit 1 --json status,conclusion,url \
+              -q '.[0] | "\(.status) \(.conclusion) \(.url)"')
+            case "$run" in
+              "completed success "*) echo "ci passed: ${run##* }"; exit 0 ;;
+              completed*) echo "ci did not pass, nothing ships: $run" >&2; exit 1 ;;
+            esac
+            echo "waiting for ci: ${run:-not started}"
+            sleep 60
+          done
+
   # One version, decided in one place. `[workspace.package] version` in the root manifest is the
   # only place the number is written by hand; `scripts/sync-version` copies it into the plugin
   # manifest, the npm wrapper and every internal dependency line, and `release_version.rs` fails
@@ -28,6 +58,7 @@ jobs:
   # a version that has not shipped.
   version:
     name: version
+    needs: ci-green
     runs-on: ubuntu-latest
     outputs:
       version: ${{ steps.v.outputs.version }}
@@ -121,7 +152,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - uses: dtolnay/rust-toolchain@stable
+      - uses: dtolnay/rust-toolchain@1.99.0
         with:
           targets: ${{ matrix.target }}
 
@@ -403,7 +434,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: dtolnay/rust-toolchain@stable
+      - uses: dtolnay/rust-toolchain@1.99.0
       # The archives, by pattern. The image jobs finish first and leave `.dockerbuild` records in
       # the run that this action cannot extract; taking everything is how rc.3's first run died.
       - uses: actions/download-artifact@v4
@@ -644,7 +675,7 @@ jobs:
       id-token: write
     steps:
       - uses: actions/checkout@v4
-      - uses: dtolnay/rust-toolchain@stable
+      - uses: dtolnay/rust-toolchain@1.99.0
 
       # The verification build is a real build: `svipall-http` compiles BoringSSL like every other
       # job here does.

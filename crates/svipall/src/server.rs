@@ -6670,11 +6670,13 @@ impl SvipallServer {
         let home = svipall_core::config::home_dir();
         let _ = std::fs::create_dir_all(&home);
         let file = home.join("proxies.json");
-        let mut table = self.routes();
+        // Through `ROUTES`, never the file: the fetch path reads its cache, and a write past it
+        // left a removed route in use and a new one ignored until the cache next looked at disk.
+        let routes = &svipall_core::store::ROUTES;
         if let Some(domain) = p.domain {
             let domain = domain.trim().trim_start_matches("www.").to_lowercase();
             if p.remove.unwrap_or(false) {
-                table.remove(&domain);
+                routes.remove(&domain);
                 svipall_core::exits::set_pool(&domain, &[]);
                 svipall_core::exits::forget(&domain);
             } else if let Some(pool) = p.proxies.filter(|p| !p.is_empty()) {
@@ -6698,7 +6700,7 @@ impl SvipallServer {
                 }
                 svipall_core::exits::set_pool(&domain, &pool);
                 svipall_core::exits::forget(&domain);
-                table.insert(domain, pool[0].clone());
+                routes.insert(&domain, &pool[0]);
             } else if let Some(proxy) = p.proxy {
                 if let Some(bad) = crate::steer::not_a_proxy(&proxy) {
                     anyhow::bail!(bad);
@@ -6714,15 +6716,11 @@ impl SvipallServer {
                         );
                     }
                 }
-                table.insert(domain, proxy);
+                routes.insert(&domain, &proxy);
             }
-            let _ = std::fs::write(
-                &file,
-                serde_json::to_string_pretty(&table).unwrap_or_default(),
-            );
         }
         Ok(json!({
-            "routes": table,
+            "routes": routes.as_map(),
             "pools": svipall_core::exits::pools(),
             "exit_strategy": self.cfg.exit_strategy,
             "file": file.to_string_lossy(),
