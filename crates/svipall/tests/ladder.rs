@@ -977,6 +977,30 @@ async fn a_pool_of_exits_is_stored_with_its_countries_and_removed_whole() {
     assert!(svipall_core::exits::exits_for("pool.example").is_empty());
 }
 
+/// A route takes effect the moment `web_route` answers, and stops the moment it is removed: the
+/// fetch path reads the cached map, so a write that bypasses the cache would keep the old route.
+#[tokio::test]
+async fn a_route_is_live_as_soon_as_it_is_written_and_gone_as_soon_as_it_is_removed() {
+    use svipall::tools::WebRouteParams;
+    use svipall_core::store::route_for;
+    let s = server();
+    let route = |proxy: Option<&str>, remove: bool| WebRouteParams {
+        domain: Some("live.example".into()),
+        proxy: proxy.map(Into::into),
+        remove: remove.then_some(true),
+        ..Default::default()
+    };
+    assert_eq!(route_for("live.example"), None, "the cache is primed empty");
+    s.route_json(route(Some("http://c:3"), false)).await.unwrap();
+    assert_eq!(route_for("live.example").as_deref(), Some("http://c:3"));
+
+    // Past the stat interval, so the next lookup reloads and caches the route.
+    tokio::time::sleep(std::time::Duration::from_millis(300)).await;
+    assert_eq!(route_for("live.example").as_deref(), Some("http://c:3"));
+    s.route_json(route(None, true)).await.unwrap();
+    assert_eq!(route_for("live.example"), None);
+}
+
 /// A document linked from a page reads like a page: the http tier converts it and the pipeline
 /// sees prose, not bytes.
 #[tokio::test]
