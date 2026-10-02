@@ -60,3 +60,99 @@ fn merging_a_pull_request_cancels_its_run() {
         "the run a closed pull request starts must skip the build"
     );
 }
+
+/// `@stable` moved to 1.99 under an unchanged tree and its new lint failed every job on `main`:
+/// a red run the code did not cause. The toolchain is a pinned version, written once in
+/// `rust-toolchain.toml`, and every workflow installs that same one; a new release arrives as a
+/// change of its own, with its lints fixed in it.
+#[test]
+fn every_workflow_installs_the_pinned_toolchain() {
+    let root = Path::new(env!("CARGO_MANIFEST_DIR"))
+        .parent()
+        .and_then(Path::parent)
+        .expect("crates/svipall sits two levels under the workspace root");
+    let toml = fs::read_to_string(root.join("rust-toolchain.toml"))
+        .expect("rust-toolchain.toml")
+        .replace("\r\n", "\n");
+    let channel = toml
+        .lines()
+        .find_map(|l| l.trim_start().strip_prefix("channel"))
+        .and_then(|rest| rest.trim_start().strip_prefix('='))
+        .map(|v| v.trim().trim_matches('"'))
+        .expect("rust-toolchain.toml names a channel");
+    assert!(
+        channel.split('.').count() == 3 && channel.split('.').all(|n| n.parse::<u32>().is_ok()),
+        "the channel is an exact version, not {channel}"
+    );
+    // Components there collide with the `cargo-fmt` of the macOS and arm Linux runner images.
+    assert!(
+        !toml
+            .lines()
+            .any(|l| l.trim_start().starts_with("components")),
+        "rust-toolchain.toml lists components; ci.yml asks the action for them"
+    );
+    for c in ["clippy", "rustfmt"] {
+        assert!(ci().contains(c), "ci.yml does not install {c}");
+    }
+    let pinned = format!("dtolnay/rust-toolchain@{channel}");
+    let mut steps = 0;
+    for entry in fs::read_dir(root.join(".github/workflows")).expect("workflows") {
+        let path = entry.expect("entry").path();
+        let text = fs::read_to_string(&path).expect("workflow");
+        for line in text
+            .lines()
+            .filter(|l| l.contains("dtolnay/rust-toolchain@"))
+        {
+            steps += 1;
+            assert!(
+                line.contains(&pinned),
+                "{}: {}",
+                path.display(),
+                line.trim()
+            );
+        }
+    }
+    assert!(steps > 0, "no workflow installs a toolchain");
+}
+
+/// v1.3.0 shipped from a `main` whose `ci` was red: `release.yml` ran on the same push, beside
+/// `ci` rather than after it. Every job now waits on `ci-green`, which waits for `ci` on the same
+/// commit. `release.yml` keeps its own trigger: npm trusts it by name, and a workflow `ci.yml`
+/// called would publish under `ci.yml`'s.
+#[test]
+fn a_release_waits_for_a_green_ci() {
+    let root = Path::new(env!("CARGO_MANIFEST_DIR"))
+        .parent()
+        .and_then(Path::parent)
+        .expect("crates/svipall sits two levels under the workspace root");
+    let release = fs::read_to_string(root.join(".github/workflows/release.yml"))
+        .expect("release.yml")
+        .replace("\r\n", "\n");
+    assert!(
+        !release.contains("workflow_call"),
+        "release.yml must publish under its own name"
+    );
+    let gate = release
+        .split_once("\n  ci-green:\n")
+        .map(|(_, rest)| rest.split_once("\n\n").map_or(rest, |(job, _)| job))
+        .expect("release.yml has a `ci-green` job");
+    for needle in [
+        "--workflow ci.yml",
+        "--commit \"$GITHUB_SHA\"",
+        "\"completed success \"*) ",
+        "refs/heads/main",
+    ] {
+        assert!(gate.contains(needle), "ci-green lacks {needle}: {gate}");
+    }
+    let version = release
+        .split_once("\n  version:\n")
+        .map(|(_, rest)| {
+            rest.split_once("\n    steps:")
+                .map_or(rest, |(head, _)| head)
+        })
+        .expect("release.yml has a `version` job");
+    assert!(
+        version.contains("needs: ci-green"),
+        "`version`, which every other job needs, does not wait for ci: {version}"
+    );
+}
