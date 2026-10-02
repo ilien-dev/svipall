@@ -1,5 +1,18 @@
 # Changelog
 
+## 1.3.1 — 2026-10-02
+
+- **A route set with `web_route` applies to the very next fetch.** `web_route` wrote
+  `proxies.json` behind the in-memory copy that fetches read. That copy looks at the file at most
+  every 250 ms, so a fetch could ignore a route just added, or keep using one just removed, for up
+  to that long. Two changes at once could also lose a route. `web_route` now changes that copy,
+  which writes the file.
+- **A release waits for `ci` to pass on the same commit.** v1.3.0 shipped while `ci` on its merge
+  was red. A tag pushed by hand and a manual run still release without waiting.
+- **Rust is pinned to 1.99.0** in `rust-toolchain.toml`, and every workflow installs that version.
+  A new Rust release used to reach CI unannounced through `@stable`, and the first lint it added
+  failed `main` on code that had not changed.
+
 ## 1.3.0 — 2026-09-26
 
 - **A proxy that does not answer is no longer taken for a site that refused.** When nothing
