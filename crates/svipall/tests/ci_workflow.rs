@@ -74,24 +74,42 @@ fn every_workflow_installs_the_pinned_toolchain() {
     let toml = fs::read_to_string(root.join("rust-toolchain.toml"))
         .expect("rust-toolchain.toml")
         .replace("\r\n", "\n");
-    let channel = value(&toml, "channel")
-        .expect("rust-toolchain.toml names a channel")
-        .trim_matches('"');
+    let channel = toml
+        .lines()
+        .find_map(|l| l.trim_start().strip_prefix("channel"))
+        .and_then(|rest| rest.trim_start().strip_prefix('='))
+        .map(|v| v.trim().trim_matches('"'))
+        .expect("rust-toolchain.toml names a channel");
     assert!(
         channel.split('.').count() == 3 && channel.split('.').all(|n| n.parse::<u32>().is_ok()),
         "the channel is an exact version, not {channel}"
     );
+    // Components there collide with the `cargo-fmt` of the macOS and arm Linux runner images.
+    assert!(
+        !toml
+            .lines()
+            .any(|l| l.trim_start().starts_with("components")),
+        "rust-toolchain.toml lists components; ci.yml asks the action for them"
+    );
     for c in ["clippy", "rustfmt"] {
-        assert!(toml.contains(&format!("\"{c}\"")), "{c} is not a component");
+        assert!(ci().contains(c), "ci.yml does not install {c}");
     }
     let pinned = format!("dtolnay/rust-toolchain@{channel}");
     let mut steps = 0;
     for entry in fs::read_dir(root.join(".github/workflows")).expect("workflows") {
         let path = entry.expect("entry").path();
         let text = fs::read_to_string(&path).expect("workflow");
-        for line in text.lines().filter(|l| l.contains("dtolnay/rust-toolchain@")) {
+        for line in text
+            .lines()
+            .filter(|l| l.contains("dtolnay/rust-toolchain@"))
+        {
             steps += 1;
-            assert!(line.contains(&pinned), "{}: {}", path.display(), line.trim());
+            assert!(
+                line.contains(&pinned),
+                "{}: {}",
+                path.display(),
+                line.trim()
+            );
         }
     }
     assert!(steps > 0, "no workflow installs a toolchain");
@@ -128,7 +146,10 @@ fn a_release_waits_for_a_green_ci() {
     }
     let version = release
         .split_once("\n  version:\n")
-        .map(|(_, rest)| rest.split_once("\n    steps:").map_or(rest, |(head, _)| head))
+        .map(|(_, rest)| {
+            rest.split_once("\n    steps:")
+                .map_or(rest, |(head, _)| head)
+        })
         .expect("release.yml has a `version` job");
     assert!(
         version.contains("needs: ci-green"),

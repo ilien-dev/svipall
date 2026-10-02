@@ -1,7 +1,10 @@
 # One exact version for every machine and every workflow; `ci_workflow.rs` holds them together.
 # A new Rust release is a change of its own: bump this, the `@` of each `dtolnay/rust-toolchain`
 # step, and fix its new lints in the same pull request.
+#
+# No `components`: rustup would add them on the first `cargo` call, and on the macOS and arm Linux
+# runners that collides with the `cargo-fmt` their image already ships. `ci.yml` asks the action
+# for clippy and rustfmt instead.
 [toolchain]
 channel = "1.99.0"
-components = ["clippy", "rustfmt"]
 profile = "minimal"
