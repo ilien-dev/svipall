@@ -991,7 +991,9 @@ async fn a_route_is_live_as_soon_as_it_is_written_and_gone_as_soon_as_it_is_remo
         ..Default::default()
     };
     assert_eq!(route_for("live.example"), None, "the cache is primed empty");
-    s.route_json(route(Some("http://c:3"), false)).await.unwrap();
+    s.route_json(route(Some("http://c:3"), false))
+        .await
+        .unwrap();
     assert_eq!(route_for("live.example").as_deref(), Some("http://c:3"));
 
     // Past the stat interval, so the next lookup reloads and caches the route.
