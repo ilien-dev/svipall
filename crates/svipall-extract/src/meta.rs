@@ -227,7 +227,7 @@ pub(crate) fn metadata_from(doc: &Html, base_url: Option<&str>) -> Metadata {
     m.canonical = sel(r#"link[rel="canonical"]"#)
         .and_then(|s| doc.select(&s).next())
         .and_then(|l| l.value().attr("href"))
-        .map(&abs)
+        .map(abs)
         .or_else(|| m.open_graph.get("url").map(|u| abs(u)));
 
     m.lang = sel("html")
