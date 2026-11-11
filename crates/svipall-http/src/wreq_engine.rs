@@ -140,6 +140,45 @@ impl HttpFetcher for WreqFetcher {
     }
 
     async fn send(&self, req: HttpRequest) -> anyhow::Result<HttpResponse> {
+        let resp = self.request(req, None)?.send().await?;
+        let status = resp.status().as_u16();
+        let final_url = resp.uri().to_string();
+        let http_version = version_of(resp.version());
+        let headers = headers_of(resp.headers());
+        let mut out = crate::bodiless(status, final_url, headers, http_version);
+        out.body = resp.bytes().await?.to_vec();
+        Ok(out)
+    }
+
+    async fn send_streaming(
+        &self,
+        req: HttpRequest,
+        sink: &mut (dyn crate::BodySink + Send),
+        total: Option<std::time::Duration>,
+    ) -> anyhow::Result<HttpResponse> {
+        use futures::StreamExt;
+        let resp = self.request(req, total)?.send().await?;
+        let status = resp.status().as_u16();
+        let final_url = resp.uri().to_string();
+        let http_version = version_of(resp.version());
+        let headers = headers_of(resp.headers());
+        sink.begin(status, &headers)?;
+        let mut body = resp.bytes_stream();
+        while let Some(chunk) = body.next().await {
+            sink.write(&chunk?)?;
+        }
+        Ok(crate::bodiless(status, final_url, headers, http_version))
+    }
+}
+
+impl WreqFetcher {
+    /// The request as the engine sends it. `total` replaces the client's timeout for this one
+    /// transfer, and a stalled body is cut after [`crate::STALL`] whatever the total says.
+    fn request(
+        &self,
+        req: HttpRequest,
+        total: Option<std::time::Duration>,
+    ) -> anyhow::Result<wreq::RequestBuilder> {
         let method = wreq::Method::from_bytes(req.method.to_uppercase().as_bytes())?;
         let mut r = self.client.request(method, &req.url);
         // The emulation already installs Chrome's header set in Chrome's order. Only headers the
@@ -151,34 +190,26 @@ impl HttpFetcher for WreqFetcher {
         if let Some(body) = req.body {
             r = r.body(body);
         }
-        let resp = r.send().await?;
-        let status = resp.status().as_u16();
-        let final_url = resp.uri().to_string();
-        let http_version = match resp.version() {
-            wreq::Version::HTTP_2 => "HTTP/2.0",
-            wreq::Version::HTTP_3 => "HTTP/3.0",
-            wreq::Version::HTTP_10 => "HTTP/1.0",
-            _ => "HTTP/1.1",
-        };
-        let headers: Vec<(String, String)> = resp
-            .headers()
-            .iter()
-            .map(|(k, v)| (k.to_string(), v.to_str().unwrap_or_default().to_string()))
-            .collect();
-        let content_type = headers
-            .iter()
-            .find(|(k, _)| k.eq_ignore_ascii_case("content-type"))
-            .map(|(_, v)| v.to_ascii_lowercase())
-            .unwrap_or_default();
-        Ok(HttpResponse {
-            status,
-            final_url,
-            headers,
-            content_type,
-            body: resp.bytes().await?.to_vec(),
-            http_version,
-        })
+        if let Some(t) = total {
+            r = r.timeout(t).read_timeout(crate::STALL);
+        }
+        Ok(r)
     }
+}
+
+fn version_of(v: wreq::Version) -> &'static str {
+    match v {
+        wreq::Version::HTTP_2 => "HTTP/2.0",
+        wreq::Version::HTTP_3 => "HTTP/3.0",
+        wreq::Version::HTTP_10 => "HTTP/1.0",
+        _ => "HTTP/1.1",
+    }
+}
+
+fn headers_of(h: &wreq::header::HeaderMap) -> Vec<(String, String)> {
+    h.iter()
+        .map(|(k, v)| (k.to_string(), v.to_str().unwrap_or_default().to_string()))
+        .collect()
 }
 
 #[cfg(test)]

@@ -167,6 +167,10 @@ struct TierOutcome {
     /// Set when the response was a document whose text is not all there to read: a PDF of
     /// scanned pages. A label, reported beside the content; no other tier would read it better.
     document: Option<Value>,
+    /// Set when the body was a file rather than text: saved to `out_file` as served, described
+    /// (type, size, sha256) instead of decoded, cut short, or over the in-memory cap. The file is
+    /// the answer, so no other tier is tried. See `body`.
+    file: Option<Value>,
 }
 
 impl TierOutcome {
@@ -669,6 +673,51 @@ fn project_json(
             obj.insert("json_path_error".into(), json!(e));
             None
         }
+    }
+}
+
+/// The file a fetch asked for when it asked for the file rather than its text: an `out_file` whose
+/// name is not a text name. See `body::wants_text`.
+fn raw_file_target(p: &WebFetchParams) -> Option<PathBuf> {
+    let name = p.out_file.as_deref().filter(|n| !n.trim().is_empty())?;
+    if crate::body::wants_text(name) {
+        return None;
+    }
+    out_path(name).ok()
+}
+
+/// The tier outcome for a body that went to disk, was cut short, or would not fit: the file is the
+/// answer, and the note is what stands in for its content.
+fn file_outcome(sink: &crate::body::Sink, final_url: &str, mut info: Value) -> TierOutcome {
+    if let Some(ms) = sink.first_byte_ms {
+        info["first_byte_ms"] = json!(ms);
+    }
+    let note = if info["complete"] == true {
+        crate::body::binary_note(&info, true)
+    } else if info["partial"] == true {
+        format!(
+            "The download stopped after {} bytes: {}. The bytes so far are kept in {}; {}.",
+            info["bytes_written"],
+            info["error"].as_str().unwrap_or(""),
+            info["part_file"].as_str().unwrap_or(""),
+            info["next"].as_str().unwrap_or("call again to resume")
+        )
+    } else {
+        info["error"].as_str().unwrap_or_default().to_string()
+    };
+    TierOutcome {
+        status: sink.status,
+        html: note,
+        final_url: final_url.to_string(),
+        content_type: "text/plain".into(),
+        scroll_rounds: None,
+        cookies: svipall_core::classify::cookie_names(&sink.headers),
+        warm: None,
+        kept_key: None,
+        headers: sink.headers.clone(),
+        media: None,
+        document: None,
+        file: Some(info),
     }
 }
 
@@ -1740,11 +1789,60 @@ impl SvipallServer {
             }
             req.body = Some(b.clone().into_bytes());
         }
-        let r = if p.url.starts_with("raw:") || p.url.starts_with("file://") {
-            Self::local_response(&p.url).await?
+        // Asked for the file: a transfer this target already started is asked for from where it
+        // stopped, on the validator it was started under.
+        let raw_target = raw_file_target(p);
+        if let Some(target) = &raw_target {
+            if let Some((from, validator)) = crate::body::resume_point(target, &p.url) {
+                req.set_header("range", &format!("bytes={from}-"));
+                req.set_header("if-range", &validator);
+            }
+        }
+        let mut sink = crate::body::Sink::new(
+            &p.url,
+            raw_target.clone(),
+            crate::body::max_body_bytes(),
+        );
+        let sent = if p.url.starts_with("raw:") || p.url.starts_with("file://") {
+            match Self::local_response(&p.url).await {
+                Ok(mut r) => svipall_http::feed(&mut sink, &mut r).map(|_| r),
+                Err(e) => Err(e),
+            }
         } else {
-            fetcher.send(req).await?
+            // The caller's deadline bounds the transfer, not the page timeout of the client: a
+            // download is allowed as long as the fetch is.
+            let total = Duration::from_millis(p.timeout.unwrap_or(60_000).max(1_000));
+            fetcher.send_streaming(req, &mut sink, Some(total)).await
         };
+        let mut r = match sent {
+            Ok(r) => r,
+            Err(e) => {
+                // A body that will not fit, or a download cut short, is an answer about this
+                // file — never a reason to ask a browser for it.
+                let ct = sink.content_type();
+                let info = if let Some(size) = sink.over_cap {
+                    Some(json!({
+                        "content_type": ct,
+                        "bytes": size,
+                        "error": format!(
+                            "the body is over the {} bytes kept in memory, so it was not read; \
+                             pass out_file (a name that is not .md/.txt/.json) to stream it to disk",
+                            crate::body::max_body_bytes()
+                        ),
+                    }))
+                } else {
+                    sink.partial(&e)
+                };
+                return match info {
+                    Some(info) => Ok(file_outcome(&sink, &p.url, info)),
+                    None => Err(e),
+                };
+            }
+        };
+        if let Some(info) = sink.finish() {
+            return Ok(file_outcome(&sink, &r.final_url, info));
+        }
+        r.body = sink.take_memory();
         // Sound, a picture, or both: read for what it says, never decoded as text.
         let media_kind = (200..300)
             .contains(&r.status)
@@ -1752,6 +1850,7 @@ impl SvipallServer {
             .flatten();
         let mut media = None;
         let mut document = None;
+        let mut file: Option<Value> = None;
         // Only decode to text once the type says it is text. `r.text()` on every response is what
         // used to mangle PDFs into lossy UTF-8 before anything could look at them.
         let mut html = if let Some(kind) = media_kind {
@@ -1822,10 +1921,31 @@ impl SvipallServer {
                 Ok(Err(e)) => format!("Document conversion task failed: {e}"),
                 Err(_) => "Document conversion timed out after 30s".to_string(),
             }
-        } else if Self::is_html_type(&r.content_type) || r.content_type.contains("text") {
-            r.text()
+        } else if crate::body::is_binary(&r.content_type, &r.body) {
+            // Bytes, kept as bytes: written as served when the caller named a file, described
+            // otherwise. Decoding them as text is what turned every archive and font into mojibake.
+            let mut info = crate::body::describe(&r.content_type, &r.body);
+            let saved = match p.out_file.as_deref().filter(|n| !n.trim().is_empty()) {
+                Some(name) => match out_path(name).and_then(|path| {
+                    std::fs::write(&path, &r.body)?;
+                    Ok(path)
+                }) {
+                    Ok(path) => {
+                        info["out_file"] = json!(path.to_string_lossy());
+                        true
+                    }
+                    Err(e) => {
+                        info["error"] = json!(format!("could not write out_file: {e:#}"));
+                        false
+                    }
+                },
+                None => false,
+            };
+            let note = crate::body::binary_note(&info, saved);
+            file = Some(info);
+            note
         } else {
-            String::from_utf8_lossy(&r.body).into_owned()
+            r.text()
         };
         // A PDF of scanned pages: read the picture on each page, when the reader is installed.
         if let Some(doc) = document.as_mut() {
@@ -1856,6 +1976,7 @@ impl SvipallServer {
         // Extracted PDF or document text is already prose; telling the pipeline it is HTML would
         // send it through the markdown walker for nothing.
         let content_type = if media.is_some()
+            || file.is_some()
             || svipall_core::pdf::looks_like_pdf(&r.body, &r.content_type)
             || svipall_core::document::looks_like_document(&r.body, &r.content_type, &r.final_url)
                 .is_some()
@@ -1876,6 +1997,7 @@ impl SvipallServer {
             headers: r.headers,
             media,
             document,
+            file,
         })
     }
 
@@ -2308,6 +2430,7 @@ impl SvipallServer {
             kept_key,
             media: None,
             document: None,
+            file: None,
         })
     }
 
@@ -2431,12 +2554,37 @@ impl SvipallServer {
         .await
         {
             Ok(o) => annotate(o),
-            Err(_) => FetchOutcome {
-                blocked_body: None,
-                value: json!({"url": url, "status": 0, "blocked_reason": "timeout", "wall_kind": "timeout", "note": format!("No tier answered within {}ms. Raise timeout or lower max_tier.", timeout), "attempts": []}),
-                links: Vec::new(),
-                final_url: url,
-            },
+            Err(_) => {
+                let mut value = json!({"url": url, "status": 0, "blocked_reason": "timeout", "wall_kind": "timeout", "note": format!("No tier answered within {}ms. Raise timeout or lower max_tier.", timeout), "attempts": []});
+                // A download the deadline cut is not lost: what arrived is on disk, and the next
+                // call carries on from it.
+                if let Some(target) = raw_file_target(&p) {
+                    let (part, _) = crate::body::part_of(&target);
+                    if let Ok(meta) = std::fs::metadata(&part) {
+                        let resumable = crate::body::resume_point(&target, &url).is_some();
+                        value["file"] = json!({
+                            "partial": true,
+                            "part_file": part.to_string_lossy(),
+                            "bytes_written": meta.len(),
+                            "resumable": resumable,
+                        });
+                        value["note"] = json!(format!(
+                            "The download was still running when the {timeout}ms timeout ran out; \
+                             {} bytes are kept in {}. Call again with the same url and out_file{} \
+                             (and a larger timeout).",
+                            meta.len(),
+                            part.display(),
+                            if resumable { " to resume from there" } else { "" }
+                        ));
+                    }
+                }
+                FetchOutcome {
+                    blocked_body: None,
+                    value,
+                    links: Vec::new(),
+                    final_url: url,
+                }
+            }
         }
     }
 
@@ -2461,6 +2609,8 @@ impl SvipallServer {
             && !p.tables.unwrap_or(false)
             && p.css_selector.is_none()
             && p.json_path.is_none()
+            // Asked for the file: the stored text of it is not the file.
+            && raw_file_target(p).is_none()
             && p.extraction.as_deref().is_none_or(|e| e == "markdown")
             && p.main_content_only.is_none_or(|m| m);
         // A fresh cached copy short-circuits the whole ladder. This is also what makes a cursor
@@ -2871,7 +3021,14 @@ impl SvipallServer {
             // Feed the pace: this is what lets a fast host be crawled quickly and a hostile one
             // be backed off, instead of every domain paying the same fixed gap.
             if !local {
-                let latency = Duration::from_millis(ms as u64);
+                // How fast the host answered, which for a download is its first byte, not the
+                // minutes the body took.
+                let latency = Duration::from_millis(
+                    o.file
+                        .as_ref()
+                        .and_then(|f| f["first_byte_ms"].as_u64())
+                        .unwrap_or(ms as u64),
+                );
                 throttle::observe(
                     &domain,
                     proxy.as_deref(),
@@ -2965,7 +3122,9 @@ impl SvipallServer {
             }
             // A media file is its own answer: a short transcript, or a note that nothing could
             // listen, is not a wall a browser would get past.
-            if (o.media.is_some() || o.document.is_some()) && (200..300).contains(&o.status) {
+            if (o.media.is_some() || o.document.is_some() || o.file.is_some())
+                && (200..300).contains(&o.status)
+            {
                 reason = None;
                 kind = WallKind::None;
             }
@@ -3019,7 +3178,9 @@ impl SvipallServer {
             // request for a deep page that landed on the front page, are blocks that the earlier
             // status-only feed counted as successes — and so kept hammering a domain that had
             // already shut the door.
-            if !local {
+            // A file is judged by having arrived: its stand-in note is short by design, and a long
+            // download is slow by being long, so neither is the quiet refusal they would look like.
+            if !local && o.file.is_none() {
                 let verdict =
                     svipall_core::session::Verdict::of(&svipall_core::session::Response {
                         status: o.status,
@@ -3142,6 +3303,9 @@ impl SvipallServer {
                 }
                 if let Some(d) = &o.document {
                     obj.insert("document".into(), d.clone());
+                }
+                if let Some(f) = &o.file {
+                    obj.insert("file".into(), f.clone());
                 }
                 // A vendor on the wire is reported on a page that arrived, too. It says who is
                 // watching this domain — worth knowing before the next fetch — and saying it here
@@ -3348,6 +3512,23 @@ impl SvipallServer {
                         }
                     }
                     None if p.tables.unwrap_or(false) => {}
+                    // The bytes are already where the caller asked for them; writing the note over
+                    // them is the one way left to break the file. Said in the shape `out_file`
+                    // always answers in, and never cached: a description is not the page.
+                    None if o.file.as_ref().is_some_and(|f| f["out_file"].is_string()) => {
+                        let f = o.file.as_ref().expect("checked");
+                        obj.insert("out_file".into(), f["out_file"].clone());
+                        obj.insert("bytes".into(), f["bytes"].clone());
+                    }
+                    // Described, cut short or too large: the note is the content, and it never goes
+                    // to `out_file`, which is where the file itself belongs.
+                    None if o.file.is_some() => {
+                        let shown = WebFetchParams {
+                            out_file: None,
+                            ..p.clone()
+                        };
+                        self.budget_into(&mut value, o.html.clone(), &shown);
+                    }
                     None => {
                         let content = Self::render_content(
                             &parts,

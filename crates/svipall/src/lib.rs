@@ -4,6 +4,8 @@ pub mod asr;
 pub mod audio;
 pub mod behavior;
 pub mod blocklists;
+/// A response body kept as bytes: in memory to be read, or streamed to the file asked for.
+pub mod body;
 pub mod browser;
 pub mod capture;
 pub mod detect;

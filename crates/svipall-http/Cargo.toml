@@ -12,7 +12,9 @@ tokio = { workspace = true }
 anyhow = { workspace = true }
 async-trait = { workspace = true }
 reqwest = { workspace = true }
-wreq = { version = "0.16", optional = true, features = ["cookies", "gzip", "brotli", "zstd"] }
+# `stream`: a body read as it arrives, so a download is written to disk rather than held in memory.
+wreq = { version = "0.16", optional = true, features = ["cookies", "gzip", "brotli", "zstd", "stream"] }
+futures = { workspace = true, optional = true }
 wreq-util = { version = "0.2", optional = true, features = ["emulation"] }
 
 # HTTP/3. All optional, and all off unless `http3` is on: a QUIC stack is a real amount of code to
@@ -31,7 +33,7 @@ zstd = { version = "0.13", optional = true }
 # can see in the first packet, so the emulating engine is what ships. Building BoringSSL needs
 # cmake, perl, llvm and nasm; `--no-default-features` falls back to reqwest and says so at runtime.
 default = ["impersonate"]
-impersonate = ["dep:wreq", "dep:wreq-util"]
+impersonate = ["dep:wreq", "dep:wreq-util", "dep:futures"]
 # Off by default. `Alt-Svc` is recorded either way, so turning this on later costs nothing and
 # nobody who does not want a QUIC stack in their binary has to build one.
 http3 = ["dep:svipall-quic", "dep:url", "dep:tracing", "dep:flate2", "dep:brotli", "dep:zstd"]
