@@ -175,6 +175,75 @@ const DEFINITE_BLOCK_TEXT: &[&str] = &[
     "click the button below to continue shopping",
 ];
 
+/// The same walls in Spanish, Portuguese, French and German. Matched against the rendered text
+/// only, never the markup: a storefront ships its interstitial's strings in the scripts of every
+/// ordinary page, in every language it sells in.
+///
+/// The text is lowercased ASCII-only, which leaves an accented capital as it was, so no needle
+/// starts on one ("berprüfung", not "Überprüfung"). Where a page may drop the accents, both
+/// spellings are listed.
+const FOREIGN_BLOCK_TEXT: &[&str] = &[
+    // The marketplace interstitial, whose English form is in `DEFINITE_BLOCK_TEXT`.
+    "de abajo para continuar comprando",
+    "abaixo para continuar comprando",
+    "ci-dessous pour continuer vos achats",
+    "um mit dem einkaufen fortzufahren",
+    // "Verify you are a human".
+    "verifica que eres un ser humano",
+    "verifica que eres humano",
+    "confirma que eres humano",
+    "confirma que eres un humano",
+    "demuestra que eres humano",
+    "que você é humano",
+    "que voce e humano",
+    "que você é um humano",
+    "que vous êtes humain",
+    "que vous etes humain",
+    "que vous êtes un humain",
+    "dass sie ein mensch sind",
+    "dass du ein mensch bist",
+    // "Unusual traffic".
+    "tráfico inusual",
+    "trafico inusual",
+    "tráfego incomum",
+    "trafego incomum",
+    "trafic inhabituel",
+    "ungewöhnlicher datenverkehr",
+    "ungewöhnlichen datenverkehr",
+    // "Checking your browser".
+    "comprobando tu navegador",
+    "comprobando su navegador",
+    "verificando tu navegador",
+    "verificando su navegador",
+    "verificando seu navegador",
+    "vérification de votre navigateur",
+    "verification de votre navigateur",
+    "berprüfung ihres browsers",
+    "ihr browser wird überprüft",
+];
+
+/// "Access denied". A wall on a short page, and a phrase an article may use, so it is kept out of
+/// the long-page check exactly as its English form is not.
+const FOREIGN_DENIED_TEXT: &[&str] = &[
+    "acceso denegado",
+    "acesso negado",
+    "accès refusé",
+    "acces refuse",
+    "zugriff verweigert",
+];
+
+/// "Press and hold".
+const FOREIGN_HOLD_TEXT: &[&str] = &[
+    "mantén pulsado",
+    "manten pulsado",
+    "mantenga pulsado",
+    "pressione e segure",
+    "mantenha pressionado",
+    "appuyez et maintenez",
+    "maintenez appuyé",
+    "gedrückt halten",
+];
+
 const HOLD_SIGNS: &[&str] = &[
     "robot or human?",
     "press & hold",
@@ -313,7 +382,33 @@ pub struct PageView<'a> {
     /// Cookie names as `"\n{name}"`, lowercased. Names only — a cookie value is a session secret
     /// and has no business in a haystack that ends up in a log line.
     low_cookies: String,
+    /// The body is a document a person reads in a browser. `false` for an API answer, a source
+    /// file or plain text, which are answers whatever words they quote. See [`PageView::typed`].
+    markup: bool,
 }
+
+/// Is this body a page, as opposed to data or a file?
+///
+/// The declared type decides, except that a body which opens like an HTML document is one
+/// whatever its header claims: a challenge page served as `application/json` is still a wall.
+pub fn is_markup(content_type: &str, body: &str) -> bool {
+    let ct = content_type.to_ascii_lowercase();
+    if ct.trim().is_empty() || ct.contains("html") {
+        return true;
+    }
+    let head = clamp_to_boundary(
+        body.trim_start_matches(['\u{feff}', ' ', '\t', '\r', '\n']),
+        64,
+    )
+    .to_ascii_lowercase();
+    head.starts_with("<!doctype html") || head.starts_with("<html") || head.starts_with("<head")
+}
+
+/// The statuses an API answers with that are a refusal of the client, not a reply to it.
+///
+/// Narrower than [`BLOCKED_CODES`] on purpose: 202 ("accepted, still working") and 405 ("use
+/// another method") are a wall's disguise on a page and an ordinary answer from an API.
+const API_REFUSAL_CODES: &[u16] = &[401, 403, 407, 421, 429, 444, 503];
 
 impl<'a> PageView<'a> {
     /// The page text, lowercased once, for callers that match phrases against it.
@@ -333,7 +428,20 @@ impl<'a> PageView<'a> {
             low_text: text.trim().to_ascii_lowercase(),
             low_head: String::new(),
             low_cookies: String::new(),
+            markup: true,
         }
+    }
+
+    /// What the response declared itself to be. A view without it is read as a page, which is
+    /// what every existing caller has always had.
+    pub fn typed(mut self, content_type: &str, body: &str) -> Self {
+        self.markup = is_markup(content_type, body);
+        self
+    }
+
+    /// Is this a page rather than data or a file?
+    pub fn is_markup(&self) -> bool {
+        self.markup
     }
 
     /// What arrived alongside the body: response headers, and the names of the cookies now in the
@@ -699,6 +807,48 @@ fn stub_reason(low: &str, v: &PageView<'_>) -> Option<(Option<String>, WallKind)
     None
 }
 
+/// Less text than this, from a browser, after the address was refused, is the refusal again.
+const AFTER_REFUSAL_FLOOR: usize = 300;
+
+/// Is this browser-tier page the refusal an earlier tier got, said again?
+///
+/// Measured on a forum's `.json` endpoint: the http tier got 403, the browser tier then rendered
+/// the same refusal, 130 bytes of it, and the status override that lets rendered text win over
+/// a sub-resource's status turned it into "200 OK". A page that short after a refusal is the
+/// refusal. A JSON value is let through, because an API that answers the browser with a short
+/// but real object has answered.
+///
+/// `refused_with` is the status an earlier attempt of the same fetch was refused with.
+pub fn tiny_after_refusal(refused_with: Option<u16>, status: u16, text: &str) -> Option<String> {
+    let refused = refused_with?;
+    let text = text.trim();
+    if !(200..300).contains(&status) || text.chars().count() >= AFTER_REFUSAL_FLOOR {
+        return None;
+    }
+    if serde_json::from_str::<serde::de::IgnoredAny>(text).is_ok() && !text.is_empty() {
+        // `{"message": "Forbidden", "error": 403}` is valid JSON and still the refusal.
+        let low = text.to_ascii_lowercase();
+        let says_no = [
+            "forbidden",
+            "denied",
+            "blocked",
+            "unauthorized",
+            "too many requests",
+        ]
+        .iter()
+        .any(|w| low.contains(w))
+            || low.contains(&format!("{refused}"));
+        if !says_no {
+            return None;
+        }
+    }
+    Some(format!(
+        "{} characters after an earlier tier was refused with {refused}: the refusal again, not \
+         the page",
+        text.chars().count()
+    ))
+}
+
 pub fn classify_view(status: u16, html: &str, v: &PageView<'_>) -> (Option<String>, WallKind) {
     let (reason, kind) = classify_body(status, html, v);
     // A wire sign never invents a wall; it names one already found. `Empty` and `Status` are the
@@ -722,6 +872,28 @@ pub fn classify_view(status: u16, html: &str, v: &PageView<'_>) -> (Option<Strin
 fn classify_body(status: u16, html: &str, v: &PageView<'_>) -> (Option<String>, WallKind) {
     let low = &v.low_html;
     let body_text = v.text;
+
+    // Data and files are answers, judged by their status alone. Every phrase below is a sentence
+    // a wall shows a person, and an API answer quotes such sentences as data: a search result
+    // about an issue titled "access denied" is not a bot wall, and reading it as one sent the
+    // whole ladder up through four browsers to fetch the same JSON again.
+    if !v.markup {
+        return match status {
+            200..=299 => (None, WallKind::None),
+            300..=399 => (
+                Some(format!("{status}: a redirect that was not followed")),
+                WallKind::Empty,
+            ),
+            404 | 410 => (
+                Some(format!("http {status} (nothing exists at this URL)")),
+                WallKind::NotFound,
+            ),
+            s if API_REFUSAL_CODES.contains(&s) => (Some(format!("http {s}")), WallKind::Status),
+            // 400, 405, 409, 422, 500…: the server's answer about the request, with a body that
+            // says why. The caller needs that body, and no other tier would get a different one.
+            _ => (None, WallKind::None),
+        };
+    }
 
     // No bytes at all is the strongest signal there is that nothing was delivered, and it was the
     // one signal nothing looked at: a page with an empty `<body>` was caught below, while a
@@ -767,7 +939,11 @@ fn classify_body(status: u16, html: &str, v: &PageView<'_>) -> (Option<String>, 
 
     // Delivered content check first — vendor scripts appear on every page of customer sites
     if (200..300).contains(&status) && body_text.len() >= 2000 {
-        let has_block = DEFINITE_BLOCK_TEXT.iter().any(|s| v.low_text.contains(s));
+        let has_block = DEFINITE_BLOCK_TEXT
+            .iter()
+            .chain(FOREIGN_BLOCK_TEXT)
+            .chain(FOREIGN_HOLD_TEXT)
+            .any(|s| v.low_text.contains(s));
         if !has_block {
             return (None, WallKind::None);
         }
@@ -781,6 +957,12 @@ fn classify_body(status: u16, html: &str, v: &PageView<'_>) -> (Option<String>, 
                 WallKind::Hold,
             );
         }
+    }
+    if let Some(sign) = FOREIGN_HOLD_TEXT.iter().find(|s| v.low_text.contains(**s)) {
+        return (
+            Some(format!("human-verification challenge ({sign})")),
+            WallKind::Hold,
+        );
     }
 
     for sign in CLOUDFLARE_SIGNS {
@@ -808,6 +990,13 @@ fn classify_body(status: u16, html: &str, v: &PageView<'_>) -> (Option<String>, 
         if low.contains(sign) {
             return (Some(format!("bot wall ({})", sign)), WallKind::Generic);
         }
+    }
+    if let Some(sign) = FOREIGN_BLOCK_TEXT
+        .iter()
+        .chain(FOREIGN_DENIED_TEXT)
+        .find(|s| v.low_text.contains(**s))
+    {
+        return (Some(format!("bot wall ({sign})")), WallKind::Generic);
     }
 
     if let Some(caps) = TITLE_RE.captures(low) {
@@ -1436,5 +1625,102 @@ mod tests {
         let (reason, kind) = classify(200, &html, &text);
         assert_eq!(kind, WallKind::None);
         assert!(reason.is_none());
+    }
+
+    fn data(status: u16, ct: &str, body: &str) -> (Option<String>, WallKind) {
+        classify_view(status, body, &PageView::new(body, body).typed(ct, body))
+    }
+
+    #[test]
+    fn data_is_never_phrase_matched_and_api_answers_are_answers() {
+        let body = r#"{"items":[{"title":"Access denied"},{"title":"Verify you are a human"}]}"#;
+        assert_eq!(data(200, "application/json", body).1, WallKind::None);
+        assert_eq!(
+            data(200, "text/plain", "Just a moment...").1,
+            WallKind::None
+        );
+        for status in [202, 400, 405, 409, 422, 500] {
+            assert_eq!(
+                data(status, "application/json", "{}"),
+                (None, WallKind::None),
+                "{status}"
+            );
+        }
+        // An empty 204 is "done", not a silent refusal.
+        assert_eq!(data(204, "application/json", "").1, WallKind::None);
+        for status in [401, 403, 429, 503] {
+            assert_eq!(data(status, "application/json", "{}").1, WallKind::Status);
+        }
+        assert_eq!(data(404, "application/json", "{}").1, WallKind::NotFound);
+        // The same 405 on a page is still what it always was.
+        assert_eq!(
+            classify(405, "<html><body>x</body></html>", "x").1,
+            WallKind::Status
+        );
+    }
+
+    #[test]
+    fn a_page_labelled_as_data_is_still_read_as_a_page() {
+        let wall = "<!DOCTYPE html><html><head><title>Just a moment...</title></head></html>";
+        assert!(is_markup("application/json", wall));
+        assert_eq!(data(200, "application/json", wall).1, WallKind::Cloudflare);
+        assert!(!is_markup("application/json", "{\"a\":1}"));
+        assert!(
+            is_markup("", "{\"a\":1}"),
+            "no type at all is the old behaviour"
+        );
+    }
+
+    #[test]
+    fn walls_in_spanish_portuguese_french_and_german_are_walls() {
+        for (text, kind) in [
+            (
+                "Haz clic en el botón de abajo para continuar comprando",
+                WallKind::Generic,
+            ),
+            (
+                "Clique no botão abaixo para continuar comprando",
+                WallKind::Generic,
+            ),
+            (
+                "Cliquez sur le bouton ci-dessous pour continuer vos achats",
+                WallKind::Generic,
+            ),
+            (
+                "Klicke auf die Schaltfläche unten, um mit dem Einkaufen fortzufahren",
+                WallKind::Generic,
+            ),
+            ("Hemos detectado tráfico inusual", WallKind::Generic),
+            ("Acesso negado", WallKind::Generic),
+            (
+                "Wir führen eine Überprüfung Ihres Browsers durch",
+                WallKind::Generic,
+            ),
+            ("Mantén pulsado el botón", WallKind::Hold),
+            ("Appuyez et maintenez le bouton", WallKind::Hold),
+        ] {
+            let html =
+                format!("<html><head><title>x</title></head><body><p>{text}</p></body></html>");
+            assert_eq!(classify(200, &html, text).1, kind, "{text}");
+        }
+        // A long Spanish article is not a wall for using the language.
+        let body =
+            "El ayuntamiento aprobó el proyecto del puerto tras un largo debate. ".repeat(60);
+        let html = format!("<html><body><article>{body}</article></body></html>");
+        assert_eq!(classify(200, &html, &body).1, WallKind::None);
+    }
+
+    #[test]
+    fn a_tiny_browser_page_after_a_refusal_is_the_refusal() {
+        let reason =
+            tiny_after_refusal(Some(403), 200, r#"{"message": "Forbidden", "error": 403}"#);
+        assert!(reason.is_some());
+        assert!(tiny_after_refusal(Some(403), 200, "Blocked. Too many requests.").is_some());
+        // A short real answer from an API.
+        assert!(tiny_after_refusal(Some(403), 200, r#"{"ok":true,"id":7}"#).is_none());
+        // Nothing was refused: a short page is a short page.
+        assert!(tiny_after_refusal(None, 200, "Hello").is_none());
+        // Enough text to be the page.
+        assert!(tiny_after_refusal(Some(403), 200, &"word ".repeat(80)).is_none());
     }
 }
