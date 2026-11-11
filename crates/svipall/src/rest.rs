@@ -67,6 +67,7 @@ pub const ROUTES: &[&str] = &[
     "/v1/log",
     "/v1/map",
     "/v1/notes",
+    "/v1/probe",
     "/v1/profile",
     "/v1/route",
     "/v1/screenshot",
@@ -347,6 +348,10 @@ pub fn router(
             tool(|s: SvipallServer, p: WebFetchManyParams| async move {
                 Ok(s.fetch_many_json(p).await)
             }),
+        )
+        .route(
+            "/v1/probe",
+            tool(|s: SvipallServer, p: WebProbeParams| async move { Ok(s.probe_json(p).await) }),
         )
         // The only route that is not just `tool()`: a crawl may be handed back as a job instead of
         // waited on, and that decision is the caller's.

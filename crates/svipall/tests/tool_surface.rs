@@ -156,6 +156,7 @@ fn each_description_names_the_tool_to_prefer_or_the_field_that_matters() {
             &["query", "schema", "out_file", "cursor", "blocked_reason"],
         ),
         ("web_fetch_many", &["web_fetch", "schema", "tables"]),
+        ("web_probe", &["web_fetch_many", "404"]),
         ("web_crawl", &["web_map", "out_file", "crawl_id", "schema"]),
         ("web_map", &["web_crawl"]),
         ("web_snapshot", &["web_act", "ref"]),

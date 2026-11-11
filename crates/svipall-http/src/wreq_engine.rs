@@ -162,7 +162,7 @@ impl HttpFetcher for WreqFetcher {
         let final_url = resp.uri().to_string();
         let http_version = version_of(resp.version());
         let headers = headers_of(resp.headers());
-        sink.begin(status, &headers)?;
+        sink.begin(status, &final_url, &headers)?;
         let mut body = resp.bytes_stream();
         while let Some(chunk) = body.next().await {
             sink.write(&chunk?)?;

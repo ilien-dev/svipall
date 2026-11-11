@@ -686,6 +686,33 @@ fn raw_file_target(p: &WebFetchParams) -> Option<PathBuf> {
     out_path(name).ok()
 }
 
+/// A sink that keeps the response line and stops the transfer before the first byte of the body:
+/// what `web_probe` asks of a server.
+#[derive(Default)]
+struct HeadersOnly {
+    status: u16,
+    final_url: Option<String>,
+    headers: Vec<(String, String)>,
+}
+
+impl svipall_http::BodySink for HeadersOnly {
+    fn begin(
+        &mut self,
+        status: u16,
+        final_url: &str,
+        headers: &[(String, String)],
+    ) -> anyhow::Result<()> {
+        self.status = status;
+        self.final_url = Some(final_url.to_string());
+        self.headers = headers.to_vec();
+        anyhow::bail!("stopped at the headers")
+    }
+
+    fn write(&mut self, _chunk: &[u8]) -> anyhow::Result<()> {
+        anyhow::bail!("stopped at the headers")
+    }
+}
+
 /// The tier outcome for a body that went to disk, was cut short, or would not fit: the file is the
 /// answer, and the note is what stands in for its content.
 fn file_outcome(sink: &crate::body::Sink, final_url: &str, mut info: Value) -> TierOutcome {
@@ -4190,6 +4217,131 @@ impl SvipallServer {
             ));
             return summary;
         }
+        out
+    }
+
+    #[tool(
+        description = "Check URLs without reading them: status, final URL, content type, length, and whether the name resolves, in input order. Use instead of web_fetch_many when only existence or type matters: a 404 is an answer, not a block.",
+        annotations(read_only_hint = true, open_world_hint = true)
+    )]
+    async fn web_probe(
+        &self,
+        params: Parameters<WebProbeParams>,
+    ) -> Result<CallToolResult, McpError> {
+        ok(self.probe_json(params.0).await)
+    }
+
+    /// The body of `web_probe`, for the CLI, the REST API and tests.
+    pub async fn probe_json(&self, p: WebProbeParams) -> Value {
+        let timeout = Duration::from_millis(p.timeout.unwrap_or(15_000).max(500));
+        let results: Vec<Value> = futures::stream::iter(
+            p.urls
+                .into_iter()
+                .map(|u| async move { self.probe_one(u, timeout).await }),
+        )
+        .buffered(8)
+        .collect()
+        .await;
+        json!({"count": results.len(), "results": results})
+    }
+
+    /// One address: does its name resolve, and what does a GET answer before its body. The body is
+    /// never read — the transfer is stopped at the headers — so a probe of a 4 GB file costs what
+    /// a probe of a page does.
+    async fn probe_one(&self, url: String, timeout: Duration) -> Value {
+        let started = Instant::now();
+        if let Err(why) = self.origin_policy().check(&url) {
+            return json!({"url": url, "error": format!("refused by this installation's policy: {why}")});
+        }
+        let Ok(parsed) = url::Url::parse(&url) else {
+            return json!({"url": url, "error": crate::steer::not_a_url(&url)});
+        };
+        if !matches!(parsed.scheme(), "http" | "https") {
+            return json!({"url": url, "error": "only http and https addresses can be probed"});
+        }
+        let host = parsed.host_str().unwrap_or_default().to_string();
+        let port = parsed.port_or_known_default().unwrap_or(80);
+        let domain = domain_from_url(&url);
+        let local = is_local(&domain);
+        let proxy = if local { None } else { self.exit_for(&domain) };
+        // Resolved here, by this machine. Through an exit that resolves at its end (socks5h) the
+        // answer that matters is the exit's, so a name this machine cannot resolve is still asked.
+        let resolves = match tokio::time::timeout(
+            Duration::from_secs(5),
+            tokio::net::lookup_host((host.trim_matches(['[', ']']), port)),
+        )
+        .await
+        {
+            Ok(Ok(mut addrs)) => addrs.next().is_some(),
+            _ => false,
+        };
+        let mut out = json!({"url": url, "resolves": resolves});
+        if !resolves && proxy.is_none() {
+            out["error"] = json!(format!("the name {host} does not resolve; nothing was requested"));
+            return out;
+        }
+        if !local {
+            if let Err(e) = self.admit_visit(&domain, proxy.as_deref()) {
+                out["refused"] = json!(e.to_string());
+                out["retry_in_seconds"] = json!(e.seconds);
+                return out;
+            }
+            if let Err(e) = self.pace_visit(&domain, proxy.as_deref(), "http").await {
+                out["refused"] = json!(e.to_string());
+                return out;
+            }
+        }
+        let fetcher = self.fetcher_for(proxy.as_deref());
+        let req = HttpRequest {
+            url: url.clone(),
+            method: "GET".into(),
+            headers: fetcher.identity().nav_headers(),
+            body: None,
+        };
+        let mut sink = HeadersOnly::default();
+        let sent = tokio::time::timeout(
+            timeout,
+            fetcher.send_streaming(req, &mut sink, Some(timeout)),
+        )
+        .await;
+        let final_url = match sent {
+            Err(_) => {
+                out["error"] = json!(format!("no answer within {}ms", timeout.as_millis()));
+                return out;
+            }
+            // Stopped at the headers on purpose: what the sink holds is the answer.
+            Ok(Err(_)) if sink.status != 0 => None,
+            Ok(Err(e)) => {
+                out["error"] = json!(format!("{e:#}"));
+                return out;
+            }
+            Ok(Ok(r)) => Some(r.final_url),
+        };
+        let header = |name: &str| {
+            sink.headers
+                .iter()
+                .find(|(k, _)| k.eq_ignore_ascii_case(name))
+                .map(|(_, v)| v.clone())
+        };
+        let status = sink.status;
+        out["status"] = json!(status);
+        // A 404 is the answer to "is it there", which is the question; it is not a wall.
+        out["exists"] = json!((200..400).contains(&status));
+        if let Some(f) = final_url.or(sink.final_url.clone()).filter(|f| f != &url) {
+            out["final_url"] = json!(f);
+        }
+        if let Some(ct) = header("content-type") {
+            out["content_type"] = json!(ct);
+        }
+        if let Some(len) = header("content-length").and_then(|v| v.trim().parse::<u64>().ok()) {
+            out["length"] = json!(len);
+        }
+        if matches!(status, 429 | 503) {
+            if let Some(ra) = header("retry-after") {
+                out["retry_after"] = json!(ra);
+            }
+        }
+        out["ms"] = json!(started.elapsed().as_millis() as u64);
         out
     }
 

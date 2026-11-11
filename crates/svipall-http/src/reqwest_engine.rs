@@ -55,7 +55,7 @@ impl HttpFetcher for ReqwestFetcher {
     ) -> anyhow::Result<HttpResponse> {
         let mut resp = self.request(req, total)?.send().await?;
         let out = head_of(&resp);
-        sink.begin(out.status, &out.headers)?;
+        sink.begin(out.status, &out.final_url, &out.headers)?;
         // No read timeout per request in this client: a stall is bounded by `total` alone.
         while let Some(chunk) = resp.chunk().await? {
             sink.write(&chunk)?;

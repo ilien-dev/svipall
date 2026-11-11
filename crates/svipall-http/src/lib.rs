@@ -108,7 +108,8 @@ impl HttpResponse {
 pub trait BodySink: Send {
     /// The status and headers, before any byte of the body. An error stops the transfer, and is
     /// what `send_streaming` returns.
-    fn begin(&mut self, status: u16, headers: &[(String, String)]) -> anyhow::Result<()>;
+    fn begin(&mut self, status: u16, final_url: &str, headers: &[(String, String)])
+        -> anyhow::Result<()>;
     /// The next piece of the body. An error stops the transfer.
     fn write(&mut self, chunk: &[u8]) -> anyhow::Result<()>;
 }
@@ -116,7 +117,7 @@ pub trait BodySink: Send {
 /// Hand a whole response to a sink, the way a streaming engine would have, and leave the body on
 /// the response empty. What an engine without streaming does, and what a local file goes through.
 pub fn feed(sink: &mut dyn BodySink, r: &mut HttpResponse) -> anyhow::Result<()> {
-    sink.begin(r.status, &r.headers)?;
+    sink.begin(r.status, &r.final_url, &r.headers)?;
     let body = std::mem::take(&mut r.body);
     sink.write(&body)
 }

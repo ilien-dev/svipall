@@ -32,6 +32,10 @@ COMMANDS:
                             its rows, with the schema it worked out in induced_schema.
     crawl <url> [--pages N] [--depth N] [--query Q] [--out FILE] [--dfs] [--since-last]
                             Crawl a site. --out writes .csv/.json/.jsonl instead of printing.
+    probe <url>... [--timeout MS]
+                            Whether each URL exists, without reading it: status, final URL,
+                            content type, length, and whether the name resolves. A 404 is an
+                            answer here, not a block.
     snapshot <url>          The page as roles, names and refs — a fraction of the tokens.
     capture <url> [--pattern P] [--bodies]
                             The JSON the page itself fetched: usually the site's real API.
@@ -248,6 +252,17 @@ async fn run(args: &[String]) -> anyhow::Result<Value> {
                     strategy: flags.has("dfs").then(|| "dfs".to_string()),
                     since_last_crawl: flags.has("since-last").then_some(true),
                     ..Default::default()
+                })
+                .await)
+        }
+        "probe" => {
+            if positional.is_empty() {
+                anyhow::bail!("probe needs at least one url");
+            }
+            Ok(server
+                .probe_json(WebProbeParams {
+                    urls: positional.clone(),
+                    timeout: flags.number("timeout").map(|n| n as u64),
                 })
                 .await)
         }
@@ -744,6 +759,7 @@ mod tests {
         for cmd in [
             "fetch",
             "crawl",
+            "probe",
             "snapshot",
             "capture",
             "video",

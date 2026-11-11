@@ -118,8 +118,8 @@ pub struct WebFetchParams {
     /// auto (default: serve a fresh copy, revalidate a stale one), read, write, bypass, refresh.
     #[serde(default)]
     pub cache: Option<String>,
-    /// Use this on a JSON answer to get back only the fields you need, e.g.
-    /// `items[:5].{name, owner.login}`: `.a`, `[0]`, `[-1]`, `[1:5]`, `[*]`, `{a, b.c}` picks.
+    /// Only these fields of a JSON answer, e.g. `items[:5].{name, owner.login}` (`.a`, `[0]`,
+    /// `[1:5]`, `[*]`, `{a, b}`).
     #[serde(default)]
     pub json_path: Option<String>,
 }
@@ -153,19 +153,27 @@ pub struct WebFetchManyParams {
     /// Only these fields of every JSON answer, as on web_fetch.
     #[serde(default)]
     pub json_path: Option<String>,
-    /// Cap on each page's content. Default: an equal share of `max_tokens_total`.
+    /// Cap per page. Default: an equal share of max_tokens_total.
     #[serde(default)]
     pub max_tokens: Option<usize>,
-    /// Cap on all pages together, split equally across the URLs. Default 8000, which keeps the
-    /// whole answer under what clients accept; a truncated page carries a `cursor` for web_fetch.
+    /// Cap on all pages together. Default 8000; a cut page carries a cursor for web_fetch.
     #[serde(default)]
     pub max_tokens_total: Option<usize>,
-    /// Write each page whole to its own file in this directory and return the paths instead.
+    /// Write each page whole to a file in this directory; return paths.
     #[serde(default)]
     pub out_dir: Option<String>,
-    /// Write the whole set, every page whole, to this .json or .jsonl file and return a summary.
+    /// Write the whole set to this .json/.jsonl file; return a summary.
     #[serde(default)]
     pub out_file: Option<String>,
+}
+
+#[derive(Debug, Default, Deserialize, JsonSchema)]
+pub struct WebProbeParams {
+    /// The addresses, answered in this order.
+    pub urls: Vec<String>,
+    /// Timeout in ms per URL. Default 15000.
+    #[serde(default)]
+    pub timeout: Option<u64>,
 }
 
 #[derive(Debug, Default, Serialize, Deserialize, JsonSchema)]

@@ -373,7 +373,12 @@ impl Sink {
 }
 
 impl svipall_http::BodySink for Sink {
-    fn begin(&mut self, status: u16, headers: &[(String, String)]) -> anyhow::Result<()> {
+    fn begin(
+        &mut self,
+        status: u16,
+        _final_url: &str,
+        headers: &[(String, String)],
+    ) -> anyhow::Result<()> {
         self.status = status;
         self.headers = headers.to_vec();
         self.first_byte_ms = Some(self.started.elapsed().as_millis() as u64);
