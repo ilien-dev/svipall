@@ -5161,19 +5161,32 @@ impl SvipallServer {
         if p.query.trim().is_empty() {
             return json!({"query": p.query, "count": 0, "results": [], "error": crate::steer::EMPTY_QUERY});
         }
-        let limit = p.limit.unwrap_or(10).clamp(1, 50);
-        let fetcher = self.fetcher.clone();
-        // "all" asks every engine and merges. Each of these is being read off its own HTML and
-        // each covers a different slice of the web badly, so taking the first that answers makes
-        // the result depend on which engine happened to be up.
-        let ends = self.search_endpoints.as_ref();
-        let out = match p.engine.as_deref() {
-            Some("all" | "merge") => {
-                search::search_all(fetcher.as_ref(), ends, &p.query, limit).await
-            }
-            engine => search::search(fetcher.as_ref(), ends, &p.query, limit, engine).await,
+        // Each engine host leaves through its own exit, like any other site.
+        let fetcher_for = |domain: &str| {
+            let exit = self.exit_for(domain);
+            (self.fetcher_for(exit.as_deref()), exit)
         };
-        json!({"query": p.query, "engine": out.engine, "count": out.results.len(), "results": out.results, "attempts": out.attempts})
+        let env = search::Env {
+            endpoints: self.search_endpoints.as_ref(),
+            fetcher_for: &fetcher_for,
+            min_gap: Duration::from_millis(self.cfg.request_min_interval_ms),
+        };
+        let req = search::Request {
+            query: &p.query,
+            limit: p.limit.unwrap_or(10).clamp(1, 50),
+            engine: p.engine.as_deref(),
+            lang: p.lang.as_deref(),
+            region: p.region.as_deref(),
+        };
+        let out = search::run(&env, &req).await;
+        let mut v = json!({"query": p.query, "engine": out.engine, "count": out.results.len(), "results": out.results, "attempts": out.attempts, "locale": out.locale});
+        if let Some(q) = out.retried_with {
+            v["retried_with"] = json!(q);
+        }
+        if let Some(n) = out.note {
+            v["note"] = json!(n);
+        }
+        v
     }
 
     #[tool(

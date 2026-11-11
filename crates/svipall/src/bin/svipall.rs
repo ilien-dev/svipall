@@ -38,8 +38,9 @@ COMMANDS:
     video <url> [--lang L] [--frames N] [--out FILE]
                             A video's captions and chapters as one timeline, from its player,
                             an embed, <video> tracks, JSON-LD or the stream manifest.
-    search <query> [--engine E]
-                            Search without an API key. --engine all merges every engine.
+    search <query> [--engine E] [--lang L] [--region CC] [--limit N]
+                            Search without an API key. --engine all merges every engine,
+                            --engine news searches recent articles.
     map <url>               A site's URLs from robots.txt, sitemaps and feeds.
     log [--summary] [--domain D]
                             What this installation has been doing, and which walls it met.
@@ -291,7 +292,9 @@ async fn run(args: &[String]) -> anyhow::Result<Value> {
                 .search_json(svipall::tools::WebSearchParams {
                     query,
                     engine: flags.value("engine"),
-                    ..Default::default()
+                    limit: flags.number("limit"),
+                    lang: flags.value("lang"),
+                    region: flags.value("region"),
                 })
                 .await)
         }
