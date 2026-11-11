@@ -3747,33 +3747,17 @@ impl SvipallServer {
                 obj.insert("same_text_as".into(), source);
             }
         }
-        // ▲ Put the different ones where they will be read. Cuconasu et al. (SIGIR 2024) measured
-        // that what breaks a generated answer is the on-topic page that does not contain it — four
-        // copies of one wire story at the top of a list is exactly that shape — and that adding
-        // *distant* documents raised accuracy. This is a reordering and only a reordering: every
-        // result comes back, the caller's first choice stays first, and a set with nothing
-        // redundant in it is returned in the order it was asked for.
-        let ordering = svipall_core::quality::diversity::order(&hashes);
-        let reordered = ordering.iter().enumerate().any(|(pos, &i)| pos != i);
-        let mut by_index: Vec<Option<Value>> = results.into_iter().map(Some).collect();
-        let results: Vec<Value> = ordering
-            .iter()
-            .filter_map(|&i| by_index[i].take())
-            .collect();
-
-        let mut out = json!({
+        // ▲ In the order they were asked for. This used to be reordered for diversity (four copies
+        // of one wire story pushed below the page that said something else), and a caller zipping
+        // its own list with `results` by position read one URL's page as another's. Repeats are
+        // already marked `same_text_as`, which is the part of that idea the caller can act on.
+        json!({
             "count": results.len(),
             // How many distinct documents these results actually are. Corroboration, not trust:
             // it says the same thing was said N times independently, never that it is true.
             "corroboration": corroboration,
             "results": results,
-        });
-        // Said when it happened, because a result set that comes back in a different order than it
-        // was asked for and does not say so is a surprise rather than a feature.
-        if reordered {
-            out["reordered_for_diversity"] = json!(true);
-        }
-        out
+        })
     }
 
     #[tool(
