@@ -367,21 +367,12 @@ impl SvipallServer {
         })
     }
 
-    /// Text that must come back as it is (a source file, an API's JSON): verbatim when it fits the
-    /// budget, because the block-wise budget normalises blank lines and the indentation a block
-    /// starts with, which is right for prose and wrong here. Larger than the budget, with `query`,
-    /// `cursor` or `out_file`, it goes through the same budget as any page.
+    /// Text that must come back as it is (a source file, an API's JSON): paged by lines and byte
+    /// for byte, as any such body is. With `query` it is an excerpt, through the same filter and
+    /// budget as any page.
     fn github_verbatim(&self, value: &mut Value, content: String, p: &WebFetchParams) {
-        let max = p.max_tokens.unwrap_or(self.cfg.max_tokens_per_fetch).max(1);
-        let tokens = budget::estimate_tokens(&content);
-        if p.out_file.is_none()
-            && p.cursor.is_none()
-            && p.query.as_deref().is_none_or(|q| q.trim().is_empty())
-            && tokens <= max
-        {
-            value["chars"] = json!(content.chars().count());
-            value["tokens_estimated"] = json!(tokens);
-            value["content"] = json!(content);
+        if p.query.as_deref().is_none_or(|q| q.trim().is_empty()) {
+            self.budget_into_as(value, content, p, true);
         } else {
             self.github_deliver(value, content, p);
         }

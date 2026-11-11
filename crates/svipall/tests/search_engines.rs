@@ -334,3 +334,77 @@ async fn two_searches_on_one_engine_are_paced() {
         t0.elapsed()
     );
 }
+
+/// A fetch of an engine's host that was answered 429 with a Retry-After holds that host, and a
+/// search used to sleep through the hold inside the call, up to two minutes. Now the held engine is
+/// skipped, says why, and the next engine answers.
+#[tokio::test]
+async fn an_engine_host_held_by_retry_after_is_skipped_not_waited_for() {
+    let host = "engine-held.test";
+    let site = Site::start(vec![
+        (
+            "http://engine-held.test/ping",
+            Reply::html("<html><body>slow down</body></html>")
+                .with_status(429)
+                .header("retry-after", "100"),
+        ),
+        (
+            "http://engine-held.test/ddg/",
+            page("ddg-lite.results.html"),
+        ),
+        ("/ddg-html/", page("ddg-html.results.html")),
+    ])
+    .await;
+    svipall_core::store::ROUTES.insert(host, &site.url(""));
+    let endpoints = endpoints(&site).with("ddg", &format!("http://{host}/ddg/"));
+    support::isolate();
+    let cfg = svipall_core::Config {
+        request_min_interval_ms: 1,
+        http_engine: "reqwest".into(),
+        max_tier: "http".into(),
+        ..Default::default()
+    };
+    let s = SvipallServer::with_store(None, cfg, None, None).with_search_endpoints(endpoints);
+    let held = s
+        .fetch_json(svipall::tools::WebFetchParams {
+            url: format!("http://{host}/ping"),
+            robots: Some("ignore".into()),
+            cache: Some("bypass".into()),
+            ..Default::default()
+        })
+        .await
+        .value;
+    assert_eq!(held["status"], 429, "{held}");
+
+    let t0 = std::time::Instant::now();
+    let out = s.search_json(params("rust async runtime", None)).await;
+    let named = s
+        .search_json(params("rust async runtime", Some("ddg")))
+        .await;
+    let took = t0.elapsed();
+    svipall_core::store::ROUTES.remove(host);
+    assert!(
+        took < std::time::Duration::from_secs(20),
+        "the search sat out the hold: {took:?}"
+    );
+    assert_eq!(
+        site.hits("http://engine-held.test/ddg/"),
+        0,
+        "the held host was asked: {out}"
+    );
+    let ddg = attempt(&out, "ddg");
+    assert_eq!(ddg["outcome"], "skipped", "{out}");
+    assert!(
+        ddg["detail"].as_str().is_some_and(|d| d.contains("hold")),
+        "{out}"
+    );
+    assert!(
+        out["count"].as_u64().unwrap_or(0) > 0,
+        "another engine answered: {out}"
+    );
+    assert_eq!(attempt(&named, "ddg")["outcome"], "skipped", "{named}");
+    assert!(
+        named["note"].as_str().is_some_and(|n| n.contains("hold")),
+        "the zero answer says the engine was held: {named}"
+    );
+}

@@ -170,3 +170,104 @@ async fn out_file_writes_the_whole_set_and_returns_a_summary() {
         );
     }
 }
+
+/// Two topics on one page, so a `query` is a view of it rather than all of it.
+fn two_topics() -> Reply {
+    let paras: String = (0..80)
+        .map(|i| {
+            let topic = if i % 2 == 0 {
+                "quay cranes"
+            } else {
+                "pier lights"
+            };
+            format!(
+                "<p>Paragraph {i} on the {topic} of the harbour, long enough that the page needs \
+                 more than one part to read whole.</p>"
+            )
+        })
+        .collect();
+    Reply::html(&format!(
+        "<!doctype html><html><head><title>Harbour</title></head><body><main><h1>Harbour</h1>\
+         {paras}</main></body></html>"
+    ))
+}
+
+/// A cursor a batch issued under `query` continues on web_fetch with the same view, whether the
+/// caller repeats the query or only passes the cursor the `continue` note told it to.
+#[tokio::test]
+async fn a_cursor_the_set_issued_under_a_query_continues_on_web_fetch() {
+    let site = Site::start(vec![("/h", two_topics()), ("/o", long(1))]).await;
+    let urls = [site.url("/h"), site.url("/o")];
+    let out = many(json!({"urls": urls, "max_tier": "http", "max_tokens": 150,
+                          "query": "quay cranes"}))
+    .await;
+    let first = &out["results"][0];
+    let cursor = first["cursor"]
+        .as_str()
+        .unwrap_or_else(|| panic!("truncated: {out}"));
+    for query in [Some("quay cranes"), None] {
+        let mut args = json!({"url": urls[0], "cursor": cursor, "max_tier": "http",
+                              "max_tokens": 150});
+        if let Some(q) = query {
+            args["query"] = json!(q);
+        }
+        let next = server()
+            .fetch_json(serde_json::from_value(args).unwrap())
+            .await
+            .value;
+        assert!(next.get("stale_cursor").is_none(), "{query:?}: {next}");
+        let text = next["content"].as_str().unwrap_or_default();
+        assert_ne!(next["content"], first["content"], "{next}");
+        assert!(
+            text.contains("quay cranes") && !text.contains("pier lights"),
+            "{query:?}: the continuation is the view the cursor was issued for: {next}"
+        );
+    }
+}
+
+/// A cursor a batch issued under `json_path` continues on web_fetch given the same path, as the
+/// set's `continue` note says to.
+#[tokio::test]
+async fn a_cursor_the_set_issued_under_json_path_continues_on_web_fetch() {
+    let items: Vec<Value> = (1..=200)
+        .map(|i| json!({"id": i, "name": format!("item number {i}"), "noise": "x".repeat(40)}))
+        .collect();
+    let body = json!({"items": items}).to_string();
+    let site = Site::start(vec![(
+        "/api",
+        Reply::bytes(body.as_bytes(), "application/json"),
+    )])
+    .await;
+    let url = site.url("/api");
+    let path = "items[*].{id, name}";
+    let out = many(json!({"urls": [url], "max_tier": "http", "max_tokens": 200,
+                          "json_path": path}))
+    .await;
+    let first = &out["results"][0];
+    let cursor = first["cursor"]
+        .as_str()
+        .unwrap_or_else(|| panic!("truncated: {out}"));
+    assert!(
+        out["continue"]
+            .as_str()
+            .unwrap_or_default()
+            .contains("json_path"),
+        "{out}"
+    );
+    let next = server()
+        .fetch_json(
+            serde_json::from_value(json!({"url": url, "cursor": cursor, "max_tier": "http",
+                                          "max_tokens": 200, "json_path": path}))
+            .unwrap(),
+        )
+        .await
+        .value;
+    assert!(next.get("stale_cursor").is_none(), "{next}");
+    let text = next["content"].as_str().unwrap_or_default();
+    assert_ne!(next["content"], first["content"], "{next}");
+    assert!(!text.contains("noise"), "still the projection: {next}");
+    assert!(
+        !text.contains("\"id\": 1,"),
+        "not restarted from the top: {next}"
+    );
+}

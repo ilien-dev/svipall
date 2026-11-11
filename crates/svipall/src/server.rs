@@ -1004,19 +1004,39 @@ fn mask_own_ip(value: &mut Value, direct: bool) {
     if ips.is_empty() {
         return;
     }
-    let mut masked = 0;
-    for key in ["content", "title"] {
-        if let Some(Value::String(s)) = obj.get_mut(key) {
-            let (out, n) = own_ip::mask(s, &ips);
+    let masked = mask_strings(value, &ips);
+    if masked > 0 {
+        value["own_ip_masked"] = json!(masked);
+    }
+}
+
+/// Every string a page's text can reach (content, title, table cells, extracted rows, a
+/// snapshot, a diff's blocks, an action's output), masked. Addresses the caller gave are not page
+/// text: anything under a key ending in `url` is left as it is.
+fn mask_strings(v: &mut Value, ips: &[std::net::IpAddr]) -> usize {
+    match v {
+        Value::String(s) => {
+            let (out, n) = svipall_core::own_ip::mask(s, ips);
             if n > 0 {
                 *s = out;
-                masked += n;
             }
+            n
         }
+        Value::Array(a) => a.iter_mut().map(|x| mask_strings(x, ips)).sum(),
+        Value::Object(o) => o
+            .iter_mut()
+            .filter(|(k, _)| !k.to_ascii_lowercase().ends_with("url"))
+            .map(|(_, x)| mask_strings(x, ips))
+            .sum(),
+        _ => 0,
     }
-    if masked > 0 {
-        obj.insert("own_ip_masked".into(), json!(masked));
-    }
+}
+
+/// A tool other than a fetch: it masks what is already known and learns nothing, because only a
+/// wall fetched over this machine's own connection can say which address is this machine's.
+fn mask_known_own_ip(mut value: Value) -> Value {
+    mask_own_ip(&mut value, false);
+    value
 }
 
 fn no_browser_hint() -> String {
@@ -1834,6 +1854,19 @@ impl SvipallServer {
     /// Ordering matters: relevance filtering (BM25) has already happened in `render_content`, so
     /// the budget trims what is left rather than keeping whatever happened to come first.
     fn budget_into(&self, value: &mut Value, content: String, p: &WebFetchParams) {
+        self.budget_into_as(value, content, p, false);
+    }
+
+    /// The same, for content that is the body as it arrived rather than markdown made from it:
+    /// paged by lines and returned byte for byte, because the block budget's trimming and blank
+    /// line folding change a source file.
+    fn budget_into_as(
+        &self,
+        value: &mut Value,
+        content: String,
+        p: &WebFetchParams,
+        verbatim: bool,
+    ) {
         // Asked for a file: the content goes there whole, and what comes back is a path. No token
         // budget applies, because the budget exists to protect a context this is bypassing.
         if let Some(name) = p.out_file.as_deref().filter(|n| !n.trim().is_empty()) {
@@ -1853,14 +1886,16 @@ impl SvipallServer {
             return;
         }
         let max = p.max_tokens.unwrap_or(self.cfg.max_tokens_per_fetch).max(1);
-        let out = budget::take(
-            &content,
-            &budget::BudgetOpts {
-                max_tokens: max,
-                cursor: p.cursor.as_deref().and_then(budget::Cursor::decode),
-                overlap_blocks: self.cfg.overlap_blocks,
-            },
-        );
+        let opts = budget::BudgetOpts {
+            max_tokens: max,
+            cursor: p.cursor.as_deref().and_then(budget::Cursor::decode),
+            overlap_blocks: self.cfg.overlap_blocks,
+        };
+        let out = if verbatim {
+            budget::take_lines(&content, &opts)
+        } else {
+            budget::take(&content, &opts)
+        };
         let obj = value.as_object_mut().expect("tool results are objects");
         if p.cursor
             .as_deref()
@@ -4130,7 +4165,13 @@ impl SvipallServer {
                             }
                             None => content,
                         };
-                        self.budget_into(&mut value, content, p);
+                        // The body as it arrived (a source file, plain text, JSON, the raw markup
+                        // asked for) is paged by lines and kept byte for byte; markdown made from
+                        // a page or a document, and an excerpt picked by `query`, by blocks.
+                        let verbatim = p.query.as_deref().is_none_or(|q| q.trim().is_empty())
+                            && (!Self::is_html_type(&o.content_type) || extraction_kind == "html")
+                            && !o.content_type.starts_with("text/markdown");
+                        self.budget_into_as(&mut value, content, p, verbatim);
                     }
                 }
                 return FetchOutcome {
@@ -4820,6 +4861,10 @@ impl SvipallServer {
     /// 90000ms" is the answer, not the absence of one — and an infallible signature is what stops a
     /// later caller turning it into a 500.
     pub async fn act_json(&self, p: WebActParams) -> Value {
+        mask_known_own_ip(self.act_json_unmasked(p).await)
+    }
+
+    async fn act_json_unmasked(&self, p: WebActParams) -> Value {
         if let Err(why) = crate::tools::check_actions(&p.actions) {
             return json!({"url": p.url, "status": 0, "error": why});
         }
@@ -5589,6 +5634,10 @@ impl SvipallServer {
 
     /// The snapshot itself, callable without the MCP wrapper so tests can drive it.
     pub async fn snapshot_json(&self, p: WebSnapshotParams) -> anyhow::Result<Value> {
+        self.snapshot_json_unmasked(p).await.map(mask_known_own_ip)
+    }
+
+    async fn snapshot_json_unmasked(&self, p: WebSnapshotParams) -> anyhow::Result<Value> {
         let tier =
             BrowserTier::parse(p.tier.as_deref().unwrap_or("real")).unwrap_or(BrowserTier::Real);
         let profile_dir = p
@@ -6351,10 +6400,25 @@ impl SvipallServer {
             let exit = self.exit_for(domain);
             (self.fetcher_for(exit.as_deref()), exit)
         };
+        // The site's own word about when to come back, in this process or in the shared ledger.
+        let held = |domain: &str, exit: Option<&str>| {
+            let ledger = self
+                .traffic
+                .as_ref()
+                .as_ref()
+                .ok()
+                .and_then(|l| {
+                    l.remaining(domain, exit, svipall_core::automatic::now())
+                        .ok()
+                })
+                .unwrap_or(0);
+            ledger.max(throttle::hold_left(domain))
+        };
         let env = search::Env {
             endpoints: self.search_endpoints.as_ref(),
             fetcher_for: &fetcher_for,
             min_gap: Duration::from_millis(self.cfg.request_min_interval_ms),
+            held: &held,
         };
         let req = search::Request {
             query: &p.query,
@@ -7391,6 +7455,10 @@ impl SvipallServer {
     /// `{"error":"page content"}` and nothing else, which is a step that may well have submitted a
     /// form reported as though nothing had happened.
     pub async fn browser_do_json(&self, p: BrowserDoParams) -> Value {
+        mask_known_own_ip(self.browser_do_json_unmasked(p).await)
+    }
+
+    async fn browser_do_json_unmasked(&self, p: BrowserDoParams) -> Value {
         let Some(s) = self.pool.session(&p.session_id).await else {
             return json!({"error": crate::steer::unknown_session(&p.session_id)});
         };
@@ -7547,6 +7615,15 @@ impl SvipallServer {
         &self,
         p: SolveAndContinueParams,
     ) -> anyhow::Result<Value> {
+        self.solve_and_continue_unmasked(p)
+            .await
+            .map(mask_known_own_ip)
+    }
+
+    async fn solve_and_continue_unmasked(
+        &self,
+        p: SolveAndContinueParams,
+    ) -> anyhow::Result<Value> {
         self.charge_visit(&p.url, BrowserTier::Real, None).await?;
         let engine = match &self.solver_state {
             Some(st) => SolveEngine::with_state(self.pool.clone(), &self.cfg, st.clone()),
@@ -7620,6 +7697,10 @@ impl SvipallServer {
 
     /// `web_diff` without the protocol wrapper, for the REST API and tests.
     pub async fn diff_json(&self, p: WebDiffParams) -> anyhow::Result<Value> {
+        self.diff_json_unmasked(p).await.map(mask_known_own_ip)
+    }
+
+    async fn diff_json_unmasked(&self, p: WebDiffParams) -> anyhow::Result<Value> {
         if !(p.url.starts_with("http://") || p.url.starts_with("https://")) {
             anyhow::bail!(crate::steer::needs_http_url("web_diff", &p.url));
         }

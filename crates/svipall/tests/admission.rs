@@ -538,12 +538,134 @@ async fn a_hard_block_at_the_top_names_the_cooldown_it_set() {
     server.shutdown_configuration().await;
     eprintln!("{out}");
     let note = text(&out, "note");
-    if svipall_core::check_cooldown("hard-block-top.test").is_some() {
-        assert!(note.contains("15 min cooldown"), "{note}");
-        assert!(note.contains("clear_cooldown"), "{note}");
-    } else {
-        assert!(!note.contains("cooldown"), "{note}");
-    }
+    // A browser no longer turns the 403 into a 200, so the walk ends refused at the top, the
+    // cooldown is set, and the note names that cooldown's own length.
+    let left = svipall_core::check_cooldown("hard-block-top.test")
+        .unwrap_or_else(|| panic!("a hard block at the top sets the cooldown: {out}"));
+    assert!(
+        note.contains(&format!("{} cooldown", svipall::steer::duration(left))),
+        "{note}"
+    );
+    assert!(note.contains("clear_cooldown"), "{note}");
+}
+
+/// Item 18: a cooldown set earlier is named by what is left of it, not by the length it started
+/// with.
+#[tokio::test]
+async fn a_cooldown_already_running_is_named_by_what_is_left_of_it() {
+    let domain = "cooldown-left.test";
+    let url = "http://cooldown-left.test/article";
+    let site = Site::start(vec![(url, Reply::page("Left", &[]))]).await;
+    let server = SvipallServer::new(None, cfg(), None);
+    // Set ten minutes ago by another process: only the file knows it, and five minutes are left.
+    let file = svipall_core::config::home_dir().join("cooldowns.json");
+    let mut all: serde_json::Map<String, serde_json::Value> = std::fs::read_to_string(&file)
+        .ok()
+        .and_then(|s| serde_json::from_str(&s).ok())
+        .unwrap_or_default();
+    let now = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .unwrap()
+        .as_secs();
+    all.insert(domain.into(), serde_json::json!(now - 600));
+    std::fs::write(&file, serde_json::Value::Object(all).to_string()).unwrap();
+
+    let out = server.fetch_json(params(&site, url)).await.value;
+    assert_eq!(site.hits(url), 0, "nothing was requested: {out}");
+    let left = out["cooldown_seconds_left"].as_u64().unwrap_or(0);
+    assert!((290..=300).contains(&left), "{out}");
+    let note = text(&out, "note");
+    assert!(note.contains("5 min"), "{note}");
+    assert!(!note.contains("15 min"), "{note}");
+    svipall_core::throttle::clear_cooldown(domain);
+}
+
+/// Item 6: web_fetch_many waits out a full window for each URL when told to.
+#[tokio::test]
+async fn web_fetch_many_waits_when_asked_and_refuses_when_not() {
+    let url = "http://many-wait.test/article";
+    let site = Site::start(vec![(
+        url,
+        Reply::page("Many", &[]).header("cache-control", "no-store"),
+    )])
+    .await;
+    let server = SvipallServer::new(
+        None,
+        svipall_core::Config {
+            request_limit: 1,
+            request_window_seconds: 3,
+            ..cfg()
+        },
+        None,
+    );
+    svipall_core::store::ROUTES.insert("many-wait.test", &site.url(""));
+    let many = |wait: Option<u64>| -> svipall::tools::WebFetchManyParams {
+        serde_json::from_value(serde_json::json!({"urls": [url], "timeout": 2_000, "wait": wait}))
+            .unwrap()
+    };
+    assert_eq!(
+        server.fetch_many_json(many(None)).await["results"][0]["status"],
+        200
+    );
+    let refused = server.fetch_many_json(many(Some(0))).await;
+    assert_eq!(
+        refused["results"][0]["wall_kind"], "visit_limit",
+        "{refused}"
+    );
+    let out = server.fetch_many_json(many(Some(5))).await;
+    svipall_core::store::ROUTES.remove("many-wait.test");
+    let r = &out["results"][0];
+    assert_eq!(r["status"], 200, "{out}");
+    assert!(r["waited"]["seconds"].as_u64().unwrap_or(0) >= 1, "{out}");
+    assert_eq!(site.hits(url), 2);
+}
+
+/// Item 6: web_video's `wait` reaches the caption fetch, which the default would refuse.
+#[tokio::test]
+async fn web_video_waits_as_long_as_it_is_told() {
+    let host = "video-wait.test";
+    let page = "http://video-wait.test/talk";
+    let site = Site::start(vec![
+        (
+            page,
+            Reply::html(
+                "<html><head><title>Talk</title></head><body><h1>Talk</h1>\
+                 <video controls><source src=\"/talk.mp4\" type=\"video/mp4\">\
+                 <track kind=\"subtitles\" srclang=\"en\" label=\"English\" src=\"/talk-en.vtt\">\
+                 </video></body></html>",
+            ),
+        ),
+        (
+            "http://video-wait.test/talk-en.vtt",
+            Reply {
+                content_type: "text/vtt".into(),
+                ..Reply::plain("WEBVTT\n\n00:00:05.000 --> 00:00:08.000\nHello and welcome.\n")
+            },
+        ),
+    ])
+    .await;
+    svipall_core::store::ROUTES.insert(host, &site.url(""));
+    // The caption fetch has a 20 s timeout, so by default it waits up to 10 s: an 11 s window is
+    // refused unless the caller says to wait.
+    let server = SvipallServer::new(
+        None,
+        svipall_core::Config {
+            request_limit: 1,
+            request_window_seconds: 11,
+            ..cfg()
+        },
+        None,
+    );
+    let v = server
+        .video_json(svipall::tools::WebVideoParams {
+            url: page.into(),
+            wait: Some(30),
+            ..Default::default()
+        })
+        .await
+        .unwrap();
+    svipall_core::store::ROUTES.remove(host);
+    assert_eq!(v["captions"]["cues"], 1, "{v}");
 }
 
 /// Item 29: the default report is compact.

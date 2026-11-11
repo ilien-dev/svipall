@@ -481,13 +481,30 @@ async fn health() -> impl IntoResponse {
     }))
 }
 
-/// `GET /v1/status` — read-only by construction: default params carry none of the three clears.
-async fn status_get(State(rest): State<Rest>) -> Result<Json<Value>, RestError> {
+/// What a GET may ask of the status: which sections, and nothing that changes anything.
+#[derive(serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+struct StatusQuery {
+    sections: Option<String>,
+}
+
+/// `GET /v1/status` — read-only by construction: the query carries `sections` and none of the clears.
+async fn status_get(
+    State(rest): State<Rest>,
+    q: Result<axum::extract::Query<StatusQuery>, axum::extract::rejection::QueryRejection>,
+) -> Result<Json<Value>, RestError> {
+    let axum::extract::Query(q) = q.map_err(|e| RestError {
+        status: StatusCode::BAD_REQUEST,
+        message: e.body_text(),
+    })?;
     rest.server
         .active()
         .await
         .map_err(RestError::internal)?
-        .status_json(WebStatusParams::default())
+        .status_json(WebStatusParams {
+            sections: q.sections,
+            ..Default::default()
+        })
         .await
         .map(Json)
         .map_err(RestError::internal)

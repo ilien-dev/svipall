@@ -402,9 +402,119 @@ pub fn take(markdown: &str, opts: &BudgetOpts) -> Budgeted {
     }
 }
 
+/// Take as much of a text that must come back as it is (a source file, plain text, an API's JSON)
+/// as fits, starting where the cursor says.
+///
+/// `take` reads markdown: it trims each block and joins blocks with one blank line, which is right
+/// for prose and changes a program. Here the unit is the line, kept with its own line ending, and
+/// nothing is added: no heading path, no overlap. A text that fits comes back byte for byte, and the
+/// parts a cursor pages through, put back together, are the text. A single line longer than the
+/// whole budget (minified JSON) is cut inside the line, so paging always makes progress.
+pub fn take_lines(text: &str, opts: &BudgetOpts) -> Budgeted {
+    let hash = crate::domain::stable_hash(text);
+    let lines: Vec<&str> = text.split_inclusive('\n').collect();
+    let total = lines.len();
+    let mut stale = false;
+    let (mut line, mut off) = match &opts.cursor {
+        Some(c) if c.content_hash == hash => (c.block, c.char_off),
+        Some(_) => {
+            stale = true;
+            (0, 0)
+        }
+        None => (0, 0),
+    };
+    if line >= total {
+        (line, off) = (0, 0);
+    }
+    let mut out = String::new();
+    let mut used = 0usize;
+    let mut returned = 0usize;
+    let mut truncated = false;
+    while line < total {
+        let rest = match lines[line].char_indices().nth(off) {
+            Some((b, _)) => &lines[line][b..],
+            None => "",
+        };
+        let cost = estimate_tokens(rest);
+        if used + cost <= opts.max_tokens {
+            out.push_str(rest);
+            used += cost;
+            returned += 1;
+            line += 1;
+            off = 0;
+            continue;
+        }
+        if returned == 0 {
+            // A line larger than the whole budget: as many characters as fit, and the rest of the
+            // line next time.
+            let chars = opts.max_tokens.max(1) * 4;
+            let piece: String = rest.chars().take(chars).collect();
+            off += piece.chars().count();
+            out.push_str(&piece);
+            returned += 1;
+        }
+        truncated = true;
+        break;
+    }
+    let next_cursor = truncated.then(|| {
+        Cursor {
+            content_hash: hash,
+            block: line,
+            char_off: off,
+            query: None,
+        }
+        .encode()
+    });
+    Budgeted {
+        tokens: estimate_tokens(&out),
+        content: out,
+        truncated,
+        next_cursor,
+        blocks_returned: returned,
+        total_blocks: total,
+        stale_cursor: stale,
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn a_text_that_fits_comes_back_byte_for_byte_and_one_that_does_not_pages_back_together() {
+        let text = "def f():\n    if x:\n\n\n        return 1\r\n    # end\n";
+        let all = take_lines(text, &plain(1000, None));
+        assert_eq!(all.content, text);
+        assert!(!all.truncated);
+
+        let mut joined = String::new();
+        let mut cursor = None;
+        loop {
+            let part = take_lines(text, &plain(3, cursor.take()));
+            assert!(!part.stale_cursor);
+            joined.push_str(&part.content);
+            match part.next_cursor {
+                Some(c) => cursor = Cursor::decode(&c),
+                None => break,
+            }
+        }
+        assert_eq!(joined, text);
+
+        // One line longer than the budget still makes progress, and still pages back together.
+        let long = "x".repeat(100);
+        let mut joined = String::new();
+        let mut cursor = None;
+        for _ in 0..100 {
+            let part = take_lines(&long, &plain(5, cursor.take()));
+            assert!(!part.content.is_empty());
+            joined.push_str(&part.content);
+            match part.next_cursor {
+                Some(c) => cursor = Cursor::decode(&c),
+                None => break,
+            }
+        }
+        assert_eq!(joined, long);
+    }
 
     /// The options every test that is not about paging context uses.
     fn plain(max_tokens: usize, cursor: Option<Cursor>) -> BudgetOpts {

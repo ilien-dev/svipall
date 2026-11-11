@@ -118,3 +118,99 @@ fn an_unknown_command_names_the_closest_one() {
     assert!(!o.status.success());
     assert!(err.contains("fecth") && err.contains("fetch"), "{err}");
 }
+
+mod support;
+
+/// A home whose settings make `host` a public-looking site reached through the loopback fixture,
+/// as `web_route` would, so the limiter and the ladder memory run as they do for a real site.
+fn routed_home(tag: &str, host: &str, site: &support::Site, settings: &str) -> std::path::PathBuf {
+    let h = home(tag);
+    let mut config = std::fs::read_to_string(h.join("config.toml")).unwrap();
+    config.push_str(settings);
+    config.push_str("request_min_interval_ms = 1\nhttp_engine = \"reqwest\"\n");
+    std::fs::write(h.join("config.toml"), config).unwrap();
+    std::fs::write(
+        h.join("proxies.json"),
+        serde_json::json!({ host: site.url("") }).to_string(),
+    )
+    .unwrap();
+    h
+}
+
+async fn run(home: &std::path::Path, args: &[&str]) -> serde_json::Value {
+    let (home, args): (std::path::PathBuf, Vec<String>) = (
+        home.to_path_buf(),
+        args.iter().map(|s| s.to_string()).collect(),
+    );
+    let o = tokio::task::spawn_blocking(move || {
+        let args: Vec<&str> = args.iter().map(String::as_str).collect();
+        svipall(&home, &args)
+    })
+    .await
+    .unwrap();
+    let (out, err) = text(&o);
+    serde_json::from_str(&out).unwrap_or_else(|_| panic!("not one JSON object: {out}{err}"))
+}
+
+/// `--wait` reaches the limiter, and the window it waits out is the one the previous process
+/// spent: the budget is the machine's, not the process's.
+#[tokio::test(flavor = "multi_thread")]
+async fn fetch_wait_waits_out_a_window_another_process_filled() {
+    let url = "http://cli-wait.test/article";
+    let site = support::Site::start(vec![(
+        url,
+        support::Reply::page("Wait", &[]).header("cache-control", "no-store"),
+    )])
+    .await;
+    let h = routed_home(
+        "wait",
+        "cli-wait.test",
+        &site,
+        "max_tier = \"http\"\nrequest_limit = 1\nrequest_window_seconds = 4\n",
+    );
+    let first = run(&h, &["fetch", url, "--timeout", "2000"]).await;
+    assert_eq!(first["status"], 200, "{first}");
+    let refused = run(&h, &["fetch", url, "--timeout", "2000", "--wait", "0"]).await;
+    assert_eq!(refused["wall_kind"], "visit_limit", "{refused}");
+    let waited = run(&h, &["fetch", url, "--timeout", "2000", "--wait", "8"]).await;
+    assert_eq!(waited["status"], 200, "{waited}");
+    assert!(
+        waited["waited"]["seconds"].as_u64().unwrap_or(0) >= 1,
+        "{waited}"
+    );
+    assert_eq!(site.hits(url), 2);
+}
+
+/// `--fresh` walks a ladder the previous process remembered as hopeless.
+#[tokio::test(flavor = "multi_thread")]
+async fn fetch_fresh_walks_again_a_ladder_another_process_remembered() {
+    let url = "http://cli-fresh.test/article";
+    let site = support::Site::start(vec![(url, support::Reply::cloudflare())]).await;
+    // A browser that cannot start: every browser rung fails at once, so the walk is milliseconds.
+    let fake = std::env::temp_dir().join(format!(
+        "svipall-cli-not-a-browser-{}.txt",
+        std::process::id()
+    ));
+    std::fs::write(&fake, "this is not a browser").unwrap();
+    let h = routed_home(
+        "fresh",
+        "cli-fresh.test",
+        &site,
+        &format!(
+            "max_tier = \"warm\"\nbrowser_path = {:?}\n",
+            fake.to_string_lossy()
+        ),
+    );
+    let first = run(&h, &["fetch", url]).await;
+    assert!(first["blocked_reason"].is_string(), "{first}");
+    let hits = site.hits(url);
+    let remembered = run(&h, &["fetch", url]).await;
+    assert!(remembered["remembered"].is_object(), "{remembered}");
+    assert_eq!(site.hits(url), hits, "nothing was requested: {remembered}");
+    let fresh = run(&h, &["fetch", url, "--fresh"]).await;
+    assert!(fresh["remembered"].is_null(), "{fresh}");
+    assert!(
+        site.hits(url) > hits,
+        "--fresh asked the site again: {fresh}"
+    );
+}

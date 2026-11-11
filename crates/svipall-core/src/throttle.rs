@@ -141,6 +141,20 @@ pub fn observe(domain: &str, exit: Option<&str>, tier: &str, outcome: Outcome) {
     }
 }
 
+/// Seconds left on the server's own `Retry-After` hold for this domain, which `throttle` would
+/// sleep through before the next request. A caller that must not wait asks this first.
+pub fn hold_left(domain: &str) -> u64 {
+    HOLDS
+        .lock()
+        .unwrap()
+        .get(domain)
+        .map(|until| {
+            let left = until.saturating_duration_since(Instant::now());
+            left.as_secs() + u64::from(left.subsec_nanos() > 0)
+        })
+        .unwrap_or(0)
+}
+
 /// `Retry-After`, which is either a number of seconds or an HTTP date.
 pub fn parse_retry_after(value: &str) -> Option<Duration> {
     let v = value.trim();

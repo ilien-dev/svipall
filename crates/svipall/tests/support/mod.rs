@@ -53,6 +53,9 @@ pub struct Reply {
     /// Send only this many bytes of the body on the first request, under the full
     /// `Content-Length`, and hang up: a download cut short, as a dropped connection leaves it.
     pub cut_first_at: Option<usize>,
+    /// What this route answers from its second request on: a site that refused the first visitor
+    /// and lets the next one through, or the other way round.
+    pub later: Option<Box<Reply>>,
 }
 
 impl Reply {
@@ -64,6 +67,7 @@ impl Reply {
             headers: Vec::new(),
             delay_ms: 0,
             cut_first_at: None,
+            later: None,
         }
     }
 
@@ -92,6 +96,7 @@ impl Reply {
             headers: Vec::new(),
             delay_ms: 0,
             cut_first_at: None,
+            later: None,
         }
     }
 
@@ -104,6 +109,7 @@ impl Reply {
             headers: Vec::new(),
             delay_ms: 0,
             cut_first_at: None,
+            later: None,
         }
     }
 
@@ -120,6 +126,12 @@ impl Reply {
     /// Cut the first transfer of this route after `n` bytes. See `cut_first_at`.
     pub fn cut_first_at(mut self, n: usize) -> Self {
         self.cut_first_at = Some(n);
+        self
+    }
+
+    /// Answer `later` to every request after the first. See `later`.
+    pub fn then(mut self, later: Reply) -> Self {
+        self.later = Some(Box::new(later));
         self
     }
 
@@ -228,6 +240,11 @@ impl Site {
                     let mut reply = reply.unwrap_or_else(|| {
                         Reply::html("<html><body>not found</body></html>").with_status(404)
                     });
+                    if nth > 1 {
+                        if let Some(later) = reply.later.take() {
+                            reply = *later;
+                        }
+                    }
                     // `If-Range` as the specification has it: a validator that no longer matches
                     // this reply's ETag means "send the whole thing", never the range.
                     let if_range = header_value(&head, "if-range");

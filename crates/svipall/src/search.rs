@@ -137,6 +137,10 @@ pub struct Env<'a> {
     /// The fetcher for a domain and the exit it leaves through (`None` is this machine).
     pub fetcher_for: &'a FetcherFor<'a>,
     pub min_gap: Duration,
+    /// Seconds the site asked to be left alone for, on this domain and exit (a `Retry-After` or a
+    /// backoff another call recorded). Asking a held host means sleeping through the hold inside
+    /// the search, so a held engine is skipped instead.
+    pub held: &'a (dyn Fn(&str, Option<&str>) -> u64 + Send + Sync),
 }
 
 pub struct Request<'a> {
@@ -887,6 +891,8 @@ struct Planned {
     fetcher: Arc<dyn HttpFetcher>,
     url: String,
     health: Health,
+    /// Seconds left on a hold the site put on this host; nonzero means skipped, never asked.
+    held: u64,
 }
 
 fn plan(env: &Env<'_>, engine: &'static str, query: &str, loc: &Locale) -> Option<Planned> {
@@ -901,6 +907,7 @@ fn plan(env: &Env<'_>, engine: &'static str, query: &str, loc: &Locale) -> Optio
         health.until = health.until.max(now() + cooling);
         health.last = "on cooldown".into();
     }
+    let held = (env.held)(&domain, exit.as_deref());
     Some(Planned {
         engine,
         health,
@@ -909,6 +916,7 @@ fn plan(env: &Env<'_>, engine: &'static str, query: &str, loc: &Locale) -> Optio
         exit,
         fetcher,
         url,
+        held,
     })
 }
 
@@ -919,7 +927,12 @@ fn skipped(p: &Planned) -> Attempt {
         outcome: Outcome::Skipped,
         count: 0,
         status: None,
-        detail: Some(if p.health.last == "on cooldown" {
+        detail: Some(if p.held > 0 {
+            format!(
+                "host on hold for {}s more at the site's request; not waited for inside a search",
+                p.held
+            )
+        } else if p.health.last == "on cooldown" {
             format!("host on cooldown; asked again in {left}s")
         } else {
             format!("{} on its last try; asked again in {left}s", p.health.last)
@@ -1043,6 +1056,14 @@ async fn round(env: &Env<'_>, req: &Request<'_>, query: &str, loc: &Locale) -> R
                 attempts,
             };
         };
+        if p.held > 0 {
+            attempts.push(skipped(&p));
+            return Round {
+                engine: "none".into(),
+                results: Vec::new(),
+                attempts,
+            };
+        }
         let (a, results) = ask(env, &p, &terms).await;
         attempts.push(a);
         let results = flag(results, &terms);
@@ -1054,10 +1075,13 @@ async fn round(env: &Env<'_>, req: &Request<'_>, query: &str, loc: &Locale) -> R
         };
     }
 
-    let plans: Vec<Planned> = ENGINES
+    // A held host is out of the running altogether, even as the last resort `order` asks anyway:
+    // asking it is sleeping through the hold.
+    let (held, plans): (Vec<Planned>, Vec<Planned>) = ENGINES
         .iter()
         .filter_map(|e| plan(env, e, query, loc))
-        .collect();
+        .partition(|p| p.held > 0);
+    attempts.extend(held.iter().map(skipped));
     let (ready, resting) = order(plans);
 
     if matches!(mode, "all" | "merge") {
@@ -1115,7 +1139,7 @@ async fn round(env: &Env<'_>, req: &Request<'_>, query: &str, loc: &Locale) -> R
     if !settled {
         // Last: the news feed, unless it is resting.
         if let Some(p) = plan(env, NEWS, query, loc) {
-            if p.health.until > now() {
+            if p.held > 0 || p.health.until > now() {
                 attempts.push(skipped(&p));
             } else {
                 let (a, results) = ask(env, &p, &terms).await;
@@ -1228,12 +1252,10 @@ fn note(results: &[SearchResult], attempts: &[Attempt], retried: Option<&str>) -
         if !errors.is_empty() {
             parts.push(format!("no answer: {}", errors.join(", ")));
         }
+        // Each says why: failing recently, a cooldown, or a hold the site asked for.
         let resting = named(attempts, |o| o == Outcome::Skipped);
         if !resting.is_empty() {
-            parts.push(format!(
-                "skipped after failing recently: {}",
-                resting.join(", ")
-            ));
+            parts.push(format!("skipped: {}", resting.join(", ")));
         }
         let mut s = format!("No results; {}.", parts.join("; "));
         if let Some(q) = retried {

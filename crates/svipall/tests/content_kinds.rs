@@ -577,3 +577,372 @@ async fn this_machines_address_is_masked_where_a_page_echoes_it() {
         "another address is not this machine's: {echo}"
     );
 }
+
+// ---- the byte-kept body and the content kinds, together ----------------------------------------
+
+/// A Word document as small as the format allows: what an office suite writes, minus everything
+/// that is optional.
+fn docx(paragraphs: &[&str]) -> Vec<u8> {
+    use std::io::Write;
+    let body: String = paragraphs
+        .iter()
+        .map(|p| format!("<w:p><w:r><w:t>{p}</w:t></w:r></w:p>"))
+        .collect();
+    let parts = [
+        (
+            "[Content_Types].xml",
+            r#"<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/></Types>"#.to_string(),
+        ),
+        (
+            "_rels/.rels",
+            r#"<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="word/document.xml"/></Relationships>"#.to_string(),
+        ),
+        (
+            "word/document.xml",
+            format!(
+                r#"<?xml version="1.0" encoding="UTF-8" standalone="yes"?><w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:body>{body}</w:body></w:document>"#
+            ),
+        ),
+    ];
+    let mut buf = Vec::new();
+    {
+        let mut w = zip::ZipWriter::new(std::io::Cursor::new(&mut buf));
+        for (name, text) in parts {
+            w.start_file::<_, ()>(name, zip::write::SimpleFileOptions::default())
+                .unwrap();
+            w.write_all(text.as_bytes()).unwrap();
+        }
+        w.finish().unwrap();
+    }
+    buf
+}
+
+const DOCX: &str = "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
+
+/// Since bodies are kept as bytes, a document is no longer text the moment it arrives. It still
+/// has to be read into text, and that text is prose: judged by the prose rules (a note of a dozen
+/// words is thin), not waved through as a plain file that is whole because it is not empty.
+#[tokio::test]
+async fn a_pdf_and_an_office_document_are_read_as_text_and_judged_as_prose() {
+    let long_para = "The committee reviewed every clause of the harbour agreement in detail, \
+        heard from the pilots, the dockworkers and the residents, and recorded each objection \
+        with the name of the person who raised it so that the minutes could be checked later.";
+    let site = Site::start(vec![
+        (
+            "/sample.pdf",
+            Reply::bytes(RANGE_WIDTHS_PDF, "application/pdf"),
+        ),
+        (
+            "/note.docx",
+            Reply::bytes(&docx(&["Meeting moved to Thursday at noon."]), DOCX),
+        ),
+        (
+            "/minutes.docx",
+            Reply::bytes(&docx(&[long_para, long_para, long_para]), DOCX),
+        ),
+    ])
+    .await;
+    let server = local_server();
+
+    let pdf = server
+        .fetch_json(local(site.url("/sample.pdf")))
+        .await
+        .value;
+    assert!(
+        content(&pdf).contains("The sample contains parts of Chapter 3"),
+        "{pdf}"
+    );
+    assert!(pdf["blocked_reason"].is_null(), "{pdf}");
+    assert!(
+        pdf.get("file").is_none(),
+        "a document is read, not described: {pdf}"
+    );
+
+    let note = server.fetch_json(local(site.url("/note.docx"))).await.value;
+    assert!(
+        content(&note).contains("Meeting moved to Thursday at noon."),
+        "{note}"
+    );
+    assert!(note.get("file").is_none(), "{note}");
+    assert_eq!(
+        note["quality"], "thin",
+        "a dozen words is thin as prose: {note}"
+    );
+    assert!(
+        note["quality_reasons"]
+            .as_array()
+            .is_some_and(|r| r.iter().any(|x| x == "thin_text")),
+        "{note}"
+    );
+
+    let minutes = server
+        .fetch_json(local(site.url("/minutes.docx")))
+        .await
+        .value;
+    assert!(
+        content(&minutes).contains("recorded each objection"),
+        "{minutes}"
+    );
+    assert_eq!(minutes["quality"], "full", "{minutes}");
+}
+
+/// `json_path`, the quality label and `out_file` on one call: the file holds the projection, the
+/// label is the JSON one, and nothing about the projection is lost on the way to the file.
+#[tokio::test]
+async fn json_path_quality_and_out_file_combine() {
+    let body =
+        r#"{"total":3,"items":[{"id":1,"name":"a"},{"id":2,"name":"b"},{"id":3,"name":"c"}]}"#;
+    let site = Site::start(vec![("/api", json(body))]).await;
+    let server = local_server();
+    let file = support::isolate().join("projection.json");
+    let out = server
+        .fetch_json(WebFetchParams {
+            json_path: Some("items[*].name".into()),
+            out_file: Some(file.to_string_lossy().into()),
+            ..local(site.url("/api"))
+        })
+        .await
+        .value;
+    assert_eq!(out["quality"], "full", "{out}");
+    assert!(out.get("json_path_error").is_none(), "{out}");
+    let written: Value = serde_json::from_str(&std::fs::read_to_string(&file).unwrap())
+        .unwrap_or_else(|e| panic!("the file is not the projection ({e}): {out}"));
+    assert_eq!(written, serde_json::json!(["a", "b", "c"]), "{out}");
+
+    // Whatever the file is called: the path was asked for, so the path is what is written.
+    let named = support::isolate().join("projection.bin");
+    let out = server
+        .fetch_json(WebFetchParams {
+            json_path: Some("items[*].name".into()),
+            out_file: Some(named.to_string_lossy().into()),
+            ..local(site.url("/api"))
+        })
+        .await
+        .value;
+    let written: Value = serde_json::from_slice(&std::fs::read(&named).unwrap())
+        .unwrap_or_else(|e| panic!("not the projection ({e}): {out}"));
+    assert_eq!(written, serde_json::json!(["a", "b", "c"]), "{out}");
+
+    // A path that names nothing is still a whole, well-formed answer: `null`, with a note.
+    let out = server
+        .fetch_json(WebFetchParams {
+            json_path: Some("nothing.here".into()),
+            ..local(site.url("/api"))
+        })
+        .await
+        .value;
+    assert!(out["json_path_note"].is_string(), "{out}");
+    assert_ne!(out["quality"], "partial", "{out}");
+}
+
+// ---- 5: plain text and code come back as they are ---------------------------------------------
+
+const SOURCE: &str = "#!/usr/bin/env python3
+\"\"\"A module whose shape is its meaning.\"\"\"
+
+
+def outer(xs):
+    total = 0
+    for x in xs:
+        if x > 0:
+            total += x
+
+
+        else:
+            total -= x
+    return total
+
+
+    # an indented comment after two blank lines
+class Thing:
+    def method(self):
+        return {
+            \"key\": [1, 2, 3],
+        }
+";
+
+/// The measured damage: a source file read through the normal path lost the indentation each
+/// block starts with and had its runs of blank lines collapsed to one, which for Python is a
+/// different program.
+#[tokio::test]
+async fn a_source_file_comes_back_byte_for_byte() {
+    let crlf = SOURCE.replace('\n', "\r\n");
+    let site = Site::start(vec![
+        (
+            "/thing.py",
+            Reply::bytes(SOURCE.as_bytes(), "text/x-python; charset=utf-8"),
+        ),
+        ("/notes.txt", Reply::plain(&crlf)),
+    ])
+    .await;
+    let server = local_server();
+    let py = server.fetch_json(local(site.url("/thing.py"))).await.value;
+    assert_eq!(content(&py), SOURCE, "{py}");
+    let txt = server.fetch_json(local(site.url("/notes.txt"))).await.value;
+    assert_eq!(content(&txt), crlf, "{txt}");
+}
+
+/// Larger than the budget, a source file is cut at line boundaries, and the parts the cursor
+/// pages through put back together are the file, exactly.
+#[tokio::test]
+async fn a_long_source_file_pages_back_together_exactly() {
+    let mut file = String::new();
+    for i in 0..300 {
+        file.push_str(&format!(
+            "def f{i}(x):\n    if x:\n        return {i}\n\n\n    return -{i}\n"
+        ));
+    }
+    let site = Site::start(vec![(
+        "/big.py",
+        Reply::bytes(file.as_bytes(), "text/x-python"),
+    )])
+    .await;
+    let server = local_server();
+    let mut joined = String::new();
+    let mut cursor: Option<String> = None;
+    let mut parts = 0;
+    loop {
+        parts += 1;
+        assert!(parts < 200, "the cursor never reached the end");
+        let out = server
+            .fetch_json(WebFetchParams {
+                max_tokens: Some(400),
+                cursor: cursor.clone(),
+                ..local(site.url("/big.py"))
+            })
+            .await
+            .value;
+        assert!(out["stale_cursor"].is_null(), "part {parts}: {out}");
+        let text = content(&out);
+        assert!(
+            out["truncated"].is_null() || text.ends_with('\n'),
+            "part {parts} is cut inside a line: {text:?}"
+        );
+        joined.push_str(text);
+        match out["cursor"].as_str() {
+            Some(c) => cursor = Some(c.to_string()),
+            None => break,
+        }
+    }
+    assert!(parts > 1, "the file was larger than one part");
+    assert_eq!(joined, file, "the parts are the file");
+}
+
+// ---- 8: the browser that reports 200 for a refusal --------------------------------------------
+
+/// The measured false success: the http tier got a 403, then a browser tier loaded the same URL,
+/// Chromium reported 200, and the 27 characters it rendered ("403 Forbidden") were delivered as the
+/// page. Here the site refuses the first request and answers every later one 200 with that stub,
+/// which is what the browser saw.
+#[tokio::test]
+#[ignore = "opens a local browser against a loopback proxy"]
+async fn a_tiny_200_from_the_browser_after_a_403_is_not_delivered() {
+    let url = "http://manuals-eight.test/manual/1234/guide.html";
+    let site = Site::start(vec![(
+        url,
+        Reply::html(
+            "<html><head><title>403 Forbidden</title></head><body><h1>403 Forbidden</h1>\
+             </body></html>",
+        )
+        .with_status(403)
+        .then(Reply::html(
+            "<html><head></head><body>403 Forbidden</body></html>",
+        )),
+    )])
+    .await;
+    let server = SvipallServer::new(
+        None,
+        svipall_core::Config {
+            max_tier: "browser".into(),
+            request_min_interval_ms: 1,
+            http_engine: "reqwest".into(),
+            ..Default::default()
+        },
+        None,
+    );
+    assert!(server.pool().available(), "manual test requires a browser");
+    let out = server.fetch_json(remote(url, &site)).await.value;
+    server.shutdown_configuration().await;
+    println!("{out}");
+    assert!(site.hits(url) >= 2, "the browser asked again: {out}");
+    assert!(
+        attempts(&out).iter().any(|a| a.starts_with("browser")),
+        "the browser tier was reached: {out}"
+    );
+    assert!(out["blocked_reason"].is_string(), "{out}");
+}
+
+// ---- 6: this machine's address, beyond web_fetch's content -------------------------------------
+
+/// Masked wherever page text reaches the caller: a table's cells and web_diff's added blocks too.
+#[tokio::test]
+async fn this_machines_address_is_masked_in_tables_and_in_a_diff() {
+    svipall_core::own_ip::learn(&["203.0.113.50".parse().unwrap()]);
+    let table = "<!doctype html><html><head><title>Hosts</title></head><body><main>\
+        <h1>Hosts</h1><p>Every visitor that reached this page in the last hour, with where they \
+        came from, so the operator can see who reads it.</p><table><thead><tr><th>Address</th>\
+        <th>Seen</th></tr></thead><tbody><tr><td>203.0.113.50</td><td>now</td></tr>\
+        <tr><td>192.0.2.10</td><td>earlier</td></tr></tbody></table></main></body></html>";
+    let before = "<!doctype html><html><head><title>Status</title></head><body><main>\
+        <h1>Status</h1><p>All systems normal. This page reports the state of the service and is \
+        refreshed every few minutes by the operators on duty.</p></main></body></html>";
+    let after = "<!doctype html><html><head><title>Status</title></head><body><main>\
+        <h1>Status</h1><p>All systems normal. This page reports the state of the service and is \
+        refreshed every few minutes by the operators on duty.</p>\
+        <p>Last visit from 203.0.113.50 was logged a moment ago.</p></main></body></html>";
+    let site = Site::start(vec![
+        ("/hosts", Reply::html(table)),
+        ("/status", Reply::html(before).then(Reply::html(after))),
+    ])
+    .await;
+    let server = local_server();
+    let rows = server
+        .fetch_json(WebFetchParams {
+            tables: Some(true),
+            ..local(site.url("/hosts"))
+        })
+        .await
+        .value;
+    assert!(rows["tables"].is_array(), "{rows}");
+    assert!(!rows.to_string().contains("203.0.113.50"), "{rows}");
+    assert!(rows.to_string().contains("192.0.2.10"), "{rows}");
+
+    let diff = || {
+        server.diff_json(svipall::tools::WebDiffParams {
+            url: site.url("/status"),
+            refetch: None,
+        })
+    };
+    diff().await.unwrap();
+    let changed = diff().await.unwrap();
+    assert_eq!(changed["changed"], true, "{changed}");
+    assert!(
+        changed["added"].to_string().contains("was logged"),
+        "{changed}"
+    );
+    assert!(!changed.to_string().contains("203.0.113.50"), "{changed}");
+}
+
+/// The same through a browser tool: what web_snapshot reads off the page is masked too.
+#[tokio::test]
+#[ignore = "opens a local browser"]
+async fn this_machines_address_is_masked_in_a_snapshot() {
+    svipall_core::own_ip::learn(&["203.0.113.61".parse().unwrap()]);
+    let page = "<!doctype html><html><head><title>Who</title></head><body><main>\
+        <h1>Who is reading</h1><p>Your address is 203.0.113.61 and you are welcome.</p>\
+        <button>Continue</button></main></body></html>";
+    let site = Site::start(vec![("/who", Reply::html(page))]).await;
+    let server = local_server();
+    assert!(server.pool().available(), "manual test requires a browser");
+    let out = server
+        .snapshot_json(
+            serde_json::from_value(serde_json::json!({"url": site.url("/who")})).unwrap(),
+        )
+        .await;
+    server.shutdown_configuration().await;
+    let out = out.unwrap();
+    println!("{out}");
+    assert!(out.to_string().contains("you are welcome"), "{out}");
+    assert!(!out.to_string().contains("203.0.113.61"), "{out}");
+    assert!(out["own_ip_masked"].as_u64().unwrap_or(0) >= 1, "{out}");
+}
