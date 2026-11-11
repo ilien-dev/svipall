@@ -582,7 +582,7 @@ pub struct WebDiffParams {
 pub struct WebMapParams {
     /// Any URL on the site; the whole origin is mapped.
     pub url: String,
-    /// Sources to use: robots, sitemap, feeds, links. Default: all of them.
+    /// Sources to use: robots, sitemap, llms, feeds, links. Default: all of them.
     #[serde(default)]
     pub sources: Option<Vec<String>>,
     /// Maximum URLs to return. Default 1000.

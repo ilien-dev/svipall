@@ -6448,7 +6448,7 @@ impl SvipallServer {
     }
 
     #[tool(
-        description = "List a site's URLs without fetching its pages: robots.txt, sitemaps (nested indexes and .gz), RSS/Atom feeds and homepage links. Use before web_crawl to decide what is worth fetching, or to find the page for a topic: a few hundred tokens instead of the thousands a crawl costs. Returns `urls` with `sources_used`, `sitemaps` and `feeds`; read the ones that matter with web_fetch_many.",
+        description = "List a site's URLs without fetching its pages: robots.txt, sitemaps (nested indexes and .gz), llms.txt, RSS/Atom feeds and homepage links. Use before web_crawl to decide what is worth fetching, or to find the page for a topic: a few hundred tokens instead of the thousands a crawl costs. Returns `urls` with `sources_used`, `sitemaps` and `feeds`; read the ones that matter with web_fetch_many.",
         annotations(read_only_hint = true, open_world_hint = true)
     )]
     async fn web_map(&self, params: Parameters<WebMapParams>) -> Result<CallToolResult, McpError> {
@@ -6459,7 +6459,7 @@ impl SvipallServer {
     pub async fn map_json(&self, p: WebMapParams) -> anyhow::Result<Value> {
         let limit = p.limit.unwrap_or(1000).min(50_000);
         let sources: Vec<String> = p.sources.unwrap_or_else(|| {
-            ["robots", "sitemap", "feeds", "links"]
+            ["robots", "sitemap", "llms", "feeds", "links"]
                 .map(String::from)
                 .to_vec()
         });
@@ -6471,13 +6471,17 @@ impl SvipallServer {
             .ok_or_else(|| anyhow::anyhow!(crate::steer::needs_http_url("web_map", &p.url)))?;
         // With its port: a site on `:8080` has its robots.txt and feeds there too.
         let origin = base.origin().ascii_serialization();
-        let mut used: Vec<&str> = Vec::new();
         let mut urls: Vec<Value> = Vec::new();
         let mut seen: HashSet<String> = HashSet::new();
         let mut sitemaps: Vec<String> = Vec::new();
         let mut feeds: Vec<String> = Vec::new();
         let mut robots_info = json!({"present": false});
+        let mut notes: Vec<String> = Vec::new();
 
+        // A file the site actually serves, or nothing. A 404 page, a wall, or the application
+        // shell a single-page site answers every path with all carry `content` too, and reading
+        // one as robots rules or a sitemap is how `robots.present` came to be true on a site
+        // without one.
         let get = |u: String| async move {
             let r = self
                 .fetch_json(WebFetchParams {
@@ -6487,9 +6491,14 @@ impl SvipallServer {
                     ..Default::default()
                 })
                 .await;
+            let status = r.value["status"].as_u64().unwrap_or(0);
+            if !(200..300).contains(&status) || r.value["blocked_reason"].is_string() {
+                return None;
+            }
             r.value
                 .get("content")
                 .and_then(|c| c.as_str())
+                .filter(|c| !svipall_core::sitemap::looks_like_html(c))
                 .map(str::to_string)
         };
 
@@ -6505,7 +6514,6 @@ impl SvipallServer {
                 });
                 sitemaps.extend(parsed.sitemaps.clone());
                 robots = Some(parsed);
-                used.push("robots");
             }
         }
 
@@ -6552,8 +6560,17 @@ impl SvipallServer {
                     Err(_) => {}
                 }
             }
-            if !urls.is_empty() {
-                used.push("sitemap");
+        }
+
+        // The site's own list of the pages worth reading, where it publishes one.
+        if want("llms") && urls.len() < limit {
+            if let Some(body) = get(format!("{origin}{}", svipall_core::sitemap::LLMS_TXT)).await {
+                for l in svipall_core::sitemap::parse_llms_txt(&body, &origin, limit) {
+                    if urls.len() >= limit || !seen.insert(l.url.clone()) {
+                        continue;
+                    }
+                    urls.push(json!({"url": l.url, "title": l.title, "source": "llms"}));
+                }
             }
         }
 
@@ -6591,28 +6608,59 @@ impl SvipallServer {
                     }
                 }
             }
-            if !feeds.is_empty() {
-                used.push("feeds");
-            }
         }
 
         if want("links") && urls.len() < limit {
-            let out = self
+            // Never answered from the cache: a stored page is its markdown, not its links, so a
+            // hit or a 304 came back with none and the map said the home page linked nowhere.
+            // `refresh` fetches it and keeps the copy current for whoever reads it next.
+            let mut out = self
                 .fetch_json_opts(
                     WebFetchParams {
                         url: p.url.clone(),
+                        cache: Some("refresh".into()),
                         ..Default::default()
                     },
                     true,
                 )
                 .await;
+            // A navigation that a script draws has no links in the markup. The http tier
+            // delivering a page with none is the sign; one rendered visit is the answer.
+            let delivered = out.value["blocked_reason"].is_null()
+                && (200..300).contains(&out.value["status"].as_u64().unwrap_or(0));
+            if out.links.is_empty() && delivered && out.value["tier_used"] == "http" {
+                if self.pool.available() {
+                    let rendered = self
+                        .fetch_json_opts(
+                            WebFetchParams {
+                                url: p.url.clone(),
+                                mode: Some("browser".into()),
+                                cache: Some("bypass".into()),
+                                ..Default::default()
+                            },
+                            true,
+                        )
+                        .await;
+                    if !rendered.links.is_empty() {
+                        notes.push(
+                            "the page's markup has no links; they were read from a rendered visit"
+                                .into(),
+                        );
+                        out = rendered;
+                    }
+                } else {
+                    notes.push(
+                        "the page's markup has no links and no browser is available to render it"
+                            .into(),
+                    );
+                }
+            }
             for link in out.links {
                 if urls.len() >= limit || !seen.insert(link.clone()) {
                     continue;
                 }
                 urls.push(json!({"url": link, "source": "links"}));
             }
-            used.push("links");
         }
 
         if let Some(inc) = &p.include {
@@ -6636,7 +6684,17 @@ impl SvipallServer {
             }
         }
 
-        Ok(json!({
+        // The sources that produced a URL in this answer, and no others. A source that was asked
+        // and found nothing is not a source that was used.
+        let mut used: Vec<&str> = Vec::new();
+        for u in &urls {
+            if let Some(s) = u["source"].as_str() {
+                if !used.contains(&s) {
+                    used.push(s);
+                }
+            }
+        }
+        let mut out = json!({
             "domain": domain_from_url(&p.url),
             "sources_used": used,
             "count": urls.len(),
@@ -6644,7 +6702,11 @@ impl SvipallServer {
             "sitemaps": sitemaps,
             "feeds": feeds,
             "robots": robots_info,
-        }))
+        });
+        if !notes.is_empty() {
+            out["note"] = json!(notes.join("; "));
+        }
+        Ok(out)
     }
 
     #[tool(
