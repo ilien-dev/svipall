@@ -329,6 +329,34 @@ fn exc_attempt(route: &str, e: &anyhow::Error, ms: u128) -> String {
     format!("{route}: EXC {one_line} ({ms}ms)")
 }
 
+/// What the rendered page offered as a search box.
+enum SearchBox {
+    /// A form that is addressable by URL: the URL for the query, how it was found, and details.
+    Url(String, &'static str, Value),
+    /// A box that submits by POST or by script: the report to hand back as is.
+    Unusable(Value),
+    /// Nothing, with what was looked at.
+    None(Vec<String>),
+}
+
+/// Evaluate `js` until it returns something other than null, or `budget` runs out. A zero budget
+/// asks once.
+async fn poll_js(page: &svipall_cdp::page::Page, js: &'static str, budget: Duration) -> Value {
+    let deadline = Instant::now() + budget;
+    loop {
+        let v = page
+            .evaluate(js)
+            .await
+            .ok()
+            .and_then(|r| r.value().cloned())
+            .unwrap_or(Value::Null);
+        if !v.is_null() || Instant::now() >= deadline {
+            return v;
+        }
+        tokio::time::sleep(Duration::from_millis(400)).await;
+    }
+}
+
 /// Mark `exit` unreachable and say so, naming it without its credentials.
 fn exit_down_note(domain: &str, exit: &str, cause: &str) -> String {
     svipall_core::exits::mark_down(exit, cause);
@@ -4692,85 +4720,123 @@ impl SvipallServer {
     }
 
     pub async fn site_search_json(&self, p: WebSiteSearchParams) -> anyhow::Result<Value> {
-        use svipall_core::forms::{SearchForm, FIND_SEARCH_FORM_JS};
+        use svipall_core::forms;
         if !(p.url.starts_with("http://") || p.url.starts_with("https://")) {
             anyhow::bail!(crate::steer::needs_http_url("web_site_search", &p.url));
         }
         if let Err(why) = self.origin_policy().check(&p.url) {
             anyhow::bail!("{why}");
         }
-        let opts = PageOpts {
-            mobile: false,
-            tier: BrowserTier::Stealth,
-            profile_dir: None,
-            proxy: self.exit_for(&domain_from_url(&p.url)),
-            visible: false,
-            identity_seed: identity_seed_for(None, &p.url, None),
+        // What was tried, in order, so a search that finds nothing says where it looked.
+        let mut tried: Vec<String> = Vec::new();
+        let timeout = p.timeout;
+        // An ordinary fetch that delivered: its content, or nothing.
+        let read = |url: String, extraction: &'static str| async move {
+            let r = self
+                .fetch_json(WebFetchParams {
+                    url,
+                    extraction: Some(extraction.into()),
+                    max_tier: Some("http".into()),
+                    timeout,
+                    ..Default::default()
+                })
+                .await;
+            let status = r.value["status"].as_u64().unwrap_or(0);
+            if !(200..300).contains(&status) || r.value["blocked_reason"].is_string() {
+                return None;
+            }
+            r.value["content"].as_str().map(str::to_string)
         };
-        self.charge_visit(&p.url, opts.tier, opts.proxy.as_deref())
-            .await?;
-        let (_pooled, page) = self.pool.page(&opts).await?;
-        let found = async {
-            self.pool.navigate(&page, &p.url).await?;
-            let v = page
-                .evaluate(FIND_SEARCH_FORM_JS)
-                .await
-                .ok()
-                .and_then(|r| r.value().cloned())
-                .unwrap_or(Value::Null);
-            Ok::<_, anyhow::Error>(v)
+
+        // 1. The page as the server sends it, for what it declares about its own search.
+        let html = read(p.url.clone(), "html").await.unwrap_or_default();
+        let start_text = read(p.url.clone(), "markdown").await.unwrap_or_default();
+        let mut found: Option<(String, &str, Value)> = None;
+        let described = forms::opensearch_links(&html, &p.url);
+        if described.is_empty() {
+            tried.push("an OpenSearch <link rel=\"search\"> on the page: none".into());
         }
-        .await;
-        self.pool.close_page(page).await;
-        let found = found?;
-        if found.is_null() {
+        for desc in described {
+            let template = read(desc.clone(), "html")
+                .await
+                .and_then(|xml| forms::opensearch_template(&xml, &desc));
+            match template.and_then(|t| forms::fill_template(&t, &p.query)) {
+                Some(url) => {
+                    found = Some((url, "opensearch", json!({"description": desc})));
+                    break;
+                }
+                None => tried.push(format!(
+                    "the OpenSearch description at {desc}: no usable results template"
+                )),
+            }
+        }
+
+        // 2. The rendered page: its search box, or the control that opens one.
+        let mut form_note: Option<Value> = None;
+        if found.is_none() {
+            if !self.pool.available() || self.cfg.max_tier == "http" {
+                tried.push("the rendered page: skipped, no browser tier available".into());
+            } else {
+                match self.find_search_box(&p.url, &p.query).await {
+                    Ok(SearchBox::Url(url, how, detail)) => found = Some((url, how, detail)),
+                    Ok(SearchBox::Unusable(v)) => form_note = Some(v),
+                    Ok(SearchBox::None(steps)) => tried.extend(steps),
+                    Err(e) => tried.push(format!("the rendered page: {}", chain(&e))),
+                }
+            }
+        }
+
+        // 3. The query endpoints of the common publishing platforms, by the shape of the site,
+        // each believed only once it has been fetched and has answered the query.
+        if found.is_none() {
+            for e in forms::endpoints(&p.url, &html, &p.query) {
+                match read(e.url.clone(), "markdown").await {
+                    Some(text) if forms::answers_query(&text, &start_text, &p.query) => {
+                        found = Some((e.url.clone(), "endpoint", json!({"why": e.why})));
+                        break;
+                    }
+                    Some(_) => tried.push(format!(
+                        "{} ({}): answered, but not with this query",
+                        e.url, e.why
+                    )),
+                    None => tried.push(format!("{} ({}): no page", e.url, e.why)),
+                }
+            }
+        }
+
+        let Some((pattern, source, detail)) = found else {
+            if let Some(mut v) = form_note {
+                v["tried"] = json!(tried);
+                return Ok(v);
+            }
             return Ok(json!({
                 "url": p.url,
                 "found": false,
-                "note": "no search box on this page. Try the home page, or web_map to see whether \
-                         the site publishes a sitemap instead.",
-            }));
-        }
-        let form = SearchForm {
-            action: found["action"].as_str().unwrap_or_default().to_string(),
-            method: found["method"].as_str().unwrap_or_default().to_string(),
-            field: found["field"].as_str().unwrap_or_default().to_string(),
-            hidden: found["hidden"]
-                .as_array()
-                .map(|rows| {
-                    rows.iter()
-                        .filter_map(|r| {
-                            Some((
-                                r.get(0)?.as_str()?.to_string(),
-                                r.get(1)?.as_str().unwrap_or_default().to_string(),
-                            ))
-                        })
-                        .collect()
-                })
-                .unwrap_or_default(),
-        };
-        let Some(pattern) = svipall_core::forms::url_for(&p.url, &form, &p.query) else {
-            // A POST form, or one with no named field. Saying so is the useful answer: turning it
-            // into a GET would return the home page with a 200, which reads as success.
-            return Ok(json!({
-                "url": p.url,
-                "found": true,
-                "usable_as_url": false,
-                "method": form.method,
-                "field": form.field,
-                "note": "the search box submits by POST, so there is no URL for it. Use web_act to \
-                         type into it and press Enter.",
+                "tried": tried,
+                "note": format!(
+                    "no search found on this site. Tried: {}. Try the home page, or web_map to \
+                     see whether the site publishes a sitemap instead.",
+                    tried.join("; ")
+                ),
             }));
         };
         let mut out = json!({
             "url": p.url,
             "found": true,
             "usable_as_url": true,
-            "field": form.field,
+            "source": source,
             "results_url": pattern,
-            "note": "Every later query is this URL with the field changed — an ordinary web_fetch, \
+            "note": "Every later query is this URL with the query changed — an ordinary web_fetch, \
                      no browser needed.",
         });
+        if let (Some(obj), Some(extra)) = (out.as_object_mut(), detail.as_object()) {
+            for (k, v) in extra {
+                obj.insert(k.clone(), v.clone());
+            }
+        }
+        if !tried.is_empty() {
+            out["tried"] = json!(tried);
+        }
         if p.fetch.unwrap_or(true) {
             let results = self
                 .fetch_json(WebFetchParams {
@@ -4784,6 +4850,111 @@ impl SvipallServer {
                 .insert("results".into(), results.value);
         }
         Ok(out)
+    }
+
+    /// The search box on the rendered page, opened first if it sits behind a control.
+    ///
+    /// Waits for the page to settle and polls, because a box drawn by a script arrives after the
+    /// load event; walks open shadow roots; and when there is no box, goes to the control that
+    /// opens one the way a person does — pointer moved there and pressed through `behavior` — then
+    /// looks again.
+    async fn find_search_box(&self, url: &str, query: &str) -> anyhow::Result<SearchBox> {
+        use svipall_core::forms::{SearchForm, FIND_SEARCH_FORM_JS, FIND_SEARCH_TOGGLE_JS};
+        let opts = PageOpts {
+            mobile: false,
+            tier: BrowserTier::Stealth,
+            profile_dir: None,
+            proxy: self.exit_for(&domain_from_url(url)),
+            visible: false,
+            identity_seed: identity_seed_for(None, url, None),
+        };
+        self.charge_visit(url, opts.tier, opts.proxy.as_deref())
+            .await?;
+        let (_pooled, page) = self.pool.page(&opts).await?;
+        let mut steps: Vec<String> = Vec::new();
+        let found = async {
+            self.pool.navigate(&page, url).await?;
+            let mut v = poll_js(&page, FIND_SEARCH_FORM_JS, Duration::from_secs(6)).await;
+            if v.is_null() {
+                steps.push(
+                    "a search box on the rendered page, including open shadow roots: none".into(),
+                );
+                let toggle = poll_js(&page, FIND_SEARCH_TOGGLE_JS, Duration::ZERO).await;
+                let rect = &toggle["rect"];
+                if let (Some(x), Some(y), Some(w), Some(h)) = (
+                    rect["x"].as_f64(),
+                    rect["y"].as_f64(),
+                    rect["w"].as_f64(),
+                    rect["h"].as_f64(),
+                ) {
+                    let label = toggle["label"].as_str().unwrap_or("").to_string();
+                    let seed = self.pool.identity().noise_seed;
+                    let (px, py) = crate::behavior::aim(x, y, w, h, seed);
+                    crate::behavior::Cursor::at_page(&page)
+                        .click_at(&page, px, py, seed)
+                        .await?;
+                    self.pool.settle(&page, Duration::from_millis(600)).await;
+                    v = poll_js(&page, FIND_SEARCH_FORM_JS, Duration::from_secs(4)).await;
+                    if v.is_null() {
+                        steps.push(format!(
+                            "the control that looks like it opens search ({label}): clicked, no box appeared"
+                        ));
+                    } else {
+                        v["opened_by"] = json!(label);
+                    }
+                } else {
+                    steps.push("a control that opens a search box: none".into());
+                }
+            }
+            let at = page.url().await.ok().flatten().unwrap_or_else(|| url.to_string());
+            Ok::<_, anyhow::Error>((v, at))
+        }
+        .await;
+        self.pool.close_page(page).await;
+        let (v, at) = found?;
+        if v.is_null() {
+            return Ok(SearchBox::None(steps));
+        }
+        let form = SearchForm {
+            action: v["action"].as_str().unwrap_or_default().to_string(),
+            method: v["method"].as_str().unwrap_or_default().to_string(),
+            field: v["field"].as_str().unwrap_or_default().to_string(),
+            hidden: v["hidden"]
+                .as_array()
+                .map(|rows| {
+                    rows.iter()
+                        .filter_map(|r| {
+                            Some((
+                                r.get(0)?.as_str()?.to_string(),
+                                r.get(1)?.as_str().unwrap_or_default().to_string(),
+                            ))
+                        })
+                        .collect()
+                })
+                .unwrap_or_default(),
+        };
+        let mut detail = json!({"field": form.field});
+        if let Some(by) = v.get("opened_by") {
+            detail["opened_by"] = by.clone();
+        }
+        if v["in_shadow"] == true {
+            detail["in_shadow_root"] = json!(true);
+        }
+        // Resolved against where the page ended up, which is where the browser would submit it.
+        match svipall_core::forms::url_for(&at, &form, query) {
+            Some(pattern) => Ok(SearchBox::Url(pattern, "form", detail)),
+            // A POST form, or one with no named field. Saying so is the useful answer: turning it
+            // into a GET would return the home page with a 200, which reads as success.
+            None => Ok(SearchBox::Unusable(json!({
+                "url": url,
+                "found": true,
+                "usable_as_url": false,
+                "method": form.method,
+                "field": form.field,
+                "note": "the search box submits by POST, or by a script with no named field, so \
+                         there is no URL for it. Use web_act to type into it and press Enter.",
+            }))),
+        }
     }
 
     #[tool(
