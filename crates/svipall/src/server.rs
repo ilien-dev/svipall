@@ -67,6 +67,8 @@ pub struct SvipallServer {
     /// Advertising and tracking hosts, loaded on first use. Empty until then, empty forever on a
     /// machine that cannot reach the sources, and that is a working state rather than an error.
     blocklist: Arc<tokio::sync::OnceCell<svipall_core::blocklist::Blocklist>>,
+    /// Where `web_search` finds each engine: the real hosts, or a test's fixture server.
+    search_endpoints: Arc<search::Endpoints>,
 }
 
 struct LivePolicy {
@@ -810,7 +812,14 @@ impl SvipallServer {
             cfg: Arc::new(cfg),
             dashboard_url: dashboard_url.map(Arc::from),
             blocklist: Arc::new(tokio::sync::OnceCell::new()),
+            search_endpoints: Arc::new(search::Endpoints::default()),
         }
+    }
+
+    /// Point `web_search`'s engines somewhere else: a test's fixture server.
+    pub fn with_search_endpoints(mut self, endpoints: search::Endpoints) -> Self {
+        self.search_endpoints = Arc::new(endpoints);
+        self
     }
 
     /// Long-running transports refresh policy at request boundaries. Tests and benchmarks keep
@@ -5431,16 +5440,32 @@ impl SvipallServer {
         if p.query.trim().is_empty() {
             return json!({"query": p.query, "count": 0, "results": [], "error": crate::steer::EMPTY_QUERY});
         }
-        let limit = p.limit.unwrap_or(10).clamp(1, 50);
-        let fetcher = self.fetcher.clone();
-        // "all" asks every engine and merges. Each of these is being read off its own HTML and
-        // each covers a different slice of the web badly, so taking the first that answers makes
-        // the result depend on which engine happened to be up.
-        let out = match p.engine.as_deref() {
-            Some("all" | "merge") => search::search_all(fetcher.as_ref(), &p.query, limit).await,
-            engine => search::search(fetcher.as_ref(), &p.query, limit, engine).await,
+        // Each engine host leaves through its own exit, like any other site.
+        let fetcher_for = |domain: &str| {
+            let exit = self.exit_for(domain);
+            (self.fetcher_for(exit.as_deref()), exit)
         };
-        json!({"query": p.query, "engine": out.engine, "count": out.results.len(), "results": out.results, "attempts": out.attempts})
+        let env = search::Env {
+            endpoints: self.search_endpoints.as_ref(),
+            fetcher_for: &fetcher_for,
+            min_gap: Duration::from_millis(self.cfg.request_min_interval_ms),
+        };
+        let req = search::Request {
+            query: &p.query,
+            limit: p.limit.unwrap_or(10).clamp(1, 50),
+            engine: p.engine.as_deref(),
+            lang: p.lang.as_deref(),
+            region: p.region.as_deref(),
+        };
+        let out = search::run(&env, &req).await;
+        let mut v = json!({"query": p.query, "engine": out.engine, "count": out.results.len(), "results": out.results, "attempts": out.attempts, "locale": out.locale});
+        if let Some(q) = out.retried_with {
+            v["retried_with"] = json!(q);
+        }
+        if let Some(n) = out.note {
+            v["note"] = json!(n);
+        }
+        v
     }
 
     #[tool(

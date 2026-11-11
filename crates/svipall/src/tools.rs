@@ -370,17 +370,23 @@ pub struct WebVideoParams {
     pub wait: Option<u64>,
 }
 
-#[derive(Debug, Deserialize, JsonSchema)]
+#[derive(Debug, Default, Deserialize, JsonSchema)]
 pub struct WebSearchParams {
     /// What to search for, as you would type it into a search box.
     pub query: String,
     /// auto (default: the first engine that answers), all (every engine, merged by agreement), or
-    /// one of ddg, ddg-html, bing, brave.
+    /// one of ddg, ddg-html, bing, brave, news (recent articles).
     #[serde(default)]
     pub engine: Option<String>,
     /// Results to return. Default 10, max 50.
     #[serde(default)]
     pub limit: Option<usize>,
+    /// Result language, e.g. es. Default: the query's.
+    #[serde(default)]
+    pub lang: Option<String>,
+    /// Country, e.g. MX.
+    #[serde(default)]
+    pub region: Option<String>,
 }
 
 #[derive(Debug, Deserialize, JsonSchema)]

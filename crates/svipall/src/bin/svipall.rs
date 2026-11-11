@@ -38,8 +38,9 @@ COMMANDS:
     video <url> [--lang L] [--frames N] [--out FILE] [--wait SECS]
                             A video's captions and chapters as one timeline, from its player,
                             an embed, <video> tracks, JSON-LD or the stream manifest.
-    search <query> [--engine E]
-                            Search without an API key. --engine all merges every engine.
+    search <query> [--engine E] [--lang L] [--region CC] [--limit N]
+                            Search without an API key. --engine all merges every engine,
+                            --engine news searches recent articles.
     map <url>               A site's URLs from robots.txt, sitemaps and feeds.
     log [--summary] [--domain D]
                             What this installation has been doing, and which walls it met.
@@ -292,20 +293,16 @@ async fn run(args: &[String]) -> anyhow::Result<Value> {
             if query.trim().is_empty() {
                 anyhow::bail!("search needs something to search for");
             }
-            let engine = flags.value("engine");
-            let fetcher = server.fetcher();
-            let out = match engine.as_deref() {
-                Some("all" | "merge") => {
-                    svipall::search::search_all(fetcher.as_ref(), &query, 10).await
-                }
-                e => svipall::search::search(fetcher.as_ref(), &query, 10, e).await,
-            };
-            Ok(json!({
-                "query": query,
-                "engine": out.engine,
-                "count": out.results.len(),
-                "results": out.results,
-            }))
+            // The same handler as MCP and REST, so exits, pacing and engine health apply here too.
+            Ok(server
+                .search_json(svipall::tools::WebSearchParams {
+                    query,
+                    engine: flags.value("engine"),
+                    limit: flags.number("limit"),
+                    lang: flags.value("lang"),
+                    region: flags.value("region"),
+                })
+                .await)
         }
         "map" => {
             let url = first.ok_or_else(|| anyhow::anyhow!("map needs a url"))?;
