@@ -4577,7 +4577,11 @@ impl SvipallServer {
             return out;
         }
         if !local {
-            if let Err(e) = self.admit_visit(&domain, proxy.as_deref()) {
+            // A probe is cheap and many: it waits for a slot only briefly, then says how long is left.
+            if let Err(e) = self
+                .admit_waiting(&domain, proxy.as_deref(), Duration::from_secs(5))
+                .await
+            {
                 out["refused"] = json!(e.to_string());
                 out["retry_in_seconds"] = json!(e.seconds);
                 return out;
