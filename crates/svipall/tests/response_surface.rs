@@ -249,6 +249,7 @@ fn every_tool_and_parameter_a_note_names_is_a_real_one() {
                 "http",
                 false,
                 "http://127.0.0.1:8787",
+                None,
             ),
             svipall::steer::wall_next_step(
                 k,
@@ -256,10 +257,27 @@ fn every_tool_and_parameter_a_note_names_is_a_real_one() {
                 "http",
                 true,
                 "http://127.0.0.1:8787",
+                Some(900),
             ),
         ]
     })
     .collect();
+    for kind in ["visit_limit", "cooldown"] {
+        messages.push(svipall::steer::limiter_refusal(
+            kind,
+            40,
+            "shop.example",
+            12,
+            60,
+        ));
+    }
+    messages.push(svipall::steer::server_backoff(
+        429,
+        30,
+        false,
+        "shop.example",
+    ));
+    messages.push(svipall::steer::remembered_failure(30, 570));
     messages.push(svipall::steer::captcha_next_step(
         "Turnstile",
         "solve_turnstile",

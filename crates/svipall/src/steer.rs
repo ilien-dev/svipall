@@ -109,20 +109,42 @@ pub fn captcha_solver_available(dashboard: &str) -> String {
 /// Here rather than in `server.rs` for the reason this module exists: it is a message the model
 /// reads and acts on, so it is worth testing as prose, and the tools and parameters it names have
 /// to be real ones. Kept next to the captcha wording it composes with.
+///
+/// `cooldown` is the hold this outcome really put on the domain, in seconds, or `None` when it put
+/// none: the note never claims a cooldown that does not exist, or one of another length.
 pub fn wall_next_step(
     kind: &WallKind,
     domain: &str,
     tier: &str,
     solver: bool,
     dashboard: &str,
+    cooldown: Option<u64>,
 ) -> String {
+    let mut s = wall_advice(kind, tier, solver, dashboard);
+    if let Some(secs) = cooldown.filter(|s| *s > 0) {
+        s.push_str(&format!(
+            " The domain is on a {} cooldown for every session on this machine; \
+             web_status(clear_cooldown=\"{domain}\") retries sooner.",
+            duration(secs)
+        ));
+    }
+    s
+}
+
+fn wall_advice(kind: &WallKind, tier: &str, solver: bool, dashboard: &str) -> String {
     // The domain used to be spelled out here. It is the host of the `url` in the same response,
     // so it said nothing the reader did not have, and on a `raw:` page it rendered as "the
     // profile" with a hole in the middle of it.
     let login_hint = "web_login(url) opens a visible window: pass the check once by hand and the \
                       profile keeps the cookies for later real/warm fetches.";
     match kind {
-        WallKind::Hold | WallKind::Generic | WallKind::Cloudflare => {
+        // A page nobody recognised is not known to be a check a person can pass, so it gets no
+        // login advice; a widget on it is named by the captcha step appended to this one.
+        WallKind::Generic => format!(
+            "Blocked at tier {tier} by a page svipall does not recognise; what it says is in \
+             `content`. Read it, or route the domain through another exit with web_route."
+        ),
+        WallKind::Hold | WallKind::Cloudflare => {
             let mut s = format!("Challenge still present at tier {}. {} Or route the domain through a proxy with web_route.", tier, login_hint);
             if solver {
                 s.push(' ');
@@ -137,9 +159,94 @@ pub fn wall_next_step(
         WallKind::NotFound => "The URL does not exist (404/410). Check the address; escalating tiers cannot help.".to_string(),
         WallKind::SoftNotFound => "The page answered 200 but says it does not exist. Check the address; escalating tiers cannot help, and the stub is not the page you asked for.".to_string(),
         WallKind::Paywall => format!("The article exists and is being withheld behind a subscription. {login_hint} Only a profile that is signed in changes the answer; a proxy does not."),
-        WallKind::Status => format!("Hard HTTP block at tier {}; domain is on a 15 min cooldown. Use web_route with a proxy, or web_status(clear_cooldown=\"{}\") to retry sooner.", tier, domain),
+        WallKind::Status => format!("Hard HTTP block at tier {tier}. Use web_route with a proxy."),
         WallKind::None => String::new(),
     }
+}
+
+/// `90s`, `15 min`, `2 h`.
+pub fn duration(secs: u64) -> String {
+    if secs < 120 {
+        format!("{secs}s")
+    } else if secs < 7200 {
+        format!("{} min", secs.div_ceil(60))
+    } else {
+        format!("{} h", secs.div_ceil(3600))
+    }
+}
+
+/// Said wherever the limiter speaks: a caller that does not know the budget is shared reads a
+/// refusal caused by another session as its own fault.
+pub const SHARED: &str = "shared by every session on this machine";
+
+/// The longest a caller may ask to wait, in seconds.
+pub const MAX_WAIT_SECS: u64 = 900;
+
+/// Nothing was requested, because the limiter or a hold said no for `secs` more seconds.
+pub fn limiter_refusal(kind: &str, secs: u64, domain: &str, limit: u32, window: u64) -> String {
+    let wait = wait_hint(secs);
+    match kind {
+        "visit_limit" => format!(
+            "Nothing was requested: the visit budget for this site ({limit} visits per {window}s, \
+             per site and exit) is {SHARED}, and it is used up. The next slot frees in {secs}s; \
+             {wait}."
+        ),
+        _ => format!(
+            "Nothing was requested: {domain} is on hold for {} more, {SHARED}. To wait, {wait}; \
+             web_status(clear_cooldown=\"{domain}\") drops the hold.",
+            duration(secs),
+        ),
+    }
+}
+
+fn wait_hint(secs: u64) -> String {
+    if secs <= MAX_WAIT_SECS {
+        format!("call again with wait={secs}")
+    } else {
+        format!(
+            "call again with wait={MAX_WAIT_SECS}, which covers {} of it",
+            duration(MAX_WAIT_SECS)
+        )
+    }
+}
+
+/// The fetch waited for the limiter or a hold before it went out.
+pub fn limiter_delay(kind: &str, secs: u64) -> String {
+    match kind {
+        "visit_limit" => {
+            format!("waited {secs}s for a free slot: the visit budget for this site is {SHARED}")
+        }
+        _ => format!("waited {secs}s for a hold on this site to end; holds are {SHARED}"),
+    }
+}
+
+/// A 429 or a 503 answered, and the site is now held for `secs`.
+pub fn server_backoff(status: u16, secs: u64, named: bool, domain: &str) -> String {
+    let why = match (status, named) {
+        (_, true) => format!("The site answered {status} and asked for {secs}s"),
+        (503, false) => {
+            format!("The site answered 503, a server error rather than a ban, so it rests {secs}s")
+        }
+        _ => format!(
+            "The site answered {status} (too many requests), so it rests {}; a repeat rests longer",
+            duration(secs)
+        ),
+    };
+    format!(
+        "{why}. No request goes to it until then from any session on this machine. To wait it \
+         out, {}; web_status(clear_cooldown=\"{domain}\") drops the hold.",
+        wait_hint(secs)
+    )
+}
+
+/// The answer came from the memory of a walk up the whole ladder that failed moments ago.
+pub fn remembered_failure(ago: u64, expires_in: u64) -> String {
+    format!(
+        "Not requested: {ago}s ago every tier up to the top was refused by this site, and that is \
+         remembered for {} more. web_fetch(url, fresh=true) walks the ladder anyway and, if \
+         it gets through, forgets it.",
+        duration(expires_in)
+    )
 }
 
 /// A proxy that no tier could use.
@@ -199,6 +306,36 @@ mod tests {
         assert!(unknown_session("s").contains("browser_open"));
         assert!(unknown_session("s").contains("web_status"));
         assert!(NO_SUCH_WATCH.contains("web_watch list"));
+    }
+
+    #[test]
+    fn a_wall_note_states_only_what_is_true_of_that_outcome() {
+        let d = "http://d";
+        let none = wall_next_step(&WallKind::Status, "x.test", "http", false, d, None);
+        assert!(!none.contains("cooldown"), "{none}");
+        let set = wall_next_step(&WallKind::Status, "x.test", "warm", false, d, Some(900));
+        assert!(set.contains("15 min cooldown"), "{set}");
+        assert!(set.contains("clear_cooldown=\"x.test\""), "{set}");
+        // An unrecognised page is not known to be a check a person can pass.
+        let generic = wall_next_step(&WallKind::Generic, "x.test", "warm", true, d, None);
+        assert!(!generic.contains("web_login"), "{generic}");
+        assert!(
+            wall_next_step(&WallKind::Cloudflare, "x", "warm", false, d, None)
+                .contains("web_login")
+        );
+        assert_eq!(duration(40), "40s");
+        assert_eq!(duration(900), "15 min");
+        let refusal = limiter_refusal("visit_limit", 37, "x.test", 12, 60);
+        assert!(
+            refusal.contains(SHARED) && refusal.contains("wait=37"),
+            "{refusal}"
+        );
+        let long = limiter_refusal("cooldown", 3600, "x.test", 12, 60);
+        assert!(
+            long.contains("wait=900") && long.contains("clear_cooldown"),
+            "{long}"
+        );
+        assert!(server_backoff(503, 30, false, "x.test").contains("server error"));
     }
 
     #[test]

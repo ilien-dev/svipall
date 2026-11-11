@@ -118,6 +118,12 @@ pub struct WebFetchParams {
     /// auto (default: serve a fresh copy, revalidate a stale one), read, write, bypass, refresh.
     #[serde(default)]
     pub cache: Option<String>,
+    /// Seconds to wait out a full visit budget or a hold, up to 900. Unset: only half the timeout.
+    #[serde(default)]
+    pub wait: Option<u64>,
+    /// Walk the ladder though it just failed on this site.
+    #[serde(default)]
+    pub fresh: Option<bool>,
 }
 
 #[derive(Debug, Deserialize, JsonSchema)]
@@ -146,6 +152,9 @@ pub struct WebFetchManyParams {
     /// Timeout in ms per URL. Default 60000.
     #[serde(default)]
     pub timeout: Option<u64>,
+    /// As on web_fetch, per URL.
+    #[serde(default)]
+    pub wait: Option<u64>,
 }
 
 #[derive(Debug, Default, Serialize, Deserialize, JsonSchema)]
@@ -356,6 +365,9 @@ pub struct WebVideoParams {
     /// Profile saved by web_login whose cookies to use.
     #[serde(default)]
     pub profile: Option<String>,
+    /// As on web_fetch.
+    #[serde(default)]
+    pub wait: Option<u64>,
 }
 
 #[derive(Debug, Deserialize, JsonSchema)]
@@ -523,9 +535,12 @@ pub struct WebStatusParams {
     /// Save browser and session policy settings for later calls; open sessions keep theirs.
     #[serde(default)]
     pub configure: Option<serde_json::Value>,
-    /// Domain whose cooldown should be cleared.
+    /// Domain whose holds of every kind should be cleared.
     #[serde(default)]
     pub clear_cooldown: Option<String>,
+    /// More of the report: "all", or names from the summary's `sections`, comma-separated.
+    #[serde(default)]
+    pub sections: Option<String>,
     /// Domain whose learned tier should be forgotten.
     #[serde(default)]
     pub forget_tier: Option<String>,
