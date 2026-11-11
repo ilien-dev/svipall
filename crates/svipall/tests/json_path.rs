@@ -28,7 +28,9 @@ fn api() -> Reply {
         })
         .collect();
     Reply::bytes(
-        json!({"total_count": 30, "items": items}).to_string().as_bytes(),
+        json!({"total_count": 30, "items": items})
+            .to_string()
+            .as_bytes(),
         "application/json; charset=utf-8",
     )
 }
@@ -96,7 +98,10 @@ async fn a_path_on_a_page_that_is_not_json_says_so_and_withholds_nothing() {
         "{out}"
     );
     assert!(
-        out["content"].as_str().unwrap_or_default().contains("Harbour"),
+        out["content"]
+            .as_str()
+            .unwrap_or_default()
+            .contains("Harbour"),
         "{out}"
     );
 }
@@ -110,5 +115,8 @@ async fn a_path_that_names_nothing_says_which_keys_there_are() {
         .value;
     assert_eq!(out["content"], "null", "{out}");
     let note = out["json_path_note"].as_str().unwrap_or_default();
-    assert!(note.contains("items") && note.contains("total_count"), "{out}");
+    assert!(
+        note.contains("items") && note.contains("total_count"),
+        "{out}"
+    );
 }

@@ -108,8 +108,12 @@ impl HttpResponse {
 pub trait BodySink: Send {
     /// The status and headers, before any byte of the body. An error stops the transfer, and is
     /// what `send_streaming` returns.
-    fn begin(&mut self, status: u16, final_url: &str, headers: &[(String, String)])
-        -> anyhow::Result<()>;
+    fn begin(
+        &mut self,
+        status: u16,
+        final_url: &str,
+        headers: &[(String, String)],
+    ) -> anyhow::Result<()>;
     /// The next piece of the body. An error stops the transfer.
     fn write(&mut self, chunk: &[u8]) -> anyhow::Result<()>;
 }

@@ -29,7 +29,10 @@ fn server() -> SvipallServer {
 async fn site() -> Site {
     Site::start(vec![
         ("/ok", Reply::page("Fine", &[])),
-        ("/file.bin", Reply::bytes(&vec![9u8; 5000], "application/octet-stream")),
+        (
+            "/file.bin",
+            Reply::bytes(&vec![9u8; 5000], "application/octet-stream"),
+        ),
         (
             "/moved",
             Reply::html("").with_status(302).header("Location", "/ok"),
@@ -56,17 +59,25 @@ fn check(out: &Value, urls: &[String]) {
     }
     assert_eq!(r[0]["status"], 200, "{out}");
     assert_eq!(r[0]["exists"], true, "{out}");
-    assert!(r[0]["content_type"].as_str().unwrap().contains("text/html"), "{out}");
+    assert!(
+        r[0]["content_type"].as_str().unwrap().contains("text/html"),
+        "{out}"
+    );
 
     assert_eq!(r[1]["status"], 404, "{out}");
     assert_eq!(r[1]["exists"], false, "{out}");
-    assert!(r[1].get("blocked_reason").is_none(), "a 404 is an answer: {out}");
+    assert!(
+        r[1].get("blocked_reason").is_none(),
+        "a 404 is an answer: {out}"
+    );
 
     assert_eq!(r[2]["length"], 5000, "{out}");
     assert_eq!(r[2]["content_type"], "application/octet-stream", "{out}");
 
     assert!(
-        r[3]["final_url"].as_str().is_some_and(|f| f.ends_with("/ok")),
+        r[3]["final_url"]
+            .as_str()
+            .is_some_and(|f| f.ends_with("/ok")),
         "redirects are followed and named: {out}"
     );
     assert_eq!(r[3]["status"], 200, "{out}");
@@ -83,7 +94,11 @@ async fn web_probe_answers_status_type_length_and_dns_for_each_url_in_order() {
         .probe_json(serde_json::from_value(json!({"urls": urls})).unwrap())
         .await;
     check(&out, &urls);
-    assert_eq!(site.hits("/ok"), 2, "one request each for /ok and the redirect to it");
+    assert_eq!(
+        site.hits("/ok"),
+        2,
+        "one request each for /ok and the redirect to it"
+    );
 }
 
 #[tokio::test]
@@ -108,6 +123,8 @@ async fn the_rest_route_answers_the_same() {
         .unwrap();
     let res = app.oneshot(req).await.unwrap();
     assert_eq!(res.status(), StatusCode::OK);
-    let bytes = axum::body::to_bytes(res.into_body(), 1 << 20).await.unwrap();
+    let bytes = axum::body::to_bytes(res.into_body(), 1 << 20)
+        .await
+        .unwrap();
     check(&serde_json::from_slice(&bytes).unwrap(), &urls);
 }

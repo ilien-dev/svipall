@@ -75,7 +75,11 @@ async fn a_binary_file_without_out_file_is_described_never_decoded() {
     assert_eq!(out["file"]["bytes"], body.len(), "{out}");
     assert_eq!(out["file"]["content_type"], "application/x-bzip2", "{out}");
     assert_eq!(out["tier_used"], "http", "{out}");
-    assert_eq!(out["attempts"].as_array().map(|a| a.len()), Some(1), "a file is not climbed: {out}");
+    assert_eq!(
+        out["attempts"].as_array().map(|a| a.len()),
+        Some(1),
+        "a file is not climbed: {out}"
+    );
 }
 
 #[tokio::test]
@@ -111,7 +115,10 @@ async fn a_json_answer_still_comes_back_as_itself() {
         Reply::bytes(body.as_bytes(), "application/json"),
     )])
     .await;
-    let out = server().fetch_json(params(site.url("/api"), None)).await.value;
+    let out = server()
+        .fetch_json(params(site.url("/api"), None))
+        .await
+        .value;
     assert_eq!(out["content"], body, "{out}");
     assert!(out.get("file").is_none(), "{out}");
 }
@@ -135,10 +142,17 @@ async fn a_cut_download_is_kept_and_the_next_call_finishes_it() {
         .value;
     assert_eq!(first["file"]["partial"], true, "{first}");
     assert_eq!(first["file"]["resumable"], true, "{first}");
-    assert!(!target.exists(), "an unfinished file is never put in place: {first}");
+    assert!(
+        !target.exists(),
+        "an unfinished file is never put in place: {first}"
+    );
     let kept = first["file"]["bytes_written"].as_u64().unwrap();
     assert!(kept > 0 && kept <= 150_000, "{first}");
-    assert_eq!(first["attempts"].as_array().map(|a| a.len()), Some(1), "{first}");
+    assert_eq!(
+        first["attempts"].as_array().map(|a| a.len()),
+        Some(1),
+        "{first}"
+    );
 
     let second = server()
         .fetch_json(params(site.url("/model.bin"), Some(target.clone())))
@@ -148,8 +162,16 @@ async fn a_cut_download_is_kept_and_the_next_call_finishes_it() {
     assert_eq!(second["file"]["complete"], true, "{second}");
     assert_eq!(second["status"], 206, "{second}");
     let written = std::fs::read(&target).unwrap();
-    assert_eq!(sha(&written), sha(&body), "the resumed file is not the file");
-    assert_eq!(second["file"]["sha256"], sha(&body), "the checksum covers every byte");
+    assert_eq!(
+        sha(&written),
+        sha(&body),
+        "the resumed file is not the file"
+    );
+    assert_eq!(
+        second["file"]["sha256"],
+        sha(&body),
+        "the checksum covers every byte"
+    );
     assert!(!PathBuf::from(format!("{}.part", target.display())).exists());
 }
 
@@ -185,7 +207,11 @@ async fn a_text_name_still_asks_for_the_text() {
     // `out_file: "notes.md"` on a PDF or an image is a request for what it says, as before.
     let d = dir("text");
     let body = archive(10_000);
-    let site = Site::start(vec![("/x.bin", Reply::bytes(&body, "application/octet-stream"))]).await;
+    let site = Site::start(vec![(
+        "/x.bin",
+        Reply::bytes(&body, "application/octet-stream"),
+    )])
+    .await;
     let target = d.join("notes.md");
     let out = server()
         .fetch_json(params(site.url("/x.bin"), Some(target.clone())))

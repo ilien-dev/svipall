@@ -37,7 +37,13 @@ fn long(i: usize) -> Reply {
 
 async fn site(n: usize) -> (Site, Vec<String>) {
     let routes: Vec<(String, Reply)> = (0..n).map(|i| (format!("/p{i}"), long(i))).collect();
-    let site = Site::start(routes.iter().map(|(p, r)| (p.as_str(), r.clone())).collect()).await;
+    let site = Site::start(
+        routes
+            .iter()
+            .map(|(p, r)| (p.as_str(), r.clone()))
+            .collect(),
+    )
+    .await;
     let urls = (0..n).map(|i| site.url(&format!("/p{i}"))).collect();
     (site, urls)
 }
@@ -65,9 +71,15 @@ async fn twenty_five_long_pages_fit_the_answer_a_client_accepts() {
         assert_eq!(r["truncated"], true, "{r}");
         assert!(r["cursor"].is_string(), "{r}");
     }
-    assert!(out["budget"]["per_url_tokens"].as_u64().unwrap() > 0, "{}", out["budget"]);
     assert!(
-        out["continue"].as_str().is_some_and(|c| c.contains("cursor")),
+        out["budget"]["per_url_tokens"].as_u64().unwrap() > 0,
+        "{}",
+        out["budget"]
+    );
+    assert!(
+        out["continue"]
+            .as_str()
+            .is_some_and(|c| c.contains("cursor")),
         "{}",
         out["continue"]
     );
@@ -82,7 +94,10 @@ async fn a_set_too_large_for_any_share_goes_to_a_file_rather_than_being_refused(
     let path = out["out_file"].as_str().unwrap_or_else(|| panic!("{out}"));
     let written: Value = serde_json::from_str(&std::fs::read_to_string(path).unwrap()).unwrap();
     assert_eq!(written["results"].as_array().map(|r| r.len()), Some(70));
-    assert_eq!(out["results"][69]["url"], urls[69], "the summary keeps input order");
+    assert_eq!(
+        out["results"][69]["url"], urls[69],
+        "the summary keeps input order"
+    );
 }
 
 #[tokio::test]
@@ -118,12 +133,18 @@ async fn out_dir_writes_every_page_whole_and_returns_paths() {
     let (_site, urls) = site(5).await;
     let dir = support::isolate().join("many-out");
     let _ = std::fs::remove_dir_all(&dir);
-    let out = many(json!({"urls": urls, "max_tier": "http", "out_dir": dir.to_string_lossy()})).await;
+    let out =
+        many(json!({"urls": urls, "max_tier": "http", "out_dir": dir.to_string_lossy()})).await;
     for (i, r) in out["results"].as_array().unwrap().iter().enumerate() {
         assert!(r.get("content").is_none(), "{r}");
-        let path = r["out_file"].as_str().unwrap_or_else(|| panic!("no path: {r}"));
+        let path = r["out_file"]
+            .as_str()
+            .unwrap_or_else(|| panic!("no path: {r}"));
         let text = std::fs::read_to_string(path).unwrap();
-        assert!(text.contains(&format!("END-OF-PAGE-{i}")), "page {i} is not whole");
+        assert!(
+            text.contains(&format!("END-OF-PAGE-{i}")),
+            "page {i} is not whole"
+        );
     }
     assert!(out.to_string().len() < 5_000, "{out}");
 }
@@ -132,7 +153,8 @@ async fn out_dir_writes_every_page_whole_and_returns_paths() {
 async fn out_file_writes_the_whole_set_and_returns_a_summary() {
     let (_site, urls) = site(6).await;
     let file = support::isolate().join("many.json");
-    let out = many(json!({"urls": urls, "max_tier": "http", "out_file": file.to_string_lossy()})).await;
+    let out =
+        many(json!({"urls": urls, "max_tier": "http", "out_file": file.to_string_lossy()})).await;
     assert_eq!(out["out_file"], file.to_string_lossy().as_ref(), "{out}");
     assert!(out.to_string().len() < 5_000, "{out}");
     let written: Value = serde_json::from_str(&std::fs::read_to_string(&file).unwrap()).unwrap();
@@ -140,7 +162,10 @@ async fn out_file_writes_the_whole_set_and_returns_a_summary() {
     assert_eq!(results.len(), 6);
     for (i, r) in results.iter().enumerate() {
         assert!(
-            r["content"].as_str().unwrap().contains(&format!("END-OF-PAGE-{i}")),
+            r["content"]
+                .as_str()
+                .unwrap()
+                .contains(&format!("END-OF-PAGE-{i}")),
             "page {i} is not whole in the file"
         );
     }

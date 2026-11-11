@@ -245,8 +245,7 @@ fn convert(value: &Value, types: &[&str]) -> Option<Value> {
             }
             // A list or an object sent as its JSON text, which some clients do for every
             // non-scalar argument.
-            if (allows("array") && t.starts_with('[')) || (allows("object") && t.starts_with('{'))
-            {
+            if (allows("array") && t.starts_with('[')) || (allows("object") && t.starts_with('{')) {
                 if let Ok(v) = serde_json::from_str::<Value>(t) {
                     if (v.is_array() && allows("array")) || (v.is_object() && allows("object")) {
                         return Some(v);
@@ -264,9 +263,9 @@ fn convert(value: &Value, types: &[&str]) -> Option<Value> {
                 }
             }
             if allows("boolean") {
-                match n.as_f64() {
-                    Some(x) if x == 1.0 => return Some(Value::Bool(true)),
-                    Some(x) if x == 0.0 => return Some(Value::Bool(false)),
+                match n.as_u64() {
+                    Some(1) => return Some(Value::Bool(true)),
+                    Some(0) => return Some(Value::Bool(false)),
                     _ => {}
                 }
             }
@@ -349,11 +348,20 @@ mod tests {
     fn an_undeclared_key_is_named_with_the_nearest_real_one() {
         let (_, mut unknown) = run(json!({"url": "x", "max_token": 5, "frobnicate": 1}));
         unknown.sort();
-        assert_eq!(unknown, vec!["frobnicate".to_string(), "max_token".to_string()]);
+        assert_eq!(
+            unknown,
+            vec!["frobnicate".to_string(), "max_token".to_string()]
+        );
         let known = declared(&schema());
         let msg = unknown_message("web_fetch", &unknown, &known);
-        assert!(msg.contains("`max_token` (did you mean `max_tokens`?)"), "{msg}");
-        assert!(msg.contains("`frobnicate`") && !msg.contains("`frobnicate` (did"), "{msg}");
+        assert!(
+            msg.contains("`max_token` (did you mean `max_tokens`?)"),
+            "{msg}"
+        );
+        assert!(
+            msg.contains("`frobnicate`") && !msg.contains("`frobnicate` (did"),
+            "{msg}"
+        );
         assert!(msg.contains("nothing was run"), "{msg}");
     }
 }

@@ -96,7 +96,9 @@ fn ident(c: &[char], i: &mut usize) -> Result<String, String> {
         *i += 1;
     }
     if *i == start {
-        return Err(format!("json_path: a field name was expected at position {start}"));
+        return Err(format!(
+            "json_path: a field name was expected at position {start}"
+        ));
     }
     Ok(c[start..*i].iter().collect())
 }
@@ -158,7 +160,11 @@ fn parse_pick(c: &[char], i: &mut usize) -> Result<Seg, String> {
                 *i += 1;
                 break;
             }
-            _ => return Err(format!("json_path: `{{` at position {start} is never closed")),
+            _ => {
+                return Err(format!(
+                    "json_path: `{{` at position {start} is never closed"
+                ))
+            }
         }
     }
     if items.is_empty() {
@@ -249,9 +255,15 @@ mod tests {
         assert_eq!(select(&doc(), "items[0].name").unwrap(), json!("a"));
         assert_eq!(select(&doc(), "items[-1].id").unwrap(), json!(3));
         assert_eq!(select(&doc(), "items[1:].id").unwrap(), json!([2, 3]));
-        assert_eq!(select(&doc(), "items[:2].owner.login").unwrap(), json!(["x", "y"]));
+        assert_eq!(
+            select(&doc(), "items[:2].owner.login").unwrap(),
+            json!(["x", "y"])
+        );
         assert_eq!(select(&doc(), "items[*].id").unwrap(), json!([1, 2, 3]));
-        assert_eq!(select(&doc(), "items.name").unwrap(), json!(["a", "b", "c"]));
+        assert_eq!(
+            select(&doc(), "items.name").unwrap(),
+            json!(["a", "b", "c"])
+        );
         assert_eq!(select(&doc(), "$[\"odd key\"].v").unwrap(), json!(true));
     }
 

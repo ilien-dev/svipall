@@ -780,7 +780,13 @@ fn page_file_name(i: usize, url: &str) -> String {
     let rest = url.split_once("://").map(|(_, r)| r).unwrap_or(url);
     let mut slug: String = rest
         .chars()
-        .map(|c| if c.is_ascii_alphanumeric() || c == '.' { c } else { '-' })
+        .map(|c| {
+            if c.is_ascii_alphanumeric() || c == '.' {
+                c
+            } else {
+                '-'
+            }
+        })
         .collect();
     while slug.contains("--") {
         slug = slug.replace("--", "-");
@@ -806,7 +812,14 @@ fn many_to_file(out: Value, name: &str) -> Value {
         .iter()
         .map(|r| {
             let mut s = serde_json::Map::new();
-            for k in ["url", "status", "title", "chars", "blocked_reason", "same_text_as"] {
+            for k in [
+                "url",
+                "status",
+                "title",
+                "chars",
+                "blocked_reason",
+                "same_text_as",
+            ] {
                 if let Some(v) = r.get(k) {
                     s.insert(k.into(), v.clone());
                 }
@@ -1907,11 +1920,8 @@ impl SvipallServer {
                 req.set_header("if-range", &validator);
             }
         }
-        let mut sink = crate::body::Sink::new(
-            &p.url,
-            raw_target.clone(),
-            crate::body::max_body_bytes(),
-        );
+        let mut sink =
+            crate::body::Sink::new(&p.url, raw_target.clone(), crate::body::max_body_bytes());
         let sent = if p.url.starts_with("raw:") || p.url.starts_with("file://") {
             match Self::local_response(&p.url).await {
                 Ok(mut r) => svipall_http::feed(&mut sink, &mut r).map(|_| r),
@@ -2677,7 +2687,8 @@ impl SvipallServer {
                             "bytes_written": meta.len(),
                             "resumable": resumable,
                         });
-                        value["note"] = json!(format!(
+                        value["note"] =
+                            json!(format!(
                             "The download was still running when the {timeout}ms timeout ran out; \
                              {} bytes are kept in {}. Call again with the same url and out_file{} \
                              (and a larger timeout).",
@@ -4277,7 +4288,9 @@ impl SvipallServer {
         };
         let mut out = json!({"url": url, "resolves": resolves});
         if !resolves && proxy.is_none() {
-            out["error"] = json!(format!("the name {host} does not resolve; nothing was requested"));
+            out["error"] = json!(format!(
+                "the name {host} does not resolve; nothing was requested"
+            ));
             return out;
         }
         if !local {

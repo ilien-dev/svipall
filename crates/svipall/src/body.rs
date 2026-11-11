@@ -389,11 +389,15 @@ impl svipall_http::BodySink for Sink {
                 return Ok(());
             }
         }
-        if let Some(len) = header(headers, "content-length").and_then(|v| v.trim().parse::<u64>().ok())
+        if let Some(len) =
+            header(headers, "content-length").and_then(|v| v.trim().parse::<u64>().ok())
         {
             if len > self.cap {
                 self.over_cap = Some(len);
-                anyhow::bail!("the body is {len} bytes, over the {} kept in memory", self.cap);
+                anyhow::bail!(
+                    "the body is {len} bytes, over the {} kept in memory",
+                    self.cap
+                );
             }
         }
         Ok(())

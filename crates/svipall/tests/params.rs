@@ -142,7 +142,10 @@ async fn rest(path: &str, body: Value) -> (StatusCode, Value) {
     let bytes = axum::body::to_bytes(res.into_body(), 32 << 20)
         .await
         .unwrap();
-    (status, serde_json::from_slice(&bytes).unwrap_or(Value::Null))
+    (
+        status,
+        serde_json::from_slice(&bytes).unwrap_or(Value::Null),
+    )
 }
 
 #[tokio::test]
@@ -169,7 +172,10 @@ async fn rest_refuses_an_unknown_parameter_with_a_400_that_names_it() {
     .await;
     assert_eq!(status, StatusCode::BAD_REQUEST, "{out}");
     let msg = out["error"].as_str().unwrap_or_default();
-    assert!(msg.contains("`maxtokens`") && msg.contains("max_tokens"), "{msg}");
+    assert!(
+        msg.contains("`maxtokens`") && msg.contains("max_tokens"),
+        "{msg}"
+    );
     assert_eq!(site.hits("/long"), 0);
 
     // The crawl route takes one transport field of its own, and only that one.
@@ -179,10 +185,6 @@ async fn rest_refuses_an_unknown_parameter_with_a_400_that_names_it() {
     )
     .await;
     assert_ne!(status, StatusCode::BAD_REQUEST, "{out}");
-    let (status, out) = rest(
-        "/v1/crawl",
-        json!({"url": site.url("/long"), "pages": 1}),
-    )
-    .await;
+    let (status, out) = rest("/v1/crawl", json!({"url": site.url("/long"), "pages": 1})).await;
     assert_eq!(status, StatusCode::BAD_REQUEST, "{out}");
 }
