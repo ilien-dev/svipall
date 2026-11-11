@@ -406,13 +406,38 @@ const EMPTY_MARKERS: &[&str] = &[
     "no se encontraron resultados",
 ];
 
+/// The page without the bodies of its `<script>` and `<style>` elements, lowercased. A result
+/// page's script config carries "There are no results for this question" whether or not it has
+/// results, so markers are read from what the page shows, not from its code.
+fn visible_lower(body: &str) -> String {
+    let lower = body.to_lowercase();
+    let mut out = String::with_capacity(lower.len());
+    let mut rest = lower.as_str();
+    loop {
+        let next = ["<script", "<style"]
+            .iter()
+            .filter_map(|tag| rest.find(tag).map(|i| (i, *tag)))
+            .min_by_key(|(i, _)| *i);
+        let Some((i, tag)) = next else {
+            out.push_str(rest);
+            return out;
+        };
+        out.push_str(&rest[..i]);
+        let close = format!("</{}", &tag[1..]);
+        match rest[i..].find(&close) {
+            Some(j) => rest = &rest[i + j + close.len()..],
+            None => return out,
+        }
+    }
+}
+
 /// What a response was, from its status, its body and what the parser found in it.
 pub fn classify(engine: &str, status: u16, body: &str, parsed: usize) -> (Outcome, Option<String>) {
     // Results are results: a snippet about captchas does not make a result page a wall.
     if parsed > 0 && status < 400 {
         return (Outcome::Results, None);
     }
-    let lower = body.to_lowercase();
+    let lower = visible_lower(body);
     if let Some(m) = CHALLENGE_MARKERS.iter().find(|m| lower.contains(*m)) {
         return (
             Outcome::Challenge,
@@ -869,9 +894,16 @@ fn plan(env: &Env<'_>, engine: &'static str, query: &str, loc: &Locale) -> Optio
     let (domain, host) = host_of(&url);
     let (fetcher, exit) = (env.fetcher_for)(&domain);
     let key = health_key(engine, &host, exit.as_deref());
+    let mut health = health(&key);
+    // A host the fetch path put on cooldown is resting for search too.
+    let cooling = svipall_core::throttle::cooldown_left(&domain);
+    if cooling > 0 {
+        health.until = health.until.max(now() + cooling);
+        health.last = "on cooldown".into();
+    }
     Some(Planned {
         engine,
-        health: health(&key),
+        health,
         key,
         host,
         exit,
@@ -887,10 +919,11 @@ fn skipped(p: &Planned) -> Attempt {
         outcome: Outcome::Skipped,
         count: 0,
         status: None,
-        detail: Some(format!(
-            "{} on its last try; asked again in {left}s",
-            p.health.last
-        )),
+        detail: Some(if p.health.last == "on cooldown" {
+            format!("host on cooldown; asked again in {left}s")
+        } else {
+            format!("{} on its last try; asked again in {left}s", p.health.last)
+        }),
         ms: 0,
         query: None,
     }
@@ -929,9 +962,11 @@ async fn ask(env: &Env<'_>, p: &Planned, terms: &[String]) -> (Attempt, Vec<Sear
         .header("retry-after")
         .and_then(svipall_core::throttle::parse_retry_after);
     use svipall_core::throttle::{observe, Outcome as Pace};
+    // A 429 is a strike, never a `RateLimited` hold: the hold is slept through by the next request
+    // to the host, and a search must not sit out a minute inside a call. The engine rests on its
+    // own record instead, which is reported, not slept.
     let pace = match outcome {
-        _ if resp.status == 429 => Pace::RateLimited { retry_after },
-        o if o.failed() => Pace::Blocked,
+        o if o.failed() || resp.status == 429 => Pace::Blocked,
         _ => Pace::Ok {
             latency: t0.elapsed(),
         },
@@ -1200,7 +1235,7 @@ fn note(results: &[SearchResult], attempts: &[Attempt], retried: Option<&str>) -
                 resting.join(", ")
             ));
         }
-        let mut s = format!("No results. {}.", parts.join("; "));
+        let mut s = format!("No results; {}.", parts.join("; "));
         if let Some(q) = retried {
             s.push_str(&format!(" A shortened query (\"{q}\") was tried too."));
         }
@@ -1421,6 +1456,17 @@ mod tests {
                 "{file}: {n} parsed"
             );
         }
+    }
+
+    #[test]
+    fn words_inside_a_script_are_not_the_page_saying_it_found_nothing() {
+        // A live results page carries "There are no results for this question" in its script
+        // config whether or not it has results; a page we could not parse must not read as empty.
+        let body = r#"<html><head><script>var c={"m":"There are no results for this question"};</script>
+            <style>.no-results{}</style></head><body><div id="layout-we-do-not-know"></div></body></html>"#;
+        assert_eq!(classify("bing", 200, body, 0).0, Outcome::Unparsed);
+        let said = "<html><body><p>There are no results for <b>x</b></p></body></html>";
+        assert_eq!(classify("bing", 200, said, 0).0, Outcome::Empty);
     }
 
     #[test]
