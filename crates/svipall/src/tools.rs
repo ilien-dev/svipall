@@ -124,6 +124,10 @@ pub struct WebFetchParams {
     /// Walk the ladder though it just failed on this site.
     #[serde(default)]
     pub fresh: Option<bool>,
+    /// Only these fields of a JSON answer, e.g. `items[:5].{name, owner.login}` (`.a`, `[0]`,
+    /// `[1:5]`, `[*]`, `{a, b}`).
+    #[serde(default)]
+    pub json_path: Option<String>,
 }
 
 #[derive(Debug, Deserialize, JsonSchema)]
@@ -155,6 +159,30 @@ pub struct WebFetchManyParams {
     /// As on web_fetch, per URL.
     #[serde(default)]
     pub wait: Option<u64>,
+    /// Only these fields of every JSON answer, as on web_fetch.
+    #[serde(default)]
+    pub json_path: Option<String>,
+    /// Cap per page. Default: an equal share of max_tokens_total.
+    #[serde(default)]
+    pub max_tokens: Option<usize>,
+    /// Cap on all pages together. Default 8000; a cut page carries a cursor for web_fetch.
+    #[serde(default)]
+    pub max_tokens_total: Option<usize>,
+    /// Write each page whole to a file in this directory; return paths.
+    #[serde(default)]
+    pub out_dir: Option<String>,
+    /// Write the whole set to this .json/.jsonl file; return a summary.
+    #[serde(default)]
+    pub out_file: Option<String>,
+}
+
+#[derive(Debug, Default, Deserialize, JsonSchema)]
+pub struct WebProbeParams {
+    /// The addresses, answered in this order.
+    pub urls: Vec<String>,
+    /// Timeout in ms per URL. Default 15000.
+    #[serde(default)]
+    pub timeout: Option<u64>,
 }
 
 #[derive(Debug, Default, Serialize, Deserialize, JsonSchema)]

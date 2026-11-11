@@ -1371,23 +1371,21 @@ async fn syndicated_copies_are_counted_once_and_still_all_returned() {
     // And every one of them still carries its text.
     assert!(results.iter().all(|r| !text(r).is_empty()), "{results:?}");
 
-    // ▲ The ordering, which is the other half. Three copies of one wire story followed by the one
-    // page that says something else: the different page is what the caller should read second, and
-    // the reorder is announced rather than done quietly. The caller's own first choice never moves.
-    assert_eq!(out["reordered_for_diversity"], true, "{out:?}");
-    assert!(
-        results[0]["url"]
-            .as_str()
-            .is_some_and(|u| u.ends_with("/a")),
-        "the caller's first choice moved: {:?}",
-        results[0]
-    );
-    assert!(
-        results[1]["url"]
-            .as_str()
-            .is_some_and(|u| u.ends_with("/d")),
-        "the only result that adds anything was left at the bottom: {results:?}"
-    );
+    // ▲ The ordering. The description promises input order, and a caller that zips its own list
+    // with `results` by position read the wrong page for the wrong URL when the set was reordered
+    // for diversity. `same_text_as` already says which ones repeat; the order is the caller's.
+    assert!(out.get("reordered_for_diversity").is_none(), "{out:?}");
+    let order: Vec<&str> = results
+        .iter()
+        .map(|r| r["url"].as_str().unwrap_or_default())
+        .collect();
+    let asked = [
+        site.url("/a"),
+        site.url("/b"),
+        site.url("/c"),
+        site.url("/d"),
+    ];
+    assert_eq!(order, asked, "results are not in input order: {results:?}");
 }
 
 /// ▲ A cache is supposed to change how fast an answer arrives, never what the answer is. Three of

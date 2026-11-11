@@ -99,12 +99,83 @@ impl HttpResponse {
     }
 }
 
+/// Where a response body goes as it arrives, instead of a `Vec` the engine fills.
+///
+/// What made a multi-gigabyte download impossible was never the network: `send` collected every
+/// byte into memory before anybody could look at the headers. A sink sees the status and headers
+/// first and decides — keep it in memory, write it straight to a file, or stop — and every byte
+/// after that goes where it decided.
+pub trait BodySink: Send {
+    /// The status and headers, before any byte of the body. An error stops the transfer, and is
+    /// what `send_streaming` returns.
+    fn begin(
+        &mut self,
+        status: u16,
+        final_url: &str,
+        headers: &[(String, String)],
+    ) -> anyhow::Result<()>;
+    /// The next piece of the body. An error stops the transfer.
+    fn write(&mut self, chunk: &[u8]) -> anyhow::Result<()>;
+}
+
+/// Hand a whole response to a sink, the way a streaming engine would have, and leave the body on
+/// the response empty. What an engine without streaming does, and what a local file goes through.
+pub fn feed(sink: &mut dyn BodySink, r: &mut HttpResponse) -> anyhow::Result<()> {
+    sink.begin(r.status, &r.final_url, &r.headers)?;
+    let body = std::mem::take(&mut r.body);
+    sink.write(&body)
+}
+
+/// How long a streamed body may go without a byte before it counts as stalled.
+pub const STALL: Duration = Duration::from_secs(30);
+
 #[async_trait::async_trait]
 pub trait HttpFetcher: Send + Sync + 'static {
     fn engine(&self) -> &'static str;
     /// The identity this fetcher advertises. Callers must not invent their own User-Agent.
     fn identity(&self) -> &IdentityProfile;
     async fn send(&self, req: HttpRequest) -> anyhow::Result<HttpResponse>;
+
+    /// Send, and stream the body into `sink` as it arrives. The response comes back with an empty
+    /// `body`: the bytes are wherever the sink put them. `total` replaces the client's own request
+    /// timeout for this one transfer, so a long download is bounded by its caller's deadline and
+    /// by [`STALL`], not by the thirty seconds a page is allowed.
+    ///
+    /// The default collects the body first and then feeds it, which is correct and merely not
+    /// streaming; the TCP engines override it.
+    async fn send_streaming(
+        &self,
+        req: HttpRequest,
+        sink: &mut (dyn BodySink + Send),
+        total: Option<Duration>,
+    ) -> anyhow::Result<HttpResponse> {
+        let _ = total;
+        let mut r = self.send(req).await?;
+        feed(sink, &mut r)?;
+        Ok(r)
+    }
+}
+
+/// The response line of a streamed request, with no body.
+fn bodiless(
+    status: u16,
+    final_url: String,
+    headers: Vec<(String, String)>,
+    http_version: &'static str,
+) -> HttpResponse {
+    let content_type = headers
+        .iter()
+        .find(|(k, _)| k.eq_ignore_ascii_case("content-type"))
+        .map(|(_, v)| v.to_ascii_lowercase())
+        .unwrap_or_default();
+    HttpResponse {
+        status,
+        final_url,
+        headers,
+        content_type,
+        body: Vec::new(),
+        http_version,
+    }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

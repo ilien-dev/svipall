@@ -24,6 +24,7 @@ USAGE:
 COMMANDS:
     fetch <url> [--query Q] [--out FILE] [--text] [--mobile] [--isolated] [--full] [--tables]
                 [--scroll auto|N] [--schema auto|JSON] [--wait SECS] [--fresh]
+                [--json-path PATH]
                 [--extraction markdown|text|html] [--cache auto|bypass|refresh] [--mode TIER]
                             Fetch a page, climbing the tier ladder as far as it needs to.
                             <url> may be file:///path (under local_roots) or raw: with --stdin.
@@ -32,6 +33,10 @@ COMMANDS:
                             its rows, with the schema it worked out in induced_schema.
     crawl <url> [--pages N] [--depth N] [--query Q] [--out FILE] [--dfs] [--since-last]
                             Crawl a site. --out writes .csv/.json/.jsonl instead of printing.
+    probe <url>... [--timeout MS]
+                            Whether each URL exists, without reading it: status, final URL,
+                            content type, length, and whether the name resolves. A 404 is an
+                            answer here, not a block.
     snapshot <url>          The page as roles, names and refs — a fraction of the tokens.
     capture <url> [--pattern P] [--bodies]
                             The JSON the page itself fetched: usually the site's real API.
@@ -227,6 +232,7 @@ async fn run(args: &[String]) -> anyhow::Result<Value> {
                     timeout: flags.number("timeout").map(|n| n as u64),
                     wait: flags.number("wait").map(|n| n as u64),
                     fresh: flags.has("fresh").then_some(true),
+                    json_path: flags.value("json-path"),
                     // `--schema auto` for a listing nobody has selectors for, or a JSON object for
                     // one written by hand. A malformed object is reported by the extractor as a
                     // schema error rather than swallowed here, which is where every other bad
@@ -251,6 +257,17 @@ async fn run(args: &[String]) -> anyhow::Result<Value> {
                     strategy: flags.has("dfs").then(|| "dfs".to_string()),
                     since_last_crawl: flags.has("since-last").then_some(true),
                     ..Default::default()
+                })
+                .await)
+        }
+        "probe" => {
+            if positional.is_empty() {
+                anyhow::bail!("probe needs at least one url");
+            }
+            Ok(server
+                .probe_json(WebProbeParams {
+                    urls: positional.clone(),
+                    timeout: flags.number("timeout").map(|n| n as u64),
                 })
                 .await)
         }
@@ -754,6 +771,7 @@ mod tests {
         for cmd in [
             "fetch",
             "crawl",
+            "probe",
             "snapshot",
             "capture",
             "video",

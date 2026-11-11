@@ -203,6 +203,10 @@ struct TierOutcome {
     /// Set when the response was a document whose text is not all there to read: a PDF of
     /// scanned pages. A label, reported beside the content; no other tier would read it better.
     document: Option<Value>,
+    /// Set when the body was a file rather than text: saved to `out_file` as served, described
+    /// (type, size, sha256) instead of decoded, cut short, or over the in-memory cap. The file is
+    /// the answer, so no other tier is tried. See `body`.
+    file: Option<Value>,
 }
 
 impl TierOutcome {
@@ -645,6 +649,235 @@ fn out_path(name: &str) -> anyhow::Result<std::path::PathBuf> {
         std::fs::create_dir_all(parent)?;
     }
     Ok(path)
+}
+
+/// The part of a JSON body `json_path` names, as the content to return; `None` when there is no
+/// projection to give, with the reason on the response and the content left whole — a path that
+/// could not be applied must never cost the caller the page.
+fn project_json(
+    obj: &mut serde_json::Map<String, Value>,
+    body: &str,
+    content_type: &str,
+    path: &str,
+) -> Option<String> {
+    let doc: Value = match serde_json::from_str(body.trim_start_matches('\u{feff}')) {
+        Ok(v) => v,
+        Err(_) => {
+            obj.insert(
+                "json_path_error".into(),
+                json!(format!(
+                    "the body is not JSON ({}), so json_path was not applied; the whole content \
+                     is returned",
+                    if content_type.is_empty() {
+                        "no content-type"
+                    } else {
+                        content_type
+                    }
+                )),
+            );
+            return None;
+        }
+    };
+    match crate::json_select::select(&doc, path) {
+        Ok(found) => {
+            if found.is_null() {
+                let keys: Vec<&str> = match &doc {
+                    Value::Object(m) => m.keys().map(String::as_str).take(40).collect(),
+                    Value::Array(a) => {
+                        obj.insert(
+                            "json_path_note".into(),
+                            json!(format!(
+                                "json_path matched nothing; the document is an array of {} \
+                                 elements (start with [0] or [*])",
+                                a.len()
+                            )),
+                        );
+                        return Some("null".into());
+                    }
+                    _ => Vec::new(),
+                };
+                obj.insert(
+                    "json_path_note".into(),
+                    json!(format!(
+                        "json_path matched nothing; the top-level keys are: {}",
+                        keys.join(", ")
+                    )),
+                );
+            }
+            Some(serde_json::to_string_pretty(&found).unwrap_or_default())
+        }
+        Err(e) => {
+            obj.insert("json_path_error".into(), json!(e));
+            None
+        }
+    }
+}
+
+/// The file a fetch asked for when it asked for the file rather than its text: an `out_file` whose
+/// name is not a text name. See `body::wants_text`.
+fn raw_file_target(p: &WebFetchParams) -> Option<PathBuf> {
+    let name = p.out_file.as_deref().filter(|n| !n.trim().is_empty())?;
+    if crate::body::wants_text(name) {
+        return None;
+    }
+    out_path(name).ok()
+}
+
+/// A sink that keeps the response line and stops the transfer before the first byte of the body:
+/// what `web_probe` asks of a server.
+#[derive(Default)]
+struct HeadersOnly {
+    status: u16,
+    final_url: Option<String>,
+    headers: Vec<(String, String)>,
+}
+
+impl svipall_http::BodySink for HeadersOnly {
+    fn begin(
+        &mut self,
+        status: u16,
+        final_url: &str,
+        headers: &[(String, String)],
+    ) -> anyhow::Result<()> {
+        self.status = status;
+        self.final_url = Some(final_url.to_string());
+        self.headers = headers.to_vec();
+        anyhow::bail!("stopped at the headers")
+    }
+
+    fn write(&mut self, _chunk: &[u8]) -> anyhow::Result<()> {
+        anyhow::bail!("stopped at the headers")
+    }
+}
+
+/// The tier outcome for a body that went to disk, was cut short, or would not fit: the file is the
+/// answer, and the note is what stands in for its content.
+fn file_outcome(sink: &crate::body::Sink, final_url: &str, mut info: Value) -> TierOutcome {
+    if let Some(ms) = sink.first_byte_ms {
+        info["first_byte_ms"] = json!(ms);
+    }
+    let note = if info["complete"] == true {
+        crate::body::binary_note(&info, true)
+    } else if info["partial"] == true {
+        format!(
+            "The download stopped after {} bytes: {}. The bytes so far are kept in {}; {}.",
+            info["bytes_written"],
+            info["error"].as_str().unwrap_or(""),
+            info["part_file"].as_str().unwrap_or(""),
+            info["next"].as_str().unwrap_or("call again to resume")
+        )
+    } else {
+        info["error"].as_str().unwrap_or_default().to_string()
+    };
+    TierOutcome {
+        status: sink.status,
+        html: note,
+        final_url: final_url.to_string(),
+        content_type: "text/plain".into(),
+        scroll_rounds: None,
+        cookies: svipall_core::classify::cookie_names(&sink.headers),
+        warm: None,
+        kept_key: None,
+        headers: sink.headers.clone(),
+        media: None,
+        document: None,
+        file: Some(info),
+    }
+}
+
+/// web_fetch_many's default total, in tokens. Measured (`tests/fetch_many.rs`): 25 long pages under
+/// it serialise to 40 995 characters, envelopes included, against the ~50 000 at which clients
+/// refused results.
+const MANY_TOTAL_TOKENS: usize = 8_000;
+/// The least any one page is cut to, however many URLs share the total: below this a page is a
+/// title and a cursor, and the caller would be better served by `out_dir`.
+const MANY_MIN_SHARE: usize = 150;
+/// The serialised size past which a web_fetch_many answer is written to a file instead.
+const MANY_CEILING_CHARS: usize = 45_000;
+/// "No budget": a page going to a file is written whole.
+const WHOLE: usize = 100_000_000;
+
+/// Where `out_dir` lands: an absolute path as written, a relative one by its last component under
+/// `~/.svipall/out/`, the same rule `out_file` follows.
+fn out_dir_path(name: &str) -> anyhow::Result<PathBuf> {
+    let requested = std::path::Path::new(name);
+    let dir = if requested.is_absolute() {
+        requested.to_path_buf()
+    } else {
+        svipall_core::config::home_dir()
+            .join("out")
+            .join(requested.file_name().unwrap_or(requested.as_os_str()))
+    };
+    std::fs::create_dir_all(&dir)?;
+    Ok(dir)
+}
+
+/// `03-example.com-docs-intro.md`: the position first, so the files sort in the order asked for.
+fn page_file_name(i: usize, url: &str) -> String {
+    let rest = url.split_once("://").map(|(_, r)| r).unwrap_or(url);
+    let mut slug: String = rest
+        .chars()
+        .map(|c| {
+            if c.is_ascii_alphanumeric() || c == '.' {
+                c
+            } else {
+                '-'
+            }
+        })
+        .collect();
+    while slug.contains("--") {
+        slug = slug.replace("--", "-");
+    }
+    let slug: String = slug.trim_matches('-').chars().take(60).collect();
+    format!("{:02}-{slug}.md", i + 1)
+}
+
+/// The whole web_fetch_many answer to `name` (`.jsonl`: one result per line), and back a summary
+/// of each result small enough to read: where it ended up and whether it arrived.
+fn many_to_file(out: Value, name: &str) -> Value {
+    let results = out["results"].as_array().cloned().unwrap_or_default();
+    let text = if name.to_ascii_lowercase().ends_with(".jsonl") {
+        results
+            .iter()
+            .map(Value::to_string)
+            .collect::<Vec<_>>()
+            .join("\n")
+    } else {
+        serde_json::to_string_pretty(&out).unwrap_or_default()
+    };
+    let summary: Vec<Value> = results
+        .iter()
+        .map(|r| {
+            let mut s = serde_json::Map::new();
+            for k in [
+                "url",
+                "status",
+                "title",
+                "chars",
+                "blocked_reason",
+                "same_text_as",
+            ] {
+                if let Some(v) = r.get(k) {
+                    s.insert(k.into(), v.clone());
+                }
+            }
+            Value::Object(s)
+        })
+        .collect();
+    match write_out(name, &text) {
+        Ok((path, bytes)) => json!({
+            "count": results.len(),
+            "corroboration": out["corroboration"],
+            "out_file": path.to_string_lossy(),
+            "bytes": bytes,
+            "results": summary,
+        }),
+        Err(e) => json!({
+            "count": results.len(),
+            "out_file_error": format!("{e:#}"),
+            "results": summary,
+        }),
+    }
 }
 
 fn write_out(name: &str, content: &str) -> anyhow::Result<(std::path::PathBuf, usize)> {
@@ -1763,11 +1996,57 @@ impl SvipallServer {
             }
             req.body = Some(b.clone().into_bytes());
         }
-        let r = if p.url.starts_with("raw:") || p.url.starts_with("file://") {
-            Self::local_response(&p.url).await?
+        // Asked for the file: a transfer this target already started is asked for from where it
+        // stopped, on the validator it was started under.
+        let raw_target = raw_file_target(p);
+        if let Some(target) = &raw_target {
+            if let Some((from, validator)) = crate::body::resume_point(target, &p.url) {
+                req.set_header("range", &format!("bytes={from}-"));
+                req.set_header("if-range", &validator);
+            }
+        }
+        let mut sink =
+            crate::body::Sink::new(&p.url, raw_target.clone(), crate::body::max_body_bytes());
+        let sent = if p.url.starts_with("raw:") || p.url.starts_with("file://") {
+            match Self::local_response(&p.url).await {
+                Ok(mut r) => svipall_http::feed(&mut sink, &mut r).map(|_| r),
+                Err(e) => Err(e),
+            }
         } else {
-            fetcher.send(req).await?
+            // The caller's deadline bounds the transfer, not the page timeout of the client: a
+            // download is allowed as long as the fetch is.
+            let total = Duration::from_millis(p.timeout.unwrap_or(60_000).max(1_000));
+            fetcher.send_streaming(req, &mut sink, Some(total)).await
         };
+        let mut r = match sent {
+            Ok(r) => r,
+            Err(e) => {
+                // A body that will not fit, or a download cut short, is an answer about this
+                // file — never a reason to ask a browser for it.
+                let ct = sink.content_type();
+                let info = if let Some(size) = sink.over_cap {
+                    Some(json!({
+                        "content_type": ct,
+                        "bytes": size,
+                        "error": format!(
+                            "the body is over the {} bytes kept in memory, so it was not read; \
+                             pass out_file (a name that is not .md/.txt/.json) to stream it to disk",
+                            crate::body::max_body_bytes()
+                        ),
+                    }))
+                } else {
+                    sink.partial(&e)
+                };
+                return match info {
+                    Some(info) => Ok(file_outcome(&sink, &p.url, info)),
+                    None => Err(e),
+                };
+            }
+        };
+        if let Some(info) = sink.finish() {
+            return Ok(file_outcome(&sink, &r.final_url, info));
+        }
+        r.body = sink.take_memory();
         // Sound, a picture, or both: read for what it says, never decoded as text.
         let media_kind = (200..300)
             .contains(&r.status)
@@ -1775,6 +2054,7 @@ impl SvipallServer {
             .flatten();
         let mut media = None;
         let mut document = None;
+        let mut file: Option<Value> = None;
         // Only decode to text once the type says it is text. `r.text()` on every response is what
         // used to mangle PDFs into lossy UTF-8 before anything could look at them.
         let mut html = if let Some(kind) = media_kind {
@@ -1845,10 +2125,31 @@ impl SvipallServer {
                 Ok(Err(e)) => format!("Document conversion task failed: {e}"),
                 Err(_) => "Document conversion timed out after 30s".to_string(),
             }
-        } else if Self::is_html_type(&r.content_type) || r.content_type.contains("text") {
-            r.text()
+        } else if crate::body::is_binary(&r.content_type, &r.body) {
+            // Bytes, kept as bytes: written as served when the caller named a file, described
+            // otherwise. Decoding them as text is what turned every archive and font into mojibake.
+            let mut info = crate::body::describe(&r.content_type, &r.body);
+            let saved = match p.out_file.as_deref().filter(|n| !n.trim().is_empty()) {
+                Some(name) => match out_path(name).and_then(|path| {
+                    std::fs::write(&path, &r.body)?;
+                    Ok(path)
+                }) {
+                    Ok(path) => {
+                        info["out_file"] = json!(path.to_string_lossy());
+                        true
+                    }
+                    Err(e) => {
+                        info["error"] = json!(format!("could not write out_file: {e:#}"));
+                        false
+                    }
+                },
+                None => false,
+            };
+            let note = crate::body::binary_note(&info, saved);
+            file = Some(info);
+            note
         } else {
-            String::from_utf8_lossy(&r.body).into_owned()
+            r.text()
         };
         // A PDF of scanned pages: read the picture on each page, when the reader is installed.
         if let Some(doc) = document.as_mut() {
@@ -1879,6 +2180,7 @@ impl SvipallServer {
         // Extracted PDF or document text is already prose; telling the pipeline it is HTML would
         // send it through the markdown walker for nothing.
         let content_type = if media.is_some()
+            || file.is_some()
             || svipall_core::pdf::looks_like_pdf(&r.body, &r.content_type)
             || svipall_core::document::looks_like_document(&r.body, &r.content_type, &r.final_url)
                 .is_some()
@@ -1899,6 +2201,7 @@ impl SvipallServer {
             headers: r.headers,
             media,
             document,
+            file,
         })
     }
 
@@ -2331,6 +2634,7 @@ impl SvipallServer {
             kept_key,
             media: None,
             document: None,
+            file: None,
         })
     }
 
@@ -2460,12 +2764,38 @@ impl SvipallServer {
         .await
         {
             Ok(o) => annotate(o),
-            Err(_) => FetchOutcome {
-                blocked_body: None,
-                value: json!({"url": url, "status": 0, "blocked_reason": "timeout", "wall_kind": "timeout", "note": format!("No tier answered within {}ms. Raise timeout or lower max_tier.", timeout), "attempts": []}),
-                links: Vec::new(),
-                final_url: url,
-            },
+            Err(_) => {
+                let mut value = json!({"url": url, "status": 0, "blocked_reason": "timeout", "wall_kind": "timeout", "note": format!("No tier answered within {}ms. Raise timeout or lower max_tier.", timeout), "attempts": []});
+                // A download the deadline cut is not lost: what arrived is on disk, and the next
+                // call carries on from it.
+                if let Some(target) = raw_file_target(&p) {
+                    let (part, _) = crate::body::part_of(&target);
+                    if let Ok(meta) = std::fs::metadata(&part) {
+                        let resumable = crate::body::resume_point(&target, &url).is_some();
+                        value["file"] = json!({
+                            "partial": true,
+                            "part_file": part.to_string_lossy(),
+                            "bytes_written": meta.len(),
+                            "resumable": resumable,
+                        });
+                        value["note"] =
+                            json!(format!(
+                            "The download was still running when the {timeout}ms timeout ran out; \
+                             {} bytes are kept in {}. Call again with the same url and out_file{} \
+                             (and a larger timeout).",
+                            meta.len(),
+                            part.display(),
+                            if resumable { " to resume from there" } else { "" }
+                        ));
+                    }
+                }
+                FetchOutcome {
+                    blocked_body: None,
+                    value,
+                    links: Vec::new(),
+                    final_url: url,
+                }
+            }
         }
     }
 
@@ -2529,6 +2859,9 @@ impl SvipallServer {
         let wants_stored_markdown = p.schema.is_none()
             && !p.tables.unwrap_or(false)
             && p.css_selector.is_none()
+            && p.json_path.is_none()
+            // Asked for the file: the stored text of it is not the file.
+            && raw_file_target(p).is_none()
             && p.extraction.as_deref().is_none_or(|e| e == "markdown")
             && p.main_content_only.is_none_or(|m| m);
         // A fresh cached copy short-circuits the whole ladder. This is also what makes a cursor
@@ -3033,7 +3366,14 @@ impl SvipallServer {
             // Feed the pace: this is what lets a fast host be crawled quickly and a hostile one
             // be backed off, instead of every domain paying the same fixed gap.
             if !local {
-                let latency = Duration::from_millis(ms as u64);
+                // How fast the host answered, which for a download is its first byte, not the
+                // minutes the body took.
+                let latency = Duration::from_millis(
+                    o.file
+                        .as_ref()
+                        .and_then(|f| f["first_byte_ms"].as_u64())
+                        .unwrap_or(ms as u64),
+                );
                 throttle::observe(
                     &domain,
                     proxy.as_deref(),
@@ -3127,7 +3467,9 @@ impl SvipallServer {
             }
             // A media file is its own answer: a short transcript, or a note that nothing could
             // listen, is not a wall a browser would get past.
-            if (o.media.is_some() || o.document.is_some()) && (200..300).contains(&o.status) {
+            if (o.media.is_some() || o.document.is_some() || o.file.is_some())
+                && (200..300).contains(&o.status)
+            {
                 reason = None;
                 kind = WallKind::None;
             }
@@ -3181,7 +3523,9 @@ impl SvipallServer {
             // request for a deep page that landed on the front page, are blocks that the earlier
             // status-only feed counted as successes — and so kept hammering a domain that had
             // already shut the door.
-            if !local {
+            // A file is judged by having arrived: its stand-in note is short by design, and a long
+            // download is slow by being long, so neither is the quiet refusal they would look like.
+            if !local && o.file.is_none() {
                 let verdict =
                     svipall_core::session::Verdict::of(&svipall_core::session::Response {
                         status: o.status,
@@ -3309,6 +3653,9 @@ impl SvipallServer {
                 }
                 if let Some(d) = &o.document {
                     obj.insert("document".into(), d.clone());
+                }
+                if let Some(f) = &o.file {
+                    obj.insert("file".into(), f.clone());
                 }
                 // A vendor on the wire is reported on a page that arrived, too. It says who is
                 // watching this domain — worth knowing before the next fetch — and saying it here
@@ -3515,6 +3862,23 @@ impl SvipallServer {
                         }
                     }
                     None if p.tables.unwrap_or(false) => {}
+                    // The bytes are already where the caller asked for them; writing the note over
+                    // them is the one way left to break the file. Said in the shape `out_file`
+                    // always answers in, and never cached: a description is not the page.
+                    None if o.file.as_ref().is_some_and(|f| f["out_file"].is_string()) => {
+                        let f = o.file.as_ref().expect("checked");
+                        obj.insert("out_file".into(), f["out_file"].clone());
+                        obj.insert("bytes".into(), f["bytes"].clone());
+                    }
+                    // Described, cut short or too large: the note is the content, and it never goes
+                    // to `out_file`, which is where the file itself belongs.
+                    None if o.file.is_some() => {
+                        let shown = WebFetchParams {
+                            out_file: None,
+                            ..p.clone()
+                        };
+                        self.budget_into(&mut value, o.html.clone(), &shown);
+                    }
                     None => {
                         let content = Self::render_content(
                             &parts,
@@ -3595,6 +3959,20 @@ impl SvipallServer {
                             )
                         } else {
                             content
+                        };
+                        let content = match p.json_path.as_deref().filter(|s| !s.trim().is_empty())
+                        {
+                            // The text as well as the markup: a browser tier shows a JSON
+                            // answer inside a `<pre>`, and its text is the document.
+                            Some(path) => {
+                                let body = if serde_json::from_str::<Value>(&o.html).is_ok() {
+                                    o.html.as_str()
+                                } else {
+                                    parts.text.as_str()
+                                };
+                                project_json(obj, body, &o.content_type, path).unwrap_or(content)
+                            }
+                            None => content,
                         };
                         self.budget_into(&mut value, content, p);
                     }
@@ -3875,6 +4253,21 @@ impl SvipallServer {
         template: &WebFetchParams,
         want_links: bool,
     ) -> Vec<FetchOutcome> {
+        let each = urls
+            .into_iter()
+            .map(|u| WebFetchParams {
+                url: u,
+                ..template.clone()
+            })
+            .collect();
+        self.fetch_each(each, want_links).await
+    }
+
+    /// Fetch every one of `each`, as many at once as the machine can carry, in the order given.
+    async fn fetch_each(&self, each: Vec<WebFetchParams>, want_links: bool) -> Vec<FetchOutcome> {
+        let Some(template) = each.first() else {
+            return Vec::new();
+        };
         // What the machine can carry, not just what the config asked for. Overshooting does not
         // crawl faster: it makes every page slow, and a slow page reads to the ladder as a wall,
         // so the domain learns the wrong tier and collects a cooldown it never earned.
@@ -3886,13 +4279,10 @@ impl SvipallServer {
             configured: self.cfg.parallelism,
             needs_browser,
         });
-        futures::stream::iter(urls.into_iter().map(|u| {
-            let p = WebFetchParams {
-                url: u,
-                ..template.clone()
-            };
-            async move { self.fetch_json_opts(p, want_links).await }
-        }))
+        futures::stream::iter(
+            each.into_iter()
+                .map(|p| async move { self.fetch_json_opts(p, want_links).await }),
+        )
         .buffered(par)
         .collect()
         .await
@@ -3985,20 +4375,52 @@ impl SvipallServer {
     /// The body of `web_fetch_many`, as plain JSON, so it can be exercised without the tool
     /// envelope — the same shape `fetch_json` and `crawl_json` already have.
     pub async fn fetch_many_json(&self, p: WebFetchManyParams) -> Value {
+        let n = p.urls.len().max(1);
+        let to_file = p.out_file.as_deref().filter(|f| !f.trim().is_empty());
+        let to_dir = p.out_dir.as_deref().filter(|d| !d.trim().is_empty());
+        // ▲ One budget for the whole answer. The client refuses a tool result past roughly fifty
+        // thousand characters, and refusing it is the same as returning nothing; so the set gets a
+        // total, split equally, and a page that does not fit its share is cut on a block boundary
+        // with a cursor for the rest. A file is not a context, so a file gets every page whole.
+        let total = p.max_tokens_total.unwrap_or(MANY_TOTAL_TOKENS).max(1);
+        let share = (total / n).max(MANY_MIN_SHARE);
+        let per_url = p
+            .max_tokens
+            .unwrap_or(self.cfg.max_tokens_per_fetch)
+            .min(share)
+            .max(1);
         let template = WebFetchParams {
             mode: p.mode,
             extraction: p.extraction,
             max_tier: p.max_tier,
-            query: p.query,
+            query: p.query.clone(),
             schema: p.schema,
             tables: p.tables,
             timeout: p.timeout,
             wait: p.wait,
+            json_path: p.json_path.clone(),
             main_content_only: Some(true),
+            max_tokens: Some(if to_file.is_some() { WHOLE } else { per_url }),
             ..Default::default()
         };
+        let dir = match to_dir.map(out_dir_path).transpose() {
+            Ok(d) => d,
+            Err(e) => return json!({"error": format!("out_dir: {e:#}")}),
+        };
+        let each: Vec<WebFetchParams> = p
+            .urls
+            .iter()
+            .enumerate()
+            .map(|(i, u)| WebFetchParams {
+                url: u.clone(),
+                out_file: dir
+                    .as_ref()
+                    .map(|d| d.join(page_file_name(i, u)).to_string_lossy().into_owned()),
+                ..template.clone()
+            })
+            .collect();
         let mut results: Vec<Value> = self
-            .fetch_all(p.urls, &template, false)
+            .fetch_each(each, false)
             .await
             .into_iter()
             .map(|o| o.value)
@@ -4006,13 +4428,20 @@ impl SvipallServer {
 
         // Five results carrying one wire story are one source wearing five hostnames, and without
         // this they read as five confirmations. Nothing is removed — each result is told which
-        // earlier one it repeats, and the caller decides what that is worth.
+        // earlier one it repeats, and the caller decides what that is worth. A page written to a
+        // file is read back for this: its text is the evidence, wherever it went.
         let hashes: Vec<u64> = results
             .iter()
             .map(|v| {
+                let from_file = v
+                    .get("out_file")
+                    .and_then(Value::as_str)
+                    .and_then(|f| std::fs::read_to_string(f).ok());
                 v.get("content")
                     .and_then(Value::as_str)
-                    .map(svipall_core::dedup::simhash)
+                    .map(str::to_string)
+                    .or(from_file)
+                    .map(|t| svipall_core::dedup::simhash(&t))
                     .unwrap_or(0)
             })
             .collect();
@@ -4030,20 +4459,22 @@ impl SvipallServer {
                 obj.insert("same_text_as".into(), source);
             }
         }
-        // ▲ Put the different ones where they will be read. Cuconasu et al. (SIGIR 2024) measured
-        // that what breaks a generated answer is the on-topic page that does not contain it — four
-        // copies of one wire story at the top of a list is exactly that shape — and that adding
-        // *distant* documents raised accuracy. This is a reordering and only a reordering: every
-        // result comes back, the caller's first choice stays first, and a set with nothing
-        // redundant in it is returned in the order it was asked for.
-        let ordering = svipall_core::quality::diversity::order(&hashes);
-        let reordered = ordering.iter().enumerate().any(|(pos, &i)| pos != i);
-        let mut by_index: Vec<Option<Value>> = results.into_iter().map(Some).collect();
-        let results: Vec<Value> = ordering
-            .iter()
-            .filter_map(|&i| by_index[i].take())
-            .collect();
-
+        // ▲ In the order they were asked for. This used to be reordered for diversity (four copies
+        // of one wire story pushed below the page that said something else), and a caller zipping
+        // its own list with `results` by position read one URL's page as another's. Repeats are
+        // already marked `same_text_as`, which is the part of that idea the caller can act on.
+        //
+        // One continuation note for the set rather than one per page: the per-page sentence named
+        // web_fetch without the query or json_path the page was cut under, and repeated it fifty
+        // times.
+        let mut truncated = 0;
+        for r in results.iter_mut() {
+            if let Some(obj) = r.as_object_mut() {
+                if obj.remove("continue").is_some() {
+                    truncated += 1;
+                }
+            }
+        }
         let mut out = json!({
             "count": results.len(),
             // How many distinct documents these results actually are. Corroboration, not trust:
@@ -4051,11 +4482,162 @@ impl SvipallServer {
             "corroboration": corroboration,
             "results": results,
         });
-        // Said when it happened, because a result set that comes back in a different order than it
-        // was asked for and does not say so is a surprise rather than a feature.
-        if reordered {
-            out["reordered_for_diversity"] = json!(true);
+        if to_file.is_none() && dir.is_none() {
+            out["budget"] = json!({"per_url_tokens": per_url, "total_tokens": total});
         }
+        if truncated > 0 {
+            let mut same = String::new();
+            for (k, v) in [("query", &p.query), ("json_path", &p.json_path)] {
+                if let Some(v) = v {
+                    same.push_str(&format!(", {k}={v:?}"));
+                }
+            }
+            out["continue"] = json!(format!(
+                "{truncated} of the pages were cut to fit the answer. For the rest of one, call \
+                 web_fetch with its url and cursor{same}; or pass out_dir to get every page whole."
+            ));
+        }
+        if let Some(name) = to_file {
+            return many_to_file(out, name);
+        }
+        // The last line of defence for the same limit: a set that still came out too large (a
+        // hundred URLs, each envelope small but many) goes to a file rather than being refused.
+        if out.to_string().len() > MANY_CEILING_CHARS {
+            let name = format!("fetch_many-{}.json", chrono::Utc::now().timestamp_millis());
+            let mut summary = many_to_file(out, &name);
+            summary["note"] = json!(format!(
+                "The answer came to more than {MANY_CEILING_CHARS} characters, past what a client \
+                 accepts, so it was written to out_file; the list below says what is in it."
+            ));
+            return summary;
+        }
+        out
+    }
+
+    #[tool(
+        description = "Check URLs without reading them: status, final URL, content type, length, and whether the name resolves, in input order. Use instead of web_fetch_many when only existence or type matters: a 404 is an answer, not a block.",
+        annotations(read_only_hint = true, open_world_hint = true)
+    )]
+    async fn web_probe(
+        &self,
+        params: Parameters<WebProbeParams>,
+    ) -> Result<CallToolResult, McpError> {
+        ok(self.probe_json(params.0).await)
+    }
+
+    /// The body of `web_probe`, for the CLI, the REST API and tests.
+    pub async fn probe_json(&self, p: WebProbeParams) -> Value {
+        let timeout = Duration::from_millis(p.timeout.unwrap_or(15_000).max(500));
+        let results: Vec<Value> = futures::stream::iter(
+            p.urls
+                .into_iter()
+                .map(|u| async move { self.probe_one(u, timeout).await }),
+        )
+        .buffered(8)
+        .collect()
+        .await;
+        json!({"count": results.len(), "results": results})
+    }
+
+    /// One address: does its name resolve, and what does a GET answer before its body. The body is
+    /// never read — the transfer is stopped at the headers — so a probe of a 4 GB file costs what
+    /// a probe of a page does.
+    async fn probe_one(&self, url: String, timeout: Duration) -> Value {
+        let started = Instant::now();
+        if let Err(why) = self.origin_policy().check(&url) {
+            return json!({"url": url, "error": format!("refused by this installation's policy: {why}")});
+        }
+        let Ok(parsed) = url::Url::parse(&url) else {
+            return json!({"url": url, "error": crate::steer::not_a_url(&url)});
+        };
+        if !matches!(parsed.scheme(), "http" | "https") {
+            return json!({"url": url, "error": "only http and https addresses can be probed"});
+        }
+        let host = parsed.host_str().unwrap_or_default().to_string();
+        let port = parsed.port_or_known_default().unwrap_or(80);
+        let domain = domain_from_url(&url);
+        let local = is_local(&domain);
+        let proxy = if local { None } else { self.exit_for(&domain) };
+        // Resolved here, by this machine. Through an exit that resolves at its end (socks5h) the
+        // answer that matters is the exit's, so a name this machine cannot resolve is still asked.
+        let resolves = match tokio::time::timeout(
+            Duration::from_secs(5),
+            tokio::net::lookup_host((host.trim_matches(['[', ']']), port)),
+        )
+        .await
+        {
+            Ok(Ok(mut addrs)) => addrs.next().is_some(),
+            _ => false,
+        };
+        let mut out = json!({"url": url, "resolves": resolves});
+        if !resolves && proxy.is_none() {
+            out["error"] = json!(format!(
+                "the name {host} does not resolve; nothing was requested"
+            ));
+            return out;
+        }
+        if !local {
+            if let Err(e) = self.admit_visit(&domain, proxy.as_deref()) {
+                out["refused"] = json!(e.to_string());
+                out["retry_in_seconds"] = json!(e.seconds);
+                return out;
+            }
+            if let Err(e) = self.pace_visit(&domain, proxy.as_deref(), "http").await {
+                out["refused"] = json!(e.to_string());
+                return out;
+            }
+        }
+        let fetcher = self.fetcher_for(proxy.as_deref());
+        let req = HttpRequest {
+            url: url.clone(),
+            method: "GET".into(),
+            headers: fetcher.identity().nav_headers(),
+            body: None,
+        };
+        let mut sink = HeadersOnly::default();
+        let sent = tokio::time::timeout(
+            timeout,
+            fetcher.send_streaming(req, &mut sink, Some(timeout)),
+        )
+        .await;
+        let final_url = match sent {
+            Err(_) => {
+                out["error"] = json!(format!("no answer within {}ms", timeout.as_millis()));
+                return out;
+            }
+            // Stopped at the headers on purpose: what the sink holds is the answer.
+            Ok(Err(_)) if sink.status != 0 => None,
+            Ok(Err(e)) => {
+                out["error"] = json!(format!("{e:#}"));
+                return out;
+            }
+            Ok(Ok(r)) => Some(r.final_url),
+        };
+        let header = |name: &str| {
+            sink.headers
+                .iter()
+                .find(|(k, _)| k.eq_ignore_ascii_case(name))
+                .map(|(_, v)| v.clone())
+        };
+        let status = sink.status;
+        out["status"] = json!(status);
+        // A 404 is the answer to "is it there", which is the question; it is not a wall.
+        out["exists"] = json!((200..400).contains(&status));
+        if let Some(f) = final_url.or(sink.final_url.clone()).filter(|f| f != &url) {
+            out["final_url"] = json!(f);
+        }
+        if let Some(ct) = header("content-type") {
+            out["content_type"] = json!(ct);
+        }
+        if let Some(len) = header("content-length").and_then(|v| v.trim().parse::<u64>().ok()) {
+            out["length"] = json!(len);
+        }
+        if matches!(status, 429 | 503) {
+            if let Some(ra) = header("retry-after") {
+                out["retry_after"] = json!(ra);
+            }
+        }
+        out["ms"] = json!(started.elapsed().as_millis() as u64);
         out
     }
 
@@ -7727,9 +8309,27 @@ pub fn slim_schema(schema: &mut serde_json::Map<String, Value>) {
 impl ServerHandler for SvipallServer {
     async fn call_tool(
         &self,
-        request: CallToolRequestParam,
+        mut request: CallToolRequestParam,
         context: rmcp::service::RequestContext<rmcp::RoleServer>,
     ) -> Result<CallToolResult, McpError> {
+        // Read the arguments for what they mean before serde judges them, and refuse a key the
+        // tool does not have: a call that ran without the limit its caller set is worse than one
+        // that did not run. See `params`.
+        if let Some(route) = self.tool_router.map.get(request.name.as_ref()) {
+            let schema = route.attr.input_schema.clone();
+            let args = request.arguments.get_or_insert_with(Default::default);
+            let unknown = crate::params::normalize(&schema, args);
+            if !unknown.is_empty() {
+                return Err(McpError::invalid_params(
+                    crate::params::unknown_message(
+                        &request.name,
+                        &unknown,
+                        &crate::params::declared(&schema),
+                    ),
+                    None,
+                ));
+            }
+        }
         let mut active = self.active().await.map_err(err)?;
         // Sessions opened before a policy change finish with their original browser.
         if let Some(id) = request

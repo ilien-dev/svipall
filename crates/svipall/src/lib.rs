@@ -4,6 +4,8 @@ pub mod asr;
 pub mod audio;
 pub mod behavior;
 pub mod blocklists;
+/// A response body kept as bytes: in memory to be read, or streamed to the file asked for.
+pub mod body;
 pub mod browser;
 pub mod capture;
 pub mod detect;
@@ -16,10 +18,14 @@ pub mod handoff;
 pub mod hooks;
 /// Work that outlives the request that asked for it.
 pub mod jobs;
+/// `json_path`: the fields of a JSON answer the caller asked for.
+pub mod json_select;
 /// Where a model comes from: the operator's file first, the embedded copy second.
 pub mod model_install;
 pub mod model_source;
 pub mod ocr;
+/// Tool arguments read against the tool's schema: lenient types, unknown keys named.
+pub mod params;
 pub mod profiles;
 /// How a long job says how it is going, to whoever is listening.
 pub mod progress;
