@@ -20,8 +20,11 @@ pub const LABEL: &str = "[own IP]";
 /// laptop moves between networks; the oldest are forgotten first.
 const KEEP: usize = 4;
 
-static IPV4: LazyLock<Regex> =
-    LazyLock::new(|| Regex::new(r"(?:^|[^0-9.])((?:\d{1,3}\.){3}\d{1,3})(?:$|[^0-9.])").unwrap());
+// A full stop after the address ends a sentence; a digit or another dot-and-digit would make it
+// part of something longer.
+static IPV4: LazyLock<Regex> = LazyLock::new(|| {
+    Regex::new(r"(?:^|[^0-9.])((?:\d{1,3}\.){3}\d{1,3})(?:$|[^0-9.]|\.(?:$|[^0-9]))").unwrap()
+});
 static IPV6: LazyLock<Regex> = LazyLock::new(|| {
     Regex::new(r"(?i)(?:^|[^0-9a-f:])([0-9a-f]{0,4}(?::[0-9a-f]{0,4}){2,7})").unwrap()
 });
@@ -110,11 +113,17 @@ fn addresses(text: &str) -> Vec<(usize, &str, IpAddr)> {
 /// The public addresses a page labels as the visitor's.
 pub fn labelled(text: &str) -> Vec<IpAddr> {
     let mut out: Vec<IpAddr> = Vec::new();
-    for (start, _, ip) in addresses(text) {
+    let mut found = addresses(text);
+    found.sort_by_key(|(start, _, _)| *start);
+    let mut previous_end = 0;
+    for (start, s, ip) in found {
+        // A label belongs to the first address after it, not to every address in reach.
+        let floor = previous_end;
+        previous_end = start + s.len();
         if !is_public(&ip) || out.contains(&ip) {
             continue;
         }
-        let mut from = start.saturating_sub(LABEL_REACH);
+        let mut from = start.saturating_sub(LABEL_REACH).max(floor);
         while !text.is_char_boundary(from) {
             from -= 1;
         }
