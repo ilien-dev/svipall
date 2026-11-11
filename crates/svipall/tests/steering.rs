@@ -133,8 +133,7 @@ async fn an_empty_search_asks_no_engine() {
     let out = server()
         .search_json(WebSearchParams {
             query: "   ".into(),
-            engine: None,
-            limit: None,
+            ..Default::default()
         })
         .await;
     assert!(

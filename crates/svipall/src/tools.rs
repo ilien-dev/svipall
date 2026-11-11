@@ -358,7 +358,7 @@ pub struct WebVideoParams {
     pub profile: Option<String>,
 }
 
-#[derive(Debug, Deserialize, JsonSchema)]
+#[derive(Debug, Default, Deserialize, JsonSchema)]
 pub struct WebSearchParams {
     /// What to search for, as you would type it into a search box.
     pub query: String,

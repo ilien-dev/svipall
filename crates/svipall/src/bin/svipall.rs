@@ -286,20 +286,14 @@ async fn run(args: &[String]) -> anyhow::Result<Value> {
             if query.trim().is_empty() {
                 anyhow::bail!("search needs something to search for");
             }
-            let engine = flags.value("engine");
-            let fetcher = server.fetcher();
-            let out = match engine.as_deref() {
-                Some("all" | "merge") => {
-                    svipall::search::search_all(fetcher.as_ref(), &query, 10).await
-                }
-                e => svipall::search::search(fetcher.as_ref(), &query, 10, e).await,
-            };
-            Ok(json!({
-                "query": query,
-                "engine": out.engine,
-                "count": out.results.len(),
-                "results": out.results,
-            }))
+            // The same handler as MCP and REST, so exits, pacing and engine health apply here too.
+            Ok(server
+                .search_json(svipall::tools::WebSearchParams {
+                    query,
+                    engine: flags.value("engine"),
+                    ..Default::default()
+                })
+                .await)
         }
         "map" => {
             let url = first.ok_or_else(|| anyhow::anyhow!("map needs a url"))?;

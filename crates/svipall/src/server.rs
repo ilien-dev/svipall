@@ -64,6 +64,8 @@ pub struct SvipallServer {
     /// Advertising and tracking hosts, loaded on first use. Empty until then, empty forever on a
     /// machine that cannot reach the sources, and that is a working state rather than an error.
     blocklist: Arc<tokio::sync::OnceCell<svipall_core::blocklist::Blocklist>>,
+    /// Where `web_search` finds each engine: the real hosts, or a test's fixture server.
+    search_endpoints: Arc<search::Endpoints>,
 }
 
 struct LivePolicy {
@@ -775,7 +777,14 @@ impl SvipallServer {
             cfg: Arc::new(cfg),
             dashboard_url: dashboard_url.map(Arc::from),
             blocklist: Arc::new(tokio::sync::OnceCell::new()),
+            search_endpoints: Arc::new(search::Endpoints::default()),
         }
+    }
+
+    /// Point `web_search`'s engines somewhere else: a test's fixture server.
+    pub fn with_search_endpoints(mut self, endpoints: search::Endpoints) -> Self {
+        self.search_endpoints = Arc::new(endpoints);
+        self
     }
 
     /// Long-running transports refresh policy at request boundaries. Tests and benchmarks keep
@@ -5157,9 +5166,12 @@ impl SvipallServer {
         // "all" asks every engine and merges. Each of these is being read off its own HTML and
         // each covers a different slice of the web badly, so taking the first that answers makes
         // the result depend on which engine happened to be up.
+        let ends = self.search_endpoints.as_ref();
         let out = match p.engine.as_deref() {
-            Some("all" | "merge") => search::search_all(fetcher.as_ref(), &p.query, limit).await,
-            engine => search::search(fetcher.as_ref(), &p.query, limit, engine).await,
+            Some("all" | "merge") => {
+                search::search_all(fetcher.as_ref(), ends, &p.query, limit).await
+            }
+            engine => search::search(fetcher.as_ref(), ends, &p.query, limit, engine).await,
         };
         json!({"query": p.query, "engine": out.engine, "count": out.results.len(), "results": out.results, "attempts": out.attempts})
     }

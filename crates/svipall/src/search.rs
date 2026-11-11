@@ -21,6 +21,37 @@ pub struct SearchOutcome {
 
 pub const ENGINES: &[&str] = &["ddg", "ddg-html", "bing", "brave"];
 
+/// Where each engine's result page lives. The real hosts by default; a test points an engine at a
+/// local fixture server instead, which is the only way to replay a real anomaly page on demand.
+#[derive(Debug, Clone, Default)]
+pub struct Endpoints {
+    overrides: std::collections::HashMap<String, String>,
+}
+
+impl Endpoints {
+    /// Serve `engine` from `base` (scheme, host and path, without the query string).
+    pub fn with(mut self, engine: &str, base: &str) -> Self {
+        self.overrides.insert(engine.to_string(), base.to_string());
+        self
+    }
+
+    pub fn base(&self, engine: &str) -> Option<String> {
+        if let Some(b) = self.overrides.get(engine) {
+            return Some(b.clone());
+        }
+        Some(
+            match engine {
+                "ddg" => "https://lite.duckduckgo.com/lite/",
+                "ddg-html" => "https://html.duckduckgo.com/html/",
+                "bing" => "https://www.bing.com/search",
+                "brave" => "https://search.brave.com/search",
+                _ => return None,
+            }
+            .to_string(),
+        )
+    }
+}
+
 fn sel(s: &str) -> Selector {
     Selector::parse(s).expect("static selector")
 }
@@ -167,14 +198,18 @@ pub fn parse_brave(html: &str) -> Vec<SearchResult> {
 /// requests go through the same emulating engine as everything else rather than a bare client.
 async fn fetch_engine(
     fetcher: &dyn HttpFetcher,
+    endpoints: &Endpoints,
     engine: &str,
     query: &str,
 ) -> Result<String, String> {
     let q = urlencoding::encode(query);
+    let Some(base) = endpoints.base(engine) else {
+        return Err(format!("unknown engine {}", engine));
+    };
     let mut req = match engine {
         "ddg" => {
             let mut r = HttpRequest {
-                url: "https://lite.duckduckgo.com/lite/".into(),
+                url: base,
                 method: "POST".into(),
                 headers: fetcher.identity().nav_headers(),
                 body: Some(format!("q={}&kl=us-en", urlencoding::encode(query)).into_bytes()),
@@ -182,18 +217,9 @@ async fn fetch_engine(
             r.set_header("content-type", "application/x-www-form-urlencoded");
             r
         }
-        "ddg-html" => HttpRequest::get(format!(
-            "https://html.duckduckgo.com/html/?q={}&kl=us-en",
-            q
-        )),
-        "bing" => HttpRequest::get(format!(
-            "https://www.bing.com/search?q={}&setlang=en&cc=US",
-            q
-        )),
-        "brave" => HttpRequest::get(format!(
-            "https://search.brave.com/search?q={}&source=web",
-            q
-        )),
+        "ddg-html" => HttpRequest::get(format!("{base}?q={q}&kl=us-en")),
+        "bing" => HttpRequest::get(format!("{base}?q={q}&setlang=en&cc=US")),
+        "brave" => HttpRequest::get(format!("{base}?q={q}&source=web")),
         other => return Err(format!("unknown engine {}", other)),
     };
     if req.headers.is_empty() {
@@ -218,6 +244,7 @@ pub fn parse(engine: &str, html: &str) -> Vec<SearchResult> {
 
 pub async fn search(
     fetcher: &dyn HttpFetcher,
+    endpoints: &Endpoints,
     query: &str,
     limit: usize,
     engine: Option<&str>,
@@ -229,7 +256,7 @@ pub async fn search(
     let mut attempts = Vec::new();
     for eng in order {
         let t0 = std::time::Instant::now();
-        match fetch_engine(fetcher, eng, query).await {
+        match fetch_engine(fetcher, endpoints, eng, query).await {
             Ok(html) => {
                 let mut results = parse(eng, &html);
                 let n = results.len();
@@ -323,14 +350,19 @@ pub fn merge(per_engine: &[(String, Vec<SearchResult>)], limit: usize) -> Vec<Se
 ///
 /// Slower than `search` by one round of requests and better by however much the engines disagree,
 /// which on anything narrow is a lot.
-pub async fn search_all(fetcher: &dyn HttpFetcher, query: &str, limit: usize) -> SearchOutcome {
+pub async fn search_all(
+    fetcher: &dyn HttpFetcher,
+    endpoints: &Endpoints,
+    query: &str,
+    limit: usize,
+) -> SearchOutcome {
     let mut attempts = Vec::new();
     let mut per_engine: Vec<(String, Vec<SearchResult>)> = Vec::new();
     // Sequential rather than parallel: these are the same four hosts every time, and four
     // simultaneous searches from one address is a shape none of them see from a person.
     for eng in ENGINES {
         let t0 = std::time::Instant::now();
-        match fetch_engine(fetcher, eng, query).await {
+        match fetch_engine(fetcher, endpoints, eng, query).await {
             Ok(html) => {
                 let results = parse(eng, &html);
                 attempts.push(format!(
