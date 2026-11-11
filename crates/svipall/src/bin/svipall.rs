@@ -584,6 +584,7 @@ const SWITCHES: &[&str] = &[
     "check",
     "install",
     "bodies",
+    "fresh",
 ];
 
 /// What one command accepts. The only list of flags there is: the parser checks against it, and
