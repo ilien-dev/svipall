@@ -2061,11 +2061,20 @@ impl SvipallServer {
                     let (r, k) = classify_view(200, h, &view);
                     r.is_none() || (k == WallKind::Empty && !parts.text.trim().is_empty())
                 };
-                (delivered, view.text.is_empty())
+                // Enough text to be the page rather than a server's error stub. Measured on a
+                // managed challenge: the last tier came back with a 27-character "403 Forbidden"
+                // document, nothing in it classified as a wall, the status was rewritten to 200 and
+                // the fetch reported success.
+                let substantive = parts.text.trim().chars().count() >= 200;
+                (delivered, view.text.is_empty(), substantive)
             };
             // A challenge page that already resolved itself leaves real content behind a 403, and
-            // the status Chromium reports may belong to a sub-resource: rendered text wins.
-            if status >= 400 && look(&html, &headers, &cookies).0 {
+            // the status Chromium reports may belong to a sub-resource: rendered text wins — when
+            // there is text to win with.
+            if status >= 400 && {
+                let l = look(&html, &headers, &cookies);
+                l.0 && l.2
+            } {
                 status = 200;
             }
             if tier == BrowserTier::Warm {
@@ -2186,7 +2195,8 @@ impl SvipallServer {
                         headers = w.headers().to_vec();
                     }
                     cookies = self.pool.cookie_names(&page).await;
-                    if look(&html, &headers, &cookies).0 {
+                    let l = look(&html, &headers, &cookies);
+                    if l.0 && l.2 {
                         status = 200;
                     }
                 };
