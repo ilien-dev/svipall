@@ -206,8 +206,15 @@ fn ok(v: Value) -> Result<CallToolResult, McpError> {
     Ok(CallToolResult::success(vec![Content::text(v.to_string())]))
 }
 
+/// The whole chain, every tool: `{:#}` on an error with context is "launching browser: <the
+/// browser's own last words>", where `to_string` was "launching browser" and nothing to act on.
 fn err<E: std::fmt::Display>(e: E) -> McpError {
-    McpError::internal_error(e.to_string(), None)
+    McpError::internal_error(format!("{e:#}"), None)
+}
+
+/// An error as a tool result carries it: the whole chain, on one line.
+fn chain(e: &anyhow::Error) -> String {
+    format!("{e:#}")
 }
 
 /// How much this installation should trust HTTP/3 with one domain.
@@ -3787,6 +3794,9 @@ impl SvipallServer {
     /// 90000ms" is the answer, not the absence of one — and an infallible signature is what stops a
     /// later caller turning it into a 500.
     pub async fn act_json(&self, p: WebActParams) -> Value {
+        if let Err(why) = crate::tools::check_actions(&p.actions) {
+            return json!({"url": p.url, "status": 0, "error": why});
+        }
         let tier =
             BrowserTier::parse(p.tier.as_deref().unwrap_or("real")).unwrap_or(BrowserTier::Real);
         let domain = domain_from_url(&p.url);
@@ -3804,7 +3814,7 @@ impl SvipallServer {
         );
         match tokio::time::timeout(timeout, fut).await {
             Ok(Ok(v)) => v,
-            Ok(Err(e)) => json!({"url": p.url, "status": 0, "error": e.to_string()}),
+            Ok(Err(e)) => json!({"url": p.url, "status": 0, "error": chain(&e)}),
             Err(_) => {
                 json!({"url": p.url, "status": 0, "error": format!("web_act timed out after {}ms", timeout.as_millis())})
             }
@@ -5230,7 +5240,7 @@ impl SvipallServer {
             // the same way `web_act` treats a failed interaction. There is no picture, so nothing
             // is inline.
             Ok(Err(e)) => Ok(ShotOutcome {
-                value: json!({"url": p.url, "status": 0, "error": e.to_string()}),
+                value: json!({"url": p.url, "status": 0, "error": chain(&e)}),
                 png: Vec::new(),
                 inline: false,
             }),
@@ -6121,16 +6131,21 @@ impl SvipallServer {
         &self,
         params: Parameters<BrowserOpenParams>,
     ) -> Result<CallToolResult, McpError> {
-        let p = params.0;
+        ok(self.browser_open_json(params.0).await)
+    }
+
+    /// `browser_open` without the protocol wrapper, for tests. A failure is a report, not an
+    /// error: the session that could not open says why, cause and all.
+    pub async fn browser_open_json(&self, p: BrowserOpenParams) -> Value {
         match self
             .pool
             .open_session(p.profile.as_deref(), p.proxy, p.visible.unwrap_or(false))
             .await
         {
-            Ok(s) => ok(
-                json!({"session_id": s.id, "tier": "real", "profile_dir": s.profile_dir.to_string_lossy(), "note": "Use browser_do with this session_id; browser_close when done."}),
-            ),
-            Err(e) => ok(json!({"error": e.to_string()})),
+            Ok(s) => {
+                json!({"session_id": s.id, "tier": "real", "profile_dir": s.profile_dir.to_string_lossy(), "note": "Use browser_do with this session_id; browser_close when done."})
+            }
+            Err(e) => json!({"error": chain(&e)}),
         }
     }
 
@@ -6142,11 +6157,27 @@ impl SvipallServer {
         &self,
         params: Parameters<BrowserDoParams>,
     ) -> Result<CallToolResult, McpError> {
-        let p = params.0;
+        ok(self.browser_do_json(params.0).await)
+    }
+
+    /// `browser_do` without the protocol wrapper, for tests.
+    ///
+    /// The actions are the work; the page read afterwards is a courtesy. So a read that fails —
+    /// a page mid-navigation, a target that went away — still hands back every action's result,
+    /// with the reason the page could not be read beside them. It used to answer
+    /// `{"error":"page content"}` and nothing else, which is a step that may well have submitted a
+    /// form reported as though nothing had happened.
+    pub async fn browser_do_json(&self, p: BrowserDoParams) -> Value {
         let Some(s) = self.pool.session(&p.session_id).await else {
-            return ok(json!({"error": crate::steer::unknown_session(&p.session_id)}));
+            return json!({"error": crate::steer::unknown_session(&p.session_id)});
         };
+        if let Err(why) = crate::tools::check_actions(p.actions.as_deref().unwrap_or(&[])) {
+            return json!({"session_id": p.session_id, "error": why});
+        }
         let timeout = Duration::from_millis(p.timeout.unwrap_or(90_000));
+        // Filled as soon as the actions have run, so a deadline that lands on the page read still
+        // has them to report.
+        let ran: StdMutex<Option<(Option<u16>, Vec<Value>)>> = StdMutex::new(None);
         let fut = async {
             let status = match &p.url {
                 Some(u) => {
@@ -6160,14 +6191,31 @@ impl SvipallServer {
                 .pool
                 .run_actions(&s.page, p.actions.as_deref().unwrap_or(&[]))
                 .await;
+            if let Ok(mut r) = ran.lock() {
+                *r = Some((status, results.clone()));
+            }
             let (html, final_url) = self.pool.content(&s.page).await?;
             Ok::<_, anyhow::Error>((status, results, html, final_url))
         };
+        let partial = |error: String| -> Value {
+            let mut out = json!({"session_id": p.session_id});
+            match ran.lock().ok().and_then(|mut r| r.take()) {
+                Some((status, results)) => {
+                    out["status"] = json!(status);
+                    out["actions"] = json!(results);
+                    out["content_error"] = json!(error);
+                }
+                None => out["error"] = json!(error),
+            }
+            out
+        };
         match tokio::time::timeout(timeout, fut).await {
+            Ok(Err(e)) => partial(chain(&e)),
+            Err(_) => partial("browser_do timed out".into()),
             Ok(Ok((status, results, html, final_url))) => {
                 let fp = WebFetchParams {
                     url: final_url.clone(),
-                    query: p.query,
+                    query: p.query.clone(),
                     ..Default::default()
                 };
                 let kind = p.extraction.as_deref().unwrap_or("markdown");
@@ -6182,12 +6230,8 @@ impl SvipallServer {
                 let parts = extraction::parse_page(&html, &wants);
                 let content =
                     Self::render_content(&parts, &html, kind, "text/html", fp.query.as_ref());
-                ok(
-                    json!({"session_id": p.session_id, "url": final_url, "status": status, "title": parts.title, "actions": results, "chars": content.chars().count(), "content": content}),
-                )
+                json!({"session_id": p.session_id, "url": final_url, "status": status, "title": parts.title, "actions": results, "chars": content.chars().count(), "content": content})
             }
-            Ok(Err(e)) => ok(json!({"session_id": p.session_id, "error": e.to_string()})),
-            Err(_) => ok(json!({"session_id": p.session_id, "error": "browser_do timed out"})),
         }
     }
 
@@ -6643,7 +6687,7 @@ impl SvipallServer {
                 json!({"profile": name, "path": dir.to_string_lossy(), "closed_by_user": closed,
                 "note": if p.profile.is_some() { "Pass profile=NAME to web_fetch / web_act / browser_open to reuse these cookies." } else { "Saved in the domain auto profile: real and warm tiers use it automatically." }}),
             ),
-            Err(e) => ok(json!({"error": e.to_string()})),
+            Err(e) => ok(json!({"error": chain(&e)})),
         }
     }
 
