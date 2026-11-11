@@ -86,12 +86,18 @@ fn the_whole_tool_list_fits_a_budget() {
     // 38 953 with `web_video`, which took that room (944 chars: seven parameters, the description
     // trimmed to what routes a video page away from web_fetch). The cap moves by the same 591 of
     // room it had before.
+    //
+    // 40 280 with `web_probe` (469 chars: the existence check agents were running curl for) and
+    // six parameters (728): `json_path` on web_fetch and web_fetch_many, which replaces the
+    // out_file-then-script round trip of 911 fetches in a month, and the output budget of
+    // web_fetch_many, whose absence got 58 answers refused as too large. The cap moves by the
+    // same 1 197, keeping the room it had.
     let total: usize = tools()
         .iter()
         .map(|t| t.name.len() + description(t).len() + schema_len(t))
         .sum();
     assert!(
-        total <= 39_550,
+        total <= 40_750,
         "the tool list is {total} chars; the model reads all of it on every request"
     );
 }
