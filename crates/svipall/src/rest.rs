@@ -268,12 +268,13 @@ fn host_is_loopback(host: &str) -> bool {
 /// a router file to see.
 fn tool<P, F>(f: fn(SvipallServer, P) -> F) -> MethodRouter<Rest>
 where
-    P: serde::de::DeserializeOwned + Send + 'static,
+    P: serde::de::DeserializeOwned + schemars::JsonSchema + Send + 'static,
     F: std::future::Future<Output = anyhow::Result<Value>> + Send + 'static,
 {
     post(
-        move |State(rest): State<Rest>, body: Result<Json<P>, JsonRejection>| async move {
-            let Json(p) = body.map_err(RestError::bad_request)?;
+        move |State(rest): State<Rest>, body: Result<Json<Value>, JsonRejection>| async move {
+            let Json(body) = body.map_err(RestError::bad_request)?;
+            let p: P = read_params::<P, P>(body, &[])?;
             let active = rest.server.active().await.map_err(RestError::internal)?;
             f(active.as_ref().clone(), p)
                 .await
@@ -281,6 +282,42 @@ where
                 .map_err(RestError::internal)
         },
     )
+}
+
+/// A request body read as the tool's own parameters, the way `call_tool` reads them over MCP.
+///
+/// `S` is the struct whose schema says what the keys mean and `T` what the body becomes; they
+/// differ only for a route that wraps the tool's parameters in a transport field of its own
+/// (`async` on `/v1/crawl`), which `extra` names. A number or a boolean sent as a string is read
+/// as what it says, and a key the tool does not have is a 400 that names it: the call is not run
+/// without a limit its caller believes it set.
+fn read_params<S, T>(body: Value, extra: &[&str]) -> Result<T, RestError>
+where
+    S: schemars::JsonSchema + 'static,
+    T: serde::de::DeserializeOwned,
+{
+    let bad = |message: String| RestError {
+        status: StatusCode::BAD_REQUEST,
+        message,
+    };
+    let Value::Object(mut args) = body else {
+        return Err(bad(
+            "the body must be a JSON object of the tool's parameters".into(),
+        ));
+    };
+    let schema = rmcp::handler::server::tool::cached_schema_for_type::<S>();
+    let mut unknown = crate::params::normalize(&schema, &mut args);
+    unknown.retain(|k| !extra.contains(&k.as_str()));
+    if !unknown.is_empty() {
+        let mut known = crate::params::declared(&schema);
+        known.extend(extra.iter().map(|e| e.to_string()));
+        return Err(bad(crate::params::unknown_message(
+            "this endpoint",
+            &unknown,
+            &known,
+        )));
+    }
+    serde_json::from_value(Value::Object(args)).map_err(|e| bad(e.to_string()))
 }
 
 /// The REST API, ready to be served. Binding happens at the call site, the way `run_dashboard`
@@ -410,8 +447,9 @@ pub fn router(
         .route(
             "/v1/status",
             get(status_get).post(
-                |State(rest): State<Rest>, body: Result<Json<WebStatusParams>, JsonRejection>| async move {
-                    let Json(p) = body.map_err(RestError::bad_request)?;
+                |State(rest): State<Rest>, body: Result<Json<Value>, JsonRejection>| async move {
+                    let Json(body) = body.map_err(RestError::bad_request)?;
+                    let p: WebStatusParams = read_params::<WebStatusParams, _>(body, &[])?;
                     rest.server
                         .active().await.map_err(RestError::internal)?
                         .status_json(p)
@@ -468,9 +506,10 @@ struct CrawlRequest {
 /// `POST /v1/crawl` — synchronously by default, as a job when asked.
 async fn crawl(
     State(rest): State<Rest>,
-    body: Result<Json<CrawlRequest>, JsonRejection>,
+    body: Result<Json<Value>, JsonRejection>,
 ) -> Result<axum::response::Response, RestError> {
-    let Json(req) = body.map_err(RestError::bad_request)?;
+    let Json(body) = body.map_err(RestError::bad_request)?;
+    let req: CrawlRequest = read_params::<WebCrawlParams, _>(body, &["async"])?;
     if !req.is_async {
         return Ok(Json(
             rest.server

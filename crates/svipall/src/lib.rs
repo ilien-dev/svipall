@@ -20,6 +20,8 @@ pub mod jobs;
 pub mod model_install;
 pub mod model_source;
 pub mod ocr;
+/// Tool arguments read against the tool's schema: lenient types, unknown keys named.
+pub mod params;
 pub mod profiles;
 /// How a long job says how it is going, to whoever is listening.
 pub mod progress;

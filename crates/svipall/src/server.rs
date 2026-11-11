@@ -7292,9 +7292,27 @@ pub fn slim_schema(schema: &mut serde_json::Map<String, Value>) {
 impl ServerHandler for SvipallServer {
     async fn call_tool(
         &self,
-        request: CallToolRequestParam,
+        mut request: CallToolRequestParam,
         context: rmcp::service::RequestContext<rmcp::RoleServer>,
     ) -> Result<CallToolResult, McpError> {
+        // Read the arguments for what they mean before serde judges them, and refuse a key the
+        // tool does not have: a call that ran without the limit its caller set is worse than one
+        // that did not run. See `params`.
+        if let Some(route) = self.tool_router.map.get(request.name.as_ref()) {
+            let schema = route.attr.input_schema.clone();
+            let args = request.arguments.get_or_insert_with(Default::default);
+            let unknown = crate::params::normalize(&schema, args);
+            if !unknown.is_empty() {
+                return Err(McpError::invalid_params(
+                    crate::params::unknown_message(
+                        &request.name,
+                        &unknown,
+                        &crate::params::declared(&schema),
+                    ),
+                    None,
+                ));
+            }
+        }
         let mut active = self.active().await.map_err(err)?;
         // Sessions opened before a policy change finish with their original browser.
         if let Some(id) = request
