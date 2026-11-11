@@ -151,7 +151,7 @@ pub fn problems(f: &Facts) -> Vec<Problem> {
                     out.push(problem(
                         "stale_browser",
                         &format!(
-                            "The browser in use is Chrome {in_use}, and this machine knows of \
+                            "The browser in use is Chrome {in_use}, and the stable channel is at \
                              {best}; a user agent naming a Chrome that old is itself a signal."
                         ),
                         "Run `svipall browser update`.",
@@ -222,9 +222,8 @@ pub fn problems(f: &Facts) -> Vec<Problem> {
     out
 }
 
-/// How many majors behind the newest known build counts as stale. Same number `browser_advice`
-/// uses, and for the same reason.
-const STALE_MAJORS: u16 = 2;
+/// How many majors behind the stable channel counts as stale: the number the update acts on.
+const STALE_MAJORS: u16 = crate::provision::STALE_MAJORS;
 
 /// The whole report, as the one JSON object `svipall doctor` prints.
 pub fn report_from(f: &Facts) -> Value {
@@ -300,12 +299,11 @@ pub fn collect(cfg: &Config) -> Facts {
     let browser_major = browsers
         .first()
         .and_then(|p| crate::browser::browser_version(p));
-    // Any other browser on this machine is evidence of what the stable channel is up to. The one
-    // in use is included: a single browser can never be stale relative to itself.
-    let newest_known_major = browsers
-        .iter()
-        .filter_map(|p| crate::browser::browser_version(p))
-        .max();
+    // The stable channel as the provisioner last read it, and nothing else: another browser on
+    // this machine says nothing about what is current, and comparing against one called a current
+    // managed build stale and a stale one current.
+    let newest_known_major =
+        crate::provision::known_stable_major(svipall_core::cache::Store::open().ok().as_ref());
     Facts {
         version: env!("CARGO_PKG_VERSION").into(),
         target: env!("SVIPALL_TARGET").into(),

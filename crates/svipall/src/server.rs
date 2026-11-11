@@ -246,8 +246,15 @@ fn ok(v: Value) -> Result<CallToolResult, McpError> {
     Ok(CallToolResult::success(vec![Content::text(v.to_string())]))
 }
 
+/// The whole chain, every tool: `{:#}` on an error with context is "launching browser: <the
+/// browser's own last words>", where `to_string` was "launching browser" and nothing to act on.
 fn err<E: std::fmt::Display>(e: E) -> McpError {
-    McpError::internal_error(e.to_string(), None)
+    McpError::internal_error(format!("{e:#}"), None)
+}
+
+/// An error as a tool result carries it: the whole chain, on one line.
+fn chain(e: &anyhow::Error) -> String {
+    format!("{e:#}")
 }
 
 /// How much this installation should trust HTTP/3 with one domain.
@@ -361,6 +368,34 @@ fn exc_attempt(route: &str, e: &anyhow::Error, ms: u128) -> String {
     let chain = format!("{e:#}");
     let one_line = chain.split_whitespace().collect::<Vec<_>>().join(" ");
     format!("{route}: EXC {one_line} ({ms}ms)")
+}
+
+/// What the rendered page offered as a search box.
+enum SearchBox {
+    /// A form that is addressable by URL: the URL for the query, how it was found, and details.
+    Url(String, &'static str, Value),
+    /// A box that submits by POST or by script: the report to hand back as is.
+    Unusable(Value),
+    /// Nothing, with what was looked at.
+    None(Vec<String>),
+}
+
+/// Evaluate `js` until it returns something other than null, or `budget` runs out. A zero budget
+/// asks once.
+async fn poll_js(page: &svipall_cdp::page::Page, js: &'static str, budget: Duration) -> Value {
+    let deadline = Instant::now() + budget;
+    loop {
+        let v = page
+            .evaluate(js)
+            .await
+            .ok()
+            .and_then(|r| r.value().cloned())
+            .unwrap_or(Value::Null);
+        if !v.is_null() || Instant::now() >= deadline {
+            return v;
+        }
+        tokio::time::sleep(Duration::from_millis(400)).await;
+    }
 }
 
 /// Mark `exit` unreachable and say so, naming it without its credentials.
@@ -924,9 +959,6 @@ pub(crate) fn local_causes(note: &str, injection: Option<&str>, browser: Option<
     out
 }
 
-/// Store key for the newest stable Chrome major `browser_setup` has seen.
-const LATEST_STABLE_KEY: &str = "browser/latest_stable_major";
-
 fn no_browser_hint() -> String {
     let platform = crate::provision::platform().unwrap_or("this platform");
     format!(
@@ -1013,6 +1045,13 @@ impl SvipallServer {
                 None
             }
         });
+        // Said once per process. Two pools are built here (the native one too) and a live
+        // configuration builds a server per change, so a warning issued per pool came out twice on
+        // every CLI command and again on every reload — and advice repeated is advice skimmed.
+        if let Some(advice) = pool.advice(crate::provision::known_stable_major(store.as_deref())) {
+            static SAID: std::sync::Once = std::sync::Once::new();
+            SAID.call_once(|| tracing::warn!("{advice}"));
+        }
         let engine = Engine::resolve(&cfg.http_engine);
         // The http tier can wear Firefox while the browser tiers stay Chrome. A domain that never
         // needs a browser then presents a Firefox that is Firefox in TLS, headers and UA together.
@@ -1625,19 +1664,11 @@ impl SvipallServer {
     /// that phones a release channel to answer "how are you" has a network dependency it does not
     /// need. `browser_setup` writes it whenever it looks the channel up for its own reasons.
     pub(crate) fn latest_stable_major(&self) -> Option<u16> {
-        self.store
-            .as_ref()?
-            .kv_get(LATEST_STABLE_KEY)
-            .and_then(|v| v.trim().parse().ok())
+        crate::provision::known_stable_major(self.store.as_deref())
     }
 
     fn remember_latest_stable(&self, version: &str) {
-        if let (Some(store), Some(major)) = (
-            self.store.as_deref(),
-            crate::browser::major_of_public(version),
-        ) {
-            let _ = store.kv_set(LATEST_STABLE_KEY, &major.to_string());
-        }
+        crate::provision::remember_stable(self.store.as_deref(), version);
     }
 
     fn routes(&self) -> HashMap<String, String> {
@@ -2418,11 +2449,19 @@ impl SvipallServer {
                     let (r, k) = classify_view(200, h, &view);
                     r.is_none() || (k == WallKind::Empty && !parts.text.trim().is_empty())
                 };
-                (delivered, view.text.is_empty())
+                // Enough text to be the page rather than a server's error stub. Without it a
+                // 403 whose body is a bare "403 Forbidden" had its status rewritten to 200, because
+                // nothing in that body reads as a wall, and the fetch reported success.
+                let substantive = parts.text.trim().chars().count() >= 200;
+                (delivered, view.text.is_empty(), substantive)
             };
             // A challenge page that already resolved itself leaves real content behind a 403, and
-            // the status Chromium reports may belong to a sub-resource: rendered text wins.
-            if status >= 400 && look(&html, &headers, &cookies).0 {
+            // the status Chromium reports may belong to a sub-resource: rendered text wins — when
+            // there is text to win with.
+            if status >= 400 && {
+                let l = look(&html, &headers, &cookies);
+                l.0 && l.2
+            } {
                 status = 200;
             }
             if tier == BrowserTier::Warm {
@@ -2543,7 +2582,8 @@ impl SvipallServer {
                         headers = w.headers().to_vec();
                     }
                     cookies = self.pool.cookie_names(&page).await;
-                    if look(&html, &headers, &cookies).0 {
+                    let l = look(&html, &headers, &cookies);
+                    if l.0 && l.2 {
                         status = 200;
                     }
                 };
@@ -4660,6 +4700,9 @@ impl SvipallServer {
     /// 90000ms" is the answer, not the absence of one — and an infallible signature is what stops a
     /// later caller turning it into a 500.
     pub async fn act_json(&self, p: WebActParams) -> Value {
+        if let Err(why) = crate::tools::check_actions(&p.actions) {
+            return json!({"url": p.url, "status": 0, "error": why});
+        }
         let tier =
             BrowserTier::parse(p.tier.as_deref().unwrap_or("real")).unwrap_or(BrowserTier::Real);
         let domain = domain_from_url(&p.url);
@@ -4677,7 +4720,7 @@ impl SvipallServer {
         );
         match tokio::time::timeout(timeout, fut).await {
             Ok(Ok(v)) => v,
-            Ok(Err(e)) => json!({"url": p.url, "status": 0, "error": e.to_string()}),
+            Ok(Err(e)) => json!({"url": p.url, "status": 0, "error": chain(&e)}),
             Err(_) => {
                 json!({"url": p.url, "status": 0, "error": format!("web_act timed out after {}ms", timeout.as_millis())})
             }
@@ -5560,85 +5603,137 @@ impl SvipallServer {
     }
 
     pub async fn site_search_json(&self, p: WebSiteSearchParams) -> anyhow::Result<Value> {
-        use svipall_core::forms::{SearchForm, FIND_SEARCH_FORM_JS};
+        use svipall_core::forms;
         if !(p.url.starts_with("http://") || p.url.starts_with("https://")) {
             anyhow::bail!(crate::steer::needs_http_url("web_site_search", &p.url));
         }
         if let Err(why) = self.origin_policy().check(&p.url) {
             anyhow::bail!("{why}");
         }
-        let opts = PageOpts {
-            mobile: false,
-            tier: BrowserTier::Stealth,
-            profile_dir: None,
-            proxy: self.exit_for(&domain_from_url(&p.url)),
-            visible: false,
-            identity_seed: identity_seed_for(None, &p.url, None),
+        // What was tried, in order, so a search that finds nothing says where it looked.
+        let mut tried: Vec<String> = Vec::new();
+        let timeout = p.timeout;
+        // An ordinary fetch: its content when it delivered, nothing when it did not, and an error
+        // when nothing was requested at all — a cooldown or the visit limit — because every later
+        // probe would meet the same refusal and report "no page" for a page never asked for.
+        let read = |url: String| async move {
+            let r = self
+                .fetch_json(WebFetchParams {
+                    url,
+                    extraction: Some("html".into()),
+                    max_tier: Some("http".into()),
+                    timeout,
+                    ..Default::default()
+                })
+                .await;
+            if let Some(gate) = never_requested(&r.value) {
+                let note = r.value["note"].as_str().unwrap_or_default();
+                return Err(format!("{gate}: {note}"));
+            }
+            let status = r.value["status"].as_u64().unwrap_or(0);
+            if !(200..300).contains(&status) || r.value["blocked_reason"].is_string() {
+                return Ok(None);
+            }
+            Ok(r.value["content"].as_str().map(str::to_string))
         };
-        self.charge_visit(&p.url, opts.tier, opts.proxy.as_deref())
-            .await?;
-        let (_pooled, page) = self.pool.page(&opts).await?;
-        let found = async {
-            self.pool.navigate(&page, &p.url).await?;
-            let v = page
-                .evaluate(FIND_SEARCH_FORM_JS)
+
+        // 1. The page as the server sends it, for what it declares about its own search.
+        let html = match read(p.url.clone()).await {
+            Ok(h) => h.unwrap_or_default(),
+            Err(why) => anyhow::bail!("nothing was requested: {why}"),
+        };
+        let mut found: Option<(String, &str, Value)> = None;
+        let described = forms::opensearch_links(&html, &p.url);
+        if described.is_empty() {
+            tried.push("an OpenSearch <link rel=\"search\"> on the page: none".into());
+        }
+        for desc in described {
+            let template = read(desc.clone())
                 .await
                 .ok()
-                .and_then(|r| r.value().cloned())
-                .unwrap_or(Value::Null);
-            Ok::<_, anyhow::Error>(v)
+                .flatten()
+                .and_then(|xml| forms::opensearch_template(&xml, &desc));
+            match template.and_then(|t| forms::fill_template(&t, &p.query)) {
+                Some(url) => {
+                    found = Some((url, "opensearch", json!({"description": desc})));
+                    break;
+                }
+                None => tried.push(format!(
+                    "the OpenSearch description at {desc}: no usable results template"
+                )),
+            }
         }
-        .await;
-        self.pool.close_page(page).await;
-        let found = found?;
-        if found.is_null() {
+
+        // 2. The rendered page: its search box, or the control that opens one.
+        let mut form_note: Option<Value> = None;
+        if found.is_none() {
+            if !self.pool.available() || self.cfg.max_tier == "http" {
+                tried.push("the rendered page: skipped, no browser tier available".into());
+            } else {
+                match self.find_search_box(&p.url, &p.query).await {
+                    Ok(SearchBox::Url(url, how, detail)) => found = Some((url, how, detail)),
+                    Ok(SearchBox::Unusable(v)) => form_note = Some(v),
+                    Ok(SearchBox::None(steps)) => tried.extend(steps),
+                    Err(e) => tried.push(format!("the rendered page: {}", chain(&e))),
+                }
+            }
+        }
+
+        // 3. The query endpoints of the common publishing platforms, by the shape of the site,
+        // each believed only once it has been fetched and has answered the query.
+        if found.is_none() {
+            for e in forms::endpoints(&p.url, &html, &p.query) {
+                match read(e.url.clone()).await {
+                    Ok(Some(text)) if forms::answers_query(&text, &html, &p.query) => {
+                        found = Some((e.url.clone(), "endpoint", json!({"why": e.why})));
+                        break;
+                    }
+                    Ok(Some(_)) => tried.push(format!(
+                        "{} ({}): answered, but not with this query",
+                        e.url, e.why
+                    )),
+                    Ok(None) => tried.push(format!("{} ({}): no page", e.url, e.why)),
+                    Err(why) => {
+                        tried.push(format!("{}: stopped, nothing was requested ({why})", e.url));
+                        break;
+                    }
+                }
+            }
+        }
+
+        let Some((pattern, source, detail)) = found else {
+            if let Some(mut v) = form_note {
+                v["tried"] = json!(tried);
+                return Ok(v);
+            }
             return Ok(json!({
                 "url": p.url,
                 "found": false,
-                "note": "no search box on this page. Try the home page, or web_map to see whether \
-                         the site publishes a sitemap instead.",
-            }));
-        }
-        let form = SearchForm {
-            action: found["action"].as_str().unwrap_or_default().to_string(),
-            method: found["method"].as_str().unwrap_or_default().to_string(),
-            field: found["field"].as_str().unwrap_or_default().to_string(),
-            hidden: found["hidden"]
-                .as_array()
-                .map(|rows| {
-                    rows.iter()
-                        .filter_map(|r| {
-                            Some((
-                                r.get(0)?.as_str()?.to_string(),
-                                r.get(1)?.as_str().unwrap_or_default().to_string(),
-                            ))
-                        })
-                        .collect()
-                })
-                .unwrap_or_default(),
-        };
-        let Some(pattern) = svipall_core::forms::url_for(&p.url, &form, &p.query) else {
-            // A POST form, or one with no named field. Saying so is the useful answer: turning it
-            // into a GET would return the home page with a 200, which reads as success.
-            return Ok(json!({
-                "url": p.url,
-                "found": true,
-                "usable_as_url": false,
-                "method": form.method,
-                "field": form.field,
-                "note": "the search box submits by POST, so there is no URL for it. Use web_act to \
-                         type into it and press Enter.",
+                "tried": tried,
+                "note": format!(
+                    "no search found on this site. Tried: {}. Try the home page, or web_map to \
+                     see whether the site publishes a sitemap instead.",
+                    tried.join("; ")
+                ),
             }));
         };
         let mut out = json!({
             "url": p.url,
             "found": true,
             "usable_as_url": true,
-            "field": form.field,
+            "source": source,
             "results_url": pattern,
-            "note": "Every later query is this URL with the field changed — an ordinary web_fetch, \
+            "note": "Every later query is this URL with the query changed — an ordinary web_fetch, \
                      no browser needed.",
         });
+        if let (Some(obj), Some(extra)) = (out.as_object_mut(), detail.as_object()) {
+            for (k, v) in extra {
+                obj.insert(k.clone(), v.clone());
+            }
+        }
+        if !tried.is_empty() {
+            out["tried"] = json!(tried);
+        }
         if p.fetch.unwrap_or(true) {
             let results = self
                 .fetch_json(WebFetchParams {
@@ -5652,6 +5747,111 @@ impl SvipallServer {
                 .insert("results".into(), results.value);
         }
         Ok(out)
+    }
+
+    /// The search box on the rendered page, opened first if it sits behind a control.
+    ///
+    /// Waits for the page to settle and polls, because a box drawn by a script arrives after the
+    /// load event; walks open shadow roots; and when there is no box, goes to the control that
+    /// opens one the way a person does — pointer moved there and pressed through `behavior` — then
+    /// looks again.
+    async fn find_search_box(&self, url: &str, query: &str) -> anyhow::Result<SearchBox> {
+        use svipall_core::forms::{SearchForm, FIND_SEARCH_FORM_JS, FIND_SEARCH_TOGGLE_JS};
+        let opts = PageOpts {
+            mobile: false,
+            tier: BrowserTier::Stealth,
+            profile_dir: None,
+            proxy: self.exit_for(&domain_from_url(url)),
+            visible: false,
+            identity_seed: identity_seed_for(None, url, None),
+        };
+        self.charge_visit(url, opts.tier, opts.proxy.as_deref())
+            .await?;
+        let (_pooled, page) = self.pool.page(&opts).await?;
+        let mut steps: Vec<String> = Vec::new();
+        let found = async {
+            self.pool.navigate(&page, url).await?;
+            let mut v = poll_js(&page, FIND_SEARCH_FORM_JS, Duration::from_secs(6)).await;
+            if v.is_null() {
+                steps.push(
+                    "a search box on the rendered page, including open shadow roots: none".into(),
+                );
+                let toggle = poll_js(&page, FIND_SEARCH_TOGGLE_JS, Duration::ZERO).await;
+                let rect = &toggle["rect"];
+                if let (Some(x), Some(y), Some(w), Some(h)) = (
+                    rect["x"].as_f64(),
+                    rect["y"].as_f64(),
+                    rect["w"].as_f64(),
+                    rect["h"].as_f64(),
+                ) {
+                    let label = toggle["label"].as_str().unwrap_or("").to_string();
+                    let seed = self.pool.identity().noise_seed;
+                    let (px, py) = crate::behavior::aim(x, y, w, h, seed);
+                    crate::behavior::Cursor::at_page(&page)
+                        .click_at(&page, px, py, seed)
+                        .await?;
+                    self.pool.settle(&page, Duration::from_millis(600)).await;
+                    v = poll_js(&page, FIND_SEARCH_FORM_JS, Duration::from_secs(4)).await;
+                    if v.is_null() {
+                        steps.push(format!(
+                            "the control that looks like it opens search ({label}): clicked, no box appeared"
+                        ));
+                    } else {
+                        v["opened_by"] = json!(label);
+                    }
+                } else {
+                    steps.push("a control that opens a search box: none".into());
+                }
+            }
+            let at = page.url().await.ok().flatten().unwrap_or_else(|| url.to_string());
+            Ok::<_, anyhow::Error>((v, at))
+        }
+        .await;
+        self.pool.close_page(page).await;
+        let (v, at) = found?;
+        if v.is_null() {
+            return Ok(SearchBox::None(steps));
+        }
+        let form = SearchForm {
+            action: v["action"].as_str().unwrap_or_default().to_string(),
+            method: v["method"].as_str().unwrap_or_default().to_string(),
+            field: v["field"].as_str().unwrap_or_default().to_string(),
+            hidden: v["hidden"]
+                .as_array()
+                .map(|rows| {
+                    rows.iter()
+                        .filter_map(|r| {
+                            Some((
+                                r.get(0)?.as_str()?.to_string(),
+                                r.get(1)?.as_str().unwrap_or_default().to_string(),
+                            ))
+                        })
+                        .collect()
+                })
+                .unwrap_or_default(),
+        };
+        let mut detail = json!({"field": form.field});
+        if let Some(by) = v.get("opened_by") {
+            detail["opened_by"] = by.clone();
+        }
+        if v["in_shadow"] == true {
+            detail["in_shadow_root"] = json!(true);
+        }
+        // Resolved against where the page ended up, which is where the browser would submit it.
+        match svipall_core::forms::url_for(&at, &form, query) {
+            Some(pattern) => Ok(SearchBox::Url(pattern, "form", detail)),
+            // A POST form, or one with no named field. Saying so is the useful answer: turning it
+            // into a GET would return the home page with a 200, which reads as success.
+            None => Ok(SearchBox::Unusable(json!({
+                "url": url,
+                "found": true,
+                "usable_as_url": false,
+                "method": form.method,
+                "field": form.field,
+                "note": "the search box submits by POST, or by a script with no named field, so \
+                         there is no URL for it. Use web_act to type into it and press Enter.",
+            }))),
+        }
     }
 
     #[tool(
@@ -6124,7 +6324,7 @@ impl SvipallServer {
             // the same way `web_act` treats a failed interaction. There is no picture, so nothing
             // is inline.
             Ok(Err(e)) => Ok(ShotOutcome {
-                value: json!({"url": p.url, "status": 0, "error": e.to_string()}),
+                value: json!({"url": p.url, "status": 0, "error": chain(&e)}),
                 png: Vec::new(),
                 inline: false,
             }),
@@ -7034,16 +7234,21 @@ impl SvipallServer {
         &self,
         params: Parameters<BrowserOpenParams>,
     ) -> Result<CallToolResult, McpError> {
-        let p = params.0;
+        ok(self.browser_open_json(params.0).await)
+    }
+
+    /// `browser_open` without the protocol wrapper, for tests. A failure is a report, not an
+    /// error: the session that could not open says why, cause and all.
+    pub async fn browser_open_json(&self, p: BrowserOpenParams) -> Value {
         match self
             .pool
             .open_session(p.profile.as_deref(), p.proxy, p.visible.unwrap_or(false))
             .await
         {
-            Ok(s) => ok(
-                json!({"session_id": s.id, "tier": "real", "profile_dir": s.profile_dir.to_string_lossy(), "note": "Use browser_do with this session_id; browser_close when done."}),
-            ),
-            Err(e) => ok(json!({"error": e.to_string()})),
+            Ok(s) => {
+                json!({"session_id": s.id, "tier": "real", "profile_dir": s.profile_dir.to_string_lossy(), "note": "Use browser_do with this session_id; browser_close when done."})
+            }
+            Err(e) => json!({"error": chain(&e)}),
         }
     }
 
@@ -7055,11 +7260,27 @@ impl SvipallServer {
         &self,
         params: Parameters<BrowserDoParams>,
     ) -> Result<CallToolResult, McpError> {
-        let p = params.0;
+        ok(self.browser_do_json(params.0).await)
+    }
+
+    /// `browser_do` without the protocol wrapper, for tests.
+    ///
+    /// The actions are the work; the page read afterwards is a courtesy. So a read that fails —
+    /// a page mid-navigation, a target that went away — still hands back every action's result,
+    /// with the reason the page could not be read beside them. It used to answer
+    /// `{"error":"page content"}` and nothing else, which is a step that may well have submitted a
+    /// form reported as though nothing had happened.
+    pub async fn browser_do_json(&self, p: BrowserDoParams) -> Value {
         let Some(s) = self.pool.session(&p.session_id).await else {
-            return ok(json!({"error": crate::steer::unknown_session(&p.session_id)}));
+            return json!({"error": crate::steer::unknown_session(&p.session_id)});
         };
+        if let Err(why) = crate::tools::check_actions(p.actions.as_deref().unwrap_or(&[])) {
+            return json!({"session_id": p.session_id, "error": why});
+        }
         let timeout = Duration::from_millis(p.timeout.unwrap_or(90_000));
+        // Filled as soon as the actions have run, so a deadline that lands on the page read still
+        // has them to report.
+        let ran: StdMutex<Option<(Option<u16>, Vec<Value>)>> = StdMutex::new(None);
         let fut = async {
             let status = match &p.url {
                 Some(u) => {
@@ -7073,14 +7294,31 @@ impl SvipallServer {
                 .pool
                 .run_actions(&s.page, p.actions.as_deref().unwrap_or(&[]))
                 .await;
+            if let Ok(mut r) = ran.lock() {
+                *r = Some((status, results.clone()));
+            }
             let (html, final_url) = self.pool.content(&s.page).await?;
             Ok::<_, anyhow::Error>((status, results, html, final_url))
         };
+        let partial = |error: String| -> Value {
+            let mut out = json!({"session_id": p.session_id});
+            match ran.lock().ok().and_then(|mut r| r.take()) {
+                Some((status, results)) => {
+                    out["status"] = json!(status);
+                    out["actions"] = json!(results);
+                    out["content_error"] = json!(error);
+                }
+                None => out["error"] = json!(error),
+            }
+            out
+        };
         match tokio::time::timeout(timeout, fut).await {
+            Ok(Err(e)) => partial(chain(&e)),
+            Err(_) => partial("browser_do timed out".into()),
             Ok(Ok((status, results, html, final_url))) => {
                 let fp = WebFetchParams {
                     url: final_url.clone(),
-                    query: p.query,
+                    query: p.query.clone(),
                     ..Default::default()
                 };
                 let kind = p.extraction.as_deref().unwrap_or("markdown");
@@ -7095,12 +7333,8 @@ impl SvipallServer {
                 let parts = extraction::parse_page(&html, &wants);
                 let content =
                     Self::render_content(&parts, &html, kind, "text/html", fp.query.as_ref());
-                ok(
-                    json!({"session_id": p.session_id, "url": final_url, "status": status, "title": parts.title, "actions": results, "chars": content.chars().count(), "content": content}),
-                )
+                json!({"session_id": p.session_id, "url": final_url, "status": status, "title": parts.title, "actions": results, "chars": content.chars().count(), "content": content})
             }
-            Ok(Err(e)) => ok(json!({"session_id": p.session_id, "error": e.to_string()})),
-            Err(_) => ok(json!({"session_id": p.session_id, "error": "browser_do timed out"})),
         }
     }
 
@@ -7318,7 +7552,7 @@ impl SvipallServer {
     }
 
     #[tool(
-        description = "List a site's URLs without fetching its pages: robots.txt, sitemaps (nested indexes and .gz), RSS/Atom feeds and homepage links. Use before web_crawl to decide what is worth fetching, or to find the page for a topic: a few hundred tokens instead of the thousands a crawl costs. Returns `urls` with `sources_used`, `sitemaps` and `feeds`; read the ones that matter with web_fetch_many.",
+        description = "List a site's URLs without fetching its pages: robots.txt, sitemaps (nested indexes and .gz), llms.txt, RSS/Atom feeds and homepage links. Use before web_crawl to decide what is worth fetching, or to find the page for a topic: a few hundred tokens instead of the thousands a crawl costs. Returns `urls` with `sources_used`, `sitemaps` and `feeds`; read the ones that matter with web_fetch_many.",
         annotations(read_only_hint = true, open_world_hint = true)
     )]
     async fn web_map(&self, params: Parameters<WebMapParams>) -> Result<CallToolResult, McpError> {
@@ -7329,7 +7563,7 @@ impl SvipallServer {
     pub async fn map_json(&self, p: WebMapParams) -> anyhow::Result<Value> {
         let limit = p.limit.unwrap_or(1000).min(50_000);
         let sources: Vec<String> = p.sources.unwrap_or_else(|| {
-            ["robots", "sitemap", "feeds", "links"]
+            ["robots", "sitemap", "llms", "feeds", "links"]
                 .map(String::from)
                 .to_vec()
         });
@@ -7341,13 +7575,17 @@ impl SvipallServer {
             .ok_or_else(|| anyhow::anyhow!(crate::steer::needs_http_url("web_map", &p.url)))?;
         // With its port: a site on `:8080` has its robots.txt and feeds there too.
         let origin = base.origin().ascii_serialization();
-        let mut used: Vec<&str> = Vec::new();
         let mut urls: Vec<Value> = Vec::new();
         let mut seen: HashSet<String> = HashSet::new();
         let mut sitemaps: Vec<String> = Vec::new();
         let mut feeds: Vec<String> = Vec::new();
         let mut robots_info = json!({"present": false});
+        let mut notes: Vec<String> = Vec::new();
 
+        // A file the site actually serves, or nothing. A 404 page, a wall, or the application
+        // shell a single-page site answers every path with all carry `content` too, and reading
+        // one as robots rules or a sitemap is how `robots.present` came to be true on a site
+        // without one.
         let get = |u: String| async move {
             let r = self
                 .fetch_json(WebFetchParams {
@@ -7357,9 +7595,14 @@ impl SvipallServer {
                     ..Default::default()
                 })
                 .await;
+            let status = r.value["status"].as_u64().unwrap_or(0);
+            if !(200..300).contains(&status) || r.value["blocked_reason"].is_string() {
+                return None;
+            }
             r.value
                 .get("content")
                 .and_then(|c| c.as_str())
+                .filter(|c| !svipall_core::sitemap::looks_like_html(c))
                 .map(str::to_string)
         };
 
@@ -7375,7 +7618,6 @@ impl SvipallServer {
                 });
                 sitemaps.extend(parsed.sitemaps.clone());
                 robots = Some(parsed);
-                used.push("robots");
             }
         }
 
@@ -7422,8 +7664,17 @@ impl SvipallServer {
                     Err(_) => {}
                 }
             }
-            if !urls.is_empty() {
-                used.push("sitemap");
+        }
+
+        // The site's own list of the pages worth reading, where it publishes one.
+        if want("llms") && urls.len() < limit {
+            if let Some(body) = get(format!("{origin}{}", svipall_core::sitemap::LLMS_TXT)).await {
+                for l in svipall_core::sitemap::parse_llms_txt(&body, &origin, limit) {
+                    if urls.len() >= limit || !seen.insert(l.url.clone()) {
+                        continue;
+                    }
+                    urls.push(json!({"url": l.url, "title": l.title, "source": "llms"}));
+                }
             }
         }
 
@@ -7461,28 +7712,59 @@ impl SvipallServer {
                     }
                 }
             }
-            if !feeds.is_empty() {
-                used.push("feeds");
-            }
         }
 
         if want("links") && urls.len() < limit {
-            let out = self
+            // Never answered from the cache: a stored page is its markdown, not its links, so a
+            // hit or a 304 came back with none and the map said the home page linked nowhere.
+            // `refresh` fetches it and keeps the copy current for whoever reads it next.
+            let mut out = self
                 .fetch_json_opts(
                     WebFetchParams {
                         url: p.url.clone(),
+                        cache: Some("refresh".into()),
                         ..Default::default()
                     },
                     true,
                 )
                 .await;
+            // A navigation that a script draws has no links in the markup. The http tier
+            // delivering a page with none is the sign; one rendered visit is the answer.
+            let delivered = out.value["blocked_reason"].is_null()
+                && (200..300).contains(&out.value["status"].as_u64().unwrap_or(0));
+            if out.links.is_empty() && delivered && out.value["tier_used"] == "http" {
+                if self.pool.available() && self.cfg.max_tier != "http" {
+                    let rendered = self
+                        .fetch_json_opts(
+                            WebFetchParams {
+                                url: p.url.clone(),
+                                mode: Some("browser".into()),
+                                cache: Some("bypass".into()),
+                                ..Default::default()
+                            },
+                            true,
+                        )
+                        .await;
+                    if !rendered.links.is_empty() {
+                        notes.push(
+                            "the page's markup has no links; they were read from a rendered visit"
+                                .into(),
+                        );
+                        out = rendered;
+                    }
+                } else {
+                    notes.push(
+                        "the page's markup has no links and no browser tier is available to render it"
+                            .into(),
+                    );
+                }
+            }
             for link in out.links {
                 if urls.len() >= limit || !seen.insert(link.clone()) {
                     continue;
                 }
                 urls.push(json!({"url": link, "source": "links"}));
             }
-            used.push("links");
         }
 
         if let Some(inc) = &p.include {
@@ -7506,7 +7788,17 @@ impl SvipallServer {
             }
         }
 
-        Ok(json!({
+        // The sources that produced a URL in this answer, and no others. A source that was asked
+        // and found nothing is not a source that was used.
+        let mut used: Vec<&str> = Vec::new();
+        for u in &urls {
+            if let Some(s) = u["source"].as_str() {
+                if !used.contains(&s) {
+                    used.push(s);
+                }
+            }
+        }
+        let mut out = json!({
             "domain": domain_from_url(&p.url),
             "sources_used": used,
             "count": urls.len(),
@@ -7514,7 +7806,11 @@ impl SvipallServer {
             "sitemaps": sitemaps,
             "feeds": feeds,
             "robots": robots_info,
-        }))
+        });
+        if !notes.is_empty() {
+            out["note"] = json!(notes.join("; "));
+        }
+        Ok(out)
     }
 
     #[tool(
@@ -7557,7 +7853,7 @@ impl SvipallServer {
                 json!({"profile": name, "path": dir.to_string_lossy(), "closed_by_user": closed,
                 "note": if p.profile.is_some() { "Pass profile=NAME to web_fetch / web_act / browser_open to reuse these cookies." } else { "Saved in the domain auto profile: real and warm tiers use it automatically." }}),
             ),
-            Err(e) => ok(json!({"error": e.to_string()})),
+            Err(e) => ok(json!({"error": chain(&e)})),
         }
     }
 

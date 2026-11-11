@@ -26,6 +26,9 @@ async fn main() -> anyhow::Result<()> {
     svipall_core::evict_old_profiles();
     // What the update notice compares against, looked up at most once a day and never waited on.
     tokio::spawn(svipall::update::refresh_if_stale());
+    // The managed browser, kept within two majors of the stable channel unless the config says
+    // `browser_auto_update = false`. In the background: a 190 MB download is never waited on.
+    tokio::spawn(svipall::provision::auto_update_in_background(cfg.clone()));
 
     // Tokenised dashboard URL, surfaced through web_status so the operator can find it.
     let mut dashboard_url: Option<String> = None;

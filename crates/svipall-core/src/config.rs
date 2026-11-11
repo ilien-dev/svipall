@@ -44,6 +44,10 @@ pub struct Config {
     pub request_min_interval_ms: u64,
     /// Provision the managed browser on startup when no local browser is available.
     pub browser_auto_install: bool,
+    /// Keep the managed browser current: a long-running server replaces it in the background when
+    /// it falls two or more majors behind the stable channel it was installed from. `false` keeps
+    /// whatever build is there until `browser_setup(action="update")` is asked for.
+    pub browser_auto_update: bool,
     /// Highest tier `mode=auto` may climb to: http | browser | stealth | real | warm.
     pub max_tier: String,
     /// If non-empty, nothing outside these origins is fetched.
@@ -203,6 +207,7 @@ impl Default for Config {
             request_cooldown_seconds: 900,
             request_min_interval_ms: 1000,
             browser_auto_install: true,
+            browser_auto_update: true,
             max_tier: "warm".into(),
             allow_origins: Vec::new(),
             block_origins: Vec::new(),
