@@ -309,9 +309,11 @@ pub fn parse(
     let mut align = align;
     align.resize(width, Align::None);
 
-    if rows.is_empty() {
+    let (header, align, rows) = prune(header, align, rows);
+    if rows.is_empty() || header.is_empty() {
         return TableShape::Layout;
     }
+    let width = header.len();
     TableShape::Data(Table {
         caption,
         header,
@@ -319,6 +321,66 @@ pub fn parse(
         rows,
         width,
     })
+}
+
+/// Take out what a table carries for its layout rather than its data.
+///
+/// Measured on a repository's file listing: each name is in the page twice, in a cell for narrow
+/// screens and one for wide ones, under a header that spans both; the commit columns are empty
+/// placeholders until the site's scripts fill them; and a spacer row holds nothing. Rendered as
+/// it stood, that was "Name | Name | Name" over rows of repeated names and empty cells. So:
+///
+/// - a row with no text in any cell is not a row;
+/// - a column with no text in any row holds nothing, whatever its header says;
+/// - a column identical to an earlier one, header and every row, is that column again.
+///
+/// A colspan repeated across the columns it covers survives, because those columns differ in
+/// their header or in another row; only a column that says nothing new is dropped.
+fn prune(
+    header: Vec<String>,
+    align: Vec<Align>,
+    rows: Vec<Vec<String>>,
+) -> (Vec<String>, Vec<Align>, Vec<Vec<String>>) {
+    let rows: Vec<Vec<String>> = rows
+        .into_iter()
+        .filter(|r| r.iter().any(|c| !c.is_empty()))
+        .collect();
+    let width = header.len();
+    let column = |i: usize| -> Vec<&str> {
+        std::iter::once(header[i].as_str())
+            .chain(
+                rows.iter()
+                    .map(|r| r.get(i).map(String::as_str).unwrap_or("")),
+            )
+            .collect()
+    };
+    let mut keep: Vec<usize> = Vec::with_capacity(width);
+    for i in 0..width {
+        let empty = rows.iter().all(|r| r.get(i).is_none_or(|c| c.is_empty()));
+        if empty {
+            continue;
+        }
+        let this = column(i);
+        if keep.iter().any(|&j| column(j) == this) {
+            continue;
+        }
+        keep.push(i);
+    }
+    if keep.len() == width {
+        return (header, align, rows);
+    }
+    let pick = |v: &[String]| -> Vec<String> {
+        keep.iter()
+            .map(|&i| v.get(i).cloned().unwrap_or_default())
+            .collect()
+    };
+    let new_header = pick(&header);
+    let new_align = keep
+        .iter()
+        .map(|&i| align.get(i).copied().unwrap_or(Align::None))
+        .collect();
+    let new_rows = rows.iter().map(|r| pick(r)).collect();
+    (new_header, new_align, new_rows)
 }
 
 pub fn render(t: &Table, out: &mut String) {
@@ -510,6 +572,36 @@ mod tests {
         );
         assert!(out.contains(":---:"), "centre alignment lost: {out}");
         assert!(out.contains(" ---: "), "right alignment lost: {out}");
+    }
+
+    #[test]
+    fn empty_rows_empty_columns_and_repeated_columns_are_dropped() {
+        let out = md("<table><thead><tr><th colspan=\"2\">Name</th><th>Name</th>\
+             <th>Commit</th><th>Size</th></tr></thead><tbody>\
+             <tr><td colspan=\"2\">src</td><td>src</td><td> </td><td>4 KB</td></tr>\
+             <tr><td></td><td></td><td></td><td></td><td></td></tr>\
+             <tr><td colspan=\"2\">README.md</td><td>README.md</td><td>&nbsp;</td><td>2 KB</td></tr>\
+             </tbody></table>");
+        assert!(out.contains("| Name | Size |"), "{out}");
+        assert!(out.contains("| src | 4 KB |"), "{out}");
+        assert!(out.contains("| README.md | 2 KB |"), "{out}");
+        assert!(!out.contains("|  |  |"), "{out}");
+    }
+
+    #[test]
+    fn a_real_repository_file_listing_comes_out_clean() {
+        let html = include_str!("../tests/fixtures/github-repo-table.html");
+        let out = md(html);
+        let table: Vec<&str> = out.lines().filter(|l| l.starts_with('|')).collect();
+        assert_eq!(table.first().copied(), Some("| Name |"), "{out}");
+        assert!(table.len() > 10, "{out}");
+        for row in &table {
+            assert!(
+                !row.trim_matches(|c| c == '|' || c == ' ').is_empty(),
+                "an empty row: {out}"
+            );
+        }
+        assert!(table.contains(&"| .github |"), "{out}");
     }
 
     #[test]
