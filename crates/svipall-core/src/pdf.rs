@@ -72,7 +72,17 @@ pub fn extract(bytes: &[u8], limits: &PdfLimits) -> anyhow::Result<PdfDoc> {
     {
         let owned = bytes.to_vec();
         let raw = std::panic::catch_unwind(std::panic::AssertUnwindSafe(move || {
-            pdf_extract::extract_text_from_mem(&owned)
+            let mut doc = pdf_extract::Document::load_mem(&owned)?;
+            if doc.is_encrypted() {
+                doc.decrypt("")?;
+            }
+            expand_width_ranges(&mut doc);
+            let mut s = String::new();
+            {
+                let mut out = pdf_extract::PlainTextOutput::new(&mut s);
+                pdf_extract::output_doc(&doc, &mut out)?;
+            }
+            Ok::<_, pdf_extract::OutputError>(s)
         }))
         .map_err(|_| anyhow::anyhow!("the PDF parser could not read this file"))?
         .map_err(|e| anyhow::anyhow!("PDF extraction failed: {e}"))?;
@@ -82,6 +92,91 @@ pub fn extract(bytes: &[u8], limits: &PdfLimits) -> anyhow::Result<PdfDoc> {
     {
         let _ = limits;
         anyhow::bail!("PDF support is not compiled in (build with --features pdf)")
+    }
+}
+
+/// Rewrite every composite font's `W` widths from the range form into the list form.
+///
+/// `W` says how wide each glyph is in two ways: `first [w1 w2 …]` and `first last w`. The parser
+/// reads the second one wrongly (it takes the width from the wrong slot and the range as empty), so
+/// every glyph covered by a range falls back to the default width, which is 0 in the files office
+/// suites write. The extractor puts a space wherever a glyph starts past the end of the previous
+/// one, and a glyph that is zero wide always does: "The sample contains" came out as
+/// "The sa mp le co n ta in s". The list form it reads correctly, so the ranges are expanded into it
+/// before it sees the file.
+#[cfg(feature = "pdf")]
+fn expand_width_ranges(doc: &mut pdf_extract::Document) {
+    use pdf_extract::Object;
+    // A range wider than any font has glyphs is a broken file, not a reason to allocate.
+    const MAX_RANGE: i64 = 65_536;
+    fn num(o: &Object) -> Option<f64> {
+        match o {
+            Object::Integer(i) => Some(*i as f64),
+            Object::Real(r) => Some(f64::from(*r)),
+            _ => None,
+        }
+    }
+    fn expand(w: &[Object]) -> Option<Vec<Object>> {
+        let mut out = Vec::with_capacity(w.len());
+        let mut changed = false;
+        let mut i = 0;
+        while i < w.len() {
+            match (w.get(i), w.get(i + 1)) {
+                (Some(first), Some(Object::Array(list))) => {
+                    out.push(first.clone());
+                    out.push(Object::Array(list.clone()));
+                    i += 2;
+                }
+                (Some(Object::Integer(first)), Some(Object::Integer(last))) => {
+                    let width = w.get(i + 2).and_then(num)?;
+                    if *last < *first || last - first > MAX_RANGE {
+                        return None;
+                    }
+                    let widths = (*first..=*last)
+                        .map(|_| Object::Real(width as f32))
+                        .collect();
+                    out.push(Object::Integer(*first));
+                    out.push(Object::Array(widths));
+                    changed = true;
+                    i += 3;
+                }
+                _ => return None,
+            }
+        }
+        changed.then_some(out)
+    }
+    let mut direct = Vec::new();
+    let mut referenced = Vec::new();
+    for (id, obj) in doc.objects.iter() {
+        let Ok(dict) = obj.as_dict() else { continue };
+        let cid = dict
+            .get(b"Subtype")
+            .and_then(|s| s.as_name())
+            .is_ok_and(|n| n == b"CIDFontType0" || n == b"CIDFontType2");
+        if !cid {
+            continue;
+        }
+        match dict.get(b"W") {
+            Ok(Object::Array(w)) => {
+                if let Some(new) = expand(w) {
+                    direct.push((*id, new));
+                }
+            }
+            Ok(Object::Reference(r)) => referenced.push(*r),
+            _ => {}
+        }
+    }
+    for (id, new) in direct {
+        if let Some(Ok(dict)) = doc.objects.get_mut(&id).map(|o| o.as_dict_mut()) {
+            dict.set("W", Object::Array(new));
+        }
+    }
+    for r in referenced {
+        if let Some(Object::Array(w)) = doc.objects.get_mut(&r) {
+            if let Some(new) = expand(w) {
+                *w = new;
+            }
+        }
     }
 }
 
@@ -185,6 +280,28 @@ mod tests {
         let doc = extract(bytes, &PdfLimits::default()).expect("it is a valid PDF");
         assert_eq!(doc.pages, 1);
         assert!(doc.scanned(), "{:?}", doc.text);
+    }
+
+    /// Glyphs placed one by one, in a composite font whose widths use the range form of `W`
+    /// (`first last width`) over a default width of 0: how an office suite exports a document.
+    /// Every range-form glyph was read as zero-wide, so each one looked like it stood after a gap,
+    /// and the text came out as "The sa mp le co n ta in s".
+    #[cfg(feature = "pdf")]
+    #[test]
+    fn glyphs_whose_widths_use_the_range_form_are_not_split_by_spaces() {
+        let bytes = include_bytes!("../fixtures/pdf/cid-range-widths.pdf");
+        let doc = extract(bytes, &PdfLimits::default()).expect("it is a valid PDF");
+        assert!(
+            doc.text
+                .contains("The sample contains parts of Chapter 3, Chapter 5, and showcases"),
+            "{:?}",
+            doc.text
+        );
+        assert!(
+            doc.text.contains("Every glyph is placed on its own"),
+            "{:?}",
+            doc.text
+        );
     }
 
     #[test]
