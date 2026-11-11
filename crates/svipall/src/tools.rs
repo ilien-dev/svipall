@@ -731,23 +731,89 @@ pub struct Action {
     pub full_page: Option<bool>,
 }
 
-/// The verbs web_act and browser_do understand.
-#[derive(JsonSchema)]
-#[schemars(inline, rename_all = "lowercase")]
+/// Every verb web_act and browser_do understand, with the other spellings each one accepts.
+///
+/// The one list: the schema's enum is built from the first column, the browser dispatches on both,
+/// and an unknown verb is answered with all of it. Three copies of this used to disagree — the
+/// error message had lost `verify`, `console` and `hold` long after they worked.
+pub const ACTIONS: &[(&str, &[&str])] = &[
+    ("click", &[]),
+    ("type", &[]),
+    ("fill", &[]),
+    ("press", &[]),
+    ("hover", &[]),
+    ("select", &[]),
+    ("scroll", &[]),
+    ("wait", &[]),
+    ("eval", &["evaluate"]),
+    ("goto", &["navigate"]),
+    ("verify", &[]),
+    ("console", &[]),
+    ("screenshot", &[]),
+    ("hold", &["press_and_hold"]),
+];
+
+/// The verb an action spelling means, or `None` when it is not one.
+pub fn action_verb(spelling: &str) -> Option<&'static str> {
+    ACTIONS
+        .iter()
+        .find(|(verb, aliases)| *verb == spelling || aliases.contains(&spelling))
+        .map(|(verb, _)| *verb)
+}
+
+/// What an unknown verb is answered with: the verb, and every spelling that would have worked.
+pub fn unknown_action(spelling: &str) -> String {
+    let accepted: Vec<String> = ACTIONS
+        .iter()
+        .map(|(verb, aliases)| {
+            if aliases.is_empty() {
+                (*verb).to_string()
+            } else {
+                format!("{verb} (or {})", aliases.join(", "))
+            }
+        })
+        .collect();
+    if spelling.is_empty() {
+        format!("an action needs `do`, one of: {}", accepted.join(", "))
+    } else {
+        format!(
+            "unknown action '{spelling}'; accepted: {}",
+            accepted.join(", ")
+        )
+    }
+}
+
+/// The first action in a list whose verb is not one, as the message the caller gets. Checked
+/// before a browser is started or a visit spent: a typo is not worth a page load to discover.
+pub fn check_actions(actions: &[serde_json::Value]) -> Result<(), String> {
+    for a in actions {
+        let spelling = a
+            .get("do")
+            .or(a.get("action"))
+            .and_then(|v| v.as_str())
+            .unwrap_or("");
+        if action_verb(spelling).is_none() {
+            return Err(unknown_action(spelling));
+        }
+    }
+    Ok(())
+}
+
+/// The verbs web_act and browser_do understand: the first column of [`ACTIONS`].
 #[allow(dead_code)]
-pub enum ActionKind {
-    Click,
-    Type,
-    Fill,
-    Press,
-    Hover,
-    Select,
-    Scroll,
-    Wait,
-    Eval,
-    Goto,
-    Verify,
-    Console,
-    Screenshot,
-    Hold,
+pub struct ActionKind;
+
+impl JsonSchema for ActionKind {
+    fn schema_name() -> std::borrow::Cow<'static, str> {
+        "ActionKind".into()
+    }
+
+    fn inline_schema() -> bool {
+        true
+    }
+
+    fn json_schema(_: &mut schemars::SchemaGenerator) -> schemars::Schema {
+        let verbs: Vec<&str> = ACTIONS.iter().map(|(verb, _)| *verb).collect();
+        schemars::json_schema!({ "type": "string", "enum": verbs })
+    }
 }
