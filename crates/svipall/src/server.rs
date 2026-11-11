@@ -721,6 +721,88 @@ fn file_outcome(sink: &crate::body::Sink, final_url: &str, mut info: Value) -> T
     }
 }
 
+/// web_fetch_many's default total, in tokens. Measured (`tests/fetch_many.rs`): 25 long pages under
+/// it serialise to 40 995 characters, envelopes included, against the ~50 000 at which clients
+/// refused results.
+const MANY_TOTAL_TOKENS: usize = 8_000;
+/// The least any one page is cut to, however many URLs share the total: below this a page is a
+/// title and a cursor, and the caller would be better served by `out_dir`.
+const MANY_MIN_SHARE: usize = 150;
+/// The serialised size past which a web_fetch_many answer is written to a file instead.
+const MANY_CEILING_CHARS: usize = 45_000;
+/// "No budget": a page going to a file is written whole.
+const WHOLE: usize = 100_000_000;
+
+/// Where `out_dir` lands: an absolute path as written, a relative one by its last component under
+/// `~/.svipall/out/`, the same rule `out_file` follows.
+fn out_dir_path(name: &str) -> anyhow::Result<PathBuf> {
+    let requested = std::path::Path::new(name);
+    let dir = if requested.is_absolute() {
+        requested.to_path_buf()
+    } else {
+        svipall_core::config::home_dir()
+            .join("out")
+            .join(requested.file_name().unwrap_or(requested.as_os_str()))
+    };
+    std::fs::create_dir_all(&dir)?;
+    Ok(dir)
+}
+
+/// `03-example.com-docs-intro.md`: the position first, so the files sort in the order asked for.
+fn page_file_name(i: usize, url: &str) -> String {
+    let rest = url.split_once("://").map(|(_, r)| r).unwrap_or(url);
+    let mut slug: String = rest
+        .chars()
+        .map(|c| if c.is_ascii_alphanumeric() || c == '.' { c } else { '-' })
+        .collect();
+    while slug.contains("--") {
+        slug = slug.replace("--", "-");
+    }
+    let slug: String = slug.trim_matches('-').chars().take(60).collect();
+    format!("{:02}-{slug}.md", i + 1)
+}
+
+/// The whole web_fetch_many answer to `name` (`.jsonl`: one result per line), and back a summary
+/// of each result small enough to read: where it ended up and whether it arrived.
+fn many_to_file(out: Value, name: &str) -> Value {
+    let results = out["results"].as_array().cloned().unwrap_or_default();
+    let text = if name.to_ascii_lowercase().ends_with(".jsonl") {
+        results
+            .iter()
+            .map(Value::to_string)
+            .collect::<Vec<_>>()
+            .join("\n")
+    } else {
+        serde_json::to_string_pretty(&out).unwrap_or_default()
+    };
+    let summary: Vec<Value> = results
+        .iter()
+        .map(|r| {
+            let mut s = serde_json::Map::new();
+            for k in ["url", "status", "title", "chars", "blocked_reason", "same_text_as"] {
+                if let Some(v) = r.get(k) {
+                    s.insert(k.into(), v.clone());
+                }
+            }
+            Value::Object(s)
+        })
+        .collect();
+    match write_out(name, &text) {
+        Ok((path, bytes)) => json!({
+            "count": results.len(),
+            "corroboration": out["corroboration"],
+            "out_file": path.to_string_lossy(),
+            "bytes": bytes,
+            "results": summary,
+        }),
+        Err(e) => json!({
+            "count": results.len(),
+            "out_file_error": format!("{e:#}"),
+            "results": summary,
+        }),
+    }
+}
+
 fn write_out(name: &str, content: &str) -> anyhow::Result<(std::path::PathBuf, usize)> {
     let path = out_path(name)?;
     std::fs::write(&path, content)?;
@@ -3851,6 +3933,21 @@ impl SvipallServer {
         template: &WebFetchParams,
         want_links: bool,
     ) -> Vec<FetchOutcome> {
+        let each = urls
+            .into_iter()
+            .map(|u| WebFetchParams {
+                url: u,
+                ..template.clone()
+            })
+            .collect();
+        self.fetch_each(each, want_links).await
+    }
+
+    /// Fetch every one of `each`, as many at once as the machine can carry, in the order given.
+    async fn fetch_each(&self, each: Vec<WebFetchParams>, want_links: bool) -> Vec<FetchOutcome> {
+        let Some(template) = each.first() else {
+            return Vec::new();
+        };
         // What the machine can carry, not just what the config asked for. Overshooting does not
         // crawl faster: it makes every page slow, and a slow page reads to the ladder as a wall,
         // so the domain learns the wrong tier and collects a cooldown it never earned.
@@ -3862,13 +3959,10 @@ impl SvipallServer {
             configured: self.cfg.parallelism,
             needs_browser,
         });
-        futures::stream::iter(urls.into_iter().map(|u| {
-            let p = WebFetchParams {
-                url: u,
-                ..template.clone()
-            };
-            async move { self.fetch_json_opts(p, want_links).await }
-        }))
+        futures::stream::iter(
+            each.into_iter()
+                .map(|p| async move { self.fetch_json_opts(p, want_links).await }),
+        )
         .buffered(par)
         .collect()
         .await
@@ -3961,20 +4055,51 @@ impl SvipallServer {
     /// The body of `web_fetch_many`, as plain JSON, so it can be exercised without the tool
     /// envelope — the same shape `fetch_json` and `crawl_json` already have.
     pub async fn fetch_many_json(&self, p: WebFetchManyParams) -> Value {
+        let n = p.urls.len().max(1);
+        let to_file = p.out_file.as_deref().filter(|f| !f.trim().is_empty());
+        let to_dir = p.out_dir.as_deref().filter(|d| !d.trim().is_empty());
+        // ▲ One budget for the whole answer. The client refuses a tool result past roughly fifty
+        // thousand characters, and refusing it is the same as returning nothing; so the set gets a
+        // total, split equally, and a page that does not fit its share is cut on a block boundary
+        // with a cursor for the rest. A file is not a context, so a file gets every page whole.
+        let total = p.max_tokens_total.unwrap_or(MANY_TOTAL_TOKENS).max(1);
+        let share = (total / n).max(MANY_MIN_SHARE);
+        let per_url = p
+            .max_tokens
+            .unwrap_or(self.cfg.max_tokens_per_fetch)
+            .min(share)
+            .max(1);
         let template = WebFetchParams {
             mode: p.mode,
             extraction: p.extraction,
             max_tier: p.max_tier,
-            query: p.query,
+            query: p.query.clone(),
             schema: p.schema,
             tables: p.tables,
             timeout: p.timeout,
-            json_path: p.json_path,
+            json_path: p.json_path.clone(),
             main_content_only: Some(true),
+            max_tokens: Some(if to_file.is_some() { WHOLE } else { per_url }),
             ..Default::default()
         };
+        let dir = match to_dir.map(out_dir_path).transpose() {
+            Ok(d) => d,
+            Err(e) => return json!({"error": format!("out_dir: {e:#}")}),
+        };
+        let each: Vec<WebFetchParams> = p
+            .urls
+            .iter()
+            .enumerate()
+            .map(|(i, u)| WebFetchParams {
+                url: u.clone(),
+                out_file: dir
+                    .as_ref()
+                    .map(|d| d.join(page_file_name(i, u)).to_string_lossy().into_owned()),
+                ..template.clone()
+            })
+            .collect();
         let mut results: Vec<Value> = self
-            .fetch_all(p.urls, &template, false)
+            .fetch_each(each, false)
             .await
             .into_iter()
             .map(|o| o.value)
@@ -3982,13 +4107,20 @@ impl SvipallServer {
 
         // Five results carrying one wire story are one source wearing five hostnames, and without
         // this they read as five confirmations. Nothing is removed — each result is told which
-        // earlier one it repeats, and the caller decides what that is worth.
+        // earlier one it repeats, and the caller decides what that is worth. A page written to a
+        // file is read back for this: its text is the evidence, wherever it went.
         let hashes: Vec<u64> = results
             .iter()
             .map(|v| {
+                let from_file = v
+                    .get("out_file")
+                    .and_then(Value::as_str)
+                    .and_then(|f| std::fs::read_to_string(f).ok());
                 v.get("content")
                     .and_then(Value::as_str)
-                    .map(svipall_core::dedup::simhash)
+                    .map(str::to_string)
+                    .or(from_file)
+                    .map(|t| svipall_core::dedup::simhash(&t))
                     .unwrap_or(0)
             })
             .collect();
@@ -4010,13 +4142,55 @@ impl SvipallServer {
         // of one wire story pushed below the page that said something else), and a caller zipping
         // its own list with `results` by position read one URL's page as another's. Repeats are
         // already marked `same_text_as`, which is the part of that idea the caller can act on.
-        json!({
+        //
+        // One continuation note for the set rather than one per page: the per-page sentence named
+        // web_fetch without the query or json_path the page was cut under, and repeated it fifty
+        // times.
+        let mut truncated = 0;
+        for r in results.iter_mut() {
+            if let Some(obj) = r.as_object_mut() {
+                if obj.remove("continue").is_some() {
+                    truncated += 1;
+                }
+            }
+        }
+        let mut out = json!({
             "count": results.len(),
             // How many distinct documents these results actually are. Corroboration, not trust:
             // it says the same thing was said N times independently, never that it is true.
             "corroboration": corroboration,
             "results": results,
-        })
+        });
+        if to_file.is_none() && dir.is_none() {
+            out["budget"] = json!({"per_url_tokens": per_url, "total_tokens": total});
+        }
+        if truncated > 0 {
+            let mut same = String::new();
+            for (k, v) in [("query", &p.query), ("json_path", &p.json_path)] {
+                if let Some(v) = v {
+                    same.push_str(&format!(", {k}={v:?}"));
+                }
+            }
+            out["continue"] = json!(format!(
+                "{truncated} of the pages were cut to fit the answer. For the rest of one, call \
+                 web_fetch with its url and cursor{same}; or pass out_dir to get every page whole."
+            ));
+        }
+        if let Some(name) = to_file {
+            return many_to_file(out, name);
+        }
+        // The last line of defence for the same limit: a set that still came out too large (a
+        // hundred URLs, each envelope small but many) goes to a file rather than being refused.
+        if out.to_string().len() > MANY_CEILING_CHARS {
+            let name = format!("fetch_many-{}.json", chrono::Utc::now().timestamp_millis());
+            let mut summary = many_to_file(out, &name);
+            summary["note"] = json!(format!(
+                "The answer came to more than {MANY_CEILING_CHARS} characters, past what a client \
+                 accepts, so it was written to out_file; the list below says what is in it."
+            ));
+            return summary;
+        }
+        out
     }
 
     #[tool(

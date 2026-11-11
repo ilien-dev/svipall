@@ -153,6 +153,19 @@ pub struct WebFetchManyParams {
     /// Only these fields of every JSON answer, as on web_fetch.
     #[serde(default)]
     pub json_path: Option<String>,
+    /// Cap on each page's content. Default: an equal share of `max_tokens_total`.
+    #[serde(default)]
+    pub max_tokens: Option<usize>,
+    /// Cap on all pages together, split equally across the URLs. Default 8000, which keeps the
+    /// whole answer under what clients accept; a truncated page carries a `cursor` for web_fetch.
+    #[serde(default)]
+    pub max_tokens_total: Option<usize>,
+    /// Write each page whole to its own file in this directory and return the paths instead.
+    #[serde(default)]
+    pub out_dir: Option<String>,
+    /// Write the whole set, every page whole, to this .json or .jsonl file and return a summary.
+    #[serde(default)]
+    pub out_file: Option<String>,
 }
 
 #[derive(Debug, Default, Serialize, Deserialize, JsonSchema)]
