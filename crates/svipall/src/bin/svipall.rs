@@ -23,7 +23,7 @@ USAGE:
 
 COMMANDS:
     fetch <url> [--query Q] [--out FILE] [--text] [--mobile] [--isolated] [--full] [--tables]
-                [--scroll auto|N] [--schema auto|JSON]
+                [--scroll auto|N] [--schema auto|JSON] [--wait SECS] [--fresh]
                 [--extraction markdown|text|html] [--cache auto|bypass|refresh] [--mode TIER]
                             Fetch a page, climbing the tier ladder as far as it needs to.
                             <url> may be file:///path (under local_roots) or raw: with --stdin.
@@ -35,7 +35,7 @@ COMMANDS:
     snapshot <url>          The page as roles, names and refs — a fraction of the tokens.
     capture <url> [--pattern P] [--bodies]
                             The JSON the page itself fetched: usually the site's real API.
-    video <url> [--lang L] [--frames N] [--out FILE]
+    video <url> [--lang L] [--frames N] [--out FILE] [--wait SECS]
                             A video's captions and chapters as one timeline, from its player,
                             an embed, <video> tracks, JSON-LD or the stream manifest.
     search <query> [--engine E]
@@ -52,7 +52,8 @@ COMMANDS:
     route <list|add|remove|check> [domain] [--proxy URL | --proxies A,B,C] [--country CC | --countries CC,CC] [--check-url URL]
                             One exit per domain, or a pool the domain moves through as exits
                             get blocked. Subdomains inherit.
-    status                  Learned tiers, cooldowns, routes, profiles, solver state.
+    status [--sections all|LIST] [--clear-cooldown DOMAIN]
+                            A summary of what is in the way; --sections adds tiers, exits, …
     serve [--port N] [--bind ADDR]
                             The same server over HTTP: POST /v1/fetch, /v1/crawl, /v1/search …
                             one endpoint per tool, so any language can drive it. Loopback and a
@@ -223,6 +224,8 @@ async fn run(args: &[String]) -> anyhow::Result<Value> {
                     // Debugging only: the ladder knows better, which is why the skill says never.
                     mode: flags.value("mode"),
                     timeout: flags.number("timeout").map(|n| n as u64),
+                    wait: flags.number("wait").map(|n| n as u64),
+                    fresh: flags.has("fresh").then_some(true),
                     // `--schema auto` for a listing nobody has selectors for, or a JSON object for
                     // one written by hand. A malformed object is reported by the extractor as a
                     // schema error rather than swallowed here, which is where every other bad
@@ -267,6 +270,9 @@ async fn run(args: &[String]) -> anyhow::Result<Value> {
             }
             if let Some(out) = flags.value("out") {
                 p["out_file"] = json!(out);
+            }
+            if let Some(n) = flags.number("wait") {
+                p["wait"] = json!(n as u64);
             }
             server.video_json(serde_json::from_value(p)?).await
         }
@@ -454,7 +460,15 @@ async fn run(args: &[String]) -> anyhow::Result<Value> {
                 }
             }
         }
-        "status" => server.status_json(serde_json::from_value(json!({}))?).await,
+        "status" => {
+            server
+                .status_json(WebStatusParams {
+                    sections: flags.value("sections"),
+                    clear_cooldown: flags.value("clear-cooldown"),
+                    ..Default::default()
+                })
+                .await
+        }
         // Reads this machine rather than a page, which is why it takes the config and nothing else.
         "models" => {
             svipall::model_install::run(

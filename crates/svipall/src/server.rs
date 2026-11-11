@@ -81,6 +81,10 @@ struct VisitRefusal {
 
 impl std::fmt::Display for VisitRefusal {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        // The limiter's own wording already names the seconds and the way out.
+        if self.detail.ends_with('.') {
+            return write!(f, "{}: {}", self.kind, self.detail);
+        }
         write!(
             f,
             "{}: {}; wait {}s before retrying",
@@ -89,6 +93,33 @@ impl std::fmt::Display for VisitRefusal {
     }
 }
 impl std::error::Error for VisitRefusal {}
+
+/// The parts of `web_status` beyond its summary, in the order they are added.
+const STATUS_SECTIONS: &[&str] = &[
+    "holds",
+    "tiers",
+    "exits",
+    "reputation",
+    "h3",
+    "browser",
+    "cache",
+    "crawls",
+    "profiles",
+    "solver",
+    "models",
+    "identity",
+];
+
+/// What admitting one top-level visit cost before it went out.
+#[derive(Debug, Default, Clone, Copy)]
+struct Admitted {
+    /// Time spent waiting for a slot or for a hold to end.
+    waited: Duration,
+    /// What was waited for: `visit_limit` or `cooldown`; empty when nothing was.
+    waited_for: &'static str,
+    /// Visits still free in the window after this one.
+    visits_left: Option<u32>,
+}
 
 /// What a browser tier is being asked for, beyond the URL.
 ///
@@ -256,6 +287,7 @@ fn never_requested(v: &Value) -> Option<&'static str> {
     match v.get("blocked_reason").and_then(Value::as_str) {
         Some("address_budget") => Some("over_budget"),
         Some("cooldown") => Some("cooldown"),
+        Some("visit_limit") => Some("visit_limit"),
         Some("traffic_state") => Some("traffic_state"),
         Some("timeout") if v["network_attempted"] == false => Some("timeout"),
         _ => None,
@@ -1212,7 +1244,8 @@ impl SvipallServer {
         if is_local(&domain) {
             return Ok(());
         }
-        self.admit_visit(&domain, proxy)?;
+        self.admit_waiting(&domain, proxy, Duration::from_secs(30))
+            .await?;
         self.pace_visit(&domain, proxy, tier.as_str()).await?;
         let left = self.pending_hold(&domain, proxy)?;
         anyhow::ensure!(left == 0, "cooldown: wait {left}s before retrying");
@@ -1245,41 +1278,81 @@ impl SvipallServer {
         Ok(())
     }
 
-    fn admit_visit(&self, domain: &str, proxy: Option<&str>) -> Result<(), VisitRefusal> {
-        if let Some(left) = svipall_core::check_cooldown(domain) {
-            return Err(VisitRefusal {
-                kind: "cooldown",
-                seconds: left,
-                detail: "site backoff is active".into(),
-            });
-        }
-        if let Some(r) = svipall_core::reputation::refusal(domain, proxy) {
-            return Err(VisitRefusal {
+    /// The address budget, which no wait fixes: checked on every rung, charged by `throttle`.
+    fn reputation_ok(&self, domain: &str, proxy: Option<&str>) -> Result<(), VisitRefusal> {
+        match svipall_core::reputation::refusal(domain, proxy) {
+            Some(r) => Err(VisitRefusal {
                 kind: "address_budget",
                 seconds: r.seconds_left,
                 detail: "address budget is exhausted".into(),
-            });
+            }),
+            None => Ok(()),
         }
-        let ledger = self.traffic.as_ref().as_ref().map_err(|e| VisitRefusal {
-            kind: "traffic_state",
-            seconds: 0,
-            detail: e.to_string(),
-        })?;
-        if let Some(left) = ledger
-            .reserve(domain, proxy, &self.cfg, svipall_core::automatic::now())
-            .map_err(|e| VisitRefusal {
-                kind: "traffic_state",
-                seconds: 0,
-                detail: e.to_string(),
-            })?
-        {
-            return Err(VisitRefusal {
-                kind: "cooldown",
-                seconds: left,
-                detail: "visit limit or server backoff applies to this site and exit".into(),
-            });
+    }
+
+    /// Charge one top-level visit, waiting for a free slot or for a hold to end when that fits in
+    /// `budget`, and refusing with the exact seconds when it does not.
+    ///
+    /// The window is never turned into a hold: a full one is a wait for its oldest visit to leave.
+    /// The loop asks again after each wait, because another session on this machine may have
+    /// taken the slot in the meantime.
+    async fn admit_waiting(
+        &self,
+        domain: &str,
+        proxy: Option<&str>,
+        budget: Duration,
+    ) -> Result<Admitted, VisitRefusal> {
+        use svipall_core::traffic::Admission;
+        let started = Instant::now();
+        let mut waited_for = "";
+        loop {
+            let left = budget.saturating_sub(started.elapsed());
+            let fits = |secs: u64| Duration::from_secs(secs) < left;
+            let (kind, seconds) = if let Some(s) = svipall_core::check_cooldown(domain) {
+                ("cooldown", s)
+            } else {
+                self.reputation_ok(domain, proxy)?;
+                let traffic_state = |e: &dyn std::fmt::Display| VisitRefusal {
+                    kind: "traffic_state",
+                    seconds: 0,
+                    detail: e.to_string(),
+                };
+                let ledger = self
+                    .traffic
+                    .as_ref()
+                    .as_ref()
+                    .map_err(|e| traffic_state(e))?;
+                match ledger
+                    .reserve(domain, proxy, &self.cfg, svipall_core::automatic::now())
+                    .map_err(|e| traffic_state(&e))?
+                {
+                    Admission::Granted { visits_left } => {
+                        return Ok(Admitted {
+                            waited: started.elapsed(),
+                            waited_for,
+                            visits_left: Some(visits_left),
+                        })
+                    }
+                    Admission::Full { wait } => ("visit_limit", wait),
+                    Admission::Held { wait } => ("cooldown", wait),
+                }
+            };
+            if !fits(seconds) {
+                return Err(VisitRefusal {
+                    kind,
+                    seconds,
+                    detail: crate::steer::limiter_refusal(
+                        kind,
+                        seconds,
+                        domain,
+                        self.cfg.request_limit,
+                        self.cfg.request_window_seconds,
+                    ),
+                });
+            }
+            waited_for = kind;
+            tokio::time::sleep(Duration::from_secs(seconds)).await;
         }
-        Ok(())
     }
 
     fn pending_hold(&self, domain: &str, proxy: Option<&str>) -> anyhow::Result<u64> {
@@ -2362,8 +2435,12 @@ impl SvipallServer {
             }
             o
         };
+        // An explicit wait is time on top of the fetch, not taken out of it.
+        let waits = p
+            .wait
+            .map_or(0, |w| w.min(crate::steer::MAX_WAIT_SECS) * 1000);
         match tokio::time::timeout(
-            Duration::from_millis(timeout),
+            Duration::from_millis(timeout + waits),
             self.fetch_inner(&p, want_links),
         )
         .await
@@ -2378,8 +2455,48 @@ impl SvipallServer {
         }
     }
 
+    /// The walk, plus what admission cost it: a wait is said on the answer, and so is a visit
+    /// budget about to run out, because it is shared with every other session on this machine.
     async fn fetch_inner(&self, p: &WebFetchParams, want_links: bool) -> FetchOutcome {
-        let fetch_started = Instant::now();
+        let mut adm = Admitted::default();
+        let mut out = self.fetch_walk(p, want_links, &mut adm).await;
+        if let Some(obj) = out.value.as_object_mut() {
+            let secs = adm.waited.as_secs_f64().round() as u64;
+            if secs > 0 {
+                obj.insert(
+                    "waited".into(),
+                    json!({"seconds": secs, "for": adm.waited_for,
+                        "note": crate::steer::limiter_delay(adm.waited_for, secs)}),
+                );
+            }
+            if let Some(left) = adm.visits_left.filter(|l| *l <= 2) {
+                obj.insert("visit_budget".into(), self.visit_budget(left));
+            }
+        }
+        out
+    }
+
+    fn visit_budget(&self, left: u32) -> Value {
+        json!({"left": left, "limit": self.cfg.request_limit,
+            "window_seconds": self.cfg.request_window_seconds, "scope": crate::steer::SHARED})
+    }
+
+    /// How long this fetch may wait for admission: what the caller asked, or half its timeout.
+    fn wait_budget(p: &WebFetchParams) -> Duration {
+        match p.wait {
+            Some(w) => Duration::from_secs(w.min(crate::steer::MAX_WAIT_SECS)),
+            None => Duration::from_millis(p.timeout.unwrap_or(60_000) / 2),
+        }
+    }
+
+    async fn fetch_walk(
+        &self,
+        p: &WebFetchParams,
+        want_links: bool,
+        adm: &mut Admitted,
+    ) -> FetchOutcome {
+        // The network's deadline starts after an explicit wait, which the outer timeout adds on.
+        let mut fetch_started = Instant::now();
         let url = p.url.clone();
         let cache_mode = p
             .cache
@@ -2475,17 +2592,8 @@ impl SvipallServer {
             .clone()
             .unwrap_or_else(|| self.cfg.max_tier.clone());
 
-        if !local {
-            if let Some(left) = svipall_core::check_cooldown(&domain) {
-                return FetchOutcome {
-                    blocked_body: None,
-                    value: json!({"url": url, "status": 0, "blocked_reason": "cooldown", "wall_kind": "status", "cooldown_seconds_left": left, "attempts": [],
-                        "note": format!("This site is cooling down. Wait {left}s before trying again; changing identity does not reset the limit.")}),
-                    links: Vec::new(),
-                    final_url: url,
-                };
-            }
-        }
+        // A hard-block cooldown, the visit window and the server's backoff are all admission now,
+        // at the first rung, where a short one can be waited out instead of refused.
 
         // What this address has already spent with this host. Checked after the cooldown, because
         // if the site has said no its word outranks our own accounting; and not conditioned on the
@@ -2581,6 +2689,56 @@ impl SvipallServer {
                 native_allowed,
             );
         }
+        // A walk that failed all the way up minutes ago fails again: answered from that memory,
+        // for the whole origin, without a request, unless the caller asks for a fresh walk or a
+        // higher ceiling than the one that failed. Only the plain automatic request: a profile,
+        // a body or a forced tier is a different visitor or a different question.
+        let origin = url::Url::parse(&url)
+            .ok()
+            .map(|u| u.origin().ascii_serialization());
+        let memory = origin.as_deref().filter(|_| {
+            mode == "auto"
+                && !local
+                && p.profile.is_none()
+                && p.body.is_none()
+                && p.method
+                    .as_deref()
+                    .is_none_or(|m| m.eq_ignore_ascii_case("GET"))
+        });
+        let mut had_memory = false;
+        if let (Some(origin), Ok(ledger)) = (memory, self.traffic.as_ref()) {
+            let now = svipall_core::automatic::now();
+            let ttl = svipall_core::traffic::FAILURE_MEMORY_SECS;
+            if let Ok(Some(f)) = ledger.recall_failure(origin, proxy.as_deref(), now, ttl) {
+                had_memory = true;
+                let covers = svipall_core::ladder::tier_index(&f.top)
+                    >= svipall_core::ladder::tier_index(&max_tier);
+                if covers && !p.fresh.unwrap_or(false) {
+                    if let Ok(mut value) = serde_json::from_str::<Value>(&f.record) {
+                        let ago = now.saturating_sub(f.at);
+                        value["url"] = json!(url);
+                        value["attempts"] = json!([]);
+                        value["remembered"] = json!({"seconds_ago": ago, "top_tier": f.top});
+                        value["note"] = json!(crate::steer::remembered_failure(
+                            ago,
+                            (f.at + ttl).saturating_sub(now)
+                        ));
+                        return FetchOutcome {
+                            blocked_body: None,
+                            value,
+                            links: Vec::new(),
+                            final_url: url,
+                        };
+                    }
+                }
+            }
+        }
+        let mut admitted = false;
+        let mut skipped = false;
+        let mut top_tried: Option<String> = None;
+        let mut hard_cooldown: Option<u64> = None;
+        let mut backoff_note: Option<String> = None;
+        let mut refusal_note: Option<String> = None;
         let mut attempts: Vec<String> = Vec::new();
         let mut made = 0;
         let mut native_attempted = false;
@@ -2621,14 +2779,37 @@ impl SvipallServer {
             let bt = BrowserTier::parse(&tier);
             if bt.is_some() && !attempt_pool.available() {
                 attempts.push(format!("{}: SKIP {}", tier, no_browser_hint()));
+                skipped = true;
                 break;
             }
             if !local {
-                if let Err(e) = self.admit_visit(&domain, proxy.as_deref()) {
-                    stopped_wait = e.seconds;
-                    stopped_kind = e.kind;
-                    stopped = Some(e.to_string());
-                    break;
+                // One fetch is one visit, however many rungs it climbs: charged at the first,
+                // and every later rung is still paced and still checked against the budget.
+                let admission = if admitted {
+                    self.reputation_ok(&domain, proxy.as_deref())
+                        .map(|_| Admitted::default())
+                } else {
+                    self.admit_waiting(&domain, proxy.as_deref(), Self::wait_budget(p))
+                        .await
+                };
+                match admission {
+                    Ok(a) if !admitted => {
+                        admitted = true;
+                        *adm = a;
+                        if p.wait.is_some() {
+                            fetch_started += a.waited;
+                        }
+                    }
+                    Ok(_) => {}
+                    Err(e) => {
+                        stopped_wait = e.seconds;
+                        stopped_kind = e.kind;
+                        stopped = Some(e.to_string());
+                        if e.detail.ends_with('.') {
+                            refusal_note = Some(e.detail);
+                        }
+                        break;
+                    }
                 }
                 let pacing_budget = Duration::from_millis(p.timeout.unwrap_or(60_000))
                     .saturating_sub(fetch_started.elapsed())
@@ -2678,6 +2859,13 @@ impl SvipallServer {
                 break;
             }
             made += 1;
+            if top_tried
+                .as_deref()
+                .and_then(svipall_core::ladder::tier_index)
+                < svipall_core::ladder::tier_index(&tier)
+            {
+                top_tried = Some(tier.clone());
+            }
             if native {
                 attempts.push(
                     "native: last-resort fallback; real browser characteristics are exposed".into(),
@@ -2785,22 +2973,45 @@ impl SvipallServer {
             }
             let rate_limited = matches!(o.status, 429 | 503);
             if !local && rate_limited {
-                let wait = o
+                use svipall_core::traffic::Backoff;
+                // The server's own delay when it named one; otherwise a strike that starts short,
+                // and a 503 is a server error rather than a ban.
+                let named = o
                     .header("retry-after")
                     .and_then(throttle::parse_retry_after)
-                    .map(|d| d.as_secs())
-                    .unwrap_or(self.cfg.request_cooldown_seconds)
-                    .max(self.cfg.request_cooldown_seconds);
-                if let Ok(ledger) = self.traffic.as_ref() {
-                    if let Err(e) = ledger.hold(
+                    .map(|d| d.as_secs());
+                let why = match (named, o.status) {
+                    (Some(s), _) => Backoff::RetryAfter(s),
+                    (None, 503) => Backoff::ServerError,
+                    _ => Backoff::RateLimited,
+                };
+                let held = self.traffic.as_ref().as_ref().map(|ledger| {
+                    ledger.backoff(
                         &domain,
                         proxy.as_deref(),
-                        svipall_core::automatic::now().saturating_add(wait),
-                    ) {
-                        tracing::warn!("cannot persist server backoff: {e}");
+                        why,
+                        &self.cfg,
+                        svipall_core::automatic::now(),
+                    )
+                });
+                let wait = match held {
+                    Ok(Ok(wait)) => wait,
+                    // Without the ledger the hold falls back to this process's cooldown, and the
+                    // note says that one's length, because it is the one that exists.
+                    failed => {
+                        if let Ok(Err(e)) = failed {
+                            tracing::warn!("cannot persist server backoff: {e}");
+                        }
                         svipall_core::set_cooldown(&domain);
+                        throttle::COOLDOWN_SECONDS
                     }
-                }
+                };
+                backoff_note = Some(crate::steer::server_backoff(
+                    o.status,
+                    wait,
+                    named.is_some(),
+                    &domain,
+                ));
                 stopped = Some(format!("cooldown: server requested backoff; wait {wait}s"));
                 stopped_wait = wait;
                 stopped_kind = "cooldown";
@@ -3054,6 +3265,11 @@ impl SvipallServer {
             }
             let Some(reason) = reason else {
                 attempts.push(format!("{}: {} ({}ms) OK", tier, o.status, ms));
+                if let (true, Some(origin), Ok(ledger)) =
+                    (had_memory, memory, self.traffic.as_ref())
+                {
+                    let _ = ledger.forget_failure(origin, proxy.as_deref());
+                }
                 if mode == "auto" && !local && !automatic {
                     svipall_core::remember_tier(&domain, &tier);
                 }
@@ -3454,17 +3670,37 @@ impl SvipallServer {
             }
         }
         let Some((o, parts, reason, kind, tier)) = last else {
+            let mut value = json!({"url": url, "status": 0, "blocked_reason": if stopped.is_some() { stopped_kind } else { "no tier could fetch the page" }, "wall_kind": stopped_kind, "attempts": attempts,
+                "native_fallback": native_attempted,
+                "network_attempted": made > 0,
+                "cooldown_seconds_left": stopped_wait,
+                "note": refusal_note.as_deref().or(stopped.as_deref()).unwrap_or("Every tier raised an error (see attempts). Check the URL, network, or browser_path.")});
+            if stopped_kind == "visit_limit" {
+                value["visit_budget"] = self.visit_budget(0);
+            }
             return FetchOutcome {
                 blocked_body: None,
-                value: json!({"url": url, "status": 0, "blocked_reason": if stopped.is_some() { stopped_kind } else { "no tier could fetch the page" }, "wall_kind": stopped_kind, "attempts": attempts,
-                    "native_fallback": native_attempted,
-                    "network_attempted": made > 0,
-                    "cooldown_seconds_left": stopped_wait,
-                    "note": stopped.as_deref().unwrap_or("Every tier raised an error (see attempts). Check the URL, network, or browser_path.")}),
+                value,
                 links: Vec::new(),
                 final_url: url,
             };
         };
+        // Every rung up to the top was tried and refused: worth remembering for the origin, so the
+        // next call minutes from now does not pay the same thirty seconds to hear the same no.
+        let full_walk = (stopped.is_none() || stopped_kind == "attempt_limit")
+            && !skipped
+            && top_tried
+                .as_deref()
+                .is_some_and(|t| BrowserTier::parse(t).is_some())
+            && matches!(
+                kind,
+                WallKind::Cloudflare
+                    | WallKind::Generic
+                    | WallKind::Hold
+                    | WallKind::Vendor
+                    | WallKind::Status
+                    | WallKind::Empty
+            );
         let exhausted = matches!(tier.as_str(), "real" | "warm");
         if mode == "auto"
             && !local
@@ -3482,12 +3718,15 @@ impl SvipallServer {
                     // the page it refused, and reusing it would be starting the next attempt from
                     // the worse of the two states.
                     svipall_core::set_cooldown(&domain);
+                    hard_cooldown = Some(throttle::COOLDOWN_SECONDS);
                     self.pool
                         .release_kept(|k| k.contains(&format!("|{domain}|")))
                         .await;
                 }
             }
         }
+        // The hold this outcome really left on the domain, and nothing else.
+        let cooldown = hard_cooldown.or((stopped_kind == "cooldown").then_some(stopped_wait));
         let content = Self::render_content(
             &parts,
             &o.html,
@@ -3511,10 +3750,19 @@ impl SvipallServer {
         )
         .then(|| svipall_core::challenge::detect_all(&o.html))
         .filter(|w| !w.is_empty());
-        let note = match (&challenge, self.solver_state.is_some()) {
-            (Some(c), true) => format!(
+        let note = match (&backoff_note, &challenge, self.solver_state.is_some()) {
+            // A 429 or 503 is the server's word about when to come back, said as such.
+            (Some(b), _, _) => b.clone(),
+            (None, Some(c), true) => format!(
                 "{} {}",
-                crate::steer::wall_next_step(&kind, &domain, &tier, false, self.dashboard()),
+                crate::steer::wall_next_step(
+                    &kind,
+                    &domain,
+                    &tier,
+                    false,
+                    self.dashboard(),
+                    cooldown
+                ),
                 crate::steer::captcha_next_step(
                     &format!("{:?}", c.kind),
                     c.kind.tool(),
@@ -3527,6 +3775,7 @@ impl SvipallServer {
                 &tier,
                 self.solver_state.is_some(),
                 self.dashboard(),
+                cooldown,
             ),
         };
         // What is wrong on this machine is the first thing to rule out when a wall will not clear,
@@ -3558,6 +3807,25 @@ impl SvipallServer {
             "title": parts.title, "attempts": attempts,
             "content": content.chars().take(2000).collect::<String>(),
         });
+        if let (true, Some(origin), Some(top), Ok(ledger)) = (
+            full_walk,
+            memory,
+            top_tried.as_deref(),
+            self.traffic.as_ref(),
+        ) {
+            let mut record = value.clone();
+            strip_silent_fields(&mut record);
+            if let Err(e) = ledger.remember_failure(
+                origin,
+                proxy.as_deref(),
+                &domain,
+                top,
+                &record.to_string(),
+                svipall_core::automatic::now(),
+            ) {
+                tracing::debug!("failure not remembered: {e}");
+            }
+        }
         // A blocked page's own markup is exactly what an operator inspects to understand the
         // wall, and two thousand characters of it is the head of a stylesheet. Asked for a file,
         // the whole document goes there — as it does for a page that was delivered.
@@ -3711,6 +3979,7 @@ impl SvipallServer {
             schema: p.schema,
             tables: p.tables,
             timeout: p.timeout,
+            wait: p.wait,
             main_content_only: Some(true),
             ..Default::default()
         };
@@ -4328,7 +4597,12 @@ impl SvipallServer {
             // milliseconds without a single request.
             if matches!(
                 stopped_by,
-                "saturation" | "over_budget" | "cooldown" | "traffic_state" | "timeout"
+                "saturation"
+                    | "over_budget"
+                    | "cooldown"
+                    | "visit_limit"
+                    | "traffic_state"
+                    | "timeout"
             ) {
                 break;
             }
@@ -5259,7 +5533,9 @@ impl SvipallServer {
 
     /// `web_video` without the protocol wrapper, for the REST API, the CLI and tests.
     pub async fn video_json(&self, p: WebVideoParams) -> anyhow::Result<Value> {
-        let limit = Duration::from_secs(90);
+        // A wait the caller asked for is on top of the read, as it is on web_fetch.
+        let limit =
+            Duration::from_secs(90 + p.wait.map_or(0, |w| w.min(crate::steer::MAX_WAIT_SECS)));
         match tokio::time::timeout(limit, self.video_inner(&p)).await {
             Ok(r) => r,
             Err(_) => Ok(json!({
@@ -5316,7 +5592,14 @@ impl SvipallServer {
                         None => json!("No video found: no known player, no <video>, no VideoObject, no og:video. web_fetch reads it as a page."),
                     };
                     let mut out = json!({"url": p.url, "video": null, "note": note});
-                    for k in ["final_url", "status", "tier_used", "blocked_reason"] {
+                    for k in [
+                        "final_url",
+                        "status",
+                        "tier_used",
+                        "blocked_reason",
+                        "cooldown_seconds_left",
+                        "visit_budget",
+                    ] {
                         if !page[k].is_null() {
                             out[k] = page[k].clone();
                         }
@@ -5341,7 +5624,7 @@ impl SvipallServer {
                 .cloned()
                 .collect();
             for s in manifests {
-                let Ok(body) = self.video_text(&s.url).await else {
+                let Ok(body) = self.video_text(&s.url, p.wait).await else {
                     continue;
                 };
                 let m = match s.kind {
@@ -5357,7 +5640,7 @@ impl SvipallServer {
         if info.chapters.is_empty() {
             if let Some(u) = info.chapter_tracks.first().cloned() {
                 if let Some(c) = self
-                    .video_text(&u)
+                    .video_text(&u, p.wait)
                     .await
                     .ok()
                     .and_then(|b| v::cues::parse(&b, false))
@@ -5373,7 +5656,7 @@ impl SvipallServer {
         let frames_refused = drm.is_some() && want_frames > 0;
         let want_frames = if frames_refused { 0 } else { want_frames };
         let mut cues = match (&track, borrow) {
-            (Some(t), None) => self.video_captions(t, &mut notes).await,
+            (Some(t), None) => self.video_captions(t, &mut notes, p.wait).await,
             (None, _) => {
                 notes.push("no caption track on the page or in its stream manifests".into());
                 Vec::new()
@@ -5471,10 +5754,18 @@ impl SvipallServer {
                     cache: Some("bypass".into()),
                     profile: p.profile.clone(),
                     timeout: Some(60_000),
+                    wait: p.wait,
                     ..Default::default()
                 })
                 .await;
             let mut value = out.value;
+            // Refused before anything was asked: a higher ceiling meets the same limiter.
+            if matches!(
+                value["blocked_reason"].as_str(),
+                Some("visit_limit" | "cooldown" | "address_budget" | "traffic_state")
+            ) {
+                return (value, Found::Nothing);
+            }
             let preview = value
                 .as_object_mut()
                 .and_then(|o| o.remove("content"))
@@ -5523,7 +5814,7 @@ impl SvipallServer {
     }
 
     /// A caption file, playlist or manifest by the http tier, or why it did not come.
-    async fn video_text(&self, url: &str) -> Result<String, String> {
+    async fn video_text(&self, url: &str, wait: Option<u64>) -> Result<String, String> {
         let out = self
             .fetch_json(WebFetchParams {
                 url: url.to_string(),
@@ -5532,6 +5823,7 @@ impl SvipallServer {
                 max_tier: Some("http".into()),
                 cache: Some("bypass".into()),
                 timeout: Some(20_000),
+                wait,
                 ..Default::default()
             })
             .await;
@@ -5558,10 +5850,11 @@ impl SvipallServer {
         &self,
         t: &svipall_core::video::Track,
         notes: &mut Vec<String>,
+        wait: Option<u64>,
     ) -> Vec<svipall_core::video::Cue> {
         use svipall_core::video::{cues, manifest, CaptionKind};
         let rolling = t.kind == CaptionKind::Auto;
-        let body = match self.video_text(&t.url).await {
+        let body = match self.video_text(&t.url, wait).await {
             Ok(b) => b,
             Err(why) => {
                 notes.push(format!("the caption file did not come: {why}"));
@@ -5585,7 +5878,7 @@ impl SvipallServer {
         let mut out = Vec::new();
         for s in segments.iter().take(crate::video::MAX_SEGMENTS) {
             if let Some(c) = self
-                .video_text(s)
+                .video_text(s, wait)
                 .await
                 .ok()
                 .and_then(|b| cues::parse(&b, rolling))
@@ -6333,7 +6626,8 @@ impl SvipallServer {
                         &domain_from_url(&final_url),
                         "warm",
                         self.solver_state.is_some(),
-                        self.dashboard()
+                        self.dashboard(),
+                        None,
                     )
                 )),
             );
@@ -6809,7 +7103,7 @@ impl SvipallServer {
     }
 
     #[tool(
-        description = "Show the current state: learned tiers, cooldowns, address budgets, proxy routes, profiles, open browser sessions, resumable crawls, solver stats and the dashboard URL. Use when something is blocked or slow to see why, and to reset it: `clear_cooldown`, `forget_tier`, `clear_budget` and `clear_cache` take a domain. Without arguments nothing changes. The history per domain is web_log.",
+        description = "Show the current state: cooldowns, visit limits, browser, solver; `sections` for the rest. Use when something is blocked or slow to see why, and to reset it: `clear_cooldown`, `forget_tier`, `clear_budget` and `clear_cache` take a domain. Without arguments nothing changes. The history per domain is web_log.",
         annotations(read_only_hint = false, open_world_hint = false)
     )]
     async fn web_status(
@@ -6865,110 +7159,205 @@ impl SvipallServer {
                 json!({"saved":true,"config":value,"applies":"next request; existing sessions retain their policy"}),
             );
         }
+        // An action answers with what it did. The whole report on top of it was eleven thousand
+        // characters nobody had asked for.
+        let mut done = serde_json::Map::new();
         if let Some(d) = &params.clear_cooldown {
-            svipall_core::clear_cooldown(d);
+            // Every kind of hold on the domain: the hard-block cooldown, the server's backoff and
+            // its strikes in the shared ledger, the visit window, and a remembered failed walk.
+            let cooldown = svipall_core::clear_cooldown(d);
+            let ledger = match self.traffic.as_ref() {
+                Ok(l) => json!(l.clear(d)?),
+                Err(e) => json!(format!("traffic ledger unavailable: {e}")),
+            };
             // An operator resetting a domain means a clean start, and a page held from before the
             // block is not one.
             self.pool
                 .release_kept(|k| k.contains(&format!("|{d}|")))
                 .await;
+            done.insert(
+                "cleared_cooldown".into(),
+                json!({"domain": d, "hard_block_cooldown": cooldown, "ledger": ledger,
+                    "scope": "every session on this machine"}),
+            );
         }
         if let Some(d) = &params.forget_tier {
             svipall_core::forget_tier(d);
             svipall_core::automatic::forget(d);
+            done.insert("forgot_tier".into(), json!(d));
         }
         if let Some(d) = &params.clear_budget {
             svipall_core::reputation::clear(d);
+            done.insert("cleared_budget".into(), json!(d));
         }
-        let mut cleared = None;
         if let (Some(what), Some(store)) = (&params.clear_cache, &self.store) {
-            cleared = Some(match what {
+            let n = match what {
                 Value::String(domain) => store.clear(Some(domain)),
                 _ => store.clear(None),
-            });
+            };
+            done.insert("cache_cleared".into(), json!(n));
         }
-        let home = svipall_core::config::home_dir();
-        let profiles: Vec<String> = std::fs::read_dir(svipall_core::profiles::profiles_dir())
-            .map(|rd| {
-                rd.flatten()
-                    .filter(|e| e.path().is_dir())
-                    .map(|e| e.file_name().to_string_lossy().to_string())
-                    .collect()
-            })
-            .unwrap_or_default();
-        let auto_profiles = std::fs::read_dir(svipall_core::profiles::auto_profiles_dir())
-            .map(|rd| rd.flatten().filter(|e| e.path().is_dir()).count())
-            .unwrap_or(0);
+        let wanted: Vec<String> = params
+            .sections
+            .as_deref()
+            .unwrap_or_default()
+            .split(',')
+            .map(|s| s.trim().to_ascii_lowercase())
+            .filter(|s| !s.is_empty())
+            .collect();
+        if !done.is_empty() && wanted.is_empty() {
+            return Ok(Value::Object(done));
+        }
+        let mut status = if done.is_empty() {
+            self.status_summary().await
+        } else {
+            Value::Object(done)
+        };
+        for name in self.status_sections(&wanted) {
+            let section = self.status_section(name).await;
+            if let (Some(obj), Some(add)) = (status.as_object_mut(), section.as_object()) {
+                obj.extend(add.clone());
+            }
+        }
+        let unknown: Vec<&String> = wanted
+            .iter()
+            .filter(|w| w.as_str() != "all" && !STATUS_SECTIONS.contains(&w.as_str()))
+            .collect();
+        if !unknown.is_empty() {
+            status["unknown_sections"] = json!(unknown);
+            status["known_sections"] = json!(STATUS_SECTIONS);
+        }
+        Ok(status)
+    }
+
+    fn status_sections(&self, wanted: &[String]) -> Vec<&'static str> {
+        if wanted.iter().any(|w| w == "all") {
+            return STATUS_SECTIONS.to_vec();
+        }
+        STATUS_SECTIONS
+            .iter()
+            .copied()
+            .filter(|s| wanted.iter().any(|w| w == s))
+            .collect()
+    }
+
+    /// What is in the way right now, and where to look for the rest.
+    async fn status_summary(&self) -> Value {
         let (pending, solving, solved) = if let Some(state) = &self.solver_state {
             state.db_pool.read().await.stats()
         } else {
             (0, 0, 0)
         };
-        // Which challenge types are actually working, from the reports callers send back.
-        let outcomes: Vec<Value> = match &self.solver_state {
-            Some(state) => state
-                .db_pool
-                .read()
-                .await
-                .outcomes_by_type()
-                .into_iter()
-                .map(|(kind, solved, failed)| json!({"type": kind, "solved": solved, "failed": failed}))
-                .collect(),
-            None => Vec::new(),
-        };
-        let mut status = json!({
-            "home": home.to_string_lossy(),
+        let now = svipall_core::automatic::now();
+        json!({
+            "home": svipall_core::config::home_dir().to_string_lossy(),
             "version": env!("CARGO_PKG_VERSION"),
-            "domain_tiers": svipall_core::load_tiers(),
             "cooldowns": svipall_core::list_cooldowns(),
-            "automatic": {"identity":self.cfg.browser_identity,
-                "native_last_resort":self.cfg.auto_native_fallback,"max_attempts":self.cfg.auto_max_attempts,
-                "learning":"local per route family, exit and environment; emulated first; evidence expires after 24 hours"},
+            "server_holds_active": self.traffic.as_ref().as_ref().ok().and_then(|l| l.active_holds(now).ok()),
             "request_limits": {"visits":self.cfg.request_limit,"window_seconds":self.cfg.request_window_seconds,
-                "cooldown_seconds":self.cfg.request_cooldown_seconds,"minimum_interval_ms":self.cfg.request_min_interval_ms,
-                "scope":"top-level transport attempts per domain and exit, shared by identity modes; browser subresources excluded",
+                "backoff_max_seconds":self.cfg.request_cooldown_seconds,"minimum_interval_ms":self.cfg.request_min_interval_ms,
+                "scope":"top-level visits per site and exit, shared by every session on this machine",
                 "ledger_available":self.traffic.is_ok()},
-            "proxy_routes": self.routes(),
-            "exit_pools": svipall_core::exits::pools(),
-            "exit_health": svipall_core::exits::status(),
-            "tunnels": crate::tunnels::status(),
-            "reputation": svipall_core::reputation::status(),
-            "h3_offered_by": self.store.as_ref().map(|s| svipall_core::altsvc::offered(s, chrono::Utc::now().timestamp())),
+            "identity": self.cfg.browser_identity,
+            "browser": {"available": self.pool.available(), "chrome_major": self.pool.browser_major(), "advice": self.pool.advice(self.latest_stable_major())},
+            "solver": {"pending": pending, "solving": solving, "solved": solved, "dashboard": self.dashboard_url.as_deref()},
+            "sections": format!("more with sections=all or any of: {}", STATUS_SECTIONS.join(", ")),
+        })
+    }
+
+    async fn status_section(&self, name: &str) -> Value {
+        match name {
+            "holds" => json!({"cooldowns": svipall_core::list_cooldowns()}),
+            // Read only under emulated and native identity: under auto the ladder learns per
+            // route instead, and showing a file nothing reads would explain nothing.
+            "tiers" => {
+                let mut v = json!({
+                    "automatic": {"identity":self.cfg.browser_identity,
+                        "native_last_resort":self.cfg.auto_native_fallback,"max_attempts":self.cfg.auto_max_attempts,
+                        "learning":"local per route family, exit and environment; emulated first; evidence expires after 24 hours"},
+                });
+                if self.cfg.browser_identity != "auto" {
+                    v["domain_tiers"] = json!(svipall_core::load_tiers());
+                }
+                v
+            }
+            "exits" => json!({
+                "proxy_routes": self.routes(),
+                "exit_pools": svipall_core::exits::pools(),
+                "exit_health": svipall_core::exits::status(),
+                "tunnels": crate::tunnels::status(),
+            }),
+            "reputation" => json!({"reputation": svipall_core::reputation::status()}),
             // Three separate things, and a caller wondering why a site with an `Alt-Svc` is still
             // being fetched over TCP needs to see which of them is false.
-            "http3": json!({
-                "built": svipall_http::http3_available(),
-                "enabled": self.cfg.http3,
-                "in_use": self.cfg.http3 && svipall_http::http3_available(),
+            "h3" => json!({
+                "h3_offered_by": self.store.as_ref().map(|s| svipall_core::altsvc::offered(s, chrono::Utc::now().timestamp())),
+                "http3": {
+                    "built": svipall_http::http3_available(),
+                    "enabled": self.cfg.http3,
+                    "in_use": self.cfg.http3 && svipall_http::http3_available(),
+                },
             }),
-            "profiles": profiles,
-            "auto_profiles": auto_profiles,
-            "browser": {"executable": self.pool.executable(), "available": self.pool.available(), "chrome_major": self.pool.browser_major(), "advice": self.pool.advice(self.latest_stable_major()), "open": self.pool.open_browsers().await, "sessions": self.pool.session_ids().await, "kept": self.pool.kept_pages().await},
-            "http_engine": svipall_http::engine_report(self.fetcher.engine()),
-            "cache": self.store.as_ref().map(|s| json!({
+            "browser" => json!({
+                "browser": {"executable": self.pool.executable(), "available": self.pool.available(), "chrome_major": self.pool.browser_major(), "advice": self.pool.advice(self.latest_stable_major()), "open": self.pool.open_browsers().await, "sessions": self.pool.session_ids().await, "kept": self.pool.kept_pages().await},
+                "http_engine": svipall_http::engine_report(self.fetcher.engine()),
+                // A host with no usable GPU is not a fingerprint svipall can spoof away: Chrome
+                // falls back to a software rasteriser, and `SwiftShader`/`llvmpipe` in the WebGL
+                // renderer is the signature of a server or a VM. Named here rather than hidden.
+                "gpu": {
+                    "renderer": self.identity.webgl_renderer,
+                    "software": svipall_core::coherence::is_software_renderer(&self.identity.webgl_renderer),
+                    "note": svipall_core::coherence::is_software_renderer(&self.identity.webgl_renderer)
+                        .then_some("no usable GPU: the WebGL renderer is a software rasteriser, which reads as a server or a VM to every site that checks"),
+                },
+            }),
+            "cache" => json!({"cache": self.store.as_ref().map(|s| json!({
                 "pages": s.page_count(),
                 "bytes": s.size_bytes(),
                 "path": svipall_core::cache::db_path().to_string_lossy(),
-            })),
-            "resumable_crawls": self.store.as_ref().map(|s| s.resumable_crawls().into_iter()
+            }))}),
+            "crawls" => {
+                json!({"resumable_crawls": self.store.as_ref().map(|s| s.resumable_crawls().into_iter()
                 .map(|(id, url, pending)| json!({"crawl_id": id, "start_url": url, "pending": pending}))
-                .collect::<Vec<_>>()),
-            "secrets": crate::secrets::names(),
-            "identity": {"chrome_major": self.identity.chrome_major, "user_agent": self.identity.user_agent, "os": self.identity.os, "timezone": self.identity.timezone, "locale": self.identity.accept_language},
-            "config": {"max_tier": self.cfg.max_tier, "browser_timeout_ms": self.cfg.browser_timeout_ms, "warm_wait_ms": self.cfg.warm_wait_ms, "parallelism": self.cfg.parallelism},
-            "solver": {"pending": pending, "solving": solving, "solved": solved, "dashboard": self.dashboard_url.as_deref(), "outcomes_by_type": outcomes},
-            // A host with no usable GPU is not a fingerprint svipall can spoof away: Chrome falls
-            // back to a software rasteriser, and `SwiftShader`/`llvmpipe` in the WebGL renderer is
-            // the signature of a server or a VM. Named here rather than hidden, like the
-            // anti-fingerprinting-browser and injecting-antivirus notes.
-            "gpu": {
-                "renderer": self.identity.webgl_renderer,
-                "software": svipall_core::coherence::is_software_renderer(&self.identity.webgl_renderer),
-                "note": svipall_core::coherence::is_software_renderer(&self.identity.webgl_renderer)
-                    .then_some("no usable GPU: the WebGL renderer is a software rasteriser, which reads as a server or a VM to every site that checks"),
-            },
+                .collect::<Vec<_>>())})
+            }
+            "profiles" => {
+                let profiles: Vec<String> =
+                    std::fs::read_dir(svipall_core::profiles::profiles_dir())
+                        .map(|rd| {
+                            rd.flatten()
+                                .filter(|e| e.path().is_dir())
+                                .map(|e| e.file_name().to_string_lossy().to_string())
+                                .collect()
+                        })
+                        .unwrap_or_default();
+                let auto_profiles = std::fs::read_dir(svipall_core::profiles::auto_profiles_dir())
+                    .map(|rd| rd.flatten().filter(|e| e.path().is_dir()).count())
+                    .unwrap_or(0);
+                json!({"profiles": profiles, "auto_profiles": auto_profiles, "secrets": crate::secrets::names()})
+            }
+            "solver" => {
+                let (pending, solving, solved) = if let Some(state) = &self.solver_state {
+                    state.db_pool.read().await.stats()
+                } else {
+                    (0, 0, 0)
+                };
+                // Which challenge types are actually working, from the reports callers send back.
+                let outcomes: Vec<Value> = match &self.solver_state {
+                    Some(state) => state
+                        .db_pool
+                        .read()
+                        .await
+                        .outcomes_by_type()
+                        .into_iter()
+                        .map(|(kind, solved, failed)| json!({"type": kind, "solved": solved, "failed": failed}))
+                        .collect(),
+                    None => Vec::new(),
+                };
+                json!({"solver": {"pending": pending, "solving": solving, "solved": solved, "dashboard": self.dashboard_url.as_deref(), "outcomes_by_type": outcomes}})
+            }
             // Which models answer, and which copy: the operator's file or the embedded one.
-            "models": {
+            "models" => json!({"models": {
                 "embedded": svipall_models::compiled_in(),
                 "grid": crate::grid::locate().map(|l| l.describe()).or_else(|| crate::grid::available().then(|| "detector standing in".to_string())),
                 "detect": crate::detect::locate().map(|l| l.describe()),
@@ -6979,13 +7368,13 @@ impl SvipallServer {
                 "asr": crate::asr::available(),
                 "read": crate::read_text::available(),
                 "substance": crate::substance::locate().map(|l| l.describe()),
-            },
-        });
-        // Only when something was cleared: a `null` on every other call said nothing.
-        if let Some(cleared) = cleared {
-            status["cache_cleared"] = json!(cleared);
+            }}),
+            "identity" => json!({
+                "identity": {"mode": self.cfg.browser_identity, "chrome_major": self.identity.chrome_major, "user_agent": self.identity.user_agent, "os": self.identity.os, "timezone": self.identity.timezone, "locale": self.identity.accept_language},
+                "config": {"max_tier": self.cfg.max_tier, "browser_timeout_ms": self.cfg.browser_timeout_ms, "warm_wait_ms": self.cfg.warm_wait_ms, "parallelism": self.cfg.parallelism},
+            }),
+            _ => json!({}),
         }
-        Ok(status)
     }
 
     // --- Captcha tools ---

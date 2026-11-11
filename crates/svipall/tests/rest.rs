@@ -332,14 +332,13 @@ async fn reading_the_status_over_get_cannot_clear_anything() {
 #[tokio::test]
 async fn the_status_carries_no_null_fields_and_no_float_noise() {
     // What a model reads when something is blocked. `cache_cleared: null` on every call said
-    // nothing, and `soft_line: 0.699999988079071` was an f32 shown as f64.
-    let req = Request::builder()
-        .uri("/v1/status")
-        .header("host", "127.0.0.1:8788")
-        .header("authorization", format!("Bearer {KEY}"))
-        .body(Body::empty())
-        .expect("request");
-    let (status, body) = send(app(), req).await;
+    // nothing, and `soft_line: 0.699999988079071` was an f32 shown as f64. The reputation is a
+    // section of the report now, asked for by name.
+    let (status, body) = send(
+        app(),
+        signed("POST", "/v1/status", json!({"sections": "reputation"})),
+    )
+    .await;
     assert_eq!(status, StatusCode::OK);
     assert!(body.get("cache_cleared").is_none(), "{body}");
     assert_eq!(
