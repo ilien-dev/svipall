@@ -248,10 +248,12 @@ const FOREIGN_HOLD_TEXT: &[&str] = &[
 ///
 /// Measured: forty separate `contains` over a 200 KB page took `classify` from 158µs to 580µs,
 /// against a budget of 400µs. One pass over the text finds any of them for the cost of one.
+///
+/// The hold phrases are not in it: "keep the power button pressed" is how a support article
+/// says it, so on a long page they would turn instructions into a wall.
 static FOREIGN_DEFINITE: LazyLock<Regex> = LazyLock::new(|| {
     let alternatives: Vec<String> = FOREIGN_BLOCK_TEXT
         .iter()
-        .chain(FOREIGN_HOLD_TEXT)
         .map(|s| regex::escape(s))
         .collect();
     Regex::new(&alternatives.join("|")).unwrap()
@@ -1718,6 +1720,11 @@ mod tests {
             "El ayuntamiento aprobó el proyecto del puerto tras un largo debate. ".repeat(60);
         let html = format!("<html><body><article>{body}</article></body></html>");
         assert_eq!(classify(200, &html, &body).1, WallKind::None);
+        // Nor a German how-to for telling the reader to hold a key down.
+        let howto =
+            "Um das Gerät neu zu starten, die Shift-Taste gedrückt halten und warten. ".repeat(40);
+        let html = format!("<html><body><article>{howto}</article></body></html>");
+        assert_eq!(classify(200, &html, &howto).1, WallKind::None);
     }
 
     #[test]
