@@ -284,13 +284,45 @@ async fn web_fetch_many_takes_the_same_path() {
 #[tokio::test]
 async fn what_does_not_map_is_fetched_as_it_always_was() {
     let r = replay();
-    // An owner's page has no API shape here, and an API URL fetched directly is JSON as is.
+    // An owner's page has no API shape here.
     let owner = fetch(json!({"url": r.url("/dtolnay"), "max_tier": "http"})).await;
     assert!(owner.get("via").is_none(), "{owner}");
+}
 
-    let api =
-        fetch(json!({"url": r.url("/repos/dtolnay/anyhow/issues/323"), "max_tier": "http"})).await;
-    assert!(api.get("via").is_none(), "{api}");
-    let body: Value = serde_json::from_str(content(&api)).expect("the JSON, as is");
-    assert_eq!(body["number"], 323);
+#[tokio::test]
+async fn an_api_url_named_directly_comes_back_as_it_is() {
+    let r = replay();
+    let api = fetch(json!({"url": r.api_url("/repos/dtolnay/anyhow/issues/323")})).await;
+    assert_eq!(api["via"], "github-api", "{api}");
+    assert_eq!(api["status"], 200);
+    assert_eq!(
+        content(&api),
+        fixture_text("issue_323"),
+        "the JSON byte for byte"
+    );
+    assert_eq!(api["rate_limit"]["limit"], 60, "{api}");
+}
+
+#[tokio::test]
+async fn a_direct_api_quota_refusal_is_not_a_wall() {
+    let r = replay();
+    let v = fetch(json!({"url": r.api_url("/repos/limited/repo/issues/7")})).await;
+    assert_eq!(v["via"], "github-api", "{v}");
+    assert_eq!(v["status"], 403, "{v}");
+    assert_eq!(v["rate_limited_until"], "2026-11-11T21:43:54Z", "{v}");
+    assert!(v.get("blocked_reason").is_none(), "{v}");
+    assert!(v.get("wall_kind").is_none(), "{v}");
+    let note = v["note"].as_str().unwrap_or_default();
+    assert!(
+        note.contains("rate limited until 2026-11-11T21:43:54Z"),
+        "{v}"
+    );
+    assert!(note.contains("10 requests of the search kind"), "{v}");
+    assert!(
+        content(&v).contains("API rate limit exceeded"),
+        "the API's own words: {v}"
+    );
+    // One request, no ladder climbed.
+    assert_eq!(v["attempts"].as_array().map(Vec::len), Some(1), "{v}");
+    assert!(svipall_core::check_cooldown("127.0.0.1").is_none());
 }

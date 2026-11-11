@@ -33,6 +33,11 @@ async fn five_real_urls_read_through_the_api() {
             "https://github.com/BurntSushi/ripgrep/releases/tag/15.2.0",
             "github-api",
         ),
+        // An API URL named directly: the JSON as it is, from the search quota (10 a minute).
+        (
+            "https://api.github.com/search/issues?q=repo:dtolnay/anyhow+ensure&per_page=1",
+            "github-api",
+        ),
     ];
     for (url, via) in urls {
         let v = server

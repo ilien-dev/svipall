@@ -22,31 +22,30 @@ async fn the_token_goes_to_the_api_only_and_never_into_a_result() {
     let server = SvipallServer::new(None, svipall_core::Config::default(), None);
 
     let mut results = Vec::new();
-    for path in [
-        "/dtolnay/anyhow",
-        "/dtolnay/anyhow/blob/master/src/lib.rs#L1-L3",
-        "/limited/repo/issues/7",
+    for url in [
+        r.url("/dtolnay/anyhow"),
+        r.url("/dtolnay/anyhow/blob/master/src/lib.rs#L1-L3"),
+        r.url("/limited/repo/issues/7"),
+        // An API URL named directly gets the token too.
+        r.api_url("/repos/dtolnay/anyhow/issues/323"),
     ] {
         let v = server
-            .fetch_json(
-                serde_json::from_value(json!({"url": r.url(path), "max_tier": "http"})).unwrap(),
-            )
+            .fetch_json(serde_json::from_value(json!({"url": url, "max_tier": "http"})).unwrap())
             .await
             .value;
         results.push(v);
     }
-    assert_eq!(results[0]["via"], "github-api", "{}", results[0]);
-    assert_eq!(
-        results[0]["github"]["authenticated"], true,
-        "{}",
-        results[0]
-    );
+    for i in [0, 3] {
+        assert_eq!(results[i]["via"], "github-api", "{}", results[i]);
+        assert_eq!(
+            results[i]["github"]["authenticated"], true,
+            "{}",
+            results[i]
+        );
+    }
 
     let seen = r.seen();
-    let api: Vec<_> = seen
-        .iter()
-        .filter(|s| s.target.starts_with("/repos/"))
-        .collect();
+    let api: Vec<_> = seen.iter().filter(|s| s.api).collect();
     assert!(!api.is_empty(), "{seen:?}");
     for s in &api {
         assert_eq!(
@@ -55,7 +54,7 @@ async fn the_token_goes_to_the_api_only_and_never_into_a_result() {
             "{s:?}"
         );
     }
-    for s in seen.iter().filter(|s| !s.target.starts_with("/repos/")) {
+    for s in seen.iter().filter(|s| !s.api) {
         assert!(
             s.authorization.is_none(),
             "the raw host and the page never see the token: {s:?}"

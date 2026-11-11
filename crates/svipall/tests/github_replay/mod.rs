@@ -2,7 +2,7 @@
 //! real API on 2026-11-11 (`tests/fixtures/github/*.body` and `*.headers`, verbatim except for the
 //! caller's own address, which the rate-limit message quotes and is replaced by 203.0.113.7).
 //!
-//! One loopback server plays the web origin, the API and the raw-file host, which the server is
+//! Two loopback ports play the web origin with the raw-file host, and the API, which the server is
 //! pointed at through `SVIPALL_GITHUB_WEB`, `SVIPALL_GITHUB_API` and `SVIPALL_GITHUB_RAW`. It
 //! lives on a thread of its own so that every `#[tokio::test]` (each its own runtime) shares it,
 //! and it records every request with whether it carried an `Authorization` header.
@@ -20,27 +20,36 @@ use tokio::net::TcpListener;
 pub struct Seen {
     pub target: String,
     pub authorization: Option<String>,
+    /// Asked of the API origin, rather than the web origin or the raw host.
+    pub api: bool,
 }
 
 pub struct Replay {
     pub port: u16,
+    pub api_port: u16,
     seen: Arc<Mutex<Vec<Seen>>>,
 }
 
 impl Replay {
+    /// A URL on the web origin (which also plays the raw host).
     pub fn url(&self, path: &str) -> String {
         format!("http://127.0.0.1:{}{path}", self.port)
+    }
+
+    /// A URL on the API origin, as a caller would name `api.github.com` directly.
+    pub fn api_url(&self, path: &str) -> String {
+        format!("http://127.0.0.1:{}{path}", self.api_port)
     }
 
     pub fn seen(&self) -> Vec<Seen> {
         self.seen.lock().unwrap().clone()
     }
 
-    /// How many requests went to targets starting with `prefix`.
+    /// How many API requests went to targets starting with `prefix`.
     pub fn hits(&self, prefix: &str) -> usize {
         self.seen()
             .iter()
-            .filter(|s| s.target.starts_with(prefix))
+            .filter(|s| s.api && s.target.starts_with(prefix))
             .count()
     }
 }
@@ -147,7 +156,55 @@ pub const ISSUE_PAGE: &str = "<!doctype html><html><head><title>Issue seven</tit
     It is served here so that a fetch which falls back from the API to the page has something \
     real to read, and the test can tell which of the two answered.</p></main></body></html>";
 
-/// Start the replay server once per test binary and point the server's three origins at it.
+/// Answer one connection from the table, recording what was asked.
+async fn serve(
+    mut sock: tokio::net::TcpStream,
+    t: Arc<HashMap<String, Answer>>,
+    s: Arc<Mutex<Vec<Seen>>>,
+    api: bool,
+) {
+    let mut buf = Vec::new();
+    let mut chunk = [0u8; 2048];
+    while !buf.windows(4).any(|w| w == b"\r\n\r\n") {
+        match sock.read(&mut chunk).await {
+            Ok(0) | Err(_) => return,
+            Ok(n) => buf.extend_from_slice(&chunk[..n]),
+        }
+    }
+    let head = String::from_utf8_lossy(&buf).to_string();
+    let target = head.split_whitespace().nth(1).unwrap_or("/").to_string();
+    let authorization = head.lines().find_map(|l| {
+        let (k, v) = l.split_once(':')?;
+        k.trim()
+            .eq_ignore_ascii_case("authorization")
+            .then(|| v.trim().to_string())
+    });
+    s.lock().unwrap().push(Seen {
+        target: target.clone(),
+        authorization,
+        api,
+    });
+    let (status, headers, body) = t.get(&target).cloned().unwrap_or((
+        404,
+        vec![("Content-Type".into(), "text/html".into())],
+        b"<html><body>not found</body></html>".to_vec(),
+    ));
+    let mut out = format!(
+        "HTTP/1.1 {status} X\r\nContent-Length: {}\r\nConnection: close\r\n",
+        body.len()
+    );
+    for (k, v) in &headers {
+        out.push_str(&format!("{k}: {v}\r\n"));
+    }
+    out.push_str("\r\n");
+    let mut out = out.into_bytes();
+    out.extend_from_slice(&body);
+    let _ = sock.write_all(&out).await;
+    let _ = sock.flush().await;
+}
+
+/// Start the replay server once per test binary and point the server's three origins at it: one
+/// port for the web origin and the raw host, another for the API, as the real hosts differ.
 pub fn replay() -> &'static Replay {
     static REPLAY: OnceLock<Replay> = OnceLock::new();
     REPLAY.get_or_init(|| {
@@ -162,60 +219,30 @@ pub fn replay() -> &'static Replay {
                 .build()
                 .unwrap();
             rt.block_on(async move {
-                let listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
-                tx.send(listener.local_addr().unwrap().port()).unwrap();
+                let web = TcpListener::bind("127.0.0.1:0").await.unwrap();
+                let api = TcpListener::bind("127.0.0.1:0").await.unwrap();
+                tx.send((
+                    web.local_addr().unwrap().port(),
+                    api.local_addr().unwrap().port(),
+                ))
+                .unwrap();
                 loop {
-                    let Ok((mut sock, _)) = listener.accept().await else {
-                        return;
+                    let (sock, is_api) = tokio::select! {
+                        Ok((sock, _)) = web.accept() => (sock, false),
+                        Ok((sock, _)) = api.accept() => (sock, true),
                     };
-                    let (t, s) = (t.clone(), s.clone());
-                    tokio::spawn(async move {
-                        let mut buf = Vec::new();
-                        let mut chunk = [0u8; 2048];
-                        while !buf.windows(4).any(|w| w == b"\r\n\r\n") {
-                            match sock.read(&mut chunk).await {
-                                Ok(0) | Err(_) => return,
-                                Ok(n) => buf.extend_from_slice(&chunk[..n]),
-                            }
-                        }
-                        let head = String::from_utf8_lossy(&buf).to_string();
-                        let target = head.split_whitespace().nth(1).unwrap_or("/").to_string();
-                        let authorization = head.lines().find_map(|l| {
-                            let (k, v) = l.split_once(':')?;
-                            k.trim()
-                                .eq_ignore_ascii_case("authorization")
-                                .then(|| v.trim().to_string())
-                        });
-                        s.lock().unwrap().push(Seen {
-                            target: target.clone(),
-                            authorization,
-                        });
-                        let (status, headers, body) = t.get(&target).cloned().unwrap_or((
-                            404,
-                            vec![("Content-Type".into(), "text/html".into())],
-                            b"<html><body>not found</body></html>".to_vec(),
-                        ));
-                        let mut out = format!(
-                            "HTTP/1.1 {status} X\r\nContent-Length: {}\r\nConnection: close\r\n",
-                            body.len()
-                        );
-                        for (k, v) in &headers {
-                            out.push_str(&format!("{k}: {v}\r\n"));
-                        }
-                        out.push_str("\r\n");
-                        let mut out = out.into_bytes();
-                        out.extend_from_slice(&body);
-                        let _ = sock.write_all(&out).await;
-                        let _ = sock.flush().await;
-                    });
+                    tokio::spawn(serve(sock, t.clone(), s.clone(), is_api));
                 }
             });
         });
-        let port = rx.recv().unwrap();
-        let origin = format!("http://127.0.0.1:{port}");
-        std::env::set_var("SVIPALL_GITHUB_WEB", &origin);
-        std::env::set_var("SVIPALL_GITHUB_API", &origin);
-        std::env::set_var("SVIPALL_GITHUB_RAW", &origin);
-        Replay { port, seen }
+        let (port, api_port) = rx.recv().unwrap();
+        std::env::set_var("SVIPALL_GITHUB_WEB", format!("http://127.0.0.1:{port}"));
+        std::env::set_var("SVIPALL_GITHUB_RAW", format!("http://127.0.0.1:{port}"));
+        std::env::set_var("SVIPALL_GITHUB_API", format!("http://127.0.0.1:{api_port}"));
+        Replay {
+            port,
+            api_port,
+            seen,
+        }
     })
 }

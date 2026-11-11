@@ -8,6 +8,9 @@
 //! page instead, saying why. Nothing here ever writes a cooldown: a quota is the API's own word
 //! about when to come back, not a wall.
 //!
+//! An API URL fetched by name (search, anything) is answered as it is, with the token and the
+//! quota handled the same way.
+//!
 //! Unauthenticated by default, 60 requests an hour. A token named `GITHUB_TOKEN` in
 //! `~/.svipall/secrets.env` is sent to the API origin only â€” never to the raw host or the page â€”
 //! and is never logged or put in a result.
@@ -58,6 +61,22 @@ fn wants_the_page(p: &WebFetchParams, want_links: bool) -> bool {
         || p.headers.as_ref().is_some_and(|h| !h.is_empty())
 }
 
+/// An API URL fetched by name: read as it is, but with the token and the quota understood. Only a
+/// plain GET; anything else (a POST, a forced tier, a page-structure parameter) takes the ladder.
+fn direct_api(p: &WebFetchParams, want_links: bool, o: &Origins) -> bool {
+    p.url.starts_with(&format!("{}/", o.api))
+        && !want_links
+        && p.mode.as_deref().is_none_or(|m| m == "auto")
+        && p.css_selector.is_none()
+        && p.schema.is_none()
+        && !p.tables.unwrap_or(false)
+        && p.extraction.as_deref() != Some("html")
+        && p.body.is_none()
+        && p.method
+            .as_deref()
+            .is_none_or(|m| m.eq_ignore_ascii_case("GET"))
+}
+
 /// Why the API did not answer.
 enum Failure {
     RateLimited(Option<RateLimit>, u16),
@@ -93,11 +112,7 @@ impl Fallback {
                     " This is the HTML page instead, which is not a wall and started no cooldown.",
                 );
                 if !authenticated {
-                    note.push_str(&format!(
-                        " Without a token the limit is 60 requests an hour for this address; a \
-                         token named {} in ~/.svipall/secrets.env raises it.",
-                        gh::TOKEN_SECRET
-                    ));
+                    note.push_str(&token_hint(rate.as_ref()));
                 }
                 Self { detail, note }
             }
@@ -128,18 +143,65 @@ struct Api {
     calls: u32,
 }
 
+/// The token goes to the real API host, or to a loopback stand-in for it in tests; an origin
+/// redirected anywhere else gets no token.
+fn token_may_go_to(api_origin: &str) -> bool {
+    url::Url::parse(api_origin)
+        .ok()
+        .and_then(|u| u.host_str().map(str::to_ascii_lowercase))
+        .is_some_and(|h| {
+            h == "api.github.com" || h == "localhost" || h.starts_with("127.") || h == "[::1]"
+        })
+}
+
+fn api_token(api_origin: &str) -> Option<String> {
+    if !token_may_go_to(api_origin) {
+        return None;
+    }
+    crate::secrets::load()
+        .remove(gh::TOKEN_SECRET)
+        .filter(|t| !t.trim().is_empty())
+}
+
+/// What the note adds when there was no token.
+fn token_hint(rate: Option<&RateLimit>) -> String {
+    let limit = match rate {
+        Some(r) => format!(
+            "{} requests{} per window",
+            r.limit,
+            r.resource
+                .as_deref()
+                .map(|res| format!(" of the {res} kind"))
+                .unwrap_or_default()
+        ),
+        None => "a small number of requests".into(),
+    };
+    format!(
+        " Without a token this address is allowed {limit}; a token named {} in \
+         ~/.svipall/secrets.env raises it.",
+        gh::TOKEN_SECRET
+    )
+}
+
 impl Api {
-    async fn send(
+    /// One request, whatever it answers. `headers` are the caller's; an `Authorization` among
+    /// them is the caller's explicit choice and replaces the named token.
+    async fn exchange(
         &mut self,
         path: &str,
-        accept: &str,
+        headers: &[(String, String)],
     ) -> Result<svipall_http::HttpResponse, Failure> {
         let mut req = HttpRequest::get(format!("{}{path}", self.base));
-        req.set_header("accept", accept);
+        req.set_header("accept", "application/vnd.github+json");
         req.set_header("user-agent", &self.fetcher.identity().user_agent);
         req.set_header("x-github-api-version", "2022-11-28");
         if let Some(t) = &self.token {
             req.set_header("authorization", &format!("Bearer {t}"));
+        }
+        for (k, v) in headers {
+            if !k.eq_ignore_ascii_case("host") {
+                req.set_header(k, v);
+            }
         }
         let started = Instant::now();
         let sent = self.fetcher.send(req).await;
@@ -161,10 +223,22 @@ impl Api {
             r.status,
             started.elapsed().as_millis()
         ));
-        let rate = RateLimit::from_headers(&r.headers);
-        if rate.is_some() {
-            self.rate = rate.clone();
+        if let Some(rate) = RateLimit::from_headers(&r.headers) {
+            self.rate = Some(rate);
         }
+        Ok(r)
+    }
+
+    /// One request whose answer must be a success to be of use.
+    async fn send(
+        &mut self,
+        path: &str,
+        accept: &str,
+    ) -> Result<svipall_http::HttpResponse, Failure> {
+        let r = self
+            .exchange(path, &[("accept".into(), accept.into())])
+            .await?;
+        let rate = RateLimit::from_headers(&r.headers);
         if gh::is_rate_limited(r.status, rate.as_ref(), &String::from_utf8_lossy(&r.body)) {
             return Err(Failure::RateLimited(rate, r.status));
         }
@@ -246,6 +320,9 @@ impl SvipallServer {
     ) -> FetchOutcome {
         let o = origins();
         let Some(target) = gh::parse(&p.url, o.web.as_deref()) else {
+            if direct_api(p, want_links, &o) {
+                return self.github_direct(p, want_links, &o).await;
+            }
             return self.fetch_inner(p, want_links).await;
         };
         if wants_the_page(p, want_links) {
@@ -288,6 +365,109 @@ impl SvipallServer {
                 self.exit_for(&d)
             }
         })
+    }
+
+    /// Text that must come back as it is (a source file, an API's JSON): verbatim when it fits the
+    /// budget, because the block-wise budget normalises blank lines and the indentation a block
+    /// starts with, which is right for prose and wrong here. Larger than the budget, with `query`,
+    /// `cursor` or `out_file`, it goes through the same budget as any page.
+    fn github_verbatim(&self, value: &mut Value, content: String, p: &WebFetchParams) {
+        let max = p.max_tokens.unwrap_or(self.cfg.max_tokens_per_fetch).max(1);
+        let tokens = budget::estimate_tokens(&content);
+        if p.out_file.is_none()
+            && p.cursor.is_none()
+            && p.query.as_deref().is_none_or(|q| q.trim().is_empty())
+            && tokens <= max
+        {
+            value["chars"] = json!(content.chars().count());
+            value["tokens_estimated"] = json!(tokens);
+            value["content"] = json!(content);
+        } else {
+            self.github_deliver(value, content, p);
+        }
+    }
+
+    /// An API URL the caller named: the answer as it is, status and all. A quota refusal says
+    /// until when, and is the API's own word rather than a wall: no cooldown, no tier climbed.
+    async fn github_direct(
+        &self,
+        p: &WebFetchParams,
+        want_links: bool,
+        o: &Origins,
+    ) -> FetchOutcome {
+        let path = p.url[o.api.len()..]
+            .split('#')
+            .next()
+            .unwrap_or_default()
+            .to_string();
+        let mut headers: Vec<(String, String)> = p
+            .headers
+            .iter()
+            .flatten()
+            .map(|(k, v)| (k.clone(), v.clone()))
+            .collect();
+        headers.sort();
+        let token = api_token(&o.api);
+        let authenticated = token.is_some();
+        let mut api = Api {
+            fetcher: self.fetcher_for(self.github_proxy(p, &o.api).as_deref()),
+            base: o.api.clone(),
+            token,
+            attempts: Vec::new(),
+            rate: None,
+            calls: 0,
+        };
+        let r = match api.exchange(&path, &headers).await {
+            Ok(r) if r.content_type.contains("json") || r.content_type.starts_with("text/") => r,
+            // Not reachable, or not text (an archive behind a redirect): the ordinary ladder.
+            _ => return self.fetch_inner(p, want_links).await,
+        };
+        let body = r.text();
+        let mut github = json!({"kind": "api"});
+        if authenticated {
+            github["authenticated"] = json!(true);
+        }
+        let mut value = json!({
+            "url": p.url, "final_url": r.final_url, "status": r.status, "tier_used": "http",
+            "via": "github-api", "content_type": r.content_type, "attempts": api.attempts,
+            "github": github,
+        });
+        let rate = api.rate.clone();
+        if let Some(r) = &rate {
+            let mut rl =
+                json!({"limit": r.limit, "remaining": r.remaining, "reset_at": r.reset_at()});
+            if let Some(res) = &r.resource {
+                rl["resource"] = json!(res);
+            }
+            value["rate_limit"] = rl;
+        }
+        if gh::is_rate_limited(r.status, rate.as_ref(), &body) {
+            let mut note = match &rate {
+                Some(rl) => {
+                    value["rate_limited_until"] = json!(rl.reset_at());
+                    format!("The API is rate limited until {}.", rl.reset_at())
+                }
+                None => "The API is rate limited.".into(),
+            };
+            note.push_str(" This is its own answer, not a wall; no cooldown was started.");
+            if !authenticated {
+                note.push_str(&token_hint(rate.as_ref()));
+            }
+            value["note"] = json!(note);
+        } else if !(200..300).contains(&r.status) {
+            value["note"] = json!(format!(
+                "The API answered {}; the body is its own explanation.",
+                r.status
+            ));
+        }
+        let final_url = r.final_url.clone();
+        self.github_verbatim(&mut value, body, p);
+        FetchOutcome {
+            value,
+            links: Vec::new(),
+            final_url,
+            blocked_body: None,
+        }
     }
 
     /// The `query` filter, then the token budget (or `out_file`), as every other path applies them.
@@ -348,9 +528,7 @@ impl SvipallServer {
             }
         }
 
-        let token = crate::secrets::load()
-            .remove(gh::TOKEN_SECRET)
-            .filter(|t| !t.trim().is_empty());
+        let token = api_token(&o.api);
         let authenticated = token.is_some();
         let mut api = Api {
             fetcher: self.fetcher_for(self.github_proxy(p, &o.api).as_deref()),
@@ -561,10 +739,7 @@ impl SvipallServer {
 
     /// A file: its bytes from the raw host, which costs no API quota.
     ///
-    /// A text file comes back exactly as it is when it fits the budget: the block-wise budget
-    /// normalises blank lines and the indentation a block starts with, which is right for prose and
-    /// wrong for code. Larger than the budget, it pages by cursor like any page. A file that is not
-    /// text goes through the ordinary http tier at its raw URL, so a binary, a PDF or an `out_file`
+    /// A text file comes back as it is (`github_verbatim`). A file that is not text goes through the ordinary http tier at its raw URL, so a binary, a PDF or an `out_file`
     /// is handled as for any URL. A line anchor returns those lines, and says how many there are.
     async fn github_blob(
         &self,
@@ -640,18 +815,7 @@ impl SvipallServer {
                 content
             }
         };
-        let max = p.max_tokens.unwrap_or(self.cfg.max_tokens_per_fetch).max(1);
-        let verbatim = p.out_file.is_none()
-            && p.cursor.is_none()
-            && p.query.as_deref().is_none_or(|q| q.trim().is_empty())
-            && budget::estimate_tokens(&content) <= max;
-        if verbatim {
-            value["chars"] = json!(content.chars().count());
-            value["tokens_estimated"] = json!(budget::estimate_tokens(&content));
-            value["content"] = json!(content);
-        } else {
-            self.github_deliver(&mut value, content, p);
-        }
+        self.github_verbatim(&mut value, content, p);
         Ok(FetchOutcome {
             value,
             links: Vec::new(),
