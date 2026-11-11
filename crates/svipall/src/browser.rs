@@ -916,8 +916,6 @@ pub struct LiveResponse {
 pub struct BrowserPool {
     exe: Option<PathBuf>,
     browser_major: Option<u16>,
-    /// Newest Chrome major seen on this machine, for the staleness advice. See `browser_advice`.
-    known_major: Option<u16>,
     identity: IdentityProfile,
     cfg: Config,
     pool: Mutex<HashMap<String, Arc<Pooled>>>,
@@ -1256,23 +1254,9 @@ pub fn detect_browser(cfg: &Config) -> Option<PathBuf> {
     detect_all(cfg).into_iter().next()
 }
 
-/// The newest Chrome major this machine has any evidence of, read from directory names only.
-///
-/// Free on purpose: `version_from_cli` would spawn every installed browser at startup to learn
-/// something that is only ever used to phrase a warning. A version that can only be had by running
-/// the binary is simply not counted.
-pub fn newest_installed_major(paths: &[PathBuf]) -> Option<u16> {
-    paths
-        .iter()
-        .filter_map(|p| version_from_sibling_dir(p).or_else(|| version_from_ancestor_dir(p)))
-        .max()
-}
-
-/// How many Chrome majors behind the newest known build is worth saying something about.
-///
-/// One is an ordinary rollout: a major takes weeks to reach every machine, so warning at one would
-/// fire on a healthy install every four weeks, and advice that always fires is advice nobody reads.
-const STALE_MAJORS: u16 = 2;
+/// How many Chrome majors behind the stable channel is worth saying something about; the same
+/// number the background update acts on, so the warning and the fix never disagree.
+const STALE_MAJORS: u16 = crate::provision::STALE_MAJORS;
 
 /// What is wrong with the browser that would be launched, in one sentence, or `None`.
 ///
@@ -1285,13 +1269,12 @@ const STALE_MAJORS: u16 = 2;
 /// One sentence, not two: the identity contradiction is the one an update cannot fix, so when both
 /// are true it is the one worth spending.
 ///
-/// `best_known` is the newest major this installation has any evidence of — another browser found
-/// on this machine, or the stable channel the provisioner last looked at. `None` when there is no
-/// evidence, and no evidence can never make something stale.
+/// `stable` is the stable channel's major as the provisioner last read it. `None` when it has never
+/// been read, and no evidence can never make something stale.
 pub fn browser_advice(
     exe: Option<&std::path::Path>,
     in_use: Option<u16>,
-    best_known: Option<u16>,
+    stable: Option<u16>,
 ) -> Option<String> {
     // No browser at all has its own error path with its own instructions.
     let exe = exe?;
@@ -1304,12 +1287,13 @@ pub fn browser_advice(
             exe.display()
         ));
     }
-    let (in_use, best) = (in_use?, best_known?);
+    let (in_use, best) = (in_use?, stable?);
     let behind = best.checked_sub(in_use).filter(|b| *b >= STALE_MAJORS)?;
     Some(format!(
-        "The browser in use is Chrome {in_use}, {behind} majors behind the newest this machine \
-         knows of ({best}); a user agent naming a Chrome that old is itself a signal. \
-         browser_setup(action=\"update\") refreshes the managed install."
+        "The browser in use is Chrome {in_use}, {behind} majors behind the stable channel \
+         ({best}); a user agent naming a Chrome that old is itself a signal. \
+         browser_setup(action=\"update\") refreshes the managed install; a running server does it \
+         on its own unless browser_auto_update is false."
     ))
 }
 
@@ -1363,20 +1347,17 @@ pub fn named_profile(name: &str) -> PathBuf {
 impl BrowserPool {
     pub fn new(cfg: Config) -> Self {
         let (keep_max, keep_secs) = (cfg.warm_keep_max, cfg.warm_keep_secs);
-        let found = detect_all(&cfg);
-        let known_major = newest_installed_major(&found);
-        let exe = found.into_iter().next();
+        let exe = detect_all(&cfg).into_iter().next();
         let major = exe.as_deref().and_then(browser_version);
         match &exe {
+            // What is wrong with it is said by the server that owns this pool, once per process
+            // and against the stable channel; see `advice`.
             Some(p) => {
                 tracing::info!(
                     "browser tiers enabled: {} (Chrome {})",
                     p.display(),
                     major.map(|m| m.to_string()).unwrap_or_else(|| "?".into())
                 );
-                if let Some(advice) = browser_advice(Some(p), major, known_major) {
-                    tracing::warn!("{advice}");
-                }
             }
             None => tracing::warn!("no Chromium-based browser found; browser tiers disabled (set browser_path in ~/.svipall/config.toml, or call browser_setup)"),
         }
@@ -1397,7 +1378,6 @@ impl BrowserPool {
         Self {
             exe,
             browser_major: major,
-            known_major,
             identity,
             cfg,
             pool: Mutex::new(HashMap::new()),
@@ -1425,14 +1405,10 @@ impl BrowserPool {
     /// What is wrong with the browser that would be launched, in one sentence, or `None`.
     ///
     /// `latest_stable` is what the provisioner last learned from the release channel, which the
-    /// caller reads from the store; without it the advice still has the survey of this machine to
-    /// work from, and simply knows less.
+    /// caller reads from the store. It is the only yardstick: another browser installed beside
+    /// this one says nothing about what is current. Without it nothing can be called stale.
     pub fn advice(&self, latest_stable: Option<u16>) -> Option<String> {
-        let best = match (self.known_major, latest_stable) {
-            (Some(a), Some(b)) => Some(a.max(b)),
-            (a, b) => a.or(b),
-        };
-        browser_advice(self.exe.as_deref(), self.browser_major, best)
+        browser_advice(self.exe.as_deref(), self.browser_major, latest_stable)
     }
 
     pub fn executable(&self) -> Option<String> {

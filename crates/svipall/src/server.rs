@@ -654,9 +654,6 @@ pub(crate) fn local_causes(note: &str, injection: Option<&str>, browser: Option<
     out
 }
 
-/// Store key for the newest stable Chrome major `browser_setup` has seen.
-const LATEST_STABLE_KEY: &str = "browser/latest_stable_major";
-
 fn no_browser_hint() -> String {
     let platform = crate::provision::platform().unwrap_or("this platform");
     format!(
@@ -743,6 +740,13 @@ impl SvipallServer {
                 None
             }
         });
+        // Said once per process. Two pools are built here (the native one too) and a live
+        // configuration builds a server per change, so a warning issued per pool came out twice on
+        // every CLI command and again on every reload — and advice repeated is advice skimmed.
+        if let Some(advice) = pool.advice(crate::provision::known_stable_major(store.as_deref())) {
+            static SAID: std::sync::Once = std::sync::Once::new();
+            SAID.call_once(|| tracing::warn!("{advice}"));
+        }
         let engine = Engine::resolve(&cfg.http_engine);
         // The http tier can wear Firefox while the browser tiers stay Chrome. A domain that never
         // needs a browser then presents a Firefox that is Firefox in TLS, headers and UA together.
@@ -1307,19 +1311,11 @@ impl SvipallServer {
     /// that phones a release channel to answer "how are you" has a network dependency it does not
     /// need. `browser_setup` writes it whenever it looks the channel up for its own reasons.
     pub(crate) fn latest_stable_major(&self) -> Option<u16> {
-        self.store
-            .as_ref()?
-            .kv_get(LATEST_STABLE_KEY)
-            .and_then(|v| v.trim().parse().ok())
+        crate::provision::known_stable_major(self.store.as_deref())
     }
 
     fn remember_latest_stable(&self, version: &str) {
-        if let (Some(store), Some(major)) = (
-            self.store.as_deref(),
-            crate::browser::major_of_public(version),
-        ) {
-            let _ = store.kv_set(LATEST_STABLE_KEY, &major.to_string());
-        }
+        crate::provision::remember_stable(self.store.as_deref(), version);
     }
 
     fn routes(&self) -> HashMap<String, String> {
