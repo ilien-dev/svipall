@@ -590,7 +590,7 @@ mod tests {
 
     #[test]
     fn a_real_repository_file_listing_comes_out_clean() {
-        let html = include_str!("../tests/fixtures/github-repo-table.html");
+        let html = include_str!("../tests/fixtures/repo-file-listing.html");
         let out = md(html);
         let table: Vec<&str> = out.lines().filter(|l| l.starts_with('|')).collect();
         assert_eq!(table.first().copied(), Some("| Name |"), "{out}");

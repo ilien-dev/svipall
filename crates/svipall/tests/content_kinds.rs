@@ -1,7 +1,7 @@
 //! What a caller is told about a response, judged by what kind of response it is.
 //!
 //! A JSON answer, a source file and an article are three different things, and the classifier and
-//! the quality rules used to read all three as an article: a GitHub search answer that quoted an
+//! the quality rules used to read all three as an article: a code host's search API answer that quoted an
 //! issue titled "access denied" was reported as a bot wall and climbed every tier, and a complete
 //! JSON object read as "thin" because it is not prose. Every test here goes through the real fetch
 //! path against a local site and asserts on the answer the caller receives.
@@ -196,7 +196,7 @@ async fn a_refusal_the_browser_renders_again_is_not_delivered() {
 /// back as the product page.
 #[tokio::test]
 async fn the_marketplace_interstitial_in_spanish_is_a_wall() {
-    let page = "<!doctype html><html><head><title>Amazon.es</title></head><body><div>\
+    let page = "<!doctype html><html><head><title>Tienda</title></head><body><div>\
         <h4>Haz clic en el botón de abajo para continuar comprando</h4>\
         <button>Seguir comprando</button></div></body></html>";
     let site = Site::start(vec![("/dp/B0TEST", Reply::html(page))]).await;
@@ -304,8 +304,7 @@ async fn a_cut_off_json_answer_is_partial_and_an_empty_one_is_thin() {
 
 // ---- 17a: tables ------------------------------------------------------------------------------
 
-const GITHUB_REPO: &str =
-    include_str!("../../svipall-extract/tests/fixtures/github-repo-table.html");
+const REPO_PAGE: &str = include_str!("../../svipall-extract/tests/fixtures/repo-file-listing.html");
 
 /// The file listing of a real repository page. The site renders each name twice (a cell for
 /// narrow screens and one for wide ones) under a header that spans both, and leaves the commit
@@ -313,7 +312,7 @@ const GITHUB_REPO: &str =
 /// rows of repeated names and empty cells.
 #[tokio::test]
 async fn a_repository_file_listing_comes_out_as_one_clean_column_of_names() {
-    let site = Site::start(vec![("/serde-rs/serde", Reply::html(GITHUB_REPO))]).await;
+    let site = Site::start(vec![("/serde-rs/serde", Reply::html(REPO_PAGE))]).await;
     let out = local_server()
         .fetch_json(local(site.url("/serde-rs/serde")))
         .await

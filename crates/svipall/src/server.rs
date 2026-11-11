@@ -2342,7 +2342,10 @@ impl SvipallServer {
     pub async fn fetch_json_opts(&self, p: WebFetchParams, want_links: bool) -> FetchOutcome {
         let started = std::time::Instant::now();
         let is_raw = p.url.starts_with("raw:");
-        let direct = p.proxy.is_none() && self.exit_for(&domain_from_url(&p.url)).is_none();
+        // Only a page that came over the network can know this machine's address.
+        let direct = (p.url.starts_with("http://") || p.url.starts_with("https://"))
+            && p.proxy.is_none()
+            && self.exit_for(&domain_from_url(&p.url)).is_none();
         // A cursor pages the view it was issued for. Filtered by another query, the same page is
         // another document, and the continuation used to restart from the top saying the page
         // had changed. So the cursor's own query wins, and the response says it did.
