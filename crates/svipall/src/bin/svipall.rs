@@ -23,7 +23,7 @@ USAGE:
 
 COMMANDS:
     fetch <url> [--query Q] [--out FILE] [--text] [--mobile] [--isolated] [--full] [--tables]
-                [--scroll auto|N] [--schema auto|JSON]
+                [--scroll auto|N] [--schema auto|JSON] [--json-path PATH]
                 [--extraction markdown|text|html] [--cache auto|bypass|refresh] [--mode TIER]
                             Fetch a page, climbing the tier ladder as far as it needs to.
                             <url> may be file:///path (under local_roots) or raw: with --stdin.
@@ -223,6 +223,7 @@ async fn run(args: &[String]) -> anyhow::Result<Value> {
                     // Debugging only: the ladder knows better, which is why the skill says never.
                     mode: flags.value("mode"),
                     timeout: flags.number("timeout").map(|n| n as u64),
+                    json_path: flags.value("json-path"),
                     // `--schema auto` for a listing nobody has selectors for, or a JSON object for
                     // one written by hand. A malformed object is reported by the extractor as a
                     // schema error rather than swallowed here, which is where every other bad

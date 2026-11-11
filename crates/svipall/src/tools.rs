@@ -118,6 +118,10 @@ pub struct WebFetchParams {
     /// auto (default: serve a fresh copy, revalidate a stale one), read, write, bypass, refresh.
     #[serde(default)]
     pub cache: Option<String>,
+    /// Use this on a JSON answer to get back only the fields you need, e.g.
+    /// `items[:5].{name, owner.login}`: `.a`, `[0]`, `[-1]`, `[1:5]`, `[*]`, `{a, b.c}` picks.
+    #[serde(default)]
+    pub json_path: Option<String>,
 }
 
 #[derive(Debug, Deserialize, JsonSchema)]
@@ -146,6 +150,9 @@ pub struct WebFetchManyParams {
     /// Timeout in ms per URL. Default 60000.
     #[serde(default)]
     pub timeout: Option<u64>,
+    /// Only these fields of every JSON answer, as on web_fetch.
+    #[serde(default)]
+    pub json_path: Option<String>,
 }
 
 #[derive(Debug, Default, Serialize, Deserialize, JsonSchema)]

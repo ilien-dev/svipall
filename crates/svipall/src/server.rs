@@ -610,6 +610,68 @@ fn out_path(name: &str) -> anyhow::Result<std::path::PathBuf> {
     Ok(path)
 }
 
+/// The part of a JSON body `json_path` names, as the content to return; `None` when there is no
+/// projection to give, with the reason on the response and the content left whole — a path that
+/// could not be applied must never cost the caller the page.
+fn project_json(
+    obj: &mut serde_json::Map<String, Value>,
+    body: &str,
+    content_type: &str,
+    path: &str,
+) -> Option<String> {
+    let doc: Value = match serde_json::from_str(body.trim_start_matches('\u{feff}')) {
+        Ok(v) => v,
+        Err(_) => {
+            obj.insert(
+                "json_path_error".into(),
+                json!(format!(
+                    "the body is not JSON ({}), so json_path was not applied; the whole content \
+                     is returned",
+                    if content_type.is_empty() {
+                        "no content-type"
+                    } else {
+                        content_type
+                    }
+                )),
+            );
+            return None;
+        }
+    };
+    match crate::json_select::select(&doc, path) {
+        Ok(found) => {
+            if found.is_null() {
+                let keys: Vec<&str> = match &doc {
+                    Value::Object(m) => m.keys().map(String::as_str).take(40).collect(),
+                    Value::Array(a) => {
+                        obj.insert(
+                            "json_path_note".into(),
+                            json!(format!(
+                                "json_path matched nothing; the document is an array of {} \
+                                 elements (start with [0] or [*])",
+                                a.len()
+                            )),
+                        );
+                        return Some("null".into());
+                    }
+                    _ => Vec::new(),
+                };
+                obj.insert(
+                    "json_path_note".into(),
+                    json!(format!(
+                        "json_path matched nothing; the top-level keys are: {}",
+                        keys.join(", ")
+                    )),
+                );
+            }
+            Some(serde_json::to_string_pretty(&found).unwrap_or_default())
+        }
+        Err(e) => {
+            obj.insert("json_path_error".into(), json!(e));
+            None
+        }
+    }
+}
+
 fn write_out(name: &str, content: &str) -> anyhow::Result<(std::path::PathBuf, usize)> {
     let path = out_path(name)?;
     std::fs::write(&path, content)?;
@@ -2398,6 +2460,7 @@ impl SvipallServer {
         let wants_stored_markdown = p.schema.is_none()
             && !p.tables.unwrap_or(false)
             && p.css_selector.is_none()
+            && p.json_path.is_none()
             && p.extraction.as_deref().is_none_or(|e| e == "markdown")
             && p.main_content_only.is_none_or(|m| m);
         // A fresh cached copy short-circuits the whole ladder. This is also what makes a cursor
@@ -3366,6 +3429,20 @@ impl SvipallServer {
                         } else {
                             content
                         };
+                        let content = match p.json_path.as_deref().filter(|s| !s.trim().is_empty())
+                        {
+                            // The text as well as the markup: a browser tier shows a JSON
+                            // answer inside a `<pre>`, and its text is the document.
+                            Some(path) => {
+                                let body = if serde_json::from_str::<Value>(&o.html).is_ok() {
+                                    o.html.as_str()
+                                } else {
+                                    parts.text.as_str()
+                                };
+                                project_json(obj, body, &o.content_type, path).unwrap_or(content)
+                            }
+                            None => content,
+                        };
                         self.budget_into(&mut value, content, p);
                     }
                 }
@@ -3711,6 +3788,7 @@ impl SvipallServer {
             schema: p.schema,
             tables: p.tables,
             timeout: p.timeout,
+            json_path: p.json_path,
             main_content_only: Some(true),
             ..Default::default()
         };

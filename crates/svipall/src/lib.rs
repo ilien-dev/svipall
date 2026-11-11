@@ -16,6 +16,8 @@ pub mod handoff;
 pub mod hooks;
 /// Work that outlives the request that asked for it.
 pub mod jobs;
+/// `json_path`: the fields of a JSON answer the caller asked for.
+pub mod json_select;
 /// Where a model comes from: the operator's file first, the embedded copy second.
 pub mod model_install;
 pub mod model_source;
