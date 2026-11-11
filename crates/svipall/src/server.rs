@@ -2061,10 +2061,9 @@ impl SvipallServer {
                     let (r, k) = classify_view(200, h, &view);
                     r.is_none() || (k == WallKind::Empty && !parts.text.trim().is_empty())
                 };
-                // Enough text to be the page rather than a server's error stub. Measured on a
-                // managed challenge: the last tier came back with a 27-character "403 Forbidden"
-                // document, nothing in it classified as a wall, the status was rewritten to 200 and
-                // the fetch reported success.
+                // Enough text to be the page rather than a server's error stub. Without it a
+                // 403 whose body is a bare "403 Forbidden" had its status rewritten to 200, because
+                // nothing in that body reads as a wall, and the fetch reported success.
                 let substantive = parts.text.trim().chars().count() >= 200;
                 (delivered, view.text.is_empty(), substantive)
             };
@@ -4740,35 +4739,45 @@ impl SvipallServer {
         // What was tried, in order, so a search that finds nothing says where it looked.
         let mut tried: Vec<String> = Vec::new();
         let timeout = p.timeout;
-        // An ordinary fetch that delivered: its content, or nothing.
-        let read = |url: String, extraction: &'static str| async move {
+        // An ordinary fetch: its content when it delivered, nothing when it did not, and an error
+        // when nothing was requested at all — a cooldown or the visit limit — because every later
+        // probe would meet the same refusal and report "no page" for a page never asked for.
+        let read = |url: String| async move {
             let r = self
                 .fetch_json(WebFetchParams {
                     url,
-                    extraction: Some(extraction.into()),
+                    extraction: Some("html".into()),
                     max_tier: Some("http".into()),
                     timeout,
                     ..Default::default()
                 })
                 .await;
+            if let Some(gate) = never_requested(&r.value) {
+                let note = r.value["note"].as_str().unwrap_or_default();
+                return Err(format!("{gate}: {note}"));
+            }
             let status = r.value["status"].as_u64().unwrap_or(0);
             if !(200..300).contains(&status) || r.value["blocked_reason"].is_string() {
-                return None;
+                return Ok(None);
             }
-            r.value["content"].as_str().map(str::to_string)
+            Ok(r.value["content"].as_str().map(str::to_string))
         };
 
         // 1. The page as the server sends it, for what it declares about its own search.
-        let html = read(p.url.clone(), "html").await.unwrap_or_default();
-        let start_text = read(p.url.clone(), "markdown").await.unwrap_or_default();
+        let html = match read(p.url.clone()).await {
+            Ok(h) => h.unwrap_or_default(),
+            Err(why) => anyhow::bail!("nothing was requested: {why}"),
+        };
         let mut found: Option<(String, &str, Value)> = None;
         let described = forms::opensearch_links(&html, &p.url);
         if described.is_empty() {
             tried.push("an OpenSearch <link rel=\"search\"> on the page: none".into());
         }
         for desc in described {
-            let template = read(desc.clone(), "html")
+            let template = read(desc.clone())
                 .await
+                .ok()
+                .flatten()
                 .and_then(|xml| forms::opensearch_template(&xml, &desc));
             match template.and_then(|t| forms::fill_template(&t, &p.query)) {
                 Some(url) => {
@@ -4800,16 +4809,20 @@ impl SvipallServer {
         // each believed only once it has been fetched and has answered the query.
         if found.is_none() {
             for e in forms::endpoints(&p.url, &html, &p.query) {
-                match read(e.url.clone(), "markdown").await {
-                    Some(text) if forms::answers_query(&text, &start_text, &p.query) => {
+                match read(e.url.clone()).await {
+                    Ok(Some(text)) if forms::answers_query(&text, &html, &p.query) => {
                         found = Some((e.url.clone(), "endpoint", json!({"why": e.why})));
                         break;
                     }
-                    Some(_) => tried.push(format!(
+                    Ok(Some(_)) => tried.push(format!(
                         "{} ({}): answered, but not with this query",
                         e.url, e.why
                     )),
-                    None => tried.push(format!("{} ({}): no page", e.url, e.why)),
+                    Ok(None) => tried.push(format!("{} ({}): no page", e.url, e.why)),
+                    Err(why) => {
+                        tried.push(format!("{}: stopped, nothing was requested ({why})", e.url));
+                        break;
+                    }
                 }
             }
         }
@@ -6810,7 +6823,7 @@ impl SvipallServer {
             let delivered = out.value["blocked_reason"].is_null()
                 && (200..300).contains(&out.value["status"].as_u64().unwrap_or(0));
             if out.links.is_empty() && delivered && out.value["tier_used"] == "http" {
-                if self.pool.available() {
+                if self.pool.available() && self.cfg.max_tier != "http" {
                     let rendered = self
                         .fetch_json_opts(
                             WebFetchParams {
@@ -6831,7 +6844,7 @@ impl SvipallServer {
                     }
                 } else {
                     notes.push(
-                        "the page's markup has no links and no browser is available to render it"
+                        "the page's markup has no links and no browser tier is available to render it"
                             .into(),
                     );
                 }

@@ -67,8 +67,8 @@ COMMANDS:
                             build with no `onnx-*` feature cannot read them: `status` says so.
     update [--check]        Update both binaries to the latest stable release through the channel
                             that installed them, and refresh the skills copied by hand. --check
-                            only compares versions.
-    config show             Show effective settings (secrets redacted).
+                            only compares versions; --install is the older spelling of the default.
+    config show            Show effective settings (secrets redacted).
     config set key=value... Save validated settings; the next command uses them automatically.
     config preset local|auto|emulated|native
                             Use local defaults or the experimental real-hardware browser mode.
@@ -659,7 +659,8 @@ const SPECS: &[Spec] = &[
     },
     Spec {
         name: "update",
-        switches: &["check"],
+        // `--install` is the older spelling of the default, and the update skill still names it.
+        switches: &["check", "install"],
         values: &[],
     },
     Spec {
@@ -1002,6 +1003,43 @@ mod tests {
                 assert!(SWITCHES.contains(sw), "--{sw} must be declared a switch");
             }
         }
+    }
+
+    #[test]
+    fn every_command_line_the_skill_teaches_is_accepted() {
+        // Unknown flags are errors now, so a flag the skill shows and the binary does not read
+        // would send an agent into a refusal. Every `svipall <cmd> …` the skill spells out, up to
+        // its comment or the end of the code span, must pass the same check the binary runs.
+        let skill = include_str!("../../../../skill/SKILL.md");
+        let mut checked = 0;
+        for line in skill.lines() {
+            let mut rest = line;
+            while let Some(at) = rest.find("svipall ") {
+                let tail = &rest[at + "svipall ".len()..];
+                let end = tail.find(['`', '#', '|', '<', ')']).unwrap_or(tail.len());
+                let words: Vec<String> = tail[..end]
+                    .split_whitespace()
+                    .filter(|w| !w.starts_with('[') && !w.ends_with(']'))
+                    .map(str::to_string)
+                    .collect();
+                rest = &tail[end..];
+                let Some(cmd) = words.first() else { continue };
+                if spec(cmd).is_none() || !words.iter().any(|w| w.starts_with("--")) {
+                    continue;
+                }
+                checked += 1;
+                assert!(
+                    check_args(cmd, &words[1..]).is_ok(),
+                    "the skill teaches `svipall {}`, which the binary refuses: {:?}",
+                    words.join(" "),
+                    check_args(cmd, &words[1..])
+                );
+            }
+        }
+        assert!(
+            checked >= 10,
+            "the skill's command lines were found: {checked}"
+        );
     }
 
     #[test]

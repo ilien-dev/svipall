@@ -1,8 +1,8 @@
 //! What a browser tier reports when the page behind a challenge is a server's error stub.
 //!
-//! Measured live on a managed challenge: the last tier came back with a 27-character
-//! "403 Forbidden" document, its status was rewritten to 200 because nothing in it read as a wall,
-//! and the fetch reported success. A status is only overruled by a page with text to show for it.
+//! A 403 whose body is a bare "403 Forbidden" had its status rewritten to 200 at a browser tier,
+//! because nothing in that body reads as a wall, and the fetch reported success. A status is only
+//! overruled by a page with text to show for it.
 mod support;
 use support::{Reply, Site};
 use svipall::server::SvipallServer;
