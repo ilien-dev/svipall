@@ -56,6 +56,10 @@ pub enum Reason {
     /// and cookie banner, with little else. Only a caller that has seen the rest of the site can
     /// know this, so a single fetch never reports it.
     MostlyBoilerplate,
+    /// A structured answer with nothing in it: an empty body, `{}`, `[]`.
+    Empty,
+    /// It says it is JSON and is not, and not because it was cut off.
+    Malformed,
 }
 
 impl Reason {
@@ -69,6 +73,8 @@ impl Reason {
             Reason::Repetitive => "repetitive",
             Reason::LandedElsewhere => "landed_elsewhere",
             Reason::MostlyBoilerplate => "mostly_boilerplate",
+            Reason::Empty => "empty",
+            Reason::Malformed => "malformed",
         }
     }
 }
@@ -95,9 +101,98 @@ pub struct Evidence<'a> {
     /// arrived, and judging those on navigation and a footer the caller never received was scoring
     /// a different page from the one that was delivered.
     pub delivered: Option<&'a str>,
+    /// What the response is. Every rule above is about prose, and judging a JSON object or a
+    /// source file by word shapes called 58% of the answers that were fine "thin".
+    pub kind: ContentKind,
+    /// The body as it arrived, for a kind that is judged by its structure rather than its text.
+    pub body: Option<&'a str>,
+}
+
+/// What kind of thing a response is, for judging it by the right rules.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub enum ContentKind {
+    /// A page, or text extracted from a document or a recording: the prose rules apply.
+    #[default]
+    Prose,
+    /// A JSON value: whole if it parses, cut off if it ends early.
+    Json,
+    /// Plain text, source code, CSS, XML, CSV: whole unless there is nothing in it.
+    Text,
+}
+
+impl ContentKind {
+    /// From the declared type and the body itself. A body that opens like an HTML page is a page
+    /// whatever its header says, and `text/markdown` is what svipall labels text it extracted
+    /// from a PDF, an office document or a recording: prose.
+    pub fn of(content_type: &str, body: &str) -> Self {
+        if crate::classify::is_markup(content_type, body) {
+            return Self::Prose;
+        }
+        let ct = content_type.to_ascii_lowercase();
+        if ct.contains("json") {
+            Self::Json
+        } else if ct.starts_with("text/markdown") {
+            Self::Prose
+        } else {
+            Self::Text
+        }
+    }
+}
+
+/// Above this a JSON body is not parsed to check it is whole; its last character is checked
+/// instead, which answers "was it cut off" for any value that is an object or an array.
+const JSON_PARSE_LIMIT: usize = 8 * 1024 * 1024;
+
+/// A structured answer judged as one: complete, cut off, or empty.
+fn assess_structured(kind: ContentKind, body: &str) -> Vec<Reason> {
+    let body = body.trim();
+    if body.is_empty() {
+        return vec![Reason::Empty];
+    }
+    if kind == ContentKind::Text {
+        return Vec::new();
+    }
+    if matches!(body, "{}" | "[]" | "null" | "\"\"") {
+        return vec![Reason::Empty];
+    }
+    if body.len() > JSON_PARSE_LIMIT {
+        let closes = match body.as_bytes()[0] {
+            b'{' => body.ends_with('}'),
+            b'[' => body.ends_with(']'),
+            _ => true,
+        };
+        return if closes {
+            Vec::new()
+        } else {
+            vec![Reason::Truncated]
+        };
+    }
+    match serde_json::from_str::<serde::de::IgnoredAny>(body) {
+        Ok(_) => Vec::new(),
+        Err(e) if e.is_eof() => vec![Reason::Truncated],
+        Err(_) => {
+            // Newline-delimited JSON is one value per line, which is not one value.
+            let ndjson = body
+                .lines()
+                .filter(|l| !l.trim().is_empty())
+                .all(|l| serde_json::from_str::<serde::de::IgnoredAny>(l).is_ok());
+            if ndjson {
+                Vec::new()
+            } else {
+                vec![Reason::Malformed]
+            }
+        }
+    }
 }
 
 impl<'a> Evidence<'a> {
+    /// What the response is, and the body it is judged on when it is not prose.
+    pub fn typed(mut self, kind: ContentKind, body: &'a str) -> Self {
+        self.kind = kind;
+        self.body = Some(body);
+        self
+    }
+
     /// The two things every caller has.
     pub fn new(html_len: usize, text: &'a str) -> Self {
         Self {
@@ -524,6 +619,22 @@ fn sample(s: &str, limit: usize) -> &str {
 /// Everything it reads is already in hand at the one place a fetched document passes through, so
 /// this costs one bounded pass over the text and no second parse.
 pub fn assess(e: &Evidence<'_>) -> Integrity {
+    if e.kind != ContentKind::Prose {
+        let mut reasons = assess_structured(e.kind, e.body.unwrap_or(e.text));
+        if let (Some(req), Some(fin)) = (e.requested_url, e.final_url) {
+            if crate::session::is_deep(&path_of(req)) && crate::session::is_root(&path_of(fin)) {
+                reasons.push(Reason::LandedElsewhere);
+            }
+        }
+        let verdict = if reasons.contains(&Reason::Truncated) {
+            Verdict::Partial
+        } else if reasons.is_empty() {
+            Verdict::Full
+        } else {
+            Verdict::Thin
+        };
+        return Integrity { verdict, reasons };
+    }
     let html_len = e.html_len;
     // The whole document, for the one rule that is a ratio against the markup it came out of.
     let whole = e.text.trim();
@@ -636,6 +747,45 @@ fn top_bigram_share(words: &[&str]) -> f32 {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    fn typed(ct: &str, body: &str) -> Integrity {
+        assess(&Evidence::new(body.len(), body).typed(ContentKind::of(ct, body), body))
+    }
+
+    #[test]
+    fn structured_answers_are_judged_by_their_structure() {
+        let small = r#"{"id":42,"login":"ada"}"#;
+        assert_eq!(typed("application/json", small).verdict, Verdict::Full);
+        let cut = typed("application/json", r#"{"items":[{"id":1},{"id":"#);
+        assert_eq!(
+            (cut.verdict, cut.reasons),
+            (Verdict::Partial, vec![Reason::Truncated])
+        );
+        let empty = typed("application/json", "[]");
+        assert_eq!(
+            (empty.verdict, empty.reasons),
+            (Verdict::Thin, vec![Reason::Empty])
+        );
+        let ndjson = "{\"a\":1}\n{\"a\":2}\n";
+        assert_eq!(typed("application/x-ndjson", ndjson).verdict, Verdict::Full);
+        assert_eq!(
+            typed("application/json", "not json at all").reasons,
+            vec![Reason::Malformed]
+        );
+        // Source code and plain text have no prose shape to fail.
+        assert_eq!(
+            typed("text/javascript", "export const x = 1;").verdict,
+            Verdict::Full
+        );
+        assert_eq!(typed("text/plain", "User-agent: *").verdict, Verdict::Full);
+        assert_eq!(typed("text/plain", "  ").reasons, vec![Reason::Empty]);
+        // Extracted document text is prose and keeps the prose rules.
+        assert_eq!(typed("text/markdown", "a few words").verdict, Verdict::Thin);
+        assert_eq!(
+            ContentKind::of("application/json", "<!doctype html><p>"),
+            ContentKind::Prose
+        );
+    }
 
     /// ▲ The bug: a page whose article is three sentences inside a thousand words of navigation
     /// was judged on the navigation. The caller receives the article, so the article is what has

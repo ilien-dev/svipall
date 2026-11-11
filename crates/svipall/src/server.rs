@@ -959,6 +959,66 @@ pub(crate) fn local_causes(note: &str, injection: Option<&str>, browser: Option<
     out
 }
 
+/// Could something on this machine explain this outcome?
+///
+/// Both local causes act on the browser: an injected script is seen by a page's own scripts, and
+/// an old browser by a fingerprinting vendor. Neither turns a URL into a missing page, and neither
+/// is involved when no browser ran, so they are said only about a wall met by a browser tier.
+pub(crate) fn local_causes_can_matter(kind: &WallKind, tier: &str) -> bool {
+    tier != "http"
+        && matches!(
+            kind,
+            WallKind::Cloudflare
+                | WallKind::Vendor
+                | WallKind::Generic
+                | WallKind::Hold
+                | WallKind::Status
+                | WallKind::Empty
+        )
+}
+
+/// Keep this machine's public address out of what the caller reads.
+///
+/// A wall that prints "Your IP: …" is the one place a page reliably names the visitor, so a wall is
+/// what it is learned from, and only when the request left without a proxy: through an exit the
+/// address named is the exit's. Once learned it is masked on every later page that echoes it. The
+/// replacement is a label, and the response counts it in `own_ip_masked`; nothing else changes.
+fn mask_own_ip(value: &mut Value, direct: bool) {
+    use svipall_core::own_ip;
+    let Some(obj) = value.as_object_mut() else {
+        return;
+    };
+    let wall = obj.get("blocked_reason").is_some_and(|r| r.is_string());
+    let mut ips = own_ip::known();
+    if wall {
+        let named = obj
+            .get("content")
+            .and_then(|c| c.as_str())
+            .map(own_ip::labelled)
+            .unwrap_or_default();
+        if direct {
+            own_ip::learn(&named);
+        }
+        ips.extend(named);
+    }
+    if ips.is_empty() {
+        return;
+    }
+    let mut masked = 0;
+    for key in ["content", "title"] {
+        if let Some(Value::String(s)) = obj.get_mut(key) {
+            let (out, n) = own_ip::mask(s, &ips);
+            if n > 0 {
+                *s = out;
+                masked += n;
+            }
+        }
+    }
+    if masked > 0 {
+        obj.insert("own_ip_masked".into(), json!(masked));
+    }
+}
+
 fn no_browser_hint() -> String {
     let platform = crate::provision::platform().unwrap_or("this platform");
     format!(
@@ -1816,11 +1876,24 @@ impl SvipallServer {
             obj.insert("blocks_returned".into(), json!(out.blocks_returned));
             obj.insert("total_blocks".into(), json!(out.total_blocks));
             if let Some(c) = out.next_cursor {
-                obj.insert("cursor".into(), json!(c));
+                // The view travels in the cursor, so the continuation is the same call with the
+                // cursor added, whatever else the caller changes.
+                let c = budget::Cursor::for_query(&c, p.query.as_deref());
+                // A `raw:` url is the whole page; echoing it here would send it back twice.
+                let url = if p.url.starts_with("raw:") {
+                    "<the same raw: input>"
+                } else {
+                    p.url.as_str()
+                };
                 obj.insert(
                     "continue".into(),
-                    json!("call web_fetch again with this cursor for the rest"),
+                    json!(format!(
+                        "Truncated: this part holds {} of the page's {} blocks. Next part: \
+                         web_fetch(url=\"{}\", cursor=\"{c}\"); the cursor keeps this call's query.",
+                        out.blocks_returned, out.total_blocks, url
+                    )),
                 );
+                obj.insert("cursor".into(), json!(c));
             }
         }
         if out.stale_cursor {
@@ -2209,14 +2282,15 @@ impl SvipallServer {
             }
         }
         // Extracted PDF or document text is already prose; telling the pipeline it is HTML would
-        // send it through the markdown walker for nothing.
+        // send it through the markdown walker for nothing. `text/markdown` rather than
+        // `text/plain`, so quality judges it as the prose it is and a plain-text file as a file.
         let content_type = if media.is_some()
             || file.is_some()
             || svipall_core::pdf::looks_like_pdf(&r.body, &r.content_type)
             || svipall_core::document::looks_like_document(&r.body, &r.content_type, &r.final_url)
                 .is_some()
         {
-            "text/plain".to_string()
+            "text/markdown".to_string()
         } else {
             r.content_type
         };
@@ -2449,20 +2523,17 @@ impl SvipallServer {
                     let (r, k) = classify_view(200, h, &view);
                     r.is_none() || (k == WallKind::Empty && !parts.text.trim().is_empty())
                 };
-                // Enough text to be the page rather than a server's error stub. Without it a
-                // 403 whose body is a bare "403 Forbidden" had its status rewritten to 200, because
-                // nothing in that body reads as a wall, and the fetch reported success.
-                let substantive = parts.text.trim().chars().count() >= 200;
-                (delivered, view.text.is_empty(), substantive)
+                (delivered, view.text.chars().count())
             };
             // A challenge page that already resolved itself leaves real content behind a 403, and
-            // the status Chromium reports may belong to a sub-resource: rendered text wins — when
-            // there is text to win with.
-            if status >= 400 && {
-                let l = look(&html, &headers, &cookies);
-                l.0 && l.2
-            } {
-                status = 200;
+            // the status Chromium reports may belong to a sub-resource: rendered text wins. Real
+            // content, though: a 403 whose body is the 130-byte refusal is the refusal, and this
+            // used to turn it into "200 OK".
+            if status >= 400 {
+                let (delivered, chars) = look(&html, &headers, &cookies);
+                if delivered && chars >= 200 {
+                    status = 200;
+                }
             }
             if tier == BrowserTier::Warm {
                 let initial_view = PageView::new(&html, "").on_the_wire(&headers, &cookies);
@@ -2583,7 +2654,7 @@ impl SvipallServer {
                     }
                     cookies = self.pool.cookie_names(&page).await;
                     let l = look(&html, &headers, &cookies);
-                    if l.0 && l.2 {
+                    if l.0 && l.1 >= 200 {
                         status = 200;
                     }
                 };
@@ -2692,7 +2763,31 @@ impl SvipallServer {
     pub async fn fetch_json_opts(&self, p: WebFetchParams, want_links: bool) -> FetchOutcome {
         let started = std::time::Instant::now();
         let is_raw = p.url.starts_with("raw:");
+        // Only a page that came over the network can know this machine's address.
+        let direct = (p.url.starts_with("http://") || p.url.starts_with("https://"))
+            && p.proxy.is_none()
+            && self.exit_for(&domain_from_url(&p.url)).is_none();
+        // A cursor pages the view it was issued for. Filtered by another query, the same page is
+        // another document, and the continuation used to restart from the top saying the page
+        // had changed. So the cursor's own query wins, and the response says it did.
+        let mut p = p;
+        let mut cursor_query = None;
+        if let Some(q) = p
+            .cursor
+            .as_deref()
+            .and_then(budget::Cursor::decode)
+            .and_then(|c| c.query)
+        {
+            if p.query.as_deref().map(str::trim).unwrap_or("") != q {
+                p.query = (!q.is_empty()).then(|| q.clone());
+                cursor_query = Some(q);
+            }
+        }
         let mut out = self.fetch_json_inner(p, want_links).await;
+        mask_own_ip(&mut out.value, direct);
+        if let (Some(q), Some(obj)) = (cursor_query, out.value.as_object_mut()) {
+            obj.insert("cursor_query".into(), json!(q));
+        }
         // A `raw:` URL is the page itself. Echoed under `url` and `final_url` it would come back
         // twice on top of the content, and go into the request log as an address.
         if is_raw {
@@ -3141,6 +3236,9 @@ impl SvipallServer {
         // Set when a persistent profile has been refused by a wall that judges the session, for
         // the one retry on a profile nobody has seen. See the note where it is set.
         let mut retire_profile = false;
+        // The status an earlier attempt of this fetch was refused with, so a browser that renders
+        // the same refusal is not taken for the page.
+        let mut refused_with: Option<u16> = None;
         let mut i = 0;
         while i < tiers.len() {
             if mode == "auto" && made >= self.cfg.auto_max_attempts {
@@ -3494,7 +3592,9 @@ impl SvipallServer {
                 self.selector_memory(p, &o.final_url),
             );
             let parts = extraction::parse_page(&o.html, &wants);
-            let view = PageView::new(&o.html, &parts.text).on_the_wire(&o.headers, &o.cookies);
+            let view = PageView::new(&o.html, &parts.text)
+                .typed(&o.content_type, &o.html)
+                .on_the_wire(&o.headers, &o.cookies);
             let (mut reason, mut kind) = classify_view(o.status, &o.html, &view);
             // `Empty` means "needs JavaScript to render". Once a browser tier has executed the
             // page and it is still short, that is simply a short page — deliver it.
@@ -3504,6 +3604,18 @@ impl SvipallServer {
                 && !parts.text.trim().is_empty()
             {
                 reason = None;
+            }
+            // The refusal an earlier tier got, rendered again by a browser and reported as 200.
+            if reason.is_none() && bt.is_some() {
+                if let Some(why) =
+                    svipall_core::classify::tiny_after_refusal(refused_with, o.status, &parts.text)
+                {
+                    reason = Some(why);
+                    kind = WallKind::Status;
+                }
+            }
+            if reason.is_some() && matches!(o.status, 401 | 403 | 429) {
+                refused_with = Some(o.status);
             }
             // A media file is its own answer: a short transcript, or a note that nothing could
             // listen, is not a wall a browser would get past.
@@ -3522,8 +3634,10 @@ impl SvipallServer {
             // crawl bolted on afterwards against a different text — and it now fires on a lone
             // `web_fetch` too, because the record outlives the crawl that built it.
             let template = site_template(self.store.as_deref(), &domain);
+            let content_kind = svipall_core::quality::ContentKind::of(&o.content_type, &o.html);
             let mut evidence = svipall_core::quality::Evidence::new(o.html.len(), &parts.text)
-                .between(&url, &o.final_url);
+                .between(&url, &o.final_url)
+                .typed(content_kind, &o.html);
             if let Some(share) = parts.markdown.as_deref().and_then(|md| template.share(md)) {
                 evidence = evidence.against_site(share);
             }
@@ -3539,9 +3653,11 @@ impl SvipallServer {
             // have none. A loopback address does, and a development server serves soft 404s like
             // any other — excluding it would only mean the rule is never exercised.
             let has_a_host = url.starts_with("http://") || url.starts_with("https://");
+            // Only a page has a missing-page template to look like; an API answer does not.
             if reason.is_none()
                 && !integrity.is_full()
                 && has_a_host
+                && view.is_markup()
                 && self
                     .matches_the_sites_missing_page(
                         p,
@@ -4212,11 +4328,15 @@ impl SvipallServer {
         };
         // What is wrong on this machine is the first thing to rule out when a wall will not clear,
         // and the last thing anyone looks at, because until now it was only ever said in a log.
-        let note = local_causes(
-            &note,
-            svipall_core::local_injection(&o.html.to_ascii_lowercase()),
-            self.pool.advice(self.latest_stable_major()).as_deref(),
-        );
+        let note = if local_causes_can_matter(&kind, &tier) {
+            local_causes(
+                &note,
+                svipall_core::local_injection(&o.html.to_ascii_lowercase()),
+                self.pool.advice(self.latest_stable_major()).as_deref(),
+            )
+        } else {
+            note
+        };
         // Rebuilt rather than carried out of the tier loop: this runs once, on the way out, and a
         // borrow living across every tier would pin the last tier's body for the whole climb.
         let wire = svipall_core::classify::vendor_on_the_wire(
@@ -8821,6 +8941,22 @@ can not be created\""
     fn a_browser_problem_is_appended_after_the_wall_guidance() {
         let note = local_causes(WALL, None, Some("Chrome 150 is old."));
         assert_eq!(note, format!("{WALL} Chrome 150 is old."));
+    }
+
+    #[test]
+    fn local_causes_are_said_only_about_a_wall_a_browser_met() {
+        assert!(local_causes_can_matter(&WallKind::Vendor, "real"));
+        assert!(local_causes_can_matter(&WallKind::Status, "browser"));
+        assert!(!local_causes_can_matter(&WallKind::Vendor, "http"));
+        for kind in [
+            WallKind::NotFound,
+            WallKind::SoftNotFound,
+            WallKind::Login,
+            WallKind::Paywall,
+            WallKind::Gate,
+        ] {
+            assert!(!local_causes_can_matter(&kind, "warm"), "{kind:?}");
+        }
     }
 
     #[test]
