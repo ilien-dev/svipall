@@ -488,6 +488,64 @@ async fn a_hard_block_note_claims_no_cooldown_that_was_not_set() {
     );
 }
 
+/// Item 18: a page svipall does not recognise is not sold as a check a person can pass.
+#[tokio::test]
+async fn a_generic_wall_gets_no_login_advice() {
+    let url = "http://generic-wall.test/article";
+    let site = Site::start(vec![(
+        url,
+        Reply::html(
+            "<html><body><h1>Oops!! Something went wrong. Please refresh page</h1>\
+             <button>Refresh</button><p>How doers get more done. Need Help? Visit our \
+             Customer Service Center</p></body></html>",
+        ),
+    )])
+    .await;
+    let server = SvipallServer::new(None, cfg(), None);
+    let out = server.fetch_json(params(&site, url)).await.value;
+    assert_eq!(out["wall_kind"], "generic", "{out}");
+    let note = text(&out, "note");
+    assert!(!note.contains("web_login"), "{note}");
+    assert!(!note.contains("cooldown"), "{note}");
+}
+
+/// Item 18, live: a hard block that survives the whole ladder puts the domain on the real
+/// cooldown, and the note says that one, with its length and the way to clear it.
+#[tokio::test]
+#[ignore = "launches a real local browser against a loopback proxy"]
+async fn a_hard_block_at_the_top_names_the_cooldown_it_set() {
+    let url = "http://hard-block-top.test/article";
+    let site = Site::start(vec![(
+        url,
+        Reply::html("<html><body>Forbidden</body></html>").with_status(403),
+    )])
+    .await;
+    let server = SvipallServer::new(
+        None,
+        svipall_core::Config {
+            max_tier: "warm".into(),
+            ..cfg()
+        },
+        None,
+    );
+    assert!(
+        server.pool().available(),
+        "this manual test requires a browser"
+    );
+    let mut p = params(&site, url);
+    p.timeout = Some(120_000);
+    let out = server.fetch_json(p).await.value;
+    server.shutdown_configuration().await;
+    eprintln!("{out}");
+    let note = text(&out, "note");
+    if svipall_core::check_cooldown("hard-block-top.test").is_some() {
+        assert!(note.contains("15 min cooldown"), "{note}");
+        assert!(note.contains("clear_cooldown"), "{note}");
+    } else {
+        assert!(!note.contains("cooldown"), "{note}");
+    }
+}
+
 /// Item 29: the default report is compact.
 #[tokio::test]
 async fn the_default_status_is_compact() {

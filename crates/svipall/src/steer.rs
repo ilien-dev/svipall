@@ -243,7 +243,8 @@ pub fn server_backoff(status: u16, secs: u64, named: bool, domain: &str) -> Stri
 pub fn remembered_failure(ago: u64, expires_in: u64) -> String {
     format!(
         "Not requested: {ago}s ago every tier up to the top was refused by this site, and that is \
-         remembered for {} more. Call again with fresh=true to walk the ladder anyway.",
+         remembered for {} more. web_fetch(url, fresh=true) walks the ladder anyway and, if \
+         it gets through, forgets it.",
         duration(expires_in)
     )
 }
