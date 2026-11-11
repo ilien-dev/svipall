@@ -83,21 +83,67 @@ pub struct Cursor {
     pub content_hash: u64,
     pub block: usize,
     pub char_off: usize,
+    /// The `query` the paged view was filtered by, `Some("")` for none.
+    ///
+    /// The hash is of the filtered view, so a continuation that filtered differently found a
+    /// different document and restarted from the top, "the page changed since that cursor was
+    /// issued", on a page that had not changed. Carried in the cursor, the view it was issued for
+    /// is the view it continues, whatever the next call's `query` says. `None` for a cursor from
+    /// before this field existed.
+    pub query: Option<String>,
 }
 
 impl Cursor {
     pub fn encode(&self) -> String {
-        format!("{:x}:{}:{}", self.content_hash, self.block, self.char_off)
+        let mut s = format!("{:x}:{}:{}", self.content_hash, self.block, self.char_off);
+        if let Some(q) = &self.query {
+            s.push_str(":q");
+            for b in q.as_bytes() {
+                let _ = write!(s, "{b:02x}");
+            }
+        }
+        s
     }
 
     pub fn decode(s: &str) -> Option<Self> {
         let mut parts = s.split(':');
         let hash = u64::from_str_radix(parts.next()?, 16).ok()?;
+        let block = parts.next()?.parse().ok()?;
+        let char_off = parts.next()?.parse().ok()?;
+        let query = match parts.next() {
+            None => None,
+            Some(q) => {
+                let hex = q.strip_prefix('q')?;
+                if hex.len() % 2 != 0 {
+                    return None;
+                }
+                let bytes = (0..hex.len())
+                    .step_by(2)
+                    .map(|i| u8::from_str_radix(hex.get(i..i + 2)?, 16).ok())
+                    .collect::<Option<Vec<u8>>>()?;
+                Some(String::from_utf8(bytes).ok()?)
+            }
+        };
+        if parts.next().is_some() {
+            return None;
+        }
         Some(Self {
             content_hash: hash,
-            block: parts.next()?.parse().ok()?,
-            char_off: parts.next()?.parse().ok()?,
+            block,
+            char_off,
+            query,
         })
+    }
+
+    /// The same cursor, saying which view it pages through.
+    pub fn for_query(encoded: &str, query: Option<&str>) -> String {
+        match Self::decode(encoded) {
+            Some(mut c) => {
+                c.query = Some(query.map(str::trim).unwrap_or_default().to_string());
+                c.encode()
+            }
+            None => encoded.to_string(),
+        }
     }
 }
 
@@ -340,6 +386,7 @@ pub fn take(markdown: &str, opts: &BudgetOpts) -> Budgeted {
             content_hash: hash,
             block: page.block,
             char_off: page.off,
+            query: None,
         }
         .encode()
     });
@@ -657,9 +704,24 @@ mod tests {
             content_hash: 0xdead_beef,
             block: 7,
             char_off: 42,
+            query: None,
         };
-        assert_eq!(Cursor::decode(&c.encode()), Some(c));
+        assert_eq!(Cursor::decode(&c.encode()), Some(c.clone()));
         assert_eq!(Cursor::decode("garbage"), None);
+        // The view travels with it, punctuation and all.
+        let q = Cursor::for_query(&c.encode(), Some("--effort: a/b <x>"));
+        assert_eq!(
+            Cursor::decode(&q).and_then(|c| c.query).as_deref(),
+            Some("--effort: a/b <x>")
+        );
+        assert_eq!(
+            Cursor::decode(&Cursor::for_query(&c.encode(), None))
+                .and_then(|c| c.query)
+                .as_deref(),
+            Some(""),
+            "no query is a view too"
+        );
+        assert_eq!(Cursor::decode("ab:1:2:zz"), None);
     }
 
     #[test]
