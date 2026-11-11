@@ -31,6 +31,9 @@ use crate::search;
 use crate::solver_engine::SolveEngine;
 use crate::tools::*;
 
+/// Code-hosting URLs read through their API; the one hook is `github_or_page` in `fetch_json_inner`.
+mod github;
+
 /// Extensions a crawl never follows, because there is no text behind them.
 ///
 /// `.pdf`, `.xml`, `.rss`, `.atom` and `.json` used to be on this list, which meant the crawler
@@ -2441,7 +2444,9 @@ impl SvipallServer {
             .map_or(0, |w| w.min(crate::steer::MAX_WAIT_SECS) * 1000);
         match tokio::time::timeout(
             Duration::from_millis(timeout + waits),
-            self.fetch_inner(&p, want_links),
+            // GitHub-aware path (server/github.rs): the API for a URL that has an API shape,
+            // `fetch_inner` for everything else.
+            self.github_or_page(&p, want_links),
         )
         .await
         {
