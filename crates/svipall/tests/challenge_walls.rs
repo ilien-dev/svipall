@@ -484,6 +484,25 @@ fn route(req: &Req, port: u16, seen: &Seen) -> Resp {
             TICK.replace("PORT", &port.to_string())
                 .replace("ticked=1", "widget=1"),
         ),
+        // The same, where the page says very little: the demo page it was measured on is a
+        // few lines of text in a great deal of markup.
+        ("GET", "/tick-sparse") if req.cookie("sparse") => Resp::html(
+            200,
+            TINY.replace(
+                "</body>",
+                &format!(
+                    "<style>{}</style><form><iframe src=\"http://localhost:{port}/\
+                     challenges.cloudflare.com/turnstile/frame\" width=\"300\" height=\"65\">\
+                     </iframe></form></body>",
+                    ".demo-card{display:grid;gap:1rem}".repeat(6_000)
+                ),
+            ),
+        ),
+        ("GET", "/tick-sparse") => Resp::html(
+            403,
+            TICK.replace("PORT", &port.to_string())
+                .replace("ticked=1", "sparse=1"),
+        ),
         ("GET", "/challenges.cloudflare.com/turnstile/frame") => Resp::html(200, TICK_FRAME.into()),
         ("GET", "/pow") if req.cookie("pow") => manual(),
         ("GET", "/pow") => Resp::html(403, POW.into()),
@@ -718,10 +737,13 @@ async fn a_page_with_a_widget_of_its_own_is_not_taken_for_the_wall_it_replaced()
     // stop asking. The one it ticked was gone with the document it was on.
     support::isolate();
     let site = Wall::start().await;
-    let (out, _) = fetch(&site, "/tick-widget", Some("real")).await;
-    assert_eq!(out["title"], "The manual", "{out}");
-    let secs = out["warm"]["secs"].as_f64().unwrap_or(f64::MAX);
-    assert!(secs < 12.0, "the wait took {secs}s: {out}");
+    for (path, title) in [("/tick-widget", "The manual"), ("/tick-sparse", "Tiny")] {
+        let (out, _) = fetch(&site, path, Some("real")).await;
+        assert_eq!(out["title"], title, "{out}");
+        assert!(out["blocked_reason"].is_null(), "{out}");
+        let secs = out["warm"]["secs"].as_f64().unwrap_or(f64::MAX);
+        assert!(secs < 12.0, "{path}: the wait took {secs}s: {out}");
+    }
 }
 
 #[tokio::test]

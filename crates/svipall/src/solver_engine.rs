@@ -255,7 +255,17 @@ impl SolveEngine {
             // Before the navigation: the first document's answer is the first thing back.
             let trail = Trail::start(&page).await;
             self.pool.navigate(&page, page_url).await?;
+            // The loop looks at the page for the trail only while nothing on it is recognised.
+            // A widget answered by a strategy never passes through there, so the page is looked
+            // at here as well: on arrival, and when the loop is done with it. Twice at the end,
+            // because a refusal is only called one on the second look.
+            let surface = PageSurface::new(self, &page).on(Some(&trail));
+            surface.look().await;
             let mut solved = self.wait_and_submit_on(&page, wait, Some(&trail)).await?;
+            if surface.look().await == Some(true) && trail.challenged() {
+                tokio::time::sleep(Duration::from_millis(800)).await;
+                surface.look().await;
+            }
             let refused = matches!(trail.behind(), crate::passage::Behind::Refused(_));
             // The models had their turn. A person at the dashboard — on a phone, on another
             // machine — gets the same page, parked here, before a window is opened on this one.
@@ -443,15 +453,18 @@ impl SolveEngine {
     }
 
     /// Is the page still a wall? What ends a wait on one that lets the visitor through by itself.
+    ///
+    /// By the rule the browser tiers deliver on (`passage::walled`): a few lines of text in a
+    /// great deal of markup read as "needs a browser to render", and this is the browser. Taken
+    /// for a wall, such a page kept a tick that had passed waiting out its whole deadline.
     pub(crate) async fn walled(&self, page: &Page) -> bool {
         let Ok((html, _)) = self.pool.content(page).await else {
             return true;
         };
         let parts = svipall_core::parse_page(&html, &svipall_core::ParseWants::text());
         let view = svipall_core::classify::PageView::new(&html, &parts.text);
-        svipall_core::classify::classify_view(200, &html, &view)
-            .0
-            .is_some()
+        let (reason, kind) = svipall_core::classify::classify_view(200, &html, &view);
+        crate::passage::walled(reason.is_some(), &kind, 200, &parts.text)
     }
 
     /// The signed challenge, counted here and handed back through the page's own form.
