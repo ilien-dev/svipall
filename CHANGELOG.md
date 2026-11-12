@@ -87,6 +87,17 @@ Fixed:
   also said in `note`. On rust-lang.org the map now returns the home page's links and a page can
   be read straight after.
 
+- **An incremental crawl now reads the sitemaps robots.txt names and follows a sitemap index.**
+  `web_crawl` with `since_last_crawl` seeds itself from the site's sitemap. It ignored the
+  `Sitemap:` lines of the robots.txt it had just read and tried five conventional spellings
+  instead. On a site whose sitemap lives anywhere else it spent five of the host's twelve visits
+  and found nothing, and the crawl then saw only what the start page links to. It also stopped
+  at a sitemap index: it read the index, found no page in it and gave up, and a site of any size
+  publishes an index. 1.4.0 behaves the same. Now it reads the sitemaps robots.txt names. Only a
+  site that names none is guessed at, by the two commonest spellings (`/sitemap.xml`,
+  `/sitemap_index.xml`), and an index is followed (up to five children, six documents in all).
+  With `robots=ignore` robots.txt is not read, so the two guesses are what is tried.
+
 - **The CLI no longer overflows its stack in an unoptimised build.** `svipall` ran its command on
   the main thread, whose stack is 1 MB on Windows, and an unoptimised build overflowed it on
   `svipall fetch https://example.com/`. The command now runs on a thread with its own stack.
@@ -105,6 +116,18 @@ Fixed:
   seconds, and the schema and its migrations run in one exclusive transaction. It showed up as a
   test that failed about one run in ten, locally and in CI (`tests/map.rs`, a page expected from
   the cache that was downloaded again). 1.4.0 has the same fault.
+
+- **Several processes opening the solver's database at once no longer leave one of them without
+  a solver.** The solver's database (`jobs.db`) had the same fault, and worse: it set no
+  `busy_timeout` at all. Of eight simultaneous openers of a new file, one was regularly answered
+  `database is locked` at once. The server that lost ran its whole life with no solver, so a
+  captcha it met was answered "solver not available". The missing timeout also meant a write
+  could be refused whenever another server was writing. Now it waits up to five seconds on a
+  lock, a locked open is tried again for up to ten seconds, and the schema, its migrations and
+  the opening balance are written in one exclusive transaction. The visit ledger
+  (`traffic.sqlite3`) was checked the same way, eight openers at once over 25 rounds, repeated,
+  and never failed: it already set a timeout and migrated inside a transaction. 1.4.0 has the
+  same fault.
 
 ## 1.4.0 — 2026-11-11
 
