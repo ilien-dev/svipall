@@ -70,6 +70,14 @@ jobs:
         if: runner.os == 'Windows'
         run: echo "CARGO_TARGET_DIR=C:\t" >> $env:GITHUB_ENV
 
+      # Every integration test file links its own executable, and on Windows each one carries a
+      # program database with the full type information of the workspace. Fifty of them fill the
+      # runner's disk (os error 112, LNK1180, LNK1140). Line tables keep file and line in a
+      # backtrace at a fraction of the size.
+      - name: Line-table debug info (Windows)
+        if: runner.os == 'Windows'
+        run: echo "CARGO_PROFILE_DEV_DEBUG=line-tables-only" >> $env:GITHUB_ENV
+
       # .cargo/config.toml pins `target-cpu=native` for local builds, and RUSTFLAGS as an
       # environment variable replaces that section outright. On the aarch64 macOS runner `native`
       # enables features past the static baseline `ring` asserts for apple targets and it refuses
