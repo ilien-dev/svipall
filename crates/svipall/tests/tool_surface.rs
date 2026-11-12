@@ -93,12 +93,12 @@ fn the_whole_tool_list_fits_a_budget() {
     // web_fetch_many, whose absence got 58 answers refused as too large. The cap moves by the
     // same 1 197, keeping the room it had.
     //
-    // That left 40 891 once the branch's prose landed, over the cap. 38 663 now, and the cap did
+    // That left 40 891 once the branch's prose landed, over the cap. 38 547 now, and the cap did
     // not move: the measurement notes on `query`, `mobile`, `out_file` and `use_site_template`
     // went to code comments, the doc of the action step (read twice, in web_act and browser_do)
     // and the `schema` variants (read three times) were cut, and web_crawl and web_route lost
     // their restatements. Part of that went back on what a month of calls showed agents missing:
-    // "use this when" openings, a zero-result search, `clear_cooldown`, binary `out_file`.
+    // "use this when" openings on the tools agents skipped, a zero-result search, `clear_cooldown`, binary `out_file`.
     let total: usize = tools()
         .iter()
         .map(|t| t.name.len() + description(t).len() + schema_len(t))

@@ -4964,7 +4964,7 @@ impl SvipallServer {
     }
 
     #[tool(
-        description = "Crawl one site from a start URL and return every page as markdown, deduplicated, robots.txt obeyed. Use when the pages are not known in advance; when they are, web_fetch_many is cheaper, and web_map lists a site's URLs for a few hundred tokens before deciding to crawl. `max_pages` (20), `max_depth` (2), `include` (URL substring), `query` (rank by relevance, stop when saturated), `strategy=dfs` for a manual or a paginated listing, `schema` or `tables` for rows from every page. For many rows pass `out_file` (.csv, .json, .jsonl): a path comes back instead of the pages. Returns the pages and a `crawl_id`; pass it back as `crawl_id` to resume an interrupted crawl. Links to a page's own site are paths, to be joined to that page's `url`.",
+        description = "Use this when a site's pages are not known in advance: crawls one site from a start URL and returns every page as markdown, deduplicated, robots.txt obeyed. When the URLs are known, web_fetch_many is cheaper, and web_map lists a site's URLs for a few hundred tokens before deciding to crawl. `max_pages` (20), `max_depth` (2), `include` (URL substring), `query` (rank by relevance, stop when saturated), `strategy=dfs` for a manual or a paginated listing, `schema` or `tables` for rows from every page. For many rows pass `out_file` (.csv, .json, .jsonl): a path comes back instead of the pages. Returns the pages and a `crawl_id`; pass it back as `crawl_id` to resume an interrupted crawl. Links to a page's own site are paths, to be joined to that page's `url`.",
         annotations(read_only_hint = true, open_world_hint = true)
     )]
     async fn web_crawl(
@@ -5526,7 +5526,7 @@ impl SvipallServer {
     }
 
     #[tool(
-        description = "Record the JSON and XHR responses a page fetches while it loads and return them: the site's own API, smaller, typed and more stable than the HTML built from it. Use to find the real endpoint behind a listing or pagination; an endpoint that took page=1 takes page=2, which beats following links. Call once without `pattern` to see what the page asked for, then with `pattern` (URL substring) and `bodies=true` for the payloads. Returns `endpoints` and `responses` with url, status, mime, and body when asked.",
+        description = "Use this to find the real API behind a listing or pagination: records the JSON and XHR responses a page fetches while it loads, smaller, typed and more stable than the HTML built from them. An endpoint that took page=1 takes page=2, which beats following links. Call once without `pattern` to see what the page asked for, then with `pattern` (URL substring) and `bodies=true` for the payloads. Returns `endpoints` and `responses` with url, status, mime, and body when asked.",
         annotations(read_only_hint = true, open_world_hint = true)
     )]
     async fn web_capture(
@@ -5631,7 +5631,7 @@ impl SvipallServer {
     }
 
     #[tool(
-        description = "Read a page as its interactive structure: every button, link and field with its role, accessible name and a short `ref` such as e12. Use instead of web_fetch when the next step is to click or type, and instead of web_screenshot when a page has to be understood: deterministic, no image, a fraction of the tokens. `find` keeps only matching nodes, `max_depth` goes shallower. Returns the nodes; pass a `ref` to web_act or browser_do so no CSS selector has to be guessed.",
+        description = "Use this when the next step is to click or type, instead of web_fetch, and to understand a page instead of web_screenshot: every button, link and field with its role, accessible name and a short `ref` such as e12. Deterministic, no image, a fraction of the tokens. `find` keeps only matching nodes, `max_depth` goes shallower. Returns the nodes; pass a `ref` to web_act or browser_do so no CSS selector has to be guessed.",
         annotations(read_only_hint = true, open_world_hint = true)
     )]
     async fn web_snapshot(
@@ -5770,7 +5770,7 @@ impl SvipallServer {
     }
 
     #[tool(
-        description = "Search one site through its own search box and learn the URL pattern the form produces. Use for shops, job boards and docs whose content only appears when asked for: a crawl reaches only what is linked, and web_search covers the whole web, not one site. Returns `results_url`, the pattern (`/search?q=...`) that makes every later query a plain web_fetch with no browser, plus the first results while `fetch` is true. Tries the site's OpenSearch description, then its box (also behind an icon or in a shadow root), then known platform endpoints; `found:false` names everything `tried`.",
+        description = "Use this for shops, job boards and docs whose content only appears when asked for: searches one site through its own search box and learns the URL pattern it produces. A crawl reaches only what is linked, and web_search covers the whole web, not one site. Returns `results_url`, the pattern (`/search?q=...`) that makes every later query a plain web_fetch with no browser, plus the first results while `fetch` is true. Tries the site's OpenSearch description, then its box (also behind an icon or in a shadow root), then known platform endpoints; `found:false` names everything `tried`.",
         annotations(read_only_hint = true, open_world_hint = true)
     )]
     async fn web_site_search(
@@ -6448,7 +6448,7 @@ impl SvipallServer {
     }
 
     #[tool(
-        description = "Save a PNG of a page rendered in a real browser, anti-bot handled like web_fetch, and return its path, by default with the image inline. Use when the question is visual: layout, a chart, an image, how a page looks to a person. To read or act on a page use web_snapshot instead: cheaper, and it gives refs, whereas a screenshot cannot be clicked. `full_page` captures the whole scroll height, `mobile` renders it as a phone.",
+        description = "Use this when the question is visual (layout, a chart, an image, how a page looks to a person): saves a PNG of the page rendered in a real browser, anti-bot handled like web_fetch, and returns its path, by default with the image inline. To read or act on a page use web_snapshot instead: cheaper, and it gives refs, whereas a screenshot cannot be clicked. `full_page` captures the whole scroll height, `mobile` renders it as a phone.",
         annotations(read_only_hint = true, open_world_hint = true)
     )]
     async fn web_screenshot(
@@ -7420,7 +7420,7 @@ impl SvipallServer {
     }
 
     #[tool(
-        description = "Open a persistent stealth browser session and return a `session_id` for browser_do. Use for multi-step work where cookies and page state must survive between calls: log in, then browse; add to cart, then check out. For one page and a few actions web_act is simpler. `profile` reuses cookies saved by web_login. Close it with browser_close.",
+        description = "Use this for multi-step work where cookies and page state must survive between calls (log in, then browse; add to cart, then check out): opens a persistent stealth browser session and returns a `session_id` for browser_do. For one page and a few actions web_act is simpler. `profile` reuses cookies saved by web_login. Close it with browser_close.",
         annotations(read_only_hint = false, open_world_hint = true)
     )]
     async fn browser_open(
@@ -7689,7 +7689,7 @@ impl SvipallServer {
     }
 
     #[tool(
-        description = "Compare a page with the copy svipall cached last time and return what changed: `changed`, `similarity`, and the `added` and `removed` markdown blocks. Use for a one-off question of whether a page changed since it was last read; to keep checking on a schedule use web_watch. Cheap: the comparison is a stored fingerprint, not a second full copy.",
+        description = "Use this to ask once whether a page changed since it was last read: compares it with the cached copy and returns `changed`, `similarity`, and the `added` and `removed` markdown blocks. To keep checking on a schedule use web_watch. Cheap: the comparison is a stored fingerprint, not a second full copy.",
         annotations(read_only_hint = true, open_world_hint = true)
     )]
     async fn web_diff(
@@ -7757,7 +7757,7 @@ impl SvipallServer {
     }
 
     #[tool(
-        description = "List a site's URLs without fetching its pages: robots.txt, sitemaps (nested indexes and .gz), llms.txt, RSS/Atom feeds and homepage links. Use before web_crawl to decide what is worth fetching, or to find the page for a topic: a few hundred tokens instead of the thousands a crawl costs. Returns `urls` with `sources_used`, `sitemaps` and `feeds`; read the ones that matter with web_fetch_many.",
+        description = "Use this before web_crawl, or to find the page for a topic: lists a site's URLs without fetching its pages, from robots.txt, sitemaps (nested indexes and .gz), llms.txt, RSS/Atom feeds and homepage links. A few hundred tokens instead of the thousands a crawl costs. Returns `urls` with `sources_used`, `sitemaps` and `feeds`; read the ones that matter with web_fetch_many.",
         annotations(read_only_hint = true, open_world_hint = true)
     )]
     async fn web_map(&self, params: Parameters<WebMapParams>) -> Result<CallToolResult, McpError> {
@@ -8033,7 +8033,7 @@ impl SvipallServer {
     }
 
     #[tool(
-        description = "Open a visible browser window so a person can log in or pass a challenge by hand, then save the cookies to a profile. Use when a fetch returns `blocked_reason` naming a login wall or a challenge no automatic tier clears. Without `profile` the domain's auto profile is used and later fetches pick it up on their own; name a `profile` to reuse it explicitly. Move it to another machine with web_profile.",
+        description = "Use this when a fetch returns `blocked_reason` naming a login wall or a challenge no automatic tier clears: opens a visible browser window so a person can pass it by hand, then saves the cookies to a profile. Without `profile` the domain's auto profile is used and later fetches pick it up on their own; name a `profile` to reuse it explicitly. Move it to another machine with web_profile.",
         annotations(read_only_hint = false, open_world_hint = true)
     )]
     async fn web_login(
