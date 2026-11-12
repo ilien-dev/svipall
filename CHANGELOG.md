@@ -1,5 +1,149 @@
 # Changelog
 
+## 1.4.0 — 2026-11-11
+
+Most of this release comes from reading 2,361 real tool calls made on 1.3.1 between 10 October and
+11 November, and fixing what they ran into.
+
+Five changes alter what a caller sees:
+
+- **An unknown parameter refuses the call.** It used to be dropped without a word, so a caller
+  could believe a limit was applied when it was not. The refusal names the parameter and the
+  closest real one (MCP `invalid_params`, REST `400`). Numbers and booleans sent as strings
+  (`"6000"`, `"true"`) are now read as what they say.
+- **`web_fetch_many` has a total budget by default.** `max_tokens_total` is 8000 unless set, split
+  evenly across the pages (`max_tokens` caps one page, never below 150). A cut page carries
+  `truncated` and a `cursor`, and the top-level `continue` names the `web_fetch` call that reads
+  the rest. `out_dir` writes every page whole, `out_file` (`.json`/`.jsonl`) writes the set and
+  returns a summary, and an answer still over 45,000 characters goes to a file under
+  `~/.svipall/out/`. About 58 answers in a month were refused by the client as too large. Results
+  now come back in the order the URLs were given, and `reordered_for_diversity` is gone.
+- **`web_status` is a summary by default**: home, version, cooldowns, server holds, request
+  limits, identity, and a short browser and solver line. `sections` (`all`, or any of `holds`,
+  `tiers`, `exits`, `reputation`, `h3`, `browser`, `cache`, `crawls`, `profiles`, `solver`,
+  `models`, `identity`) adds the rest, also as `GET /v1/status?sections=` and
+  `svipall status --sections`. A clearing action answers with what it cleared and nothing else. The
+  full report was about 11,500 characters, most of it `h3_offered_by`.
+- **Search `attempts` are objects**: `engine`, `outcome`, `count`, `status`, `detail`, `ms`.
+- **`request_cooldown_seconds` now means the longest backoff** after repeated 429s, not the hold
+  every refusal started.
+
+The visit limit:
+
+- **A full window is a wait, never a hold.** The 13th visit in a minute used to write a 900 s
+  hold. Now the fetch waits for the oldest visit to leave the window when that fits in half its
+  timeout, and otherwise is refused with `blocked_reason: "visit_limit"` and the exact seconds
+  until a slot frees.
+- **One fetch is one visit.** Every tier a fetch climbed was charged, so one walk up the ladder
+  spent 5 or 6 of the 12.
+- **The budget says it is shared.** It belongs to every session, subagent and process on the
+  machine, and a refusal or a nearly spent window now says so in `visit_budget`. A crawl the limit
+  stops says `stopped_by: "visit_limit"`.
+- **`wait`** on `web_fetch`, `web_fetch_many` and `web_video` (`--wait` on the CLI) waits out a
+  full window, a server's backoff or the hard-block cooldown, up to 900 s on top of `timeout`.
+  `wait=0` never waits. `waited` says what was waited for.
+- **The server's word, and short backoff.** `Retry-After: 2` became 900 s. A `Retry-After` is now
+  honoured as given, up to an hour. Without one, a 429 pauses 30 s, then 120, 480 and 900, and
+  strikes are forgotten after 30 quiet minutes. A 503 without one pauses 30 s and counts no
+  strike, since it is a server error. The 15-minute hard-block cooldown follows only a status or
+  vendor wall at the real or warm tier when the pool has no other exit.
+- **A hopeless wall answers fast.** A walk that failed all the way up is remembered per origin
+  and exit for 10 minutes, and the next call returns it at once (`remembered`, `attempts: []`).
+  Those walks took 30 to 58 s each time. `fresh=true` walks again.
+- **`clear_cooldown` clears everything it names**: the hard-block cooldown, the ledger's holds
+  and strikes, the visit window and the remembered failure, on every exit. It used to leave the
+  ledger alone.
+
+Files, JSON and APIs:
+
+- **Binary bodies are bytes.** Archives, extensions, packages, fonts and images asked for with
+  `out_file` all arrived as mojibake. An `out_file` with any name other than a text one (`.md`,
+  `.txt`, `.json`, `.jsonl`, `.csv`, `.html`) now gets the body as served, streamed to disk, with
+  `file{bytes, sha256, content_type, complete, bytes_per_sec}`. A binary body is written as bytes
+  whatever the name. Without `out_file` it is described, never decoded, and the note says to pass
+  one. The in-memory cap is 100 MiB (`SVIPALL_MAX_BODY_BYTES`).
+- **Downloads resume.** A cut transfer leaves `<out_file>.part`, and the same call again asks for
+  the rest with `Range` and `If-Range` (`file.resumed_from`). A server whose copy changed sends it
+  whole again. CLI `fetch --out` behaves the same.
+- **`json_path`** on `web_fetch` and `web_fetch_many` (`--json-path`) keeps only the fields asked
+  for: `.a`, `["a b"]`, `[0]`, `[-1]`, `[1:5]`, `[*]`, `{a, b.c}`. It replaces the
+  `out_file`-then-script round trip of 911 fetches in a month. No match is `null` with
+  `json_path_note`, and a body that is not JSON comes back whole with `json_path_error`.
+- **JSON, text and code come back as served**, plain text and code byte for byte and paged by
+  line. A non-HTML `2xx` is no longer phrase-matched as a wall: a GitHub search answer quoting
+  "access denied" climbed every tier for 33 s. On such a response only 401, 403, 407, 421, 429,
+  444 and 503 are walls, 404 and 410 are not found, and any other status is the API's answer.
+  `quality` judges JSON as JSON and text by whether it is empty. Before, 58% of good answers read
+  `thin`.
+- **`web_probe`** (`/v1/probe`, `svipall probe`) answers whether URLs exist: status, `exists`,
+  final URL, type, length, whether the name resolves, eight at a time, headers only. A 404 is an
+  answer.
+- **GitHub through its API.** A repo root, `tree`, `blob` (with `#L10-L20`), `issues/N`, `pull/N`,
+  releases and `commit/<sha>` on github.com are read from the REST API or the raw file host, with
+  every comment and review in order. Agents had fallen back to `gh api` about 50 times. A token in
+  `GITHUB_TOKEN` goes to `api.github.com` only. A rate limit reads `rate_limited_until`, never a
+  wall, and starts no cooldown.
+
+Search:
+
+- **A zero-result answer says why.** 28% of searches came back empty, mostly a captcha or an
+  anomaly page parsed as "no results". Every engine answer is now classified (`results`, `empty`,
+  `challenge`, `blocked`, `unparsed`, `error`, `skipped`), and an empty answer carries a `note`
+  naming each and what to try.
+- **Failing engines rest.** Health is kept per engine, host and exit in
+  `~/.svipall/search_engines.json`. A refusing engine rests from 10 minutes up to 6 hours, and
+  engines are asked in order of recent on-topic results. A host on hold is skipped, also when
+  named. Search leaves through the engine host's `web_route` exit and is paced per host.
+- **Better results**: redirect-wrapped links are unwrapped, `lang` and `region` set the locale
+  (inferred from the query otherwise), a result sharing no word with the query is marked
+  `off_topic` and ranked last, and a long query with a weak answer is retried once shortened.
+  `engine=news` searches recent articles.
+
+Pages, browsers and the CLI:
+
+- **Walls in four more languages.** Spanish, Portuguese, French and German walls are recognised,
+  and a browser tier no longer turns a 130-byte refusal after a 403 into a delivered page.
+- **Punctuated query words match literally**, so `query="--effort"` finds the flag and not the
+  page header.
+- **Cursors survive.** A cursor keeps the query it was issued with and survives a cache hit, and
+  `continue` names the exact next call, `json_path` included.
+- **Tables lose blank rows, blank columns and repeated columns**, and a PDF placed glyph by glyph
+  reads as words.
+- **Notes say only what is true**: no 15-minute cooldown that was never set, no security-product
+  or old-browser hint on a plain 404, no `web_login` advice for a generic wall. A failed
+  `solve_and_continue` no longer tells the caller to call it again, and its visible window opens on
+  the profile and exit the headless try used.
+- **This machine's address is masked.** Learned only from wall pages that printed it, never looked
+  up, it comes back as `[own IP]` in the page text of every tool (`own_ip_masked`).
+- **`web_map`** reads `llms.txt`, lists in `sources_used` only sources that produced URLs, and
+  reports `robots.present` only for a real robots file. **`web_site_search`** tries OpenSearch,
+  then a search box behind an icon or in a shadow root, then known platform endpoints, and
+  `found: false` names everything it tried.
+- **Browser errors keep their cause.** `browser_do` keeps its per-action results and reports
+  `content_error` when the page read fails, a locked profile says so, and an unknown action verb is
+  refused before a browser starts.
+- **The managed browser updates itself** in the background when it is two majors behind stable,
+  checked at most every 20 hours (`browser_auto_update`, on by default). A `browser_path` of your
+  own is never touched, and the stale warning prints once.
+- **The CLI** takes `--help` on every subcommand, and an unknown flag is an error naming the
+  nearest one. `svipall log --since-secs 600` used to ignore the flag and run anyway.
+- **The prompts**: the server instructions and tool descriptions open with when to use each tool,
+  name `web_probe`, `web_video`, `wait`, `json_path` and binary `out_file`, and fit in 38,663
+  characters where 1.3.1 had grown past its own 40,750 cap. When the session has the
+  `searchGitHub` tool of the grep.app MCP server, the instructions, the skill and the setup memory
+  prefer it for finding code across GitHub repositories, and Svipall does that job when it is
+  absent.
+
+What did not improve:
+
+- The hard walls stay hard: the managed challenge on manualslib.com and lib.rs and the mojeek
+  captcha were measured unchanged, before and after.
+- One search engine answers multi-word queries poorly from this machine. Its results are flagged
+  `off_topic`, not fixed. Another engine's parser has never seen a real results page, since that
+  engine only ever answered 429.
+- Not verified: streaming on the non-default HTTP engine and over HTTP/3, multi-gigabyte
+  downloads, and a real GitHub 429.
+
 ## 1.3.1 — 2026-10-02
 
 - **A route set with `web_route` applies to the very next fetch.** `web_route` wrote
