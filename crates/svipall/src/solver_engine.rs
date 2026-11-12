@@ -50,6 +50,9 @@ pub struct SolveEngine {
     /// Pages a strategy has acted on in a way that leaves no token to read: a tick, a form sent.
     /// On those, the widget no longer asking is what an answer looks like.
     acted: std::sync::Mutex<std::collections::HashSet<String>>,
+    /// The document a box was ticked on, by when it was created. A widget on a later document
+    /// of the same tab is another widget: see `stopped_asking`.
+    ticked_on: std::sync::Mutex<std::collections::HashMap<String, f64>>,
 }
 
 /// Hidden field each provider writes its response token into.
@@ -109,6 +112,7 @@ impl SolveEngine {
             corpus: cfg.corpus_keep_days > 0,
             ticked: Default::default(),
             acted: Default::default(),
+            ticked_on: Default::default(),
             auto_wait: Duration::from_millis(cfg.warm_wait_ms.max(8_000)),
             human_wait: Duration::from_secs(
                 std::env::var("SVIPALL_HUMAN_WAIT_SECS")
@@ -363,7 +367,12 @@ impl SolveEngine {
         if !target.due {
             return Ok(Step::NotApplicable);
         }
+        let born = crate::tick::document_born(page).await;
         self.ticked.lock().expect("lock").insert(key.clone());
+        self.ticked_on
+            .lock()
+            .expect("lock")
+            .insert(key.clone(), born);
         self.acted.lock().expect("lock").insert(key);
         tracing::info!(widget = target.widget, "ticking the widget's box");
         let seed = self.pool.identity().noise_seed;
@@ -407,10 +416,28 @@ impl SolveEngine {
     /// An answer in its field is one. Its absence is one only on a page that is no longer a wall:
     /// an interstitial that refuses the visitor reloads into itself, and for a moment in between
     /// its widget is gone too. Measured as a tick "clearing" a wall that was still there.
+    ///
+    /// A widget still asking is the one that was ticked only on the document it was ticked on.
+    /// Measured on a demo page behind an interstitial: the tick passed, the page that replaced
+    /// the wall showed widgets of its own, and the wait sat out its twenty-five seconds on them.
     async fn stopped_asking(&self, page: &Page) -> bool {
         match crate::tick::asking(page).await {
             crate::tick::Asking::Answered => true,
-            crate::tick::Asking::Yes => false,
+            crate::tick::Asking::Yes => {
+                let ticked_on = self
+                    .ticked_on
+                    .lock()
+                    .expect("lock")
+                    .get(page.target_id().inner())
+                    .copied();
+                match ticked_on {
+                    Some(then) => {
+                        crate::tick::another_document(then, crate::tick::document_born(page).await)
+                            && !self.walled(page).await
+                    }
+                    None => false,
+                }
+            }
             crate::tick::Asking::Gone => !self.walled(page).await,
         }
     }

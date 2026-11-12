@@ -466,6 +466,24 @@ fn route(req: &Req, port: u16, seen: &Seen) -> Resp {
                 .replace("ticked=1", "heavy=1"),
         ),
         ("GET", "/hang") => Resp::html(200, String::new()),
+        // And in front of a page that shows a widget of its own, beside a form nobody is
+        // filling in: the wall is gone, and a widget is still on the page asking.
+        ("GET", "/tick-widget") if req.cookie("widget") => {
+            let mut page = manual();
+            page.body = page.body.replace(
+                "</body>",
+                &format!(
+                    "<form><iframe src=\"http://localhost:{port}/challenges.cloudflare.com/\
+                     turnstile/frame\" width=\"300\" height=\"65\"></iframe></form></body>"
+                ),
+            );
+            page
+        }
+        ("GET", "/tick-widget") => Resp::html(
+            403,
+            TICK.replace("PORT", &port.to_string())
+                .replace("ticked=1", "widget=1"),
+        ),
         ("GET", "/challenges.cloudflare.com/turnstile/frame") => Resp::html(200, TICK_FRAME.into()),
         ("GET", "/pow") if req.cookie("pow") => manual(),
         ("GET", "/pow") => Resp::html(403, POW.into()),
@@ -690,6 +708,20 @@ async fn a_page_that_is_no_challenge_is_not_waited_on() {
     assert!(out["challenge_passed"].is_null(), "{out}");
     // A browser start, a load and the settle after it. The wait a challenge gets is twelve more.
     assert!(took < Duration::from_secs(12), "took {took:?}");
+}
+
+#[tokio::test]
+#[ignore = "needs a real browser"]
+async fn a_page_with_a_widget_of_its_own_is_not_taken_for_the_wall_it_replaced() {
+    // Measured on a demo page: its interstitial was ticked and gave way to a page that shows
+    // widgets of its own, and the tick went on waiting twenty-five seconds for "the widget" to
+    // stop asking. The one it ticked was gone with the document it was on.
+    support::isolate();
+    let site = Wall::start().await;
+    let (out, _) = fetch(&site, "/tick-widget", Some("real")).await;
+    assert_eq!(out["title"], "The manual", "{out}");
+    let secs = out["warm"]["secs"].as_f64().unwrap_or(f64::MAX);
+    assert!(secs < 12.0, "the wait took {secs}s: {out}");
 }
 
 #[tokio::test]
