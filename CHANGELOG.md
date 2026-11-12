@@ -82,7 +82,9 @@ Files, JSON and APIs:
   releases and `commit/<sha>` on github.com are read from the REST API or the raw file host, with
   every comment and review in order. Agents had fallen back to `gh api` about 50 times. A token in
   `GITHUB_TOKEN` goes to `api.github.com` only. A rate limit reads `rate_limited_until`, never a
-  wall, and starts no cooldown. `json_path`, `quality`, `query`, `max_tokens` and `out_file`
+  wall, and starts no cooldown. On a secondary limit (a 429 or 403 with `Retry-After` while the
+  hourly quota has requests left) that time comes from `Retry-After`, not from the quota's reset
+  up to an hour away. `json_path`, `quality`, `query`, `max_tokens` and `out_file`
   work there as on any page. On a rendered issue or repo, `json_path` cannot apply, and
   `json_path_error` gives the API URL that holds the JSON.
 
@@ -97,9 +99,14 @@ Search:
   engines are asked in order of recent on-topic results. A host on hold is skipped, also when
   named. Search leaves through the engine host's `web_route` exit and is paced per host.
 - **Better results**: redirect-wrapped links are unwrapped, `lang` and `region` set the locale
-  (inferred from the query otherwise), a result sharing no word with the query is marked
-  `off_topic` and ranked last, and a long query with a weak answer is retried once shortened.
-  `engine=news` searches recent articles.
+  (inferred from the query otherwise), a result sharing no word with the query (fewer than two,
+  for three words or more) is marked `off_topic` and ranked last, and a long query with a weak
+  answer is retried once shortened. `engine=news` searches recent articles.
+- **A one-word answer is named.** Bing sometimes answers a query of three words or more for one of
+  them, so "python dataclass default factory list" brings back python.org. That attempt's
+  `detail` and the `note` now say so. Every result is still returned.
+- **Brave's results are read.** Until now the parser had only ever been given a captcha page. It
+  now reads the engine's current layout and is tested on a real results page.
 
 Pages, browsers and the CLI:
 
@@ -120,7 +127,14 @@ Pages, browsers and the CLI:
   `solve_and_continue` no longer tells the caller to call it again, and its visible window opens on
   the profile and exit the headless try used.
 - **This machine's address is masked.** Learned only from wall pages that printed it, never looked
-  up, it comes back as `[own IP]` in the page text of every tool (`own_ip_masked`).
+  up, it comes back as `[own IP]` in the page text of every tool (`own_ip_masked`). The same goes
+  for text written to `out_file` or `out_dir` (the first wall that names it included), the
+  request log and `web_capture` bodies. A binary download is still written byte for byte.
+- **Downloads stream on every engine.** Over HTTP/3 a body used to be collected in memory before
+  it reached the file, and the page timeout bounded it instead of the call's. It now goes to disk as it
+  arrives and is decoded on the way. When QUIC does not answer, the fallback streams it too. A
+  4.06 GiB download cut just past the 4 GiB mark resumed with the right sha256, and memory
+  peaked at 29 MiB.
 - **`web_map`** reads `llms.txt`, lists in `sources_used` only sources that produced URLs, and
   reports `robots.present` only for a real robots file. **`web_site_search`** tries OpenSearch,
   then a search box behind an icon or in a shadow root, then known platform endpoints, and
@@ -148,11 +162,13 @@ What did not improve:
 
 - The hard walls stay hard: the managed challenge on manualslib.com and lib.rs and the mojeek
   captcha were measured unchanged, before and after.
-- One search engine answers multi-word queries poorly from this machine. Its results are flagged
-  `off_topic`, not fixed. Another engine's parser has never seen a real results page, since that
-  engine only ever answered 429.
-- Not verified: streaming on the non-default HTTP engine and over HTTP/3, multi-gigabyte
-  downloads, and a real GitHub 429.
+- Bing's one-word answers are only labelled. From this machine every multi-word query got one
+  for a stretch, with every request shape tried and in a browser too, and ten minutes later the
+  same request was answered whole. No change on our side was shown to bring it back.
+- Brave's http tier still answers 429 from this machine. The real page the parser was tested on
+  came through the browser tier.
+- Not verified: a real GitHub 429. The secondary-limit test runs against an answer built from the
+  shape GitHub documents.
 
 ## 1.3.1 — 2026-10-02
 

@@ -82,7 +82,8 @@ Spanish, Portuguese, French and German too.
 - A login wall → `web_login` once, by hand, and the profile keeps the cookies.
 
 This machine's own address, once a wall page has printed it, comes back as `[own IP]` in every
-tool's page text (`own_ip_masked` counts them). It is never looked up.
+tool's page text, in text written to `out_file`/`out_dir` and in `web_log` (`own_ip_masked` counts
+them). A binary download is written as served. The address is never looked up.
 
 ## Reading a page cheaply
 
@@ -128,7 +129,8 @@ review with author, date and reactions; a PR adds branches, merge state, files),
 Discussions, gists, lists, wikis and actions read as the page, as does a fetch with an explicit
 `mode`, `css_selector`, `schema` or `profile`. Unauthenticated, the API allows 60 requests an hour;
 `GITHUB_TOKEN` in `~/.svipall/secrets.env` raises it (code search needs it) and goes to
-`api.github.com` only. A rate limit reads `rate_limited_until`, not a wall.
+`api.github.com` only. A rate limit reads `rate_limited_until`, not a wall; a secondary limit (429
+or 403 with `Retry-After`) takes it from `Retry-After`.
 
 To find code across GitHub repositories, prefer the searchGitHub tool of the grep.app MCP server when this session has it: it is integrated with GitHub natively. Svipall still reads a known repo, file, issue, PR or release, and does all of it when that tool is absent.
 
@@ -153,10 +155,11 @@ svipall map https://example.com                    # the site's URLs, a few hund
 
 `attempts` holds one object per engine with its `outcome` (results, empty, challenge, blocked,
 unparsed, error, skipped). A failing engine rests for a while, remembered across runs; one whose
-host is on hold is skipped, even when named. Results sharing no word with the query are marked
-`off_topic` and ranked last. **Zero results carry a `note`** naming what was blocked, empty or
-skipped and what to try: other or fewer words, `lang`/`region`, `engine=news`, an engine that was
-not blocked. Do not repeat the same query.
+host is on hold is skipped, even when named. Results sharing no word with the query (fewer than
+two, for three words or more) are marked `off_topic` and ranked last; an engine that answered for
+one word of a long query says so in its attempt's `detail`. **Zero results carry a `note`**
+naming what was blocked, empty or skipped and what to try: other or fewer words,
+`lang`/`region`, `engine=news`, an engine that was not blocked. Do not repeat the same query.
 
 `map` reads robots.txt, sitemaps, `llms.txt`, feeds and homepage links; `sources_used` lists only
 those that produced URLs. `web_site_search` tries OpenSearch, then the search box (also behind an
