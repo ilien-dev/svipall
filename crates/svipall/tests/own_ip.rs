@@ -94,7 +94,10 @@ async fn a_text_out_file_is_masked() {
     learn("198.51.100.72");
     let site = Site::start(vec![(
         "/echo",
-        page("Visitors", "Last visit from 198.51.100.72, and one from 192.0.2.10."),
+        page(
+            "Visitors",
+            "Last visit from 198.51.100.72, and one from 192.0.2.10.",
+        ),
     )])
     .await;
     let file = out_dir("text").join("echo.md");
@@ -108,7 +111,10 @@ async fn a_text_out_file_is_masked() {
     let text = read(&out["out_file"]);
     assert!(text.contains("Last visit from"), "{text}");
     assert!(!text.contains("198.51.100.72"), "{text}");
-    assert!(text.contains("192.0.2.10"), "another address is not ours: {text}");
+    assert!(
+        text.contains("192.0.2.10"),
+        "another address is not ours: {text}"
+    );
 }
 
 /// Rows written to a file are page text too.
@@ -295,7 +301,10 @@ async fn a_capture_does_not_carry_the_address() {
         ),
         (
             "/api/me",
-            Reply::bytes(br#"{"ip":"198.51.100.72","name":"visitor"}"#, "application/json"),
+            Reply::bytes(
+                br#"{"ip":"198.51.100.72","name":"visitor"}"#,
+                "application/json",
+            ),
         ),
     ])
     .await;
@@ -314,6 +323,9 @@ async fn a_capture_does_not_carry_the_address() {
     s.shutdown_configuration().await;
     let out = out.expect("a capture");
     println!("{out}");
-    assert!(out.to_string().contains("visitor"), "the body was read: {out}");
+    assert!(
+        out.to_string().contains("visitor"),
+        "the body was read: {out}"
+    );
     assert!(!out.to_string().contains("198.51.100.72"), "{out}");
 }

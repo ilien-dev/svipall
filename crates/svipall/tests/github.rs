@@ -334,8 +334,7 @@ fn until_in(v: &Value, secs: i64) -> bool {
         .duration_since(std::time::UNIX_EPOCH)
         .unwrap()
         .as_secs() as i64;
-    (now + secs - 15..=now + secs + 15)
-        .any(|t| svipall_core::github::rfc3339(t) == s)
+    (now + secs - 15..=now + secs + 15).any(|t| svipall_core::github::rfc3339(t) == s)
 }
 
 /// A secondary limit is a 429 with `Retry-After` while the hourly quota still has requests left:
