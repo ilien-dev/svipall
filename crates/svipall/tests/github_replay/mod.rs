@@ -1,6 +1,9 @@
 //! A stand-in for the three hosts behind a code-hosting URL, replaying answers captured from the
 //! real API on 2026-11-11 (`tests/fixtures/github/*.body` and `*.headers`, verbatim except for the
 //! caller's own address, which the rate-limit message quotes and is replaced by 203.0.113.7).
+//! One is not captured: `secondary_limited` was never drawn from this machine, so it is built from
+//! the shape the API documents for a secondary limit (429, `Retry-After`, quota headers that still
+//! show requests left, the documented message).
 //!
 //! Two loopback ports play the web origin with the raw-file host, and the API, which the server is
 //! pointed at through `SVIPALL_GITHUB_WEB`, `SVIPALL_GITHUB_API` and `SVIPALL_GITHUB_RAW`. It
@@ -137,7 +140,14 @@ fn routes() -> HashMap<String, Answer> {
     add("/dtolnay/anyhow/master/src/lib.rs".into(), "raw_lib");
     // A repository whose API answers with the real rate-limit refusal, and whose page is HTML.
     add("/repos/limited/repo/issues/7".into(), "rate_limited");
-    for page in ["/limited/repo/issues/7", "/plain/repo/issues/8"] {
+    // And one that answers with a secondary limit: 429 with `Retry-After` while the hourly quota
+    // still has requests left.
+    add("/repos/secondary/repo/issues/9".into(), "secondary_limited");
+    for page in [
+        "/limited/repo/issues/7",
+        "/plain/repo/issues/8",
+        "/secondary/repo/issues/9",
+    ] {
         m.insert(
             page.into(),
             (

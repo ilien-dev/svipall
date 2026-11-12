@@ -12,12 +12,19 @@ use support::{Reply, Site};
 use svipall::{server::SvipallServer, tools::WebFetchParams};
 
 fn server() -> SvipallServer {
+    server_on("auto")
+}
+
+/// `http_engine` picks the client: `auto` is the default build's emulating one, `reqwest` the
+/// fallback a build without `impersonate` is left with.
+fn server_on(engine: &str) -> SvipallServer {
     support::isolate();
     SvipallServer::new(
         None,
         svipall_core::Config {
             request_min_interval_ms: 1,
             max_tier: "stealth".into(),
+            http_engine: engine.into(),
             ..Default::default()
         },
         None,
@@ -125,7 +132,19 @@ async fn a_json_answer_still_comes_back_as_itself() {
 
 #[tokio::test]
 async fn a_cut_download_is_kept_and_the_next_call_finishes_it() {
-    let d = dir("resume");
+    cut_then_resumed("auto").await;
+}
+
+/// The same on the fallback client. A cut transfer leaves its bytes in the `.part` only when the
+/// body was streamed to disk as it arrived: a client that collected the body first fails with
+/// nothing written.
+#[tokio::test]
+async fn the_fallback_client_streams_a_download_and_resumes_it_too() {
+    cut_then_resumed("reqwest").await;
+}
+
+async fn cut_then_resumed(engine: &str) {
+    let d = dir(&format!("resume-{engine}"));
     let body = archive(400_000);
     let site = Site::start(vec![(
         "/model.bin",
@@ -136,7 +155,7 @@ async fn a_cut_download_is_kept_and_the_next_call_finishes_it() {
     .await;
     let target = d.join("model.bin");
 
-    let first = server()
+    let first = server_on(engine)
         .fetch_json(params(site.url("/model.bin"), Some(target.clone())))
         .await
         .value;
@@ -154,7 +173,7 @@ async fn a_cut_download_is_kept_and_the_next_call_finishes_it() {
         "{first}"
     );
 
-    let second = server()
+    let second = server_on(engine)
         .fetch_json(params(site.url("/model.bin"), Some(target.clone())))
         .await
         .value;

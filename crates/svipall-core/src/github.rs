@@ -290,6 +290,40 @@ pub fn is_rate_limited(status: u16, rate: Option<&RateLimit>, body: &str) -> boo
                 || body.to_ascii_lowercase().contains("rate limit")))
 }
 
+/// When a quota refusal may be asked again, and which limit it was.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct Refusal {
+    /// Unix seconds.
+    pub until: i64,
+    /// Too many requests too quickly rather than the hourly quota spent. A token does not lift it.
+    pub secondary: bool,
+}
+
+/// The time to come back after a quota refusal, in the order the API documents: its
+/// `Retry-After`; else the quota's reset, when the quota is spent; else a minute.
+pub fn refusal(
+    headers: &[(String, String)],
+    rate: Option<&RateLimit>,
+    body: &str,
+    now: i64,
+) -> Refusal {
+    let retry_after = headers
+        .iter()
+        .find(|(k, _)| k.eq_ignore_ascii_case("retry-after"))
+        .and_then(|(_, v)| crate::throttle::parse_retry_after(v))
+        .map(|d| d.as_secs() as i64);
+    let spent = rate.filter(|r| r.remaining == 0);
+    let secondary = retry_after.is_some()
+        || rate.is_some_and(|r| r.remaining > 0)
+        || body.to_ascii_lowercase().contains("secondary rate limit");
+    let until = match (retry_after, spent) {
+        (Some(s), _) => now + s,
+        (None, Some(r)) => r.reset,
+        (None, None) => now + 60,
+    };
+    Refusal { until, secondary }
+}
+
 /// Does a `Link` header name a next page?
 pub fn has_next(link: Option<&str>) -> bool {
     link.is_some_and(|l| l.split(',').any(|part| part.contains("rel=\"next\"")))
@@ -807,6 +841,57 @@ pub fn render_commit(c: &Value) -> String {
 mod tests {
     use super::*;
     use serde_json::json;
+
+    #[test]
+    fn a_refusal_says_when_to_come_back_in_the_documented_order() {
+        let h = |pairs: &[(&str, &str)]| -> Vec<(String, String)> {
+            pairs
+                .iter()
+                .map(|(k, v)| (k.to_string(), v.to_string()))
+                .collect()
+        };
+        let rate = |remaining| RateLimit {
+            limit: 60,
+            remaining,
+            reset: 5_000,
+            resource: Some("core".into()),
+        };
+        // The quota spent: its reset, and not a secondary limit.
+        let primary = refusal(&h(&[]), Some(&rate(0)), "API rate limit exceeded", 1_000);
+        assert_eq!(
+            primary,
+            Refusal {
+                until: 5_000,
+                secondary: false
+            }
+        );
+        // Retry-After wins over the reset, and says secondary.
+        let secondary = refusal(&h(&[("Retry-After", "60")]), Some(&rate(57)), "", 1_000);
+        assert_eq!(
+            secondary,
+            Refusal {
+                until: 1_060,
+                secondary: true
+            }
+        );
+        // No header and requests left: a minute, as documented.
+        let bare = refusal(&h(&[]), Some(&rate(12)), "", 1_000);
+        assert_eq!(
+            bare,
+            Refusal {
+                until: 1_060,
+                secondary: true
+            }
+        );
+        // No quota headers at all, the message naming the limit.
+        let named = refusal(
+            &h(&[]),
+            None,
+            "You have exceeded a secondary rate limit",
+            1_000,
+        );
+        assert!(named.secondary && named.until == 1_060);
+    }
 
     fn t(owner: &str, repo: &str, kind: Kind) -> Option<Target> {
         Some(Target {

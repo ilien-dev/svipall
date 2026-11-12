@@ -915,9 +915,12 @@ fn many_to_file(out: Value, name: &str) -> Value {
     }
 }
 
+/// Text to a file, with this machine's known address masked as it is in a response. Every text
+/// file goes through here; a binary one never does.
 fn write_out(name: &str, content: &str) -> anyhow::Result<(std::path::PathBuf, usize)> {
     let path = out_path(name)?;
-    std::fs::write(&path, content)?;
+    let (content, _) = svipall_core::own_ip::mask(content, &svipall_core::own_ip::known());
+    std::fs::write(&path, &content)?;
     Ok((path, content.len()))
 }
 
@@ -983,6 +986,9 @@ pub(crate) fn local_causes_can_matter(kind: &WallKind, tier: &str) -> bool {
 /// what it is learned from, and only when the request left without a proxy: through an exit the
 /// address named is the exit's. Once learned it is masked on every later page that echoes it. The
 /// replacement is a label, and the response counts it in `own_ip_masked`; nothing else changes.
+///
+/// A text file the fetch wrote (`out_file`, never a binary one) is masked on disk too: on a first
+/// wall the file was written before the address was learned from it.
 fn mask_own_ip(value: &mut Value, direct: bool) {
     use svipall_core::own_ip;
     let Some(obj) = value.as_object_mut() else {
@@ -1004,16 +1010,39 @@ fn mask_own_ip(value: &mut Value, direct: bool) {
     if ips.is_empty() {
         return;
     }
-    let masked = mask_strings(value, &ips);
+    let mut masked = mask_strings(value, &ips, false);
+    let text_file = value["out_file"]
+        .as_str()
+        .filter(|_| !value["file"]["sha256"].is_string())
+        .map(PathBuf::from);
+    if let Some(path) = text_file {
+        let n = mask_file(&path, &ips);
+        if let (true, Ok(m)) = (n > 0, std::fs::metadata(&path)) {
+            value["bytes"] = json!(m.len());
+        }
+        masked += n;
+    }
     if masked > 0 {
         value["own_ip_masked"] = json!(masked);
     }
 }
 
+/// Mask a text file in place; how many addresses it held.
+fn mask_file(path: &std::path::Path, ips: &[std::net::IpAddr]) -> usize {
+    let Ok(text) = std::fs::read_to_string(path) else {
+        return 0;
+    };
+    let (out, n) = svipall_core::own_ip::mask(&text, ips);
+    if n > 0 && std::fs::write(path, out).is_err() {
+        return 0;
+    }
+    n
+}
+
 /// Every string a page's text can reach (content, title, table cells, extracted rows, a
 /// snapshot, a diff's blocks, an action's output), masked. Addresses the caller gave are not page
-/// text: anything under a key ending in `url` is left as it is.
-fn mask_strings(v: &mut Value, ips: &[std::net::IpAddr]) -> usize {
+/// text: anything under a key ending in `url` is left as it is, unless `urls` asks for those too.
+fn mask_strings(v: &mut Value, ips: &[std::net::IpAddr], urls: bool) -> usize {
     match v {
         Value::String(s) => {
             let (out, n) = svipall_core::own_ip::mask(s, ips);
@@ -1022,11 +1051,11 @@ fn mask_strings(v: &mut Value, ips: &[std::net::IpAddr]) -> usize {
             }
             n
         }
-        Value::Array(a) => a.iter_mut().map(|x| mask_strings(x, ips)).sum(),
+        Value::Array(a) => a.iter_mut().map(|x| mask_strings(x, ips, urls)).sum(),
         Value::Object(o) => o
             .iter_mut()
-            .filter(|(k, _)| !k.to_ascii_lowercase().ends_with("url"))
-            .map(|(_, x)| mask_strings(x, ips))
+            .filter(|(k, _)| urls || !k.to_ascii_lowercase().ends_with("url"))
+            .map(|(_, x)| mask_strings(x, ips, urls))
             .sum(),
         _ => 0,
     }
@@ -5538,6 +5567,10 @@ impl SvipallServer {
 
     /// The capture itself, callable without the MCP wrapper so tests can drive it.
     pub async fn capture_json(&self, p: WebCaptureParams) -> anyhow::Result<Value> {
+        self.capture_json_unmasked(p).await.map(mask_known_own_ip)
+    }
+
+    async fn capture_json_unmasked(&self, p: WebCaptureParams) -> anyhow::Result<Value> {
         use futures::StreamExt;
         use svipall_cdp::cdp::browser_protocol::network::{
             EnableParams, EventResponseReceived, GetResponseBodyParams,
@@ -5731,7 +5764,15 @@ impl SvipallServer {
         ok(self.log_json(params.0).map_err(err)?)
     }
 
+    /// The log names the URLs that were asked for, and a URL can carry this machine's address
+    /// (a redirect to `/blocked?ip=…`), so here URLs are masked too.
     pub fn log_json(&self, p: WebLogParams) -> anyhow::Result<Value> {
+        let mut out = self.log_json_unmasked(p)?;
+        mask_strings(&mut out, &svipall_core::own_ip::known(), true);
+        Ok(out)
+    }
+
+    fn log_json_unmasked(&self, p: WebLogParams) -> anyhow::Result<Value> {
         let Some(store) = self.store.as_ref() else {
             anyhow::bail!("the log needs the database, which could not be opened");
         };

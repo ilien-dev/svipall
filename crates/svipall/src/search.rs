@@ -296,41 +296,64 @@ pub fn parse_bing(html: &str) -> Vec<SearchResult> {
         .collect()
 }
 
+/// Brave's result page. Read from a real one (`tests/fixtures/search/brave.results.html`): each web
+/// result is a `div.snippet[data-type="web"]` in the main column, with its link first, the title
+/// in `.search-snippet-title` and the text in `.generic-snippet .content`. The older layout, a
+/// `#results` list, is still read.
 pub fn parse_brave(html: &str) -> Vec<SearchResult> {
     let doc = Html::parse_document(html);
     let a_sel = sel("a[href]");
-    let t_sel = sel(".title, .snippet-title, h2, h3");
-    let d_sel = sel(".snippet-description, .snippet-content, .description");
-    doc.select(&sel(
-        "#results .snippet[data-type=\"web\"], #results .snippet",
-    ))
-    .filter_map(|r| {
-        let a = r.select(&a_sel).find(|a| {
-            a.value()
-                .attr("href")
-                .map(|h| h.starts_with("http"))
+    let t_sel = sel(".search-snippet-title, .title, .snippet-title, h2, h3");
+    let d_sel =
+        sel(".generic-snippet .content, .snippet-description, .snippet-content, .description");
+    let mut blocks: Vec<_> = doc.select(&sel(".snippet[data-type=\"web\"]")).collect();
+    if blocks.is_empty() {
+        blocks = doc.select(&sel("#results .snippet")).collect();
+    }
+    blocks
+        .into_iter()
+        .filter_map(|r| {
+            let a = r.select(&a_sel).find(|a| {
+                a.value()
+                    .attr("href")
+                    .map(|h| h.starts_with("http"))
+                    .unwrap_or(false)
+            })?;
+            let url = a.value().attr("href")?.to_string();
+            // A link back into the engine (a "more results from" cluster, a related search) is not
+            // a result.
+            if url::Url::parse(&url)
+                .ok()
+                .and_then(|u| u.host_str().map(|h| h.ends_with("search.brave.com")))
                 .unwrap_or(false)
-        })?;
-        let url = a.value().attr("href")?.to_string();
-        let title = r
-            .select(&t_sel)
-            .next()
-            .map(|t| clean(&t.text().collect::<String>()))
-            .filter(|t| !t.is_empty())
-            .unwrap_or_else(|| clean(&a.text().collect::<String>()));
-        let snippet = r
-            .select(&d_sel)
-            .next()
-            .map(|s| clean(&s.text().collect::<String>()))
-            .unwrap_or_default();
-        Some(SearchResult {
-            title,
-            url,
-            snippet,
-            ..Default::default()
+            {
+                return None;
+            }
+            let title = r
+                .select(&t_sel)
+                .next()
+                .map(|t| {
+                    t.value()
+                        .attr("title")
+                        .map(clean)
+                        .filter(|t| !t.is_empty())
+                        .unwrap_or_else(|| clean(&t.text().collect::<String>()))
+                })
+                .filter(|t| !t.is_empty())
+                .unwrap_or_else(|| clean(&a.text().collect::<String>()));
+            let snippet = r
+                .select(&d_sel)
+                .next()
+                .map(|s| clean(&s.text().collect::<String>()))
+                .unwrap_or_default();
+            Some(SearchResult {
+                title,
+                url,
+                snippet,
+                ..Default::default()
+            })
         })
-    })
-    .collect()
+        .collect()
 }
 
 /// The text of the first `<tag>…</tag>` in `xml`, CDATA unwrapped and entities decoded.
@@ -704,12 +727,46 @@ fn on_topic(r: &SearchResult, terms: &[String]) -> bool {
     if terms.is_empty() {
         return true;
     }
+    let need = if terms.len() <= 2 { 1 } else { 2 };
+    shared(r, terms).len() >= need
+}
+
+/// The query's words a result carries, in its title, its snippet or its address.
+fn shared<'t>(r: &SearchResult, terms: &'t [String]) -> Vec<&'t String> {
     let url = urlencoding::decode(&r.url)
         .map(|u| u.into_owned())
         .unwrap_or_else(|_| r.url.clone());
     let hay = fold(&format!("{} {} {}", r.title, r.snippet, url));
-    let need = if terms.len() <= 2 { 1 } else { 2 };
-    terms.iter().filter(|t| hay.contains(t.as_str())).count() >= need
+    terms.iter().filter(|t| hay.contains(t.as_str())).collect()
+}
+
+/// The one word of a longer query that an answer was for, when that is what it was: no result
+/// carries two of the query's words, and most carry the same single one. Measured on one engine
+/// from this machine (`tests/fixtures/search/bing.one-word.html`): for a stretch, every query of
+/// three words or more came back answered for one of them, the same through every request shape
+/// tried and through a browser, and ten minutes later the same request was answered whole.
+pub fn one_word_answer(results: &[SearchResult], terms: &[String]) -> Option<String> {
+    if terms.len() < 3 || results.len() < 3 {
+        return None;
+    }
+    let mut word: Option<&String> = None;
+    let mut hits = 0;
+    for r in results {
+        match shared(r, terms).as_slice() {
+            [] => {}
+            [only] => {
+                if word.is_some_and(|w| w != *only) {
+                    return None;
+                }
+                word = Some(only);
+                hits += 1;
+            }
+            _ => return None,
+        }
+    }
+    (hits * 10 >= results.len() * 7)
+        .then(|| word.cloned())
+        .flatten()
 }
 
 /// Mark what shares nothing with the query and move it after what does, keeping each group's order.
@@ -997,6 +1054,13 @@ async fn ask(env: &Env<'_>, p: &Planned, terms: &[String]) -> (Attempt, Vec<Sear
     attempt.count = results.len();
     attempt.status = Some(resp.status);
     attempt.detail = detail;
+    if outcome == Outcome::Results {
+        if let Some(word) = one_word_answer(&results, terms) {
+            attempt.detail = Some(format!(
+                "{ONE_WORD} (\"{word}\"), not the whole of it; every result kept, marked off topic"
+            ));
+        }
+    }
     (attempt, results)
 }
 
@@ -1206,7 +1270,12 @@ pub async fn run(env: &Env<'_>, req: &Request<'_>) -> SearchOutcome {
         }
     }
     r.results.truncate(req.limit);
-    let note = note(&r.results, &r.attempts, retried_with.as_deref());
+    let note = note(
+        &r.results,
+        &r.attempts,
+        retried_with.as_deref(),
+        &terms(req.query),
+    );
     SearchOutcome {
         engine: r.engine,
         results: r.results,
@@ -1234,8 +1303,16 @@ fn named(attempts: &[Attempt], pick: impl Fn(Outcome) -> bool) -> Vec<String> {
     seen
 }
 
+/// How an attempt's detail says the engine answered for one word of the query.
+const ONE_WORD: &str = "answered for one word of the query";
+
 /// What a caller needs when the answer is nothing, or mostly beside the point.
-fn note(results: &[SearchResult], attempts: &[Attempt], retried: Option<&str>) -> Option<String> {
+fn note(
+    results: &[SearchResult],
+    attempts: &[Attempt],
+    retried: Option<&str>,
+    terms: &[String],
+) -> Option<String> {
     if results.is_empty() {
         let mut parts = Vec::new();
         let refused = named(attempts, |o| {
@@ -1270,10 +1347,31 @@ fn note(results: &[SearchResult], attempts: &[Attempt], retried: Option<&str>) -
     }
     let off = results.iter().filter(|r| r.off_topic).count();
     if off * 2 > results.len() {
+        let missing = if terms.len() <= 2 {
+            "share no word with the query"
+        } else {
+            "share fewer than two of the query's words"
+        };
         let mut s = format!(
-            "{off} of {} results share no word with the query (marked off topic, ranked last).",
+            "{off} of {} results {missing} (marked off topic, ranked last).",
             results.len()
         );
+        if let Some(a) = attempts.iter().find(|a| {
+            a.outcome == Outcome::Results
+                && a.detail.as_deref().is_some_and(|d| d.starts_with(ONE_WORD))
+        }) {
+            let word = a
+                .detail
+                .as_deref()
+                .and_then(|d| d.split('"').nth(1))
+                .unwrap_or_default();
+            s.push_str(&format!(
+                " {} answered for one word of the query (\"{word}\"), not the whole of it. That is \
+                 the engine's own answer for a while (a browser is given it too), so another \
+                 engine or a later try is the way round it.",
+                a.engine
+            ));
+        }
         if let Some(q) = retried {
             s.push_str(&format!(" A shortened query (\"{q}\") did no better."));
         }
@@ -1447,6 +1545,27 @@ mod tests {
     }
 
     #[test]
+    fn a_long_query_answered_for_one_of_its_words_is_told_from_one_answered_whole() {
+        let q = "python dataclass default factory list";
+        let one = parse_bing(&fixture("bing.one-word.html"));
+        assert_eq!(one_word_answer(&one, &terms(q)).as_deref(), Some("python"));
+        let whole = parse_bing(&fixture("bing.whole-query.html"));
+        assert_eq!(one_word_answer(&whole, &terms(q)), None);
+        // A two-word query is not long enough to tell.
+        assert_eq!(one_word_answer(&one, &terms("python dataclass")), None);
+    }
+
+    #[test]
+    fn every_web_result_on_a_real_brave_page_has_its_link_title_and_text() {
+        let rows = parse_brave(&fixture("brave.results.html"));
+        assert_eq!(rows.len(), 20, "the page holds twenty web results");
+        for r in &rows {
+            assert!(r.url.starts_with("https://"), "{r:?}");
+            assert!(!r.title.is_empty() && !r.snippet.is_empty(), "{r:?}");
+        }
+    }
+
+    #[test]
     fn a_click_redirect_unwraps_and_a_broken_one_is_kept() {
         let wrapped = "https://www.bing.com/ck/a?!&&p=abc&u=a1aHR0cHM6Ly9ydXN0LWxhbmcub3JnLw&ntb=1";
         assert_eq!(unwrap_redirect(wrapped), "https://rust-lang.org/");
@@ -1467,6 +1586,7 @@ mod tests {
             ("bing.results.html", "bing", 200, Outcome::Results),
             ("bing.es.html", "bing", 200, Outcome::Results),
             ("brave.captcha.html", "brave", 429, Outcome::Challenge),
+            ("brave.results.html", "brave", 200, Outcome::Results),
             ("news.results.xml", NEWS, 200, Outcome::Results),
             ("news.empty.xml", NEWS, 200, Outcome::Empty),
         ] {

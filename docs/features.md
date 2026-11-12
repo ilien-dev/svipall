@@ -202,8 +202,9 @@ a spent session is retired rather than changing its face on every request.*
   agreement, with `lang` and `region`. Each engine's answer is classified (results, empty,
   challenge, blocked, unparsed, error, skipped), a failing engine rests for a while and is
   remembered across runs, and redirect-wrapped links are unwrapped. A result that shares no word
-  with the query is marked `off_topic` and ranked last. An empty answer carries a `note` naming the
-  blocked engines and what to try.
+  with the query, or fewer than two with a query of three words or more, is marked `off_topic` and
+  ranked last. An engine that answered for one word of a long query is named in its attempt. An
+  empty answer carries a `note` naming the blocked engines and what to try.
 - **A site's own search box**: `web_site_search` tries the site's OpenSearch description, then its
   search box (also one behind an icon or in a shadow root), then known platform endpoints, and can
   learn a reusable query-URL pattern. When nothing is found, `tried` lists every attempt, and the fetch
