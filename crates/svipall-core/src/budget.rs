@@ -4,8 +4,8 @@
 //! anything could be done about it. Only `web_crawl` had a cap, and it was a character count that
 //! cut mid-sentence.
 //!
-//! Truncation happens on block boundaries, using the same notion of a block as the BM25 filter, so
-//! a code fence or a table is never cut in half — that would turn valid markdown into noise.
+//! Truncation happens on block boundaries, using the same notion of a block as the BM25 filter. A
+//! block is cut only to fill a budget, a table or a fence after a whole row, a cut fence closed.
 //!
 //! A continuation carries two pieces of context so it is not read cold: the whole chain of
 //! headings it sits under, and optionally the tail of the page before it (`overlap_blocks`). Both
@@ -15,8 +15,7 @@
 
 use std::fmt::Write as _;
 
-/// Markdown blocks. Fenced code and GFM tables are atomic: splitting either produces something a
-/// model reads as broken rather than as truncated.
+/// Markdown blocks. A fenced code block or a GFM table is one block, never split at a blank line.
 pub fn blocks(markdown: &str) -> Vec<&str> {
     let mut out = Vec::new();
     let bytes = markdown.as_bytes();
@@ -190,6 +189,18 @@ fn cut_point(s: &str, limit: usize) -> usize {
 /// Below this many tokens left, a page that already returned something stops at the block boundary
 /// rather than ending on a sliver of the next block.
 const MIN_FILL_TOKENS: usize = 16;
+
+/// How many leading characters of `s` cost at most `units` quarter-tokens, at the rates
+/// `estimate_tokens` charges: one for a narrow character, five for a wide one.
+fn chars_within(s: &str, units: usize) -> usize {
+    let mut spent = 0usize;
+    s.chars()
+        .take_while(|c| {
+            spent += if (*c as u32) > 0x2E80 { 5 } else { 1 };
+            spent <= units
+        })
+        .count()
+}
 
 /// The run of backticks or tildes that opens a fenced block, when `block` is one.
 fn fence_marker(block: &str) -> Option<&str> {
@@ -366,8 +377,11 @@ fn fill(
         let underfilled = room >= MIN_FILL_TOKENS && room * 4 >= max_tokens;
         if room > 0 && (returned == 0 || underfilled) {
             // A fence that will be closed costs its markers too.
+            // Counted in what `estimate_tokens` charges, so a cut of wide characters stays in the
+            // budget; less the separator and a token for rounding.
             let markers = fence.map_or(0, |f| f.len() + reopen.len() + 2);
-            let chars = (room * 4).saturating_sub(markers);
+            let units = (room * 4).saturating_sub(markers + 6);
+            let chars = chars_within(block, units).max(usize::from(returned == 0));
             let cut = if returned == 0 {
                 cut_point(block, chars)
             } else {
@@ -877,6 +891,32 @@ mod tests {
         let both = format!("{}\n{}", out.content, next.content);
         for i in 0..100 {
             assert_eq!(both.matches(&format!("| r{i:03} |")).count(), 1, "{both}");
+        }
+    }
+
+    #[test]
+    fn a_cut_of_wide_characters_stays_inside_the_budget() {
+        let para = "汉字的句子很长。".repeat(60);
+        let table: Vec<String> = (0..60)
+            .map(|i| format!("| 行{i} | 汉字汉字汉字 |"))
+            .collect();
+        let fence: Vec<String> = (0..60).map(|i| format!("// 注释{i}汉字汉字")).collect();
+        for second in [
+            para.replace('。', "。 "),
+            format!("| 键 | 值 |\n| --- | --- |\n{}", table.join("\n")),
+            format!("```\n{}\n```", fence.join("\n")),
+            "汉".repeat(300),
+        ] {
+            let md = format!("short\n\n{second}");
+            for max in [40, 100, 160] {
+                let out = take(&md, &plain(max, None));
+                assert!(
+                    out.tokens <= max,
+                    "{} tokens over a budget of {max}: {}",
+                    out.tokens,
+                    out.content
+                );
+            }
         }
     }
 
