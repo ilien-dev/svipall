@@ -70,6 +70,8 @@ Spanish, Portuguese, French and German too.
 
 - The note names a captcha widget → the MCP server's `solve_and_continue` solves it in place, or a
   person finishes it at the dashboard (`svipall status` prints the URL, and it works from a phone).
+- `wall_kind: "origin"` → the challenge was passed and the site's own server then refused. There is
+  nothing to solve: do not call `solve_and_continue`; route the domain through another exit.
 - A fingerprinting wall that never yields → route the domain through a proxy:
   `svipall route add shop.example --proxy socks5://… --country DE`, or a pool it moves through as
   exits get blocked: `--proxies A,B,C --countries DE,DE,NL`. Subdomains inherit.

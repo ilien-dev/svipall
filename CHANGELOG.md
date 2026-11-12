@@ -64,7 +64,9 @@ Files, JSON and APIs:
   one. The in-memory cap is 100 MiB (`SVIPALL_MAX_BODY_BYTES`).
 - **Downloads resume.** A cut transfer leaves `<out_file>.part`, and the same call again asks for
   the rest with `Range` and `If-Range` (`file.resumed_from`). A server whose copy changed sends it
-  whole again. CLI `fetch --out` behaves the same.
+  whole again. CLI `fetch --out` behaves the same. `bytes_per_sec` is the bytes that arrived over
+  the time they took (`file.transfer_ms`). It used to include the wait for the server and the
+  re-read of the `.part` file, so a fast resume read 0.8 MB/s.
 - **`json_path`** on `web_fetch` and `web_fetch_many` (`--json-path`) keeps only the fields asked
   for: `.a`, `["a b"]`, `[0]`, `[-1]`, `[1:5]`, `[*]`, `{a, b.c}`. It replaces the
   `out_file`-then-script round trip of 911 fetches in a month. No match is `null` with
@@ -118,7 +120,26 @@ Pages, browsers and the CLI:
   page's own world, where that page watches the lookup and fails the visitor for it. Everything
   svipall asks a page on its own account now runs in the isolated world. A widget still showing
   its box 6 s after the document started gets one tick. `lib.rs` was blocked after 95 s and is
-  now read in 14 s.
+  now read in 15 s.
+- **The `real` tier waits on a challenge.** It read the page about a second after it loaded, so
+  every interstitial cost a failed attempt before `warm`. It now gives a challenge up to 12 s,
+  and a page that is not one is read as before. The wait leaves an interstitial alone while it
+  verifies (`warm.quiet_turns`), and the interstitial is recognised by what its markup is made
+  of, since its wording changed and the phrase list stopped matching. `lib.rs/crates/tokio` took
+  25.5 s and passed at `warm`. It takes 14.4 s and passes at `real`.
+- **A short page behind a challenge is the page.** A test page of 78 characters was reported as
+  "the refusal again, not the page" because the http tier had been refused first. A result
+  reached through a challenge carries `challenge_passed`.
+- **A refusal from the site itself is said as one.** On manualslib.com the interstitial clears
+  and the site's own server then answers a bare 403. `solve_and_continue` spent its whole 90 s
+  there and `web_fetch` climbed on. Both now stop with `wall_kind: "origin"` and a
+  `blocked_reason` that starts `origin refusal`, in about 9 s. The note says there is nothing to
+  solve and names `web_route` and `web_login`.
+- **A browser tier reports the document's own status.** The status came from the navigation,
+  and with Chrome for Testing 154 a bare `403 Forbidden` came back as a delivered `200`.
+- **A tick that passed is not waited on.** After a tick the wait went on for a form that was
+  never sent, or took a widget on the next page for the one it had ticked. On a demo page the
+  wait fell from 29 s to 8 s.
 - **A proof-of-work captcha is answered.** `blocked_reason` names the widget
   (`widget: altcha.org`). Its box is ticked and its own script does the sum and posts the form.
   Where no widget is running, the signed challenge is counted locally, in the SHA form up to its
@@ -176,8 +197,18 @@ Pages, browsers and the CLI:
 
 What did not improve:
 
-- The hard walls stay hard: the managed challenge on manualslib.com and lib.rs and the mojeek
-  captcha were measured unchanged, before and after.
+- manualslib.com is still not read from this machine. Its challenge is passed, and its own
+  server then answers 403 to two different browser builds, on the front page, a brand page and
+  a manual, with and without a referrer. The 403 carries no header or text that says why. A
+  security product on this machine intercepts TLS for every browser, so the address and that
+  shared handshake could not be told apart from here.
+- Mojeek is not a `web_search` engine. It answers a plain HTTP request with its captcha page,
+  and search has no browser to answer it with. `web_fetch` reads a Mojeek results page in 19 s.
+- The http tier still says Chrome 149 while the browser tiers say the browser that runs. Read
+  on loopback, Chrome 154 sends two TLS extensions and three signature algorithms that the 149
+  handshake does not, so the http tier cannot claim 154.
+- On a site whose front page loads slowly the `real` tier still spends that time before the
+  wait starts: 25 of the 34 s one demo page took.
 - Bing's one-word answers are only labelled. From this machine every multi-word query got one
   for a stretch, with every request shape tried and in a browser too, and ten minutes later the
   same request was answered whole. No change on our side was shown to bring it back.
