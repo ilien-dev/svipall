@@ -92,6 +92,20 @@ Fixed:
   `svipall fetch https://example.com/`. The command now runs on a thread with its own stack.
   Release builds were not seen to overflow.
 
+- **Several processes opening the page cache at once no longer leave one of them without it.**
+  Every assistant session starts its own server, and a CLI command starts beside them. There were
+  two causes. Creating the file, switching it to WAL and writing the schema each need the
+  database briefly to themselves, and `busy_timeout` does not cover all of that: of eight
+  simultaneous openers of a new file, one was regularly answered `database is locked` at once.
+  The schema version was also read and the migration applied outside a transaction, so two
+  openers could both add the same column and the second failed with `duplicate column name`; that
+  is the upgrade-day case. The server that lost only logged a warning and ran without a cache for
+  as long as it lived: every read was a download, a cursor continuation fetched the page again,
+  and a diff had nothing to compare with. Now a locked database is tried again for up to ten
+  seconds, and the schema and its migrations run in one exclusive transaction. It showed up as a
+  test that failed about one run in ten, locally and in CI (`tests/map.rs`, a page expected from
+  the cache that was downloaded again). 1.4.0 has the same fault.
+
 ## 1.4.0 — 2026-11-11
 
 Most of this release comes from reading 2,361 real tool calls made on 1.3.1 between 10 October and
