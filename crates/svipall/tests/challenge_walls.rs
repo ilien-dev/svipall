@@ -340,6 +340,9 @@ impl Wall {
                     let Some(req) = read(&mut sock).await else {
                         return;
                     };
+                    if req.path.starts_with("/hang") {
+                        tokio::time::sleep(Duration::from_secs(8)).await;
+                    }
                     let r = route(&req, port, &seen);
                     let mut head = format!(
                         "HTTP/1.1 {} X\r\nContent-Type: {}\r\nContent-Length: {}\r\nConnection: close\r\nCache-Control: no-store\r\n",
@@ -448,6 +451,21 @@ fn route(req: &Req, port: u16, seen: &Seen) -> Resp {
         }
         ("GET", "/tick") if req.cookie("ticked") => manual(),
         ("GET", "/tick") => Resp::html(403, TICK.replace("PORT", &port.to_string())),
+        // The same wall in front of a page that takes eight seconds to finish loading: all of
+        // its text is there at once, and one picture is not.
+        ("GET", "/tick-heavy") if req.cookie("heavy") => {
+            let mut page = manual();
+            page.body = page
+                .body
+                .replace("</body>", "<img src=\"/hang\" alt=\"\"></body>");
+            page
+        }
+        ("GET", "/tick-heavy") => Resp::html(
+            403,
+            TICK.replace("PORT", &port.to_string())
+                .replace("ticked=1", "heavy=1"),
+        ),
+        ("GET", "/hang") => Resp::html(200, String::new()),
         ("GET", "/challenges.cloudflare.com/turnstile/frame") => Resp::html(200, TICK_FRAME.into()),
         ("GET", "/pow") if req.cookie("pow") => manual(),
         ("GET", "/pow") => Resp::html(403, POW.into()),
@@ -672,6 +690,21 @@ async fn a_page_that_is_no_challenge_is_not_waited_on() {
     assert!(out["challenge_passed"].is_null(), "{out}");
     // A browser start, a load and the settle after it. The wait a challenge gets is twelve more.
     assert!(took < Duration::from_secs(12), "took {took:?}");
+}
+
+#[tokio::test]
+#[ignore = "needs a real browser"]
+async fn a_ticked_wall_that_is_gone_is_not_waited_on_for_a_form_it_never_had() {
+    // Measured on a crates index: the box was ticked, the wall was gone four seconds later, and
+    // the fetch then spent twelve more waiting for the page behind it to finish loading, in
+    // case a form had been sent. Nothing had: a wall that goes away has no form.
+    support::isolate();
+    let site = Wall::start().await;
+    let (out, _) = fetch(&site, "/tick-heavy", Some("real")).await;
+    assert_eq!(out["title"], "The manual", "{out}");
+    let secs = out["warm"]["secs"].as_f64().unwrap_or(f64::MAX);
+    // Six seconds for the widget to have had its chance, the tick, and the look after it.
+    assert!(secs < 10.0, "the wait took {secs}s: {out}");
 }
 
 #[tokio::test]

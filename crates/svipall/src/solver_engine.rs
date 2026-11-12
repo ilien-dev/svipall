@@ -993,7 +993,13 @@ impl SolveEngine {
         if outcome.cleared() && outcome != Outcome::Passed {
             let pushed = crate::apart::text(page, SUBMIT_JS).await;
             tracing::info!(outcome = %pushed, "challenge token produced");
-            self.pool.settle(page, Duration::from_millis(2500)).await;
+            // A token is on its way somewhere, by the form just sent or by the widget's own
+            // callback, and the page it leads to is given time to arrive. No token at all is a
+            // wall that was ticked and went away: the page behind it is already here, and
+            // waiting for it to finish loading cost twelve seconds on a page that had its text.
+            if pushed != "no-token" {
+                self.pool.settle(page, Duration::from_millis(2500)).await;
+            }
         }
         Ok(outcome.cleared())
     }
