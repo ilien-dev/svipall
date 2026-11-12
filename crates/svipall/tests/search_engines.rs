@@ -410,6 +410,45 @@ async fn an_engine_host_held_by_retry_after_is_skipped_not_waited_for() {
     );
 }
 
+/// Two real Bing pages for one query, "python dataclass default factory list", taken on 2026-11-12
+/// ten minutes apart with the same request. The first answers for "python" alone: every result
+/// shares that one word and no other, and the same happened to every multi-word query asked in
+/// that stretch, through a browser too. The second is the whole query answered. The first is
+/// returned whole, marked off topic, and said to be a one-word answer; the second is left alone.
+#[tokio::test]
+async fn a_one_word_answer_to_a_long_query_is_named_as_one_and_kept() {
+    let q = "python dataclass default factory list";
+    let site = Site::start(vec![("/bing", page("bing.one-word.html"))]).await;
+    let out = server(&site).search_json(params(q, Some("bing"))).await;
+    let bing = attempt(&out, "bing");
+    assert_eq!(bing["outcome"], "results", "{out}");
+    let detail = bing["detail"].as_str().unwrap_or_default();
+    assert!(
+        detail.contains("one word") && detail.contains("\"python\""),
+        "{out}"
+    );
+    let results = out["results"].as_array().expect("results");
+    assert!(results.len() >= 5, "nothing withheld: {out}");
+    assert!(results.iter().all(|r| r["off_topic"] == true), "{out}");
+    let note = out["note"].as_str().unwrap_or_default();
+    assert!(
+        note.contains("one word") && note.contains("python"),
+        "{out}"
+    );
+
+    let site = Site::start(vec![("/bing", page("bing.whole-query.html"))]).await;
+    let out = server(&site).search_json(params(q, Some("bing"))).await;
+    let bing = attempt(&out, "bing");
+    assert_eq!(bing["outcome"], "results", "{out}");
+    assert!(bing.get("detail").is_none(), "{out}");
+    assert!(out.get("note").is_none(), "{out}");
+    let results = out["results"].as_array().expect("results");
+    assert!(
+        results.iter().take(5).all(|r| r.get("off_topic").is_none()),
+        "{out}"
+    );
+}
+
 /// The Brave results page, as it came back from the real engine on 2026-11-12 for "rust async
 /// runtime". The http tier was refused with 429 twice, twenty minutes apart, so this page was
 /// fetched once through the browser tier: it is the document after the page's scripts ran, saved
