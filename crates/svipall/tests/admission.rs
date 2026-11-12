@@ -506,7 +506,7 @@ async fn a_generic_wall_gets_no_login_advice() {
     let out = server.fetch_json(params(&site, url)).await.value;
     assert_eq!(out["wall_kind"], "generic", "{out}");
     let note = text(&out, "note");
-    assert!(!note.contains("web_login"), "{note}");
+    assert!(!note.contains("do=login"), "{note}");
     assert!(!note.contains("cooldown"), "{note}");
 }
 

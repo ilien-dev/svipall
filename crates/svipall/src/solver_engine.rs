@@ -221,7 +221,7 @@ impl SolveEngine {
     ) -> anyhow::Result<InPlace> {
         if !self.pool.available() {
             anyhow::bail!(
-                "no Chromium-based browser found; browser_setup(action=\"install\") fetches one"
+                "no Chromium-based browser found; web_setup(do=browser, action=\"install\") fetches one"
             );
         }
         let profile_dir = Some(match profile {

@@ -1282,7 +1282,7 @@ pub fn browser_advice(
         return Some(format!(
             "The browser in use ({}) ships its own anti-fingerprinting, which contradicts the \
              Chrome identity svipall states everywhere else and is detectable on sight. \
-             browser_setup(action=\"install\") fetches Chrome for Testing, which the pool prefers \
+             web_setup(do=browser, action=\"install\") fetches Chrome for Testing, which the pool prefers \
              once it is there.",
             exe.display()
         ));
@@ -1292,7 +1292,7 @@ pub fn browser_advice(
     Some(format!(
         "The browser in use is Chrome {in_use}, {behind} majors behind the stable channel \
          ({best}); a user agent naming a Chrome that old is itself a signal. \
-         browser_setup(action=\"update\") refreshes the managed install; a running server does it \
+         web_setup(do=browser, action=\"update\") refreshes the managed install; a running server does it \
          on its own unless browser_auto_update is false."
     ))
 }
@@ -1392,7 +1392,7 @@ pub fn profile_in_use(dir: &std::path::Path) -> bool {
 pub fn profile_locked(dir: &std::path::Path) -> String {
     format!(
         "the profile directory {} is in use by another browser process, so it cannot be opened \
-         twice: close the window or the other svipall process using it (browser_close for a \
+         twice: close the window or the other svipall process using it (browser close=true for a \
          session of this server), or use a different profile",
         dir.display()
     )
@@ -1413,7 +1413,7 @@ impl BrowserPool {
                     major.map(|m| m.to_string()).unwrap_or_else(|| "?".into())
                 );
             }
-            None => tracing::warn!("no Chromium-based browser found; browser tiers disabled (set browser_path in ~/.svipall/config.toml, or call browser_setup)"),
+            None => tracing::warn!("no Chromium-based browser found; browser tiers disabled (set browser_path in ~/.svipall/config.toml, or call web_setup do=browser)"),
         }
         // One identity for every browser tier, built once here, and it states the version of the
         // browser that will run: see `IdentityProfile::for_browser` for what claiming the http
@@ -2380,16 +2380,15 @@ impl BrowserPool {
     /// A `ref` from web_snapshot, turned into a selector on the page as it is now.
     async fn locate(&self, page: &Page, reference: &str) -> Result<String> {
         let js = crate::snapshot::locate_js(reference)
-            .ok_or_else(|| anyhow!("{reference:?} is not a reference from web_snapshot"))?;
+            .ok_or_else(|| anyhow!("{reference:?} is not a reference from web_view"))?;
         let found = page
             .evaluate(js.as_str())
             .await
             .context("locating a reference")?
             .into_value::<Option<String>>()
             .unwrap_or(None);
-        found.ok_or_else(|| {
-            anyhow!("{reference} is not on this page any more; take a new web_snapshot")
-        })
+        found
+            .ok_or_else(|| anyhow!("{reference} is not on this page any more; take a new web_view"))
     }
 
     async fn run_action(&self, page: &Page, kind: &str, a: &Value) -> Result<Value> {
@@ -3188,7 +3187,7 @@ mod tests {
         );
         assert!(advice.contains("anti-fingerprinting"), "says why: {advice}");
         assert!(
-            advice.contains("browser_setup"),
+            advice.contains("do=browser"),
             "says how to fix it: {advice}"
         );
     }
@@ -3200,7 +3199,7 @@ mod tests {
         assert!(advice.contains("156"), "names what is running: {advice}");
         assert!(advice.contains("158"), "names what it is behind: {advice}");
         assert!(
-            advice.contains("browser_setup"),
+            advice.contains("do=browser"),
             "says how to fix it: {advice}"
         );
     }

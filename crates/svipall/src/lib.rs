@@ -50,6 +50,7 @@ pub mod solve_loop;
 pub mod solver_engine;
 pub mod steer;
 pub mod substance;
+pub mod surface;
 /// The box a widget is waiting on: where it is, and whether the widget is still asking.
 pub mod tick;
 pub mod tools;

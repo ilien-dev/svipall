@@ -17,7 +17,7 @@
 <p align="center">
   <a href="https://www.rust-lang.org"><img alt="Rust" src="https://img.shields.io/badge/Rust-stable-983E25?style=flat-square&labelColor=0B1A2B"></a>
   <a href="#license"><img alt="License: AGPL-3.0" src="https://img.shields.io/badge/License-AGPL--3.0-DCE3EB?style=flat-square&labelColor=0B1A2B"></a>
-  <a href="#mcp-tools"><img alt="MCP" src="https://img.shields.io/badge/MCP-29%20tools-FFB03A?style=flat-square&labelColor=0B1A2B"></a>
+  <a href="#mcp-tools"><img alt="MCP" src="https://img.shields.io/badge/MCP-12%20tools-FFB03A?style=flat-square&labelColor=0B1A2B"></a>
   <a href="docs/development.md"><img alt="Recorded test results" src="https://img.shields.io/badge/tests-results%20recorded-DCE3EB?style=flat-square&labelColor=0B1A2B"></a>
   <a href="docs/proof.md"><img alt="Benchmarks" src="https://img.shields.io/badge/benchmarks-published%2C%20failures%20included-983E25?style=flat-square&labelColor=0B1A2B"></a>
   <a href="docs/privacy.md"><img alt="No telemetry" src="https://img.shields.io/badge/telemetry-none-0C6244?style=flat-square&labelColor=0B1A2B"></a>
@@ -227,15 +227,15 @@ content check, because the classifier cannot show that the requested records arr
 | Search without a key | `web_search` scrapes DuckDuckGo, Bing and Brave; `engine="all"` merges them by agreement. An empty answer says which engines were blocked and what to try next |
 | Read a JSON API | The JSON comes back as the server sent it, and `json_path: "items[:5].{name, id}"` keeps only the fields you name |
 | Download a file | `out_file: "pkg.tar.bz2"` writes the bytes as served, with their size and `sha256`; a cut transfer resumes on the next call |
-| Check that URLs exist | `web_probe` returns status, final URL, type and length for each, without reading the bodies |
+| Check that URLs exist | `web_fetch` with `urls` and `probe=true` returns status, final URL, type and length for each, without reading the bodies |
 | Read a GitHub repo, issue or PR | `web_fetch` on the github.com URL answers from GitHub's API: the README and tree, a file's raw lines, a thread with every comment |
-| Let the agent click things | `web_snapshot` (roles + refs, a fraction of the tokens) then `web_act` to click, type, scroll and wait, all through human-like input |
+| Let the agent click things | `web_view` (roles + refs, a fraction of the tokens) then `browser` to click, type, scroll and wait, all through human-like input |
 | Attempt a browser challenge | Automatic routing can escalate to a patient browser tier; unresolved challenges and detected blocks are reported, but the remote cause is not always identifiable |
 | Attempt a captcha locally | Fifteen widget families and eleven answer modalities, model support where available and a phone-friendly human dashboard. No paid solver; local budgets and remote restrictions still apply |
-| Log in once and stay in | `web_login` opens a real window; you sign in; the cookies are kept in a profile you can export |
+| Log in once and stay in | `web_setup` with `do=login` opens a real window; you sign in; the cookies are kept in a profile you can export |
 | Watch a page | `web_watch` checks the whole page or one CSS region while the server runs; saved selector fingerprints can help recover some redesigns |
 | Read PDFs and Office files | docx, xlsx, pptx, odt, epub, rtf, csv and pdf come back as Markdown, from the web or from `file://` |
-| Drive it from any language | `svipall serve` → 21 local REST routes, one per tool, behind a bearer key it generates for you |
+| Drive it from any language | `svipall serve` → 21 local REST routes, one per operation, behind a bearer key it generates for you |
 
 ### Who it is for
 
@@ -287,37 +287,45 @@ Content-quality labels alone do not trigger escalation.*
 
 ## MCP tools
 
-Thirty-one tools, all local.
+Twelve tools, all local. Up to 1.4 there were thirty-one, one per operation. An operation that had
+its own tool is now a mode of one of the twelve, chosen by an argument.
 
-| Tool | What it does |
-|---|---|
-| `web_fetch` | Fetch a page as Markdown or structured JSON. `mode=auto` climbs the ladder. `schema` (self-healing), `tables`, `scroll`, `query`, `max_tokens`/`cursor`, `json_path`, `wait`, `fresh`, `cache`, `include_metadata`, `include_links`, `include_quality`, `use_site_template`, `robots`, `out_file`, `mobile`, `text_only`, `isolated`, `css_selector`, `profile`, `proxy`, `method`/`body`/`headers`. URLs may be `raw:<html>` or `file://` under `local_roots`. JSON, plain text and source files come back as served; a binary body goes to `out_file` as bytes; github.com URLs are read from the API |
-| `web_fetch_many` | Bounded-parallel fetch of many URLs, with `schema`, `tables`, `query` and `json_path` as on `web_fetch`, results in input order. The whole answer is held to `max_tokens_total` (8000 by default), a cut page carries a `cursor` for `web_fetch`, and `out_dir` writes every page whole. Reports `corroboration` (how many *distinct* documents the set actually is) and marks each duplicate with `same_text_as` |
-| `web_probe` | Status, `exists`, final URL, content type and length for a list of URLs, and whether each name resolves. Stops at the headers. A 404 is an answer here |
-| `web_search` | DuckDuckGo / Bing / Brave without an API key; `engine="all"` merges by agreement, `lang` and `region` set the locale. Every engine's outcome is in `attempts`, a failing engine is rested and remembered, and a zero-result answer carries a `note` on what was blocked and what to try |
-| `web_site_search` | Find a site's search through its OpenSearch description, its search box (also one opened by an icon or inside a shadow root) or a known platform endpoint, and learn the query-URL pattern. `found: false` lists what was tried |
-| `web_crawl` | Same-domain crawl with robots.txt, dedup, boilerplate removal, `strategy=dfs`, `scroll`, `schema`/`tables` for rows, `llms.txt`, file export, a saturation stop, and a `crawl_id` to resume |
-| `web_map` | A site's URLs without crawling it: robots.txt, sitemaps (nested indexes and `.gz` included), `llms.txt`, RSS/Atom feeds and homepage links, a few hundred tokens of structure instead of the thousands a crawl costs. `sources_used` names only the sources that gave URLs |
-| `web_snapshot` | The page as roles, accessible names and short refs that `web_act` accepts. Deterministic, no vision model |
-| `web_act` | click, type, fill, press, hover, select, scroll, wait, eval, goto, screenshot, hold, verify, console; supported pointer/keyboard/wheel actions use the behavior layer, while `eval` runs caller-supplied JavaScript |
-| `web_capture` | Observe matching JSON/network responses during a bounded browser visit; API usability and completeness are not guaranteed |
-| `web_video` | A video's captions (a person's first, else the platform's automatic ones, in `lang` when asked) and chapters as one timeline. Reads a known player's boot JSON, JSON-LD `VideoObject`, `<track>`, and HLS/DASH caption renditions; a player whose caption addresses only answer its own requests is read through a borrowed request in a live page. `frames` adds keyframes where the picture changes, found in the player's storyboard or by comparing sampled frames, and returned as PNG paths inside the timeline. Each one is read from the page's own `<video>` element, so the player's controls and captions are not in it; a file from another origin that forbids this gets a screenshot instead, and the notes say so. An advert that plays first is run through, muted, before any frame is taken. A video with no captions and a media file behind it is transcribed on this machine when the speech model is installed (`svipall models install`). Encrypted streams are reported as `drm` and never read, so they get no frames |
-| `browser_open` / `browser_do` / `browser_close` | Persistent session with cookies and page state across calls. When the page cannot be read after the actions, `browser_do` keeps their results and gives the cause in `content_error` |
-| `web_screenshot` | PNG of the rendered page, `full_page` or `mobile` |
-| `web_diff` | What changed on a page since Svipall last saw it |
-| `web_watch` | Persist a watch and check it while the server runs; list or check to retrieve changes. Region recovery after a redesign is heuristic |
-| `web_notes` | Key-value memory that outlives the session |
-| `web_log` | Which tier answered, which wall appeared, how long it took, per domain |
-| `web_login` | Visible window for a manual login or challenge; cookies saved to a profile |
-| `web_route` | Per-domain proxy, or a pool of `proxies` with `countries`; subdomains inherit; `exit_strategy` sticky or round-robin; `check=true` tests the exits (liveness, latency, DNS leak) with no third-party service |
-| `web_profile` | Export/import an encrypted browser profile between machines |
-| `web_status` | A short summary by default: cooldowns, server holds, visit limits, identity, browser, solver. `sections` adds learned tiers, routes, per-exit health and latency, reputation, HTTP/3, cache, crawls, profiles and models. `clear_cooldown`, `forget_tier`, `clear_budget` and `clear_cache` answer only with what they cleared |
-| `browser_setup` | Download or manage Chrome for Testing. The managed copy also updates itself in the background once it is two majors behind stable (`browser_auto_update`) |
-| `solve_and_continue` | Attempt a captcha on the blocked page and return the resulting content or unresolved state |
-| `solve_image_captcha` / `solve_recaptcha_v2` / `solve_turnstile` / `solve_hcaptcha` / `captcha_status` / `report_captcha` | Local captcha attempts; the dashboard also exposes `in.php` / `res.php` / `createTask` / `getTaskResult` compatibility endpoints for supported tasks. This is not full compatibility with every solver-client option |
+| Tool | Called with | What it does |
+|---|---|---|
+| `web_fetch` | `url` | Fetch a page as Markdown or structured JSON. `mode=auto` climbs the ladder. `schema` (self-healing), `tables`, `scroll`, `query`, `max_tokens`/`cursor`, `json_path`, `wait`, `fresh`, `cache`, `include_metadata`, `include_links`, `include_quality`, `use_site_template`, `robots`, `out_file`, `mobile`, `text_only`, `isolated`, `css_selector`, `profile`, `proxy`, `method`/`body`/`headers`. URLs may be `raw:<html>` or `file://` under `local_roots`. JSON, plain text and source files come back as served; a binary body goes to `out_file` as bytes; github.com URLs are read from the API |
+| `web_fetch` | `urls` | Bounded-parallel fetch of many URLs, results in input order. Every per-page argument of a single fetch applies to each page. The whole answer is held to `max_tokens_total` (8000 by default), a cut page carries a `cursor` to pass back with its `url`, and `out_dir` writes every page whole. Reports `corroboration` (how many *distinct* documents the set actually is) and marks each duplicate with `same_text_as` |
+| `web_fetch` | `urls` (or `url`) + `probe=true` | Status, `exists`, final URL, content type and length for each URL, and whether each name resolves. Stops at the headers. A 404 is an answer here |
+| `web_search` | `query` | DuckDuckGo / Bing / Brave without an API key; `engine="all"` merges by agreement, `lang` and `region` set the locale. Every engine's outcome is in `attempts`, a failing engine is rested and remembered, and a zero-result answer carries a `note` on what was blocked and what to try |
+| `web_search` | `query` + `site` | Find a site's search through its OpenSearch description, its search box (also one opened by an icon or inside a shadow root) or a known platform endpoint, and learn the query-URL pattern. `found: false` lists what was tried |
+| `web_crawl` | `url` | Same-domain crawl with robots.txt, dedup, boilerplate removal, `strategy=dfs`, `scroll`, `schema`/`tables` for rows, `llms.txt`, file export, a saturation stop, and a `crawl_id` to resume |
+| `web_crawl` | `url` + `map=true` | A site's URLs without crawling it: robots.txt, sitemaps (nested indexes and `.gz` included), `llms.txt`, RSS/Atom feeds and homepage links, a few hundred tokens of structure instead of the thousands a crawl costs. `sources_used` names only the sources that gave URLs |
+| `web_view` | `url` | The page as roles, accessible names and short refs that `browser` accepts. Deterministic, no vision model |
+| `web_view` | `url` + `image=true` | PNG of the rendered page, `full_page` or `mobile` |
+| `browser` | `url` + `actions` | One shot: click, type, fill, press, hover, select, scroll, wait, eval, goto, screenshot, hold, verify, console; supported pointer/keyboard/wheel actions use the behavior layer, while `eval` runs caller-supplied JavaScript |
+| `browser` | `open=true`, then `session_id`, then `session_id` + `close=true` | Persistent session with cookies and page state across calls. `open=true` may carry the first `url` and `actions`, and then returns the `session_id` together with that step's result. When the page cannot be read after the actions, a session step keeps their results and gives the cause in `content_error` |
+| `web_watch` | `action=add` (default), `list`, `check`, `remove` | Persist a watch and check it while the server runs; list or check to retrieve changes. Region recovery after a redesign is heuristic |
+| `web_watch` | `action=diff` | What changed on a page since Svipall last saw it |
+| `web_status` | no argument, `sections`, or a reset | A short summary by default: cooldowns, server holds, visit limits, identity, browser, solver. `sections` adds learned tiers, routes, per-exit health and latency, reputation, HTTP/3, cache, crawls, profiles and models. `clear_cooldown`, `forget_tier`, `clear_budget` and `clear_cache` answer only with what they cleared |
+| `web_status` | `log=summary` or `log=recent` | Which tier answered, which wall appeared, how long it took, per domain |
+| `web_setup` | `do=login` | Visible window for a manual login or challenge; cookies saved to a profile |
+| `web_setup` | `do=route` | Per-domain proxy, or a pool of `proxies` with `countries`; subdomains inherit; `exit_strategy` sticky or round-robin; `check=true` tests the exits (liveness, latency, DNS leak) with no third-party service |
+| `web_setup` | `do=profile` | Export/import an encrypted browser profile between machines |
+| `web_setup` | `do=browser` | Download or manage Chrome for Testing. The managed copy also updates itself in the background once it is two majors behind stable (`browser_auto_update`) |
+| `captcha` | `url` | Attempt a captcha on the blocked page and return the resulting content or unresolved state |
+| `captcha` | `kind` + `sitekey` + `page_url`, `image`, or `task_id` (+ `good`) | Local captcha attempts: a token for `turnstile`, `recaptcha_v2` or `hcaptcha`, the text in an image, a pending task polled, and a report of whether the site took the answer. The dashboard also exposes `in.php` / `res.php` / `createTask` / `getTaskResult` compatibility endpoints for supported tasks. This is not full compatibility with every solver-client option |
+| `web_capture` | `url` | Observe matching JSON/network responses during a bounded browser visit; API usability and completeness are not guaranteed |
+| `web_video` | `url` | A video's captions (a person's first, else the platform's automatic ones, in `lang` when asked) and chapters as one timeline. Reads a known player's boot JSON, JSON-LD `VideoObject`, `<track>`, and HLS/DASH caption renditions; a player whose caption addresses only answer its own requests is read through a borrowed request in a live page. `frames` adds keyframes where the picture changes, found in the player's storyboard or by comparing sampled frames, and returned as PNG paths inside the timeline. Each one is read from the page's own `<video>` element, so the player's controls and captions are not in it; a file from another origin that forbids this gets a screenshot instead, and the notes say so. An advert that plays first is run through, muted, before any frame is taken. A video with no captions and a media file behind it is transcribed on this machine when the speech model is installed (`svipall models install`). Encrypted streams are reported as `drm` and never read, so they get no frames |
+| `web_notes` | `action=get` (default), `set`, `list`, `delete` | Key-value memory that outlives the session |
+
+The 1.x names (`web_fetch_many`, `web_snapshot`, `solve_and_continue` and the rest) are no longer
+listed, but each still answers when called by name with its 1.x arguments. The 2.0.0 entry of the
+[changelog](CHANGELOG.md) maps every one of them to its 2.0 call. The CLI commands and the REST
+routes did not change: they stay one per operation.
 
 Every tool refuses a parameter it does not have, and names the closest real one, so a limit the
-caller thinks it set is never silently ignored. Numbers and booleans may arrive as strings.
+caller thinks it set is never silently ignored. An argument the chosen mode has no use for, such as
+`find` with `image=true`, refuses the call too and names what that mode takes. Numbers and booleans
+may arrive as strings.
 
 ### Visits, and waiting for one
 
@@ -372,7 +380,7 @@ curl -sH "Authorization: Bearer $KEY" -H 'content-type: application/json' \
 `svipall-mcp` mounts the same router when `rest_port` is set, on its own listener, and shares its
 browser pools, page cache and route evidence with the MCP tools.
 
-Twenty-one routes, one per tool, each taking that tool's own JSON as the body:
+Twenty-one routes, one per operation, each taking that operation's own JSON as the body:
 
 | | |
 |---|---|
@@ -391,7 +399,7 @@ A blocked page is a `200`: the call ran, the *page* did not. `blocked_reason`, `
 installation (`500`). An unknown job can return `404`, and routing can reject unsupported paths
 or methods. A client must inspect both the HTTP status and the tool result before deciding to retry.
 
-Every tool and job route needs the key, including on loopback. Only `/v1/health` is exempt.
+Every operation and job route needs the key, including on loopback. Only `/v1/health` is exempt.
 A local port is not a boundary on its own: Svipall carries logged-in profiles, cookies and your
 exit address, so anything that reaches the port can make requests as you.
 Two more checks sit in front of the key, because binding to `127.0.0.1` does not stop a page in your
@@ -399,11 +407,12 @@ own browser being served a DNS answer of `127.0.0.1` and posting to it: any requ
 `Origin` header is refused, and on a loopback bind so is any `Host` that is not loopback. There is no
 CORS layer and there will not be one, because no browser page is a client of this API.
 
-Ten tools are deliberately **not** routes, in three groups, and `rest.rs` records why next to each:
-`browser_open`/`browser_do`/`browser_close`, whose persistent session lifecycle is outside this
-REST interface's current design; `web_login`, whose interactive window is also excluded; and the six
-`solve_*`/`captcha_status`/`report_captcha` tools, which already answer on the dashboard port in the
-classic solver wire shape. Twenty-nine tools minus those ten is the nineteen routes above. A new
+Ten operations are deliberately **not** routes, in three groups, and `rest.rs` records why next to
+each. A browser session (`browser` with `open=true`, `session_id` or `close=true` over MCP) has a
+persistent lifecycle that is outside this REST interface's current design. The login window
+(`web_setup` with `do=login`) is interactive and is excluded too. The six token, image and task
+operations (`captcha` with `kind`, `image` or `task_id`) already answer on the dashboard port in the
+classic solver wire shape. Thirty-one operations minus those ten is the twenty-one routes above. A new
 `#[tool]` fails the test suite until it is listed as a route or as a named exclusion.
 
 A long crawl runs as a job and does not hold the connection. `"async": true` answers `202` with an id. `GET

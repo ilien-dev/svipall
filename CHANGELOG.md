@@ -1,5 +1,73 @@
 # Changelog
 
+## 2.0.0 — 2026-11-12
+
+The MCP server lists twelve tools where 1.4.0 listed thirty-one. An operation that had its own
+tool is now a mode of one of the twelve, chosen by an argument. The operations themselves are the
+ones 1.4.0 ran.
+
+The reason is a month of real calls. Of 4,406, 96% went to `web_fetch` (2,821), `web_search` (832)
+and `web_fetch_many` (571), and 13 of the 31 tools were never called. A client that loads every
+definition paid for all of them on every turn.
+
+The twelve tools, and where each 1.x tool went:
+
+| 2.0 tool | replaces (1.x tool → how it is called now) |
+|---|---|
+| `web_fetch` | `web_fetch`; `web_fetch_many` → `web_fetch` with `urls`; `web_probe` → `web_fetch` with `urls` (or `url`) and `probe=true` |
+| `web_search` | `web_search`; `web_site_search` → `web_search` with `site` (was `url`) |
+| `web_crawl` | `web_crawl`; `web_map` → `web_crawl` with `map=true` |
+| `web_view` | `web_snapshot` → `web_view`; `web_screenshot` → `web_view` with `image=true` |
+| `browser` | `web_act` → `browser` with `url` + `actions`; `browser_open` → `open=true`; `browser_do` → `session_id` (+ `url`/`actions`); `browser_close` → `session_id` + `close=true` |
+| `web_watch` | `web_watch`; `web_diff` → `web_watch` with `action=diff` |
+| `web_status` | `web_status`; `web_log` → `web_status` with `log=summary` or `log=recent` (was `view`) |
+| `web_setup` | `web_login` → `do=login`; `web_route` → `do=route`; `web_profile` → `do=profile`; `browser_setup` → `do=browser` |
+| `captcha` | `solve_and_continue` → `captcha` with `url`; `solve_turnstile`/`solve_recaptcha_v2`/`solve_hcaptcha` → `kind` + `sitekey` + `page_url` (was `pageUrl`); `solve_image_captcha` → `image`; `captcha_status` → `task_id` (was `taskId`); `report_captcha` → `task_id` + `good` |
+| unchanged | `web_capture`, `web_video`, `web_notes` |
+
+Compatibility:
+
+- **The 1.x names still answer.** `tools/list` no longer returns them, but a call to one by name,
+  with its 1.x arguments, runs as it did.
+- **The CLI and the REST API are unchanged.** The commands (`svipall fetch`, `svipall map`, …) and
+  the routes (`/v1/fetch_many`, `/v1/snapshot`, …) stay one per operation.
+
+New behaviour:
+
+- **`web_fetch` with `urls` takes every per-page argument.** `css_selector`, `profile`, `headers`,
+  `include_links` and the rest of a single fetch's arguments apply to each page. `web_fetch_many`
+  took only nine of them.
+- **`browser` with `open=true` may do the first step.** It accepts the first `url` and `actions`
+  in the same call and returns the `session_id` together with that step's result.
+- **An argument a mode has no use for refuses the call.** `find` with `image=true` on `web_view`
+  is one such call: the refusal names what that mode takes, and nothing is run.
+- **Notes and errors name the 2.0 calls**: `captcha(url)`, `web_setup(do=login, url)`,
+  `web_setup do=route`, `web_view`.
+
+Measured:
+
+- **The tool list is half the size.** The definitions `tools/list` sends were 41,670 characters in
+  1.4.0 (31 tools) and are 20,649 in 2.0 (12 tools), 50.4% less. By the repository's own budget
+  sum (name, description and input schema) that is 38,547 against 19,441. The server instructions
+  went from 1,775 characters to 1,400.
+- **A client with deferred loading pays per tool used.** Claude Code is one, and there a session
+  that fetched one page, fetched several and searched loaded three definitions (9,088 characters)
+  and now loads two (5,166).
+- **Routing was checked blind: 79 of 80 on the 2.0 list.** Two models (Haiku and Sonnet) were
+  each given only the tool list and 40 tasks covering every operation, once with the 1.4.0 list
+  and once with the 2.0 list. With the 1.4.0 list both scored 40/40, and with the 2.0 list Haiku
+  scored 40/40 and Sonnet 39/40. The miss was `browser` called with `open=true` and a `url`,
+  which was refused at the time of the run and is the second item under "New behaviour" now.
+- **Did not change:** the response envelopes. Fields such as `attempts`, `optimization` and
+  `tokens_estimated` are as in 1.4.0.
+
+Fixed:
+
+- **The CLI no longer overflows its stack in an unoptimised build.** `svipall` ran its command on
+  the main thread, whose stack is 1 MB on Windows, and an unoptimised build overflowed it on
+  `svipall fetch https://example.com/`. The command now runs on a thread with its own stack.
+  Release builds were not seen to overflow.
+
 ## 1.4.0 — 2026-11-11
 
 Most of this release comes from reading 2,361 real tool calls made on 1.3.1 between 10 October and

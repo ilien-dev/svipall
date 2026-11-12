@@ -98,7 +98,7 @@ partial file is fine. The default state directory contains:
 | `models/` | Models you installed, which win over the embedded ones |
 | `browser/` | Chrome for Testing, provisioned automatically when absent or installed explicitly |
 | `in/`, `out/` | Where `file://` reads from and a relative `out_file` lands |
-| `screenshots/` | What `web_screenshot` wrote |
+| `screenshots/` | What `web_view` with `image=true` wrote |
 
 <details>
 <summary><b>Common <code>config.toml</code> settings</b></summary>
@@ -141,7 +141,7 @@ reputation_half_life_hours = 6   # how long until half of what was spent stops c
 dns_over_https = ""          # e.g. https://dns.example/dns-query; empty = off; not a network-wide DNS policy
 
 # Crawling and output
-parallelism = 4              # web_fetch_many / web_crawl; tightened further by machine load
+parallelism = 4              # web_fetch with urls / web_crawl; tightened further by machine load
 max_tokens_per_fetch = 25000
 max_tokens_total = 60000     # cap across a whole crawl
 overlap_blocks = 1           # blocks of the previous page a `cursor` continuation repeats; 0 = none

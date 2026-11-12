@@ -168,6 +168,11 @@ pub struct WebFetchManyParams {
     /// Write the whole set to this .json/.jsonl file; return a summary.
     #[serde(default)]
     pub out_file: Option<String>,
+    // What `web_fetch` with `urls` asked of every page (`surface::translate`): any argument a
+    // single fetch takes. Not in the schema, because nobody calls this operation with it by hand.
+    #[serde(default)]
+    #[schemars(skip)]
+    pub each: Option<Box<WebFetchParams>>,
 }
 
 #[derive(Debug, Default, Deserialize, JsonSchema)]
@@ -402,7 +407,7 @@ pub struct WebSearchParams {
     pub region: Option<String>,
 }
 
-#[derive(Debug, Deserialize, JsonSchema)]
+#[derive(Debug, Default, Deserialize, JsonSchema)]
 pub struct BrowserOpenParams {
     /// Profile saved by web_login whose cookies to reuse. Default: a fresh profile.
     #[serde(default)]
@@ -413,6 +418,22 @@ pub struct BrowserOpenParams {
     /// Show the browser window. Default false (offscreen).
     #[serde(default)]
     pub visible: Option<bool>,
+    /// Navigate here as soon as the session is open: the first browser_do, in the same call.
+    #[serde(default)]
+    pub url: Option<String>,
+    /// Steps to run once it is open, as in browser_do.
+    #[serde(default)]
+    #[schemars(with = "Option<Vec<Action>>")]
+    pub actions: Option<Vec<serde_json::Value>>,
+    /// markdown (default), text, or html for the page returned.
+    #[serde(default)]
+    pub extraction: Option<String>,
+    /// Keep only the blocks relevant to these words.
+    #[serde(default)]
+    pub query: Option<String>,
+    /// Timeout in ms for that first step. Default 90000.
+    #[serde(default)]
+    pub timeout: Option<u64>,
 }
 
 #[derive(Debug, Deserialize, JsonSchema)]

@@ -141,13 +141,13 @@ async fn the_note_on_a_captcha_names_the_tool_that_returns_the_page() {
 
     let note = wall["note"].as_str().unwrap_or_default();
     assert!(
-        note.contains("solve_and_continue"),
+        note.contains("captcha(url)"),
         "the note never names the tool that ends the problem: {note:?}"
     );
-    let token_tool = note.find("solve_turnstile");
+    let token_tool = note.find("kind=turnstile");
     if let Some(at) = token_tool {
         assert!(
-            note.find("solve_and_continue").expect("checked above") < at,
+            note.find("captcha(url)").expect("checked above") < at,
             "the token tool is offered before the one that returns the page: {note:?}"
         );
         assert!(
@@ -280,7 +280,7 @@ fn every_tool_and_parameter_a_note_names_is_a_real_one() {
     messages.push(svipall::steer::remembered_failure(30, 570));
     messages.push(svipall::steer::captcha_next_step(
         "Turnstile",
-        "solve_turnstile",
+        "kind=turnstile",
         "0x4AAA",
     ));
     messages.push(svipall::steer::unknown_task("t"));

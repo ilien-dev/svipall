@@ -106,7 +106,7 @@ async fn a_challenge_page_is_named_as_one_and_a_zero_answer_says_which_engines_w
     assert_eq!(attempt(&out, "brave")["outcome"], "challenge", "{out}");
     assert_eq!(attempt(&out, "news")["outcome"], "empty", "{out}");
     let note = out["note"].as_str().unwrap_or_default();
-    for word in ["ddg", "bing", "brave", "blocked", "empty", "web_route"] {
+    for word in ["ddg", "bing", "brave", "blocked", "empty", "do=route"] {
         assert!(note.contains(word), "note lacks {word:?}: {out}");
     }
 }

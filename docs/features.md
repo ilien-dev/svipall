@@ -23,11 +23,11 @@ Lifted out of the README so that file stays readable. Everything here is the sam
   instead of being decoded as text, and `media` says what it was. An image is read for the text in
   it by the same install's text reader. An episode page is read through
   its `<audio>`, `og:audio` or JSON-LD `PodcastEpisode`, and a transcript the publisher wrote is
-  read before any recognition. `web_map` lists a podcast feed's episodes with their `enclosure`
+  read before any recognition. `web_crawl` with `map=true` lists a podcast feed's episodes with their `enclosure`
   and `transcript`.
 - **JSON, text and code as served**: a JSON answer comes back as the JSON, and a source file or
   plain text byte for byte, paged by line. `json_path` (`items[:5].{name, owner.login}`) keeps only
-  the fields asked for, on `web_fetch` and `web_fetch_many`. A non-HTML `2xx` is never read as a wall
+  the fields asked for, on `web_fetch` with one `url` or several `urls`. A non-HTML `2xx` is never read as a wall
   for the words in it and never climbs to a browser. On such a response only 401, 403, 407, 421,
   429, 444 and 503 are walls, 404 and 410 are not found, and any other status is the API's answer.
   `quality` judges it by kind: JSON is `full`, `partial` when cut, `thin` when empty or malformed.
@@ -42,8 +42,8 @@ Lifted out of the README so that file stays readable. Everything here is the sam
   `GITHUB_TOKEN` in `secrets.env` raises it. A rate limit is reported with its reset time and starts
   no cooldown. Code search across GitHub is better served by a `searchGitHub` tool (grep.app) when
   the session has one. Without it Svipall does the whole job.
-- **Existence checks**: `web_probe` returns status, final URL, type and length for a list of URLs,
-  stopping at the headers, and says whether each name resolves. A 404 is an answer.
+- **Existence checks**: `web_fetch` with `urls` and `probe=true` returns status, final URL, type
+  and length for a list of URLs, stopping at the headers, and says whether each name resolves. A 404 is an answer.
 - **Observe JSON responses**: `web_capture` records matching responses during a bounded browser
   capture. Results may reveal an endpoint worth investigating but do not guarantee a public,
   reusable or paginated API, and authentication and site restrictions still apply.
@@ -92,11 +92,11 @@ automatic-routing behavior are:
 | `none` | No wall was detected | return the response; check content separately |
 | `cloudflare` · `generic` · `hold` | A challenge still standing at this tier | climb, answer it on the page, or route the domain elsewhere |
 | `vendor` | A detected fingerprinting wall; `wall_vendor` and `wall_evidence` identify a recognized sign | prefer permitted headful emulation; fallback depends on the remaining plan and budgets |
-| `empty` | Rendered no text at all | climb; or `web_act` with a wait, or a `css_selector` for the region you need |
+| `empty` | Rendered no text at all | climb; or `browser` with a wait action, or a `css_selector` for the region you need |
 | `status` | A recognized HTTP refusal status | obey reported backoff; status and policy determine whether further attempts are allowed |
-| `origin` | The challenge was passed and the site's own server then refused (`challenge_passed` is set) | **stops the ladder**: there is nothing to solve, so `web_route` to another exit, or `web_login` if the site serves members only |
-| `gate` | A **geo or consent** gate instead of the page — not a captcha | **stops the ladder**, because no tier dismisses a cookie banner: `web_act` to click through, or `web_route` to change country |
-| `login` | A detected sign-in wall | stop escalation; use `web_login` for an authorized manual sign-in if appropriate |
+| `origin` | The challenge was passed and the site's own server then refused (`challenge_passed` is set) | **stops the ladder**: there is nothing to solve, so `web_setup do=route` to another exit, or `web_setup do=login` if the site serves members only |
+| `gate` | A **geo or consent** gate instead of the page — not a captcha | **stops the ladder**, because no tier dismisses a cookie banner: `browser` to click through, or `web_setup do=route` to change country |
+| `login` | A detected sign-in wall | stop escalation; use `web_setup do=login` for an authorized manual sign-in if appropriate |
 | `paywall` | Detected subscription or restricted content | stop escalation; an entitled session may be required, and a proxy does not grant access |
 | `notfound` · `softnotfound` | A real 404, or **a `200` whose body says the page is not there** | both stop the ladder; no tier fixes either, and the second is the one that would otherwise reach a model as content |
 | `timeout` | No tier answered inside the budget. Not a wall at all, and it is not dressed up as one | raise `timeout`, or lower `max_tier` |
@@ -131,7 +131,7 @@ proofs; early errors and other tool response types may omit them:
   this machine first saw the site. Presence or absence of these signals does not establish credibility.
 - **Near-duplicate awareness**: `near_dup_of` asks the cache whether it has seen this page before,
   under any other name.
-- **Corroboration on `web_fetch_many`**: the result says how many *distinct* documents it actually
+- **Corroboration on `web_fetch` with `urls`**: the result says how many *distinct* documents it actually
   holds and marks each duplicate with `same_text_as`. Results stay in the order the URLs were given.
   These are text-similarity observations:
   distinct-document counts do not establish independent authorship, factual agreement or an
@@ -180,13 +180,13 @@ a spent session is retired rather than changing its face on every request.*
   on one, the profile is retired (the browser holding it closed first) and the next visit arrives as
   a fresh tool-managed profile. The same exit or other characteristics can still link visits.
   `isolated=true` makes a profile that exists only for one fetch.
-- **Pools of exits, used properly**: `web_route` takes several proxies per domain, each with its
+- **Pools of exits, used properly**: `web_setup` with `do=route` takes several proxies per domain, each with its
   declared country; the domain keeps one (`sticky`) until it blocks it twice, then moves on, and a
   retired exit **heals with time**. Pacing, strikes and latency are keyed by
   `(domain, exit)`, so a pool actually buys throughput instead of ten exits sharing one gap.
   Supported browser proxy authentication uses CDP rather than credentials in command-line
   arguments. Declared locale/timezone and optional DNS-over-HTTPS configure supported browser
-  paths but are not a network-wide leak guarantee. `web_route check` flags a `socks5://`
+  paths but are not a network-wide leak guarantee. `web_setup do=route check=true` flags a `socks5://`
   configuration that would resolve names locally. HTTP/3 is not used through proxies.
 - **Reputation, spent like a budget**: what each address has spent with each host, decaying with a
   half-life, to reduce repeated attempts. This cannot prevent a site from blocking that address.
@@ -196,9 +196,10 @@ a spent session is retired rather than changing its face on every request.*
 
 ### Acting
 
-- **Real browser interaction**: `web_snapshot` returns the page as roles, accessible names and short
-  refs instead of markup. `web_act` clicks, types, fills, scrolls and waits on those refs.
-  `browser_open` / `browser_do` keep a session alive across calls. Deterministic, with no vision model.
+- **Real browser interaction**: `web_view` returns the page as roles, accessible names and short
+  refs instead of markup. `browser` clicks, types, fills, scrolls and waits on those refs.
+  With `open=true` it starts a session, and its `session_id` keeps that session alive across
+  calls. Deterministic, with no vision model.
 - **Search without an API key**: DuckDuckGo, Bing and Brave scraped directly, optionally merged by
   agreement, with `lang` and `region`. Each engine's answer is classified (results, empty,
   challenge, blocked, unparsed, error, skipped), a failing engine rests for a while and is
@@ -206,7 +207,7 @@ a spent session is retired rather than changing its face on every request.*
   with the query, or fewer than two with a query of three words or more, is marked `off_topic` and
   ranked last. An engine that answered for one word of a long query is named in its attempt. An
   empty answer carries a `note` naming the blocked engines and what to try.
-- **A site's own search box**: `web_site_search` tries the site's OpenSearch description, then its
+- **A site's own search box**: `web_search` with `site` tries the site's OpenSearch description, then its
   search box (also one behind an icon or in a shadow root), then known platform endpoints, and can
   learn a reusable query-URL pattern. When nothing is found, `tried` lists every attempt, and the fetch
   may still require browser rendering.
@@ -237,8 +238,8 @@ a spent session is retired rather than changing its face on every request.*
 ### Remembering, and staying safe
 
 - **Memory across sessions**: `web_notes` key-value store, `web_watch` change monitoring (whole page
-  or one CSS region), `web_diff`, and a queryable request log that says which tier answered and which
-  wall appeared.
+  or one CSS region) with `action=diff` for a single comparison, and a queryable request log
+  (`web_status` with `log`) that says which tier answered and which wall appeared.
 - **Secret references in action arguments**: values from `~/.svipall/secrets.env` are substituted
   locally when supported actions execute. This avoids putting values in the original tool call
   but does not redact a site that echoes them in content, screenshots or other returned data.

@@ -68,10 +68,10 @@ to do. Read it rather than retrying: a blind retry on a wall is how a domain ear
 arrived too — it says who is watching, not that anything was withheld. Walls are recognised in
 Spanish, Portuguese, French and German too.
 
-- The note names a captcha widget → the MCP server's `solve_and_continue` solves it in place, or a
+- The note names a captcha widget → the MCP server's `captcha` with `url` solves it in place, or a
   person finishes it at the dashboard (`svipall status` prints the URL, and it works from a phone).
 - `wall_kind: "origin"` → the challenge was passed and the site's own server then refused. There is
-  nothing to solve: do not call `solve_and_continue`; route the domain through another exit.
+  nothing to solve: do not call `captcha`; route the domain through another exit.
 - A fingerprinting wall that never yields → route the domain through a proxy:
   `svipall route add shop.example --proxy socks5://… --country DE`, or a pool it moves through as
   exits get blocked: `--proxies A,B,C --countries DE,DE,NL`. Subdomains inherit.
@@ -81,10 +81,10 @@ Spanish, Portuguese, French and German too.
   with that host. Route through a proxy, wait, or `web_status(clear_budget="shop.example")`.
 - `blocked_reason: "exit_down"` → the proxy did not answer and the site was never asked. With a
   pool, fetch once more and it leaves through another exit.
-- A login wall → `web_login` once, by hand, and the profile keeps the cookies.
+- A login wall → `web_setup do=login` once, by hand, and the profile keeps the cookies.
 
 This machine's own address, once a wall page has printed it, comes back as `[own IP]` in every
-tool's page text, in text written to `out_file`/`out_dir` and in `web_log` (`own_ip_masked` counts
+tool's page text, in text written to `out_file`/`out_dir` and in the log (`own_ip_masked` counts
 them). A binary download is written as served. The address is never looked up.
 
 ## Reading a page cheaply
@@ -164,7 +164,7 @@ naming what was blocked, empty or skipped and what to try: other or fewer words,
 `lang`/`region`, `engine=news`, an engine that was not blocked. Do not repeat the same query.
 
 `map` reads robots.txt, sitemaps, `llms.txt`, feeds and homepage links; `sources_used` lists only
-those that produced URLs. `web_site_search` tries OpenSearch, then the search box (also behind an
+those that produced URLs. `web_search` with `site` tries OpenSearch, then the search box (also behind an
 icon or in a shadow root), then known platform endpoints; `found: false` names everything `tried`.
 
 ## Remembering across runs
@@ -185,40 +185,49 @@ A domain half blocked and slow in the log summary is a domain whose learned tier
 
 ## The same operations, as MCP tools
 
+Twelve tools; a mode of a tool is an argument, not another tool.
+
 | You want | Call |
 |---|---|
 | One page, document, JSON answer or file | `web_fetch` — `query=` for one fact, `json_path` for JSON fields, `out_file` for a file |
 | A table or a listing as rows | `web_fetch` with `tables=true`, or `schema="auto"` |
-| Several known pages | `web_fetch_many` — 8000 tokens in all by default (`max_tokens_total`), input order; a cut page has a `cursor` for `web_fetch`; `out_dir` writes each whole |
-| Whether URLs exist | `web_probe` |
-| A site's URLs, before deciding what to fetch | `web_map` — a few hundred tokens |
+| Several known pages | `web_fetch` with `urls` — 8000 tokens in all by default (`max_tokens_total`), input order, every other argument applied to each page; a cut page has a `cursor` to pass with its `url`; `out_dir` writes each whole |
+| Whether URLs exist | `web_fetch` with `urls` and `probe=true` |
+| A site's URLs, before deciding what to fetch | `web_crawl` with `map=true` — a few hundred tokens |
 | A whole site, or many pages of one | `web_crawl` (`out_file` for anything large) |
 | To search the web | `web_search` (no API key) |
-| A site's own search box | `web_site_search` |
+| A site's own search box | `web_search` with `site` |
 | The API behind a listing | `web_capture` — `page=2` beats following links |
-| Something to click, type or scroll | `web_snapshot`, then `web_act` with `ref` (one shot), or `browser_open` → `browser_do` … → `browser_close` when cookies must stay alive |
+| Something to click, type or scroll | `web_view` for refs, then `browser` with `url` + `actions` (one shot), or `open=true` → `session_id` … → `close=true` when cookies must stay alive |
 | What a video says | `web_video`; `frames=8` for keyframes |
-| A picture of a page | `web_screenshot` (`mobile` for a phone) |
-| A login or a gate passed by hand, once | `web_login` — the cookies are kept |
-| A domain through a proxy | `web_route` |
-| What changed since last time | `web_diff` once, `web_watch` on a schedule |
+| A picture of a page | `web_view` with `image=true` (`mobile` for a phone) |
+| A login or a gate passed by hand, once | `web_setup do=login` — the cookies are kept |
+| A domain through a proxy | `web_setup do=route` |
+| A saved login moved to another machine | `web_setup do=profile` |
+| The managed browser | `web_setup do=browser` |
+| What changed since last time | `web_watch action=diff` once, `action=add` on a schedule |
 | Something remembered across sessions | `web_notes` |
-| Why a domain is slow or blocked | `web_log view=summary` |
+| Why a domain is slow or blocked | `web_status log=summary` |
 | Current state, and resets | `web_status` (`sections` for more) |
 
-`web_act` and `browser_do` take `click, type, fill, press, hover, select, scroll, wait, eval, goto,
-verify, console, screenshot, hold`; an unknown verb is refused before a browser starts. When the
-page cannot be read after the actions, `browser_do` keeps their results and says why in
+`browser` actions are `click, type, fill, press, hover, select, scroll, wait, eval, goto, verify,
+console, screenshot, hold`; an unknown verb is refused before a browser starts. When the page
+cannot be read after the actions, a session call keeps their results and says why in
 `content_error`. A profile another process holds says so.
 
-A captcha named in `blocked_reason` goes to `solve_and_continue`; the `solve_*` tools return a bare
-token bound to the session that produced it, for a form you post yourself. **Human verification
-that needs a person: stop and say so.** Do not loop.
+A captcha named in `blocked_reason` goes to `captcha` with `url`, which solves it on the page and
+returns the page. `kind` + `sitekey` + `page_url` returns a bare token bound to the session that
+produced it, for a form you post yourself; `task_id` polls it, and `good` reports whether the site
+took it. **Human verification that needs a person: stop and say so.** Do not loop.
+
+An argument a mode has no use for (`find` with `image=true`) refuses the call and names what that
+mode takes. The 1.x tool names (`web_fetch_many`, `web_snapshot`, `solve_and_continue`…) are no
+longer listed but still answer, so an older client keeps working.
 
 ## From another language
 
 ```bash
-svipall serve --port 8788     # one endpoint per tool; the bearer key is printed once
+svipall serve --port 8788     # one endpoint per operation; the bearer key is printed once
 curl -sH "Authorization: Bearer $KEY" -H 'content-type: application/json' \
      -d '{"url":"https://example.com","query":"pricing"}' localhost:8788/v1/fetch
 ```
@@ -231,7 +240,7 @@ Same objects as the CLI; `GET /v1/status?sections=holds` reads the status. A blo
 Every delivered page carries `quality`: `full`, `partial` (cut off) or `thin` (a husk), with
 `quality_reasons`. JSON is judged as JSON (`partial` truncated, `thin` empty or malformed); text
 and code are `full` unless empty. `wall_kind: paywall` and `softnotfound` are not content, and no
-tier fixes either. `web_fetch_many` adds `corroboration`: how many results are different documents.
+tier fixes either. A fetch of several `urls` adds `corroboration`: how many results are different documents.
 
 A link to the page's own site is a path (`/wiki/Web_crawler`), joined to that response's `url`;
 `include_links` returns every link absolute. `final_url` appears only when a redirect moved the page.

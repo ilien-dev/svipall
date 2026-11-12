@@ -1340,7 +1340,7 @@ fn note(
         }
         s.push_str(
             " Try: other or fewer words; lang/region; engine=news for recent events; a named \
-             engine that was not blocked; web_route a proxy for a blocked engine's host; or \
+             engine that was not blocked; web_setup do=route a proxy for a blocked engine's host; or \
              web_fetch the engine's result page, which climbs to a browser.",
         );
         return Some(s);

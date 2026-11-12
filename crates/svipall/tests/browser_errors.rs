@@ -106,6 +106,7 @@ async fn a_profile_another_process_holds_says_so_and_what_to_do() {
             profile: Some("held-elsewhere".into()),
             proxy: None,
             visible: None,
+            ..Default::default()
         })
         .await;
     let e = out["error"].as_str().unwrap_or_default();
@@ -182,6 +183,7 @@ async fn browser_do_keeps_its_action_results_when_the_page_read_fails() {
             profile: None,
             proxy: None,
             visible: None,
+            ..Default::default()
         })
         .await;
     let id = open["session_id"].as_str().expect("a session").to_string();

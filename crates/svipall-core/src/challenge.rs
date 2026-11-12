@@ -26,11 +26,11 @@ impl ChallengeKind {
     /// The `solve_*` tool that handles this widget.
     pub fn tool(self) -> &'static str {
         match self {
-            ChallengeKind::Turnstile => "solve_turnstile",
-            ChallengeKind::RecaptchaV2 | ChallengeKind::RecaptchaV3 => "solve_recaptcha_v2",
-            ChallengeKind::HCaptcha => "solve_hcaptcha",
+            ChallengeKind::Turnstile => "kind=turnstile",
+            ChallengeKind::RecaptchaV2 | ChallengeKind::RecaptchaV3 => "kind=recaptcha_v2",
+            ChallengeKind::HCaptcha => "kind=hcaptcha",
             // Nothing to hand off: the ladder solves it in place.
-            ChallengeKind::ProofOfWork => "solve_and_continue",
+            ChallengeKind::ProofOfWork => "url",
         }
     }
 
@@ -422,7 +422,7 @@ mod tests {
         assert_eq!(c.sitekey, "0x4AAAAAAADnPIDROrmt1Wwj");
         assert_eq!(c.action.as_deref(), Some("login"));
         assert_eq!(c.cdata.as_deref(), Some("session-123"));
-        assert_eq!(c.kind.tool(), "solve_turnstile");
+        assert_eq!(c.kind.tool(), "kind=turnstile");
     }
 
     #[test]
@@ -431,7 +431,7 @@ mod tests {
         let c = detect(html).expect("challenge");
         assert_eq!(c.kind, ChallengeKind::RecaptchaV2);
         assert_eq!(c.sitekey, "6LeIxAcTAAAAAJcZVRqyHh71UMIEGNQ_MXjiZKhI");
-        assert_eq!(c.kind.tool(), "solve_recaptcha_v2");
+        assert_eq!(c.kind.tool(), "kind=recaptcha_v2");
     }
 
     #[test]
@@ -440,7 +440,7 @@ mod tests {
             r#"<div class="h-captcha" data-sitekey="10000000-ffff-ffff-ffff-000000000001"></div>"#;
         let c = detect(html).expect("challenge");
         assert_eq!(c.kind, ChallengeKind::HCaptcha);
-        assert_eq!(c.kind.tool(), "solve_hcaptcha");
+        assert_eq!(c.kind.tool(), "kind=hcaptcha");
     }
 
     #[test]

@@ -376,7 +376,7 @@ cannot isolate all server-side signals or prove that an address change is necess
 | **crunchbase.com** | Passed at six seconds early in the day; refuses the same code, on a fresh profile wearing a different machine, after fifteen visits within the hour | The outcome changed with time and accumulated visits. That suggests history matters, but the run did not isolate its cause from other server or browser conditions |
 | **indeed.com** | Not a fixed answer at all: 0 of 3 on `hard12` (2026-09-04), 2 of 3 on `public31` the next day, and 1 of 3 in an earlier round | Same shape as crunchbase. `indeed`, `crunchbase` and `zillow` have swapped places across four measurement rounds: this is the noise band of a list run from one address, not a code change, which is why it is listed here rather than counted as a pass |
 
-> `web_route` can test an alternate exit supplied by the operator, without guaranteeing acceptance.
+> `web_setup` with `do=route` can test an alternate exit supplied by the operator, without guaranteeing acceptance.
 > Svipall does not bundle proxies or remote solving services. The local comparison uses neither.
 >
 > `evasion --exit URL` runs the same targets through an exit you supply and can help assess exit
