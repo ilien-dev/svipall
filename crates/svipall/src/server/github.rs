@@ -79,7 +79,7 @@ fn direct_api(p: &WebFetchParams, want_links: bool, o: &Origins) -> bool {
 
 /// Why the API did not answer.
 enum Failure {
-    RateLimited(Option<RateLimit>, u16),
+    RateLimited(Option<RateLimit>, u16, gh::Refusal),
     Status(u16),
     Network(String),
 }
@@ -93,25 +93,26 @@ struct Fallback {
 impl Fallback {
     fn from(f: Failure, source: &str, authenticated: bool) -> Self {
         match f {
-            Failure::RateLimited(rate, status) => {
-                let until = rate.as_ref().map(RateLimit::reset_at);
-                let mut detail = json!({"status": status});
+            Failure::RateLimited(rate, status, refusal) => {
+                let mut detail = json!({
+                    "status": status,
+                    "rate_limited_until": gh::rfc3339(refusal.until),
+                });
+                if refusal.secondary {
+                    detail["secondary"] = json!(true);
+                }
                 if let Some(r) = &rate {
-                    detail["rate_limited_until"] = json!(r.reset_at());
                     detail["remaining"] = json!(r.remaining);
                     detail["limit"] = json!(r.limit);
                     if let Some(res) = &r.resource {
                         detail["resource"] = json!(res);
                     }
                 }
-                let mut note = match until {
-                    Some(t) => format!("The {source} is rate limited until {t}."),
-                    None => format!("The {source} is rate limited."),
-                };
+                let mut note = limited_note(source, &refusal);
                 note.push_str(
                     " This is the HTML page instead, which is not a wall and started no cooldown.",
                 );
-                if !authenticated {
+                if !authenticated && !refusal.secondary {
                     note.push_str(&token_hint(rate.as_ref()));
                 }
                 Self { detail, note }
@@ -161,6 +162,25 @@ fn api_token(api_origin: &str) -> Option<String> {
     crate::secrets::load()
         .remove(gh::TOKEN_SECRET)
         .filter(|t| !t.trim().is_empty())
+}
+
+/// The first sentence of a note about a quota refusal.
+fn limited_note(source: &str, r: &gh::Refusal) -> String {
+    let until = gh::rfc3339(r.until);
+    if r.secondary {
+        format!(
+            "The {source} is rate limited until {until} by a secondary limit (too many requests              too quickly), which a token does not lift."
+        )
+    } else {
+        format!("The {source} is rate limited until {until}.")
+    }
+}
+
+fn unix_now() -> i64 {
+    std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map(|d| d.as_secs() as i64)
+        .unwrap_or(0)
 }
 
 /// What the note adds when there was no token.
@@ -239,8 +259,10 @@ impl Api {
             .exchange(path, &[("accept".into(), accept.into())])
             .await?;
         let rate = RateLimit::from_headers(&r.headers);
-        if gh::is_rate_limited(r.status, rate.as_ref(), &String::from_utf8_lossy(&r.body)) {
-            return Err(Failure::RateLimited(rate, r.status));
+        let body = String::from_utf8_lossy(&r.body);
+        if gh::is_rate_limited(r.status, rate.as_ref(), &body) {
+            let refusal = gh::refusal(&r.headers, rate.as_ref(), &body, unix_now());
+            return Err(Failure::RateLimited(rate, r.status, refusal));
         }
         if !(200..300).contains(&r.status) {
             return Err(Failure::Status(r.status));
@@ -474,15 +496,11 @@ impl SvipallServer {
             value["rate_limit"] = rl;
         }
         if gh::is_rate_limited(r.status, rate.as_ref(), &body) {
-            let mut note = match &rate {
-                Some(rl) => {
-                    value["rate_limited_until"] = json!(rl.reset_at());
-                    format!("The API is rate limited until {}.", rl.reset_at())
-                }
-                None => "The API is rate limited.".into(),
-            };
+            let refusal = gh::refusal(&r.headers, rate.as_ref(), &body, unix_now());
+            value["rate_limited_until"] = json!(gh::rfc3339(refusal.until));
+            let mut note = limited_note("API", &refusal);
             note.push_str(" This is its own answer, not a wall; no cooldown was started.");
-            if !authenticated {
+            if !authenticated && !refusal.secondary {
                 note.push_str(&token_hint(rate.as_ref()));
             }
             value["note"] = json!(note);

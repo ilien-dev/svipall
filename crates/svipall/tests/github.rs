@@ -327,6 +327,77 @@ async fn a_direct_api_quota_refusal_is_not_a_wall() {
     assert!(svipall_core::check_cooldown("127.0.0.1").is_none());
 }
 
+/// `rate_limited_until` as Unix seconds, and whether it falls `secs` from now (give or take).
+fn until_in(v: &Value, secs: i64) -> bool {
+    let Some(s) = v.as_str() else { return false };
+    let now = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .unwrap()
+        .as_secs() as i64;
+    (now + secs - 15..=now + secs + 15)
+        .any(|t| svipall_core::github::rfc3339(t) == s)
+}
+
+/// A secondary limit is a 429 with `Retry-After` while the hourly quota still has requests left:
+/// the time to come back is the `Retry-After`, not the quota's reset an hour away.
+#[tokio::test]
+async fn a_secondary_limit_on_a_mapped_url_reads_the_page_and_says_when_to_come_back() {
+    let r = replay();
+    let v = fetch(json!({"url": r.url("/secondary/repo/issues/9"), "max_tier": "http"})).await;
+    assert_eq!(v["via"], "page", "{v}");
+    assert!(
+        content(&v).contains("Issue seven, read from its page"),
+        "{v}"
+    );
+    assert!(v.get("blocked_reason").is_none(), "{v}");
+    let api = &v["github_api"];
+    assert_eq!(api["status"], 429, "{v}");
+    assert!(until_in(&api["rate_limited_until"], 60), "{v}");
+    let note = v["note"].as_str().unwrap_or_default();
+    assert!(note.contains("secondary"), "{v}");
+    assert!(note.contains("started no cooldown"), "{v}");
+    assert!(svipall_core::check_cooldown("127.0.0.1").is_none());
+}
+
+#[tokio::test]
+async fn a_secondary_limit_on_a_direct_api_url_is_not_a_wall_and_holds_nothing() {
+    let r = replay();
+    let s = server();
+    let v = s
+        .fetch_json(
+            serde_json::from_value(json!({"url": r.api_url("/repos/secondary/repo/issues/9")}))
+                .unwrap(),
+        )
+        .await
+        .value;
+    assert_eq!(v["via"], "github-api", "{v}");
+    assert_eq!(v["status"], 429, "{v}");
+    assert!(until_in(&v["rate_limited_until"], 60), "{v}");
+    assert!(v.get("blocked_reason").is_none(), "{v}");
+    assert!(v.get("wall_kind").is_none(), "{v}");
+    let note = v["note"].as_str().unwrap_or_default();
+    assert!(note.contains("secondary"), "{v}");
+    assert!(note.contains("no cooldown"), "{v}");
+    assert!(
+        content(&v).contains("secondary rate limit"),
+        "the API's own words: {v}"
+    );
+    assert_eq!(v["attempts"].as_array().map(Vec::len), Some(1), "{v}");
+    assert!(svipall_core::check_cooldown("127.0.0.1").is_none());
+    // The `Retry-After` is the API's to enforce; nothing here sat out a minute for it.
+    let started = std::time::Instant::now();
+    let next = s
+        .fetch_json(
+            serde_json::from_value(json!({"url": r.api_url("/repos/dtolnay/anyhow/issues/323")}))
+                .unwrap(),
+        )
+        .await
+        .value;
+    assert_eq!(next["status"], 200, "{next}");
+    assert!(next.get("waited").is_none(), "{next}");
+    assert!(started.elapsed() < std::time::Duration::from_secs(10));
+}
+
 // ---- the parameters of an ordinary fetch, on each of the three shapes --------------------------
 
 #[tokio::test]
