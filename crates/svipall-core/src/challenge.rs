@@ -291,12 +291,20 @@ pub fn detect_all(html: &str) -> Vec<Detected> {
             continue;
         }
         let sitekey = w.key_attrs.iter().find_map(|a| {
-            let at = low.find(a)?;
-            // Back up to the start of the tag the attribute sits on. `attr_after` reads within a
-            // single tag, so starting part-way through the previous one stops at that tag's `>`
-            // before ever reaching the attribute it was asked for.
-            let start = html[..at].rfind('<').unwrap_or(at);
-            attr_after(html, start, a)
+            // Every place the name appears, not the first: an attribute called `challenge` shares
+            // its name with a word any wall prints, and the first hit is the prose.
+            low.match_indices(a).find_map(|(at, _)| {
+                // An attribute follows whitespace, or `data-challenge` would be read as
+                // `challenge`.
+                if !low[..at].ends_with(|c: char| c.is_whitespace()) {
+                    return None;
+                }
+                // Back up to the start of the tag the attribute sits on. `attr_after` reads
+                // within a single tag, so starting part-way through the previous one stops at
+                // that tag's `>` before ever reaching the attribute it was asked for.
+                let start = html[..at].rfind('<').unwrap_or(at);
+                attr_after(html, start, a)
+            })
         });
         out.push(Detected {
             widget: w.id,

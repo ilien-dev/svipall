@@ -44,6 +44,12 @@ pub struct SolveEngine {
     pub(crate) human_wait: Duration,
     /// Keep what challenges showed and how they were answered, for `export-corpus`.
     corpus: bool,
+    /// Pages whose widget has had its box ticked. Once per page for as long as this engine
+    /// lives: the warm tier asks again every few seconds, and a second tick is hammering.
+    ticked: std::sync::Mutex<std::collections::HashSet<String>>,
+    /// Pages a strategy has acted on in a way that leaves no token to read: a tick, a form sent.
+    /// On those, the widget no longer asking is what an answer looks like.
+    acted: std::sync::Mutex<std::collections::HashSet<String>>,
 }
 
 /// Hidden field each provider writes its response token into.
@@ -101,6 +107,8 @@ impl SolveEngine {
             state: None,
             human_assist,
             corpus: cfg.corpus_keep_days > 0,
+            ticked: Default::default(),
+            acted: Default::default(),
             auto_wait: Duration::from_millis(cfg.warm_wait_ms.max(8_000)),
             human_wait: Duration::from_secs(
                 std::env::var("SVIPALL_HUMAN_WAIT_SECS")
@@ -309,6 +317,210 @@ impl SolveEngine {
     ///
     /// `Ok(false)` means there was nothing of the kind on the page.
     async fn try_pow(&self, page: &Page) -> anyhow::Result<bool> {
+        if let Some(done) = self.try_signed_pow(page).await? {
+            return Ok(done);
+        }
+        self.try_plain_pow(page).await
+    }
+
+    /// Tick the box a widget is waiting on, then wait for the widget to stop asking.
+    ///
+    /// One tick per page. `NotApplicable` covers every reason not to: no box, a box already
+    /// ticked, or a widget that has not yet had the time it needs to finish by itself.
+    async fn try_tick(&self, page: &Page) -> anyhow::Result<Step> {
+        let key = page.target_id().inner().clone();
+        if self.ticked.lock().expect("lock").contains(&key) {
+            return Ok(Step::NotApplicable);
+        }
+        let Some(target) = crate::tick::target(page).await else {
+            return Ok(Step::NotApplicable);
+        };
+        if !target.due {
+            return Ok(Step::NotApplicable);
+        }
+        self.ticked.lock().expect("lock").insert(key.clone());
+        self.acted.lock().expect("lock").insert(key);
+        tracing::info!(widget = target.widget, "ticking the widget's box");
+        let seed = self.pool.identity().noise_seed;
+        let (x, y) = crate::behavior::aim(
+            target.x - target.reach,
+            target.y - target.reach,
+            target.reach * 2.0,
+            target.reach * 2.0,
+            seed,
+        );
+        crate::behavior::Cursor::at_page(page)
+            .click_at(page, x, y, seed)
+            .await?;
+        Ok(
+            match self.until_not_asking(page, Duration::from_secs(25)).await {
+                true => Step::Solved,
+                false => Step::Failed,
+            },
+        )
+    }
+
+    /// Wait for a widget that was just acted on to stop asking. `false` when it still is.
+    ///
+    /// The strategy waits here rather than leaving it to the loop, which looks once, a second
+    /// after the attempt: a widget takes several to verify and reload the page it was guarding.
+    async fn until_not_asking(&self, page: &Page, wait: Duration) -> bool {
+        let deadline = Instant::now() + wait;
+        loop {
+            tokio::time::sleep(Duration::from_millis(700)).await;
+            if self.stopped_asking(page).await {
+                return true;
+            }
+            if Instant::now() >= deadline {
+                return false;
+            }
+        }
+    }
+
+    /// Has a widget that was acted on been satisfied?
+    ///
+    /// An answer in its field is one. Its absence is one only on a page that is no longer a wall:
+    /// an interstitial that refuses the visitor reloads into itself, and for a moment in between
+    /// its widget is gone too. Measured as a tick "clearing" a wall that was still there.
+    async fn stopped_asking(&self, page: &Page) -> bool {
+        match crate::tick::asking(page).await {
+            crate::tick::Asking::Answered => true,
+            crate::tick::Asking::Yes => false,
+            crate::tick::Asking::Gone => !self.walled(page).await,
+        }
+    }
+
+    /// Is the page still a wall? What ends a wait on one that lets the visitor through by itself.
+    pub(crate) async fn walled(&self, page: &Page) -> bool {
+        let Ok((html, _)) = self.pool.content(page).await else {
+            return true;
+        };
+        let parts = svipall_core::parse_page(&html, &svipall_core::ParseWants::text());
+        let view = svipall_core::classify::PageView::new(&html, &parts.text);
+        svipall_core::classify::classify_view(200, &html, &view)
+            .0
+            .is_some()
+    }
+
+    /// The signed challenge, counted here and handed back through the page's own form.
+    ///
+    /// For a page whose widget is not doing the work: its script never arrived, or its box was
+    /// ticked and nothing came of it. `None` means the page carries no challenge of this kind.
+    ///
+    /// The challenge is fetched by the page, so it is issued to the session that will answer it,
+    /// and the payload is built by the page from the text it received, so what the server signed
+    /// goes back byte for byte.
+    async fn try_signed_pow(&self, page: &Page) -> anyhow::Result<Option<bool>> {
+        let spec = svipall_core::widget::spec("altcha.org").expect("a row in the table");
+        let containers = serde_json::to_string(&spec.containers.join(", "))?;
+        // A widget draws its box some time after its element is on the page: measured on a live
+        // one, the element was there at once and the box was not. Counting here before the page
+        // has had that time takes the work from a widget that was about to do it properly.
+        const WIDGET_HAS_HAD_ITS_CHANCE_MS: f64 = 4_000.0;
+        if crate::apart::flag(page, &format!("!!document.querySelector({containers})")).await
+            && crate::tick::document_age_ms(page).await < WIDGET_HAS_HAD_ITS_CHANCE_MS
+        {
+            return Ok(Some(false));
+        }
+        let asked_for = page.url().await.ok().flatten().unwrap_or_default();
+        let read = format!(
+            r#"(async () => {{
+                const el = document.querySelector({containers});
+                if (!el) return null;
+                const at = (n) => el.getAttribute(n) || el.getAttribute('data-' + n) || '';
+                const inline = at('challengejson');
+                const src = at('challengeurl') || at('challenge');
+                if (inline || src.trim().startsWith('{{')) return inline || src;
+                if (!src) return null;
+                const r = await fetch(src, {{credentials: 'same-origin', headers: {{Accept: 'application/json'}}}});
+                return r.ok ? await r.text() : null;
+            }})()"#
+        );
+        let Some(text) = crate::apart::eval(page, &read)
+            .await
+            .ok()
+            .and_then(|v| v.as_str().map(str::to_string))
+        else {
+            return Ok(None);
+        };
+        let Some(challenge) = svipall_core::pow::Signed::parse(&text) else {
+            return Ok(None);
+        };
+
+        // CPU-bound and synchronous: on the reactor it would stall every other fetch in flight.
+        // Dropping this future does not stop a blocking thread, so the flag does.
+        struct Stop(Arc<std::sync::atomic::AtomicBool>);
+        impl Drop for Stop {
+            fn drop(&mut self) {
+                self.0.store(true, std::sync::atomic::Ordering::Relaxed);
+            }
+        }
+        let limits = svipall_core::pow::Limits::within(Duration::from_secs(40));
+        let _stop = Stop(limits.cancel.clone());
+        let started = Instant::now();
+        let Some(counter) = tokio::task::spawn_blocking(move || challenge.solve(&limits)).await?
+        else {
+            return Ok(Some(false));
+        };
+        tracing::info!(
+            iterations = counter.iterations,
+            ms = started.elapsed().as_millis() as u64,
+            "signed proof-of-work challenge answered"
+        );
+
+        let write = format!(
+            r#"(() => {{
+                const ch = JSON.parse({text});
+                const payload = ch.parameters
+                    ? {{challenge: {{parameters: ch.parameters, signature: ch.signature}},
+                        solution: {{counter: {n}, derivedKey: {key}, time: {ms}}}}}
+                    : {{algorithm: ch.algorithm, challenge: ch.challenge, number: {n}, salt: ch.salt,
+                        signature: ch.signature, took: {ms}}};
+                const el = document.querySelector({containers});
+                if (!el) return 'gone';
+                const form = el.closest('form');
+                const name = el.getAttribute('name') || {field};
+                let field = (form || el).querySelector('input[name="' + name + '"]');
+                if (!field) {{
+                    field = document.createElement('input');
+                    field.type = 'hidden';
+                    field.name = name;
+                    (form || el).appendChild(field);
+                }}
+                field.value = btoa(JSON.stringify(payload));
+                if (!form) return 'filled';
+                // The prototype's, because a control named `submit` shadows the form's own.
+                HTMLFormElement.prototype.submit.call(form);
+                return 'submitted ' + form.action;
+            }})()"#,
+            text = serde_json::to_string(&text)?,
+            n = counter.number,
+            key = serde_json::to_string(&counter.derived_key)?,
+            ms = started.elapsed().as_millis() as u64,
+            field = serde_json::to_string(spec.response_field.unwrap_or("altcha"))?,
+        );
+        let how = crate::apart::text(page, &write).await;
+        tracing::info!(outcome = %how, "proof-of-work payload handed to the page");
+        self.acted
+            .lock()
+            .expect("lock")
+            .insert(page.target_id().inner().clone());
+        let Some(action) = how.strip_prefix("submitted ") else {
+            return Ok(Some(how == "filled"));
+        };
+        let through = self.until_not_asking(page, Duration::from_secs(15)).await;
+        // A server that answers the form where it was posted, instead of sending the visitor
+        // back, leaves the browser on its verdict. The page that was asked for is one request
+        // away, with the cookie the verdict came with.
+        let now = page.url().await.ok().flatten().unwrap_or_default();
+        if through && now == action && now != asked_for && !asked_for.is_empty() {
+            let _ = self.pool.navigate(page, &asked_for).await;
+        }
+        Ok(Some(through))
+    }
+
+    /// The unsigned schemes: a salt and a difficulty on the element itself.
+    async fn try_plain_pow(&self, page: &Page) -> anyhow::Result<bool> {
         const READ: &str = r#"(() => {
             const el = document.querySelector(
                 'altcha-widget, .altcha, .frc-captcha, .procaptcha, [data-challenge], [data-salt]');
@@ -320,8 +532,8 @@ impl SolveEngine {
                 field: (el.querySelector('input[type=hidden]') || {}).name || '',
             };
         })()"#;
-        let info = match page.evaluate(READ).await {
-            Ok(v) => v.into_value::<Value>().unwrap_or(Value::Null),
+        let info = match crate::apart::eval(page, READ).await {
+            Ok(v) => v,
             Err(_) => return Ok(false),
         };
         if info.is_null() {
@@ -374,7 +586,7 @@ impl SolveEngine {
             salt = salt,
             digest = solution.digest,
         );
-        let _ = page.evaluate(js.as_str()).await;
+        let _ = crate::apart::eval(page, &js).await;
         Ok(true)
     }
 
@@ -741,14 +953,9 @@ impl SolveEngine {
             _ => {}
         }
         // A widget that fired its own callback has already navigated; one that only filled the
-        // field still needs the form pushed through.
-        if outcome.cleared() {
-            let pushed = page
-                .evaluate(SUBMIT_JS)
-                .await
-                .ok()
-                .and_then(|r| r.value().and_then(Value::as_str).map(str::to_string))
-                .unwrap_or_default();
+        // field still needs the form pushed through. A wall that simply went away has no form.
+        if outcome.cleared() && outcome != Outcome::Passed {
+            let pushed = crate::apart::text(page, SUBMIT_JS).await;
             tracing::info!(outcome = %pushed, "challenge token produced");
             self.pool.settle(page, Duration::from_millis(2500)).await;
         }
@@ -791,19 +998,16 @@ impl SolveEngine {
         let (_pooled, page) = self.pool.page(&opts).await?;
         let result = async {
             self.pool.navigate(&page, page_url).await?;
-            let present: bool = page.evaluate(has_widget_js(&job.job_type)).await.ok().and_then(|r| r.value().and_then(Value::as_bool)).unwrap_or(false);
+            let present = crate::apart::flag(&page, has_widget_js(&job.job_type)).await;
             if !present && visible {
                 tracing::warn!(task_id = %job.task_id, "no matching widget found on page; a human may still solve if it appears");
             }
             let read = read_token_js(field);
             let deadline = Instant::now() + wait;
             loop {
-                if let Ok(r) = page.evaluate(read.as_str()).await {
-                    if let Some(tok) = r.value().and_then(Value::as_str) {
-                        if tok.len() > 20 {
-                            return Ok::<Option<String>, anyhow::Error>(Some(tok.to_string()));
-                        }
-                    }
+                let tok = crate::apart::text(&page, &read).await;
+                if tok.len() > 20 {
+                    return Ok::<Option<String>, anyhow::Error>(Some(tok));
                 }
                 if Instant::now() > deadline {
                     return Ok(None);
@@ -857,13 +1061,7 @@ pub(crate) async fn hold_target(page: &Page) -> Option<String> {
         best.setAttribute("data-svipall-hold", "1");
         return '[data-svipall-hold="1"]';
     })()"#;
-    let sel = page
-        .evaluate(JS)
-        .await
-        .ok()?
-        .value()
-        .and_then(Value::as_str)
-        .map(str::to_string)?;
+    let sel = crate::apart::text(page, JS).await;
     (!sel.is_empty()).then_some(sel)
 }
 
@@ -953,6 +1151,7 @@ pub(crate) async fn shot(page: &Page, x: f64, y: f64, w: f64, h: f64) -> anyhow:
 /// and the probe in step.
 pub(crate) fn strategies<'a>() -> Vec<&'a dyn Strategy<PageSurface<'a>>> {
     vec![
+        &TickBox,
         &ProofOfWork,
         &ImageGrid,
         &ImageSegment,
@@ -1124,43 +1323,48 @@ const PROBE_JS: &str = r#"(() => {
 impl Surface for PageSurface<'_> {
     fn settled(&self) -> BoxFuture<'_, bool> {
         Box::pin(async move {
-            let token = self
-                .page
-                .evaluate(TOKEN_READ_JS)
+            // Asked from the isolated world. The interstitial watches this very field, and the
+            // question put from its own world is what kept it from ever letting anyone through.
+            if !crate::apart::text(self.page, TOKEN_READ_JS)
                 .await
-                .ok()
-                .and_then(|r| r.value().and_then(Value::as_str).map(str::to_string))
-                .is_some_and(|f| !f.is_empty());
-            if token {
+                .is_empty()
+            {
                 return true;
             }
             // A widget that writes no token reloads the page it was guarding instead. Once a
             // slider or a hold has been seen, the absence of its container is the answer.
             let last = *self.last.lock().expect("lock");
             if matches!(last, Some(Modality::Slide | Modality::Hold)) {
-                return self
-                    .page
-                    .evaluate(
-                        "!document.querySelector('iframe[src*=\"captcha-delivery\"], #px-captcha, \
-                         [id*=\"px-captcha\"], [data-svipall-hold]')",
-                    )
-                    .await
-                    .ok()
-                    .and_then(|r| r.value().and_then(Value::as_bool))
-                    .unwrap_or(false);
+                return crate::apart::flag(
+                    self.page,
+                    "!document.querySelector('iframe[src*=\"captcha-delivery\"], #px-captcha, \
+                     [id*=\"px-captcha\"], [data-svipall-hold]')",
+                )
+                .await;
+            }
+            // The same for a box that was ticked or a form that was sent: nothing to read, and
+            // the widget no longer asking is the answer.
+            let acted = self
+                .engine
+                .acted
+                .lock()
+                .expect("lock")
+                .contains(self.page.target_id().inner());
+            if acted {
+                return self.engine.stopped_asking(self.page).await;
             }
             false
         })
     }
 
+    fn through(&self) -> BoxFuture<'_, bool> {
+        Box::pin(async move { !self.engine.walled(self.page).await })
+    }
+
     fn probe(&self) -> BoxFuture<'_, Option<Modality>> {
         Box::pin(async move {
-            let info = self
-                .page
-                .evaluate(PROBE_JS)
+            let info = crate::apart::eval(self.page, PROBE_JS)
                 .await
-                .ok()
-                .and_then(|r| r.value().cloned())
                 .unwrap_or(Value::Null);
             // Name the widget from its own endpoint, which is what the table is keyed on.
             if let Some(srcs) = info.get("srcs").and_then(Value::as_array) {
@@ -1188,9 +1392,21 @@ impl Surface for PageSurface<'_> {
             if grid_context(self.page).await.is_some() {
                 return self.remember(Some(Modality::Tiles));
             }
-            // A token widget with an empty field is not a question anyone can answer: it is a
-            // widget still deciding. Reporting nothing is what keeps the loop waiting for it
-            // rather than spending a budget on it.
+            // A token widget with an empty field is a widget still deciding, and reporting
+            // nothing is what keeps the loop waiting for it. Until it has had the time it needs
+            // and is still showing its box: then it has decided, and what it wants is a tick.
+            if let Some(t) = crate::tick::target(self.page).await {
+                let ticked = self
+                    .engine
+                    .ticked
+                    .lock()
+                    .expect("lock")
+                    .contains(self.page.target_id().inner());
+                if t.due && !ticked && t.modality == Modality::Token {
+                    *self.seen.lock().expect("lock") = Some(t.widget);
+                    return self.remember(Some(Modality::Token));
+                }
+            }
             self.remember(None)
         })
     }
@@ -1214,6 +1430,10 @@ impl Strategy<PageSurface<'_>> for ProofOfWork {
     fn handles(&self, m: Modality) -> bool {
         m == Modality::Nonce
     }
+    // Behind the tick: a widget that is running does its own sum, with its own session.
+    fn cost(&self) -> u32 {
+        2
+    }
     fn run<'a>(&'a self, s: &'a PageSurface<'_>) -> BoxFuture<'a, anyhow::Result<Step>> {
         Box::pin(async move {
             Ok(match s.engine.try_pow(s.page).await? {
@@ -1221,6 +1441,22 @@ impl Strategy<PageSurface<'_>> for ProofOfWork {
                 false => Step::NotApplicable,
             })
         })
+    }
+}
+
+/// Tick the box a widget is waiting on. What a visitor does, and all that some widgets want: the
+/// interstitial lets the page through, and a proof-of-work widget starts counting.
+struct TickBox;
+
+impl Strategy<PageSurface<'_>> for TickBox {
+    fn name(&self) -> &'static str {
+        "tick-box"
+    }
+    fn handles(&self, m: Modality) -> bool {
+        matches!(m, Modality::Token | Modality::Nonce)
+    }
+    fn run<'a>(&'a self, s: &'a PageSurface<'_>) -> BoxFuture<'a, anyhow::Result<Step>> {
+        Box::pin(async move { s.engine.try_tick(s.page).await })
     }
 }
 
@@ -1958,11 +2194,15 @@ mod tests {
     fn every_modality_a_strategy_handles_is_reachable_from_the_probe() {
         // The inverse, and the one that was missing: a strategy nothing ever routes to is a
         // strategy that never runs. `vision::upright_angle` sat fully tested and unreachable for
-        // exactly this reason. Tiles come from the frame probe rather than a `kind`, so they are
-        // the one exception, and it is named here rather than hidden.
+        // exactly this reason. Tiles come from the frame probe rather than a `kind`, and so does a
+        // token widget waiting on its box (`tick::target`): those are the two exceptions, named
+        // here rather than hidden.
         let kinds = probe_kinds();
         for s in strategies() {
             for m in Modality::ALL.iter().copied().filter(|m| s.handles(*m)) {
+                if m == Modality::Token {
+                    continue;
+                }
                 if m == Modality::Tiles {
                     assert!(
                         PROBE_JS.contains("grid_context") || true,

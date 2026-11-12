@@ -110,6 +110,22 @@ Search:
 
 Pages, browsers and the CLI:
 
+- **The "Performing security verification" interstitial clears.** It never did, at any tier,
+  for two reasons. Each was found by adding one thing at a time to a browser nothing was
+  driving. The browser tiers said they were Chrome 149, the newest handshake the http tier can
+  forge, while the browser running was 154. They now state the version of the browser that runs,
+  and the http tier keeps its ceiling. The wait also asked the page for its answer field from the
+  page's own world, where that page watches the lookup and fails the visitor for it. Everything
+  svipall asks a page on its own account now runs in the isolated world. A widget still showing
+  its box 6 s after the document started gets one tick. `lib.rs` was blocked after 95 s and is
+  now read in 14 s.
+- **A proof-of-work captcha is answered.** `blocked_reason` names the widget
+  (`widget: altcha.org`). Its box is ticked and its own script does the sum and posts the form.
+  Where no widget is running, the signed challenge is counted locally, in the SHA form up to its
+  `maxnumber` and in the PBKDF2 form, on a blocking thread that stops when the caller gives up.
+  A Mojeek search was blocked after 93 s and now returns its results in 9 s.
+- **`solve_and_continue` returns when the wall is gone**, not at `timeout_s`, and `solved` says
+  whether the page stopped being a wall.
 - **Walls in four more languages.** Spanish, Portuguese, French and German walls are recognised,
   and a browser tier no longer turns a 130-byte refusal after a 403 into a delivered page.
 - **Punctuated query words match literally**, so `query="--effort"` finds the flag and not the

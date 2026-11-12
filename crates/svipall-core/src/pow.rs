@@ -127,6 +127,269 @@ pub fn parse_target(raw: &str) -> Option<Target> {
     (looks_hex && raw.len() <= 8).then(|| Target::HexPrefix(raw.to_lowercase()))
 }
 
+/// The digest a signed challenge names.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Hash {
+    Sha256,
+    Sha384,
+    Sha512,
+}
+
+impl Hash {
+    /// `SHA-256`, `sha512`, or the tail of `PBKDF2/SHA-384`.
+    pub fn parse(name: &str) -> Option<Self> {
+        match name.trim().to_ascii_uppercase().replace('-', "").as_str() {
+            "SHA256" => Some(Self::Sha256),
+            "SHA384" => Some(Self::Sha384),
+            "SHA512" => Some(Self::Sha512),
+            _ => None,
+        }
+    }
+
+    /// The digest of the parts, concatenated.
+    pub fn digest(self, parts: &[&[u8]]) -> Vec<u8> {
+        fn run<D: Digest>(parts: &[&[u8]]) -> Vec<u8> {
+            let mut h = D::new();
+            for p in parts {
+                h.update(p);
+            }
+            h.finalize().to_vec()
+        }
+        match self {
+            Self::Sha256 => run::<Sha256>(parts),
+            Self::Sha384 => run::<sha2::Sha384>(parts),
+            Self::Sha512 => run::<sha2::Sha512>(parts),
+        }
+    }
+
+    /// PBKDF2 with this digest as its HMAC, filling `out`.
+    pub fn derive(self, password: &[u8], salt: &[u8], rounds: u32, out: &mut [u8]) {
+        match self {
+            Self::Sha256 => pbkdf2::pbkdf2_hmac::<Sha256>(password, salt, rounds, out),
+            Self::Sha384 => pbkdf2::pbkdf2_hmac::<sha2::Sha384>(password, salt, rounds, out),
+            Self::Sha512 => pbkdf2::pbkdf2_hmac::<sha2::Sha512>(password, salt, rounds, out),
+        }
+    }
+}
+
+/// A challenge the server signed, as the widget served from `altcha.org` receives it.
+///
+/// Two wire formats are in circulation and one page can meet either. Both ask for a counter; they
+/// differ in what is done with it:
+///
+/// * the **digest** form, `{algorithm, challenge, maxnumber, salt, signature}`, wants the number
+///   whose `hash(salt ++ number)` is exactly `challenge`;
+/// * the **derived** form, `{parameters: {algorithm: "PBKDF2/SHA-256", cost, keyLength, keyPrefix,
+///   nonce, salt, ..}, signature}`, wants the counter whose key, derived from
+///   `nonce ++ counter as a big-endian u32`, begins with `keyPrefix`.
+///
+/// Nothing but the counter is produced here. The page that fetched the challenge still holds the
+/// server's own text of it, and the payload has to echo that text exactly as it was signed, so it
+/// is assembled there rather than rebuilt from a parsed copy.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum Signed {
+    Digest {
+        hash: Hash,
+        /// Lowercase hex of the digest to reproduce.
+        challenge: String,
+        salt: String,
+        /// The server's own bound on the search. The answer is at or below it by construction.
+        maxnumber: u64,
+    },
+    Derived {
+        hash: Hash,
+        cost: u32,
+        key_length: usize,
+        key_prefix: Vec<u8>,
+        nonce: Vec<u8>,
+        salt: Vec<u8>,
+    },
+}
+
+/// What a solved [`Signed`] challenge hands back.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Counter {
+    pub number: u64,
+    /// Lowercase hex of the derived key. Empty for the digest form, whose payload carries none.
+    pub derived_key: String,
+    pub iterations: u64,
+}
+
+/// When to stop looking.
+///
+/// The hunt runs on a blocking thread, where dropping the future that asked for it stops nothing:
+/// `cancel` is how a caller that gave up tells the loop to give up too.
+#[derive(Debug, Clone)]
+pub struct Limits {
+    /// Counters to try at most, when the challenge names no bound of its own.
+    pub max_number: u64,
+    pub deadline: std::time::Instant,
+    pub cancel: std::sync::Arc<std::sync::atomic::AtomicBool>,
+}
+
+impl Limits {
+    pub fn within(budget: std::time::Duration) -> Self {
+        Self {
+            // What the widget itself assumes when the server says nothing.
+            max_number: 1_000_000,
+            deadline: std::time::Instant::now() + budget,
+            cancel: Default::default(),
+        }
+    }
+
+    fn stop(&self) -> bool {
+        self.cancel.load(std::sync::atomic::Ordering::Relaxed)
+            || std::time::Instant::now() >= self.deadline
+    }
+}
+
+/// A stated bound above this was not written for a browser, and counting to it would hold a core
+/// for minutes.
+const MAX_STATED_NUMBER: u64 = 50_000_000;
+
+fn unhex(s: &str) -> Option<Vec<u8>> {
+    if !s.len().is_multiple_of(2) || !s.is_ascii() {
+        return None;
+    }
+    (0..s.len())
+        .step_by(2)
+        .map(|i| u8::from_str_radix(&s[i..i + 2], 16).ok())
+        .collect()
+}
+
+impl Signed {
+    /// Read a challenge from the JSON the server sent. `None` for anything that is not one.
+    pub fn parse(json: &str) -> Option<Self> {
+        let v: serde_json::Value = serde_json::from_str(json).ok()?;
+        let text = |v: &serde_json::Value, k: &str| v.get(k)?.as_str().map(str::to_string);
+        if let Some(p) = v.get("parameters") {
+            let algorithm = text(p, "algorithm")?;
+            let (kdf, digest) = algorithm.split_once('/')?;
+            if !kdf.eq_ignore_ascii_case("PBKDF2") {
+                // The other derivations the format allows are memory-hard, and the page's own
+                // widget is the right thing to run them. "Not mine" hands it over.
+                return None;
+            }
+            let key_length = p.get("keyLength").and_then(|n| n.as_u64()).unwrap_or(32) as usize;
+            let cost = p.get("cost")?.as_u64()?;
+            if !(1..=64).contains(&key_length) || cost == 0 || cost > 10_000_000 {
+                return None;
+            }
+            let key_prefix = unhex(&text(p, "keyPrefix")?)?;
+            if key_prefix.is_empty() || key_prefix.len() > key_length {
+                return None;
+            }
+            return Some(Self::Derived {
+                hash: Hash::parse(digest)?,
+                cost: cost as u32,
+                key_length,
+                key_prefix,
+                nonce: unhex(&text(p, "nonce")?)?,
+                salt: unhex(&text(p, "salt")?)?,
+            });
+        }
+        let challenge = text(&v, "challenge")?.to_ascii_lowercase();
+        if challenge.is_empty() {
+            return None;
+        }
+        Some(Self::Digest {
+            hash: Hash::parse(&text(&v, "algorithm")?)?,
+            challenge,
+            salt: text(&v, "salt")?,
+            maxnumber: v
+                .get("maxnumber")
+                .and_then(|n| n.as_u64())
+                .unwrap_or(1_000_000),
+        })
+    }
+
+    /// Count until the server's own check would pass, or until told to stop.
+    ///
+    /// `None` is a real answer: out of range, out of time, or cancelled. CPU-bound and
+    /// synchronous, so it belongs on a blocking thread and never on the reactor.
+    pub fn solve(&self, limits: &Limits) -> Option<Counter> {
+        match self {
+            Self::Digest {
+                hash,
+                challenge,
+                salt,
+                maxnumber,
+            } => {
+                let want = unhex(challenge)?;
+                for n in 0..=(*maxnumber).min(MAX_STATED_NUMBER) {
+                    if n.is_multiple_of(4096) && limits.stop() {
+                        return None;
+                    }
+                    if hash.digest(&[salt.as_bytes(), n.to_string().as_bytes()]) == want {
+                        return Some(Counter {
+                            number: n,
+                            derived_key: String::new(),
+                            iterations: n + 1,
+                        });
+                    }
+                }
+                None
+            }
+            Self::Derived { key_prefix, .. } => {
+                // One derivation is `cost` rounds, so the clock is read before every one.
+                for n in 0..=limits.max_number.min(u32::MAX as u64) {
+                    if limits.stop() {
+                        return None;
+                    }
+                    let key = self.key_for(n)?;
+                    if key.starts_with(key_prefix) {
+                        return Some(Counter {
+                            number: n,
+                            derived_key: hex(&key),
+                            iterations: n + 1,
+                        });
+                    }
+                }
+                None
+            }
+        }
+    }
+
+    /// Would the server accept this counter? What a fixture server runs, and what a test asserts.
+    pub fn accepts(&self, number: u64) -> bool {
+        match self {
+            Self::Digest {
+                hash,
+                challenge,
+                salt,
+                maxnumber,
+            } => {
+                number <= *maxnumber
+                    && hex(&hash.digest(&[salt.as_bytes(), number.to_string().as_bytes()]))
+                        == *challenge
+            }
+            Self::Derived { key_prefix, .. } => self
+                .key_for(number)
+                .is_some_and(|k| k.starts_with(key_prefix)),
+        }
+    }
+
+    /// The key the derived form produces for a counter. `None` for the digest form.
+    pub fn key_for(&self, number: u64) -> Option<Vec<u8>> {
+        let Self::Derived {
+            hash,
+            cost,
+            key_length,
+            nonce,
+            salt,
+            ..
+        } = self
+        else {
+            return None;
+        };
+        let mut password = nonce.clone();
+        password.extend_from_slice(&u32::try_from(number).ok()?.to_be_bytes());
+        let mut key = vec![0u8; *key_length];
+        hash.derive(&password, salt, *cost, &mut key);
+        Some(key)
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

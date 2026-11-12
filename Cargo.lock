@@ -4002,6 +4002,7 @@ dependencies = [
  "dirs",
  "flate2",
  "lopdf 0.36.0",
+ "pbkdf2",
  "pdf-extract",
  "quick-xml 0.37.5",
  "regex",

@@ -116,6 +116,53 @@ fn an_ordinary_page_is_not_mistaken_for_any_of_them() {
 }
 
 #[test]
+fn a_box_to_tick_is_somewhere_inside_its_widget() {
+    use svipall_core::widget::{spec, Tick};
+    // The two measured: the interstitial's frame, where the box sits at the left edge and half
+    // way down, and the proof-of-work widget, whose box is an element of the page itself.
+    assert!(matches!(
+        spec("challenges.cloudflare.com").unwrap().tick,
+        Some(Tick::InFrame { .. })
+    ));
+    assert!(matches!(
+        spec("altcha.org").unwrap().tick,
+        Some(Tick::Selector(_))
+    ));
+    for w in WIDGETS {
+        match w.tick {
+            Some(Tick::InFrame { x, y }) => assert!(
+                x > 0.0 && x < 1.0 && y > 0.0 && y < 1.0,
+                "{}: a fraction of the frame, never a pixel",
+                w.id
+            ),
+            Some(Tick::Selector(s)) => assert!(!s.trim().is_empty(), "{}", w.id),
+            None => {}
+        }
+    }
+}
+
+#[test]
+fn a_captcha_page_says_which_widget_it_is_showing() {
+    // Reported as "challenge page (title: captcha)" and nothing else, which told the caller that
+    // something was in the way and not that it was a hash puzzle a loop can answer.
+    use svipall_core::classify::{classify_view, PageView};
+    let html = fixture("altcha.org").expect("fixture");
+    let text = "Verification required Please complete the challenge to continue. I'm not a robot";
+    let (reason, _) = classify_view(200, &html, &PageView::new(&html, text));
+    let reason = reason.expect("a wall");
+    assert!(reason.contains("altcha.org"), "{reason}");
+}
+
+#[test]
+fn the_proof_of_work_widget_is_read_as_its_pages_write_it() {
+    // The attribute a live page carried was `challenge`, not the `data-challengeurl` the first
+    // fixture was written with, and the key was read as nothing.
+    let html = fixture("altcha.org").expect("fixture");
+    let found = challenge::detect_all(&html);
+    assert_eq!(found[0].sitekey.as_deref(), Some("/captcha/challenge"));
+}
+
+#[test]
 fn a_fixture_names_exactly_one_widget() {
     // Two widgets reported from one page means a selector is matching something generic, and the
     // caller is told to solve a challenge that is not there.
