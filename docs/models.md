@@ -137,7 +137,7 @@ Rules the code enforces, so a model cannot be misread:
 
 Drop the new `.onnx` (and its `.json`) into `~/.svipall/models/`. The session is rebuilt on the
 next solve: the loader compares the file's modification time and length with the one it has, and
-reloads when they differ. No restart, no registration. `web_status` reports whether the file or the
+reloads when they differ. No restart, no registration. `web_status(sections="models")` reports whether the file or the
 embedded copy answered.
 
 ## The corpus: training data from what this machine has seen

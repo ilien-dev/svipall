@@ -341,7 +341,7 @@ Reported under `include_quality`, never acted on.
 
 ### Diversity ordering: `quality::diversity`
 
-`fetch_many` reorders its results by Maximal Marginal Relevance (Carbonell & Goldstein, SIGIR 1998)
+`quality::diversity` orders a set by Maximal Marginal Relevance (Carbonell & Goldstein, SIGIR 1998)
 over the simhashes already computed. Nothing is dropped, and the caller's first choice never moves;
 what changes is which result they read second. Cuconasu et al. (SIGIR 2024) is the reason: what
 degrades an answer is the high-scoring, on-topic, **answer-free** page, and adding *distant*
@@ -358,7 +358,9 @@ Two constants, both measured:
   comparison. Measured, on three copies of a story and one unrelated page: the unrelated page still
   finished last. Similarity of 0.5 and below is now zero redundancy.
 
-A response whose order changed says `"reordered_for_diversity": true`.
+`fetch_many` used this order to rearrange its results before 1.4.0, and no longer does. A caller
+that matched results to its own list by position read one URL's page as another's. Results now come
+back in the order given, and a repeat is still marked `same_text_as`.
 
 ### Provenance and calibration: `include_quality: true`
 

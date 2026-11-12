@@ -28,7 +28,7 @@ a wall as a `5xx` would sit in a retry loop against something that is never goin
 |---|---|
 | **200** | the call ran, including every unhappy page: `blocked_reason`, `quality: "thin"`, `count: 0` |
 | **202** | an asynchronous job was queued; `Location` names it |
-| 400 | the body is not this endpoint's shape |
+| 400 | the body is not this endpoint's shape, or names a parameter the tool does not have |
 | 401 | missing or wrong bearer key |
 | 403 | the request carried a browser `Origin`, or a `Host` that is not loopback on a loopback bind |
 | 404 | unknown path, or a job id that does not exist |
@@ -78,13 +78,15 @@ this machine's profiles.
 |---|---|
 | `POST /v1/fetch` | `web_fetch`'s params |
 | `POST /v1/fetch_many` | `web_fetch_many`'s |
+| `POST /v1/probe` | `web_probe`'s: whether each URL exists |
+| `POST /v1/video` | `web_video`'s |
 | `POST /v1/crawl` | `web_crawl`'s, plus `"async": true` |
 | `POST /v1/search` · `/v1/site_search` · `/v1/map` | finding things |
 | `POST /v1/snapshot` · `/v1/act` · `/v1/capture` · `/v1/screenshot` | a real browser |
 | `POST /v1/solve_and_continue` | the captcha, answered on the blocked page |
 | `POST /v1/diff` · `/v1/watch` · `/v1/notes` · `/v1/log` | memory |
 | `POST /v1/route` · `/v1/profile` · `/v1/browser_setup` | configuration |
-| `GET` / `POST /v1/status` | `GET` is read-only by construction: `WebStatusParams` carries three *clearing* fields, and a `GET` is wired to defaults so it cannot reach them |
+| `GET` / `POST /v1/status` | `GET` is read-only by construction: `WebStatusParams` carries four *clearing* fields, and a `GET` takes only `?sections=` and cannot reach them |
 | `GET /v1/health` | the one route with no key, so a container healthcheck does not need one |
 
 `/v1/screenshot` returns the JSON `web_screenshot` returns (including `path`, since the PNG is

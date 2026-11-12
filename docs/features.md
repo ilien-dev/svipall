@@ -25,6 +25,25 @@ Lifted out of the README so that file stays readable. Everything here is the sam
   its `<audio>`, `og:audio` or JSON-LD `PodcastEpisode`, and a transcript the publisher wrote is
   read before any recognition. `web_map` lists a podcast feed's episodes with their `enclosure`
   and `transcript`.
+- **JSON, text and code as served**: a JSON answer comes back as the JSON, and a source file or
+  plain text byte for byte, paged by line. `json_path` (`items[:5].{name, owner.login}`) keeps only
+  the fields asked for, on `web_fetch` and `web_fetch_many`. A non-HTML `2xx` is never read as a wall
+  for the words in it and never climbs to a browser. On such a response only 401, 403, 407, 421,
+  429, 444 and 503 are walls, 404 and 410 are not found, and any other status is the API's answer.
+  `quality` judges it by kind: JSON is `full`, `partial` when cut, `thin` when empty or malformed.
+- **Files as bytes**: an `out_file` with a text name (`.md`, `.txt`, `.json`, `.csv`, `.html`…) gets
+  the text. Any other name, and any binary body, gets the bytes as served, streamed to disk with
+  their size and `sha256`. Without `out_file` a binary body is described and never decoded. A cut
+  transfer leaves `<out_file>.part` and resumes with `Range` on the next call, and a server whose copy
+  changed sends the whole file again. In memory a body is capped at 100 MiB.
+- **GitHub through its API**: repository roots, trees, files (with `#L10-L20` line ranges), issues,
+  pull requests, releases and commits on github.com are read from the REST API or the raw file host,
+  with every comment and review in order. Without a token that is 60 requests an hour, and
+  `GITHUB_TOKEN` in `secrets.env` raises it. A rate limit is reported with its reset time and starts
+  no cooldown. Code search across GitHub is better served by a `searchGitHub` tool (grep.app) when
+  the session has one. Without it Svipall does the whole job.
+- **Existence checks**: `web_probe` returns status, final URL, type and length for a list of URLs,
+  stopping at the headers, and says whether each name resolves. A 404 is an answer.
 - **Observe JSON responses**: `web_capture` records matching responses during a bounded browser
   capture. Results may reveal an endpoint worth investigating but do not guarantee a public,
   reusable or paginated API, and authentication and site restrictions still apply.
@@ -111,10 +130,9 @@ proofs; early errors and other tool response types may omit them:
   this machine first saw the site. Presence or absence of these signals does not establish credibility.
 - **Near-duplicate awareness**: `near_dup_of` asks the cache whether it has seen this page before,
   under any other name.
-- **Corroboration and diversity ordering on `web_fetch_many`**: the result says how many *distinct*
-  documents it actually holds, marks each duplicate with `same_text_as`, and moves the different ones
-  up. A reordering only: nothing is dropped, the caller's first choice stays first, and
-  `reordered_for_diversity` says when it happened. These are text-similarity observations:
+- **Corroboration on `web_fetch_many`**: the result says how many *distinct* documents it actually
+  holds and marks each duplicate with `same_text_as`. Results stay in the order the URLs were given.
+  These are text-similarity observations:
   distinct-document counts do not establish independent authorship, factual agreement or an
   improvement in a downstream model's answers.
 
@@ -181,9 +199,14 @@ a spent session is retired rather than changing its face on every request.*
   refs instead of markup. `web_act` clicks, types, fills, scrolls and waits on those refs.
   `browser_open` / `browser_do` keep a session alive across calls. Deterministic, with no vision model.
 - **Search without an API key**: DuckDuckGo, Bing and Brave scraped directly, optionally merged by
-  agreement.
-- **A site's own search box**: `web_site_search` can learn a reusable query-URL pattern and fetch
-  later queries through it. Sites without a discoverable form or reusable URL can fail, and the fetch
+  agreement, with `lang` and `region`. Each engine's answer is classified (results, empty,
+  challenge, blocked, unparsed, error, skipped), a failing engine rests for a while and is
+  remembered across runs, and redirect-wrapped links are unwrapped. A result that shares no word
+  with the query is marked `off_topic` and ranked last. An empty answer carries a `note` naming the
+  blocked engines and what to try.
+- **A site's own search box**: `web_site_search` tries the site's OpenSearch description, then its
+  search box (also one behind an icon or in a shadow root), then known platform endpoints, and can
+  learn a reusable query-URL pattern. When nothing is found, `tried` lists every attempt, and the fetch
   may still require browser rendering.
 
 ### Crawling
@@ -198,7 +221,9 @@ a spent session is retired rather than changing its face on every request.*
   page cache. A URL with no `lastmod` is fetched, because silence is not "unchanged".
 - **Politeness that adapts**: the gap between requests is tuned per domain from the host's own
   latency and refusals, with a default one-second minimum. HTTP 429/503 stops escalation.
-  The full `Retry-After` or the configured cooldown, whichever is longer, is persisted.
+  A `Retry-After` is kept as given. Without one, a 429 backs off from 30 seconds up to the
+  configured maximum, and a 503 pauses 30 seconds. A crawl stopped by the visit limit says
+  `stopped_by: "visit_limit"`.
 - **Concurrency sized to your machine**: browsers cost far more than HTTP requests, and a laptop
   asked to run six of them produces timeouts that look exactly like walls. Parallelism is tightened
   from core count and open browsers and never raised above what the config allows.

@@ -44,17 +44,32 @@ and a `privacy_notice` appear whenever a native fallback was attempted, even if 
 fallback, run `svipall config set auto_native_fallback=false`. `browser_identity=emulated` also
 keeps browser requests emulated. Explicit `browser_identity=native` is a separate manual override.
 
-Defaults permit **12 top-level transport attempts per 60 seconds per domain and exit**, a minimum
-**1 second between scheduled attempts**, and **6 attempts per automatic fetch**, within its total
-timeout. Exceeding the visit window starts a **15-minute cooldown**. HTTP 429/503 stops escalation
-and persists a cooldown of at least 15 minutes, or the full `Retry-After` when longer. Rejected calls
-do not extend that cooldown. The existing decaying address budget can stop work sooner.
+Defaults permit **12 visits per 60 seconds per host and exit**, a minimum **1 second between
+scheduled attempts**, and **6 attempts per automatic fetch**, within its total timeout. The window is
+**shared by every session, subagent and process on this machine**, and one top-level fetch is one
+visit however many tiers it climbs. A full window is a wait for its oldest visit to leave, never a
+penalty. The fetch waits by itself when the wait fits in half its timeout (30 seconds at the default
+60), and the `wait` parameter (`--wait` on the CLI, up to 900 seconds on top of the timeout) lets it
+wait longer. `wait=0` never waits. Otherwise the call is refused with `blocked_reason:
+"visit_limit"` and the exact seconds until a slot frees. The other way out is another host that
+serves the same thing. The decaying address budget can stop work sooner, and no wait covers it.
+
+A server's `Retry-After` is honoured as given, from 1 second to an hour. A 429 without one pauses
+the route for 30 seconds, then 120, 480 and 900: `request_cooldown_seconds` is that longest
+backoff, and strikes are forgotten after 30 quiet minutes. A 503 without `Retry-After` is a server
+error, so it pauses 30 seconds and counts no strike. The **15-minute hard-block cooldown** is set
+only after a status or vendor wall at the real or warm tier, when the pool has no other exit.
 
 The visit ledger is transactional and persists across restarts. Changing identity or forcing a
 tier does not reset it. Successful cache hits do not consume visits. Returned pages are preserved
-when further attempts are refused, with `stopped_reason` and `cooldown_seconds_left`, and callers should
-wait instead of retrying over and over. The legacy `clear_cooldown` action does not erase this ledger.
-These limits reduce traffic and exposure, but they cannot promise that a site will not block an IP.
+when further attempts are refused, with `stopped_reason`, `cooldown_seconds_left` and
+`visit_budget`, which also appears when two visits or fewer are left. `waited` says what a fetch
+waited for. A ladder walk that failed all the way up is remembered for its origin for 10 minutes and
+answers the next call from memory (`remembered`) until `fresh=true` walks again.
+`web_status(clear_cooldown=DOMAIN)` clears, on every exit, the hard-block cooldown, the server holds
+and strikes, the visit window and the remembered failure, and answers only with what it cleared.
+The address budget is `clear_budget`, and route learning is `forget_tier`. These limits reduce
+traffic and exposure, but they cannot promise that a site will not block an IP.
 
 The accounting unit is a fetch attempt or supported browser-tool navigation, **not every network
 request**: resource loads, redirects, origin warmup, challenge exchanges, scripts and interactive
@@ -71,9 +86,10 @@ partial file is fine. The default state directory contains:
 | `config.toml` | The settings below |
 | `settings.toml` | Validated settings saved by CLI/MCP, overriding `config.toml` |
 | `secrets.env` | Credentials can be referenced by name in supported action calls; this does not redact returned content |
-| `domain_tiers.json` | Legacy starting-tier memory for explicit emulated/native identity policies |
+| `domain_tiers.json` | Legacy starting-tier memory for explicit emulated/native identity policies, listed in `web_status` `sections=tiers` only under those |
 | `automatic_routes.json` | Local route evidence under hashed context keys, expiring after 24 hours |
-| `traffic.sqlite3` | Transactional visit windows and cooldowns, shared across modes and processes |
+| `traffic.sqlite3` | Transactional visit windows, server holds and remembered failures, shared across modes and processes |
+| `search_engines.json` | How each search engine has answered lately, per host and exit, so a failing one rests |
 | `pools.json`, `exit_health.json` | Exits per domain, and what each one has done on each |
 | `reputation.json` | What each address has spent with each host, decaying with a half-life |
 | `svipall.db` | Page cache, crawl frontiers, notes, watches, quality histograms and the request log |
@@ -95,12 +111,13 @@ browser_path = ""            # wins over everything when set and the file exists
                              # ~/.svipall/browser, then auto-detection
 max_tier = "warm"            # cap for mode=auto
 browser_auto_install = true  # provision a managed browser on startup if none is installed
+browser_auto_update = true   # update the managed browser in the background when it is 2+ majors behind
 browser_identity = "auto"    # emulated routes first; native only as a last resort
 auto_native_fallback = true # false prohibits automatic real-device exposure
 auto_max_attempts = 6       # per automatic fetch, including native; valid range 1..6
 request_limit = 12          # top-level attempts per domain and exit in the window
 request_window_seconds = 60
-request_cooldown_seconds = 900
+request_cooldown_seconds = 900 # longest backoff after repeated 429s
 request_min_interval_ms = 1000
 browser_timeout_ms = 45000
 warm_wait_ms = 20000         # how long `warm` waits for a challenge to clear

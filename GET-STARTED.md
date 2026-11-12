@@ -50,7 +50,8 @@ Three lines, in the Claude Code prompt:
 ```
 
 `/svipall:setup` installs the program if it is not there yet, connects it, and asks whether you want
-Claude to use it for all web access from now on. Say no to anything you would rather not have.
+Claude to use it for all web access from now on (code search across GitHub goes to a dedicated
+tool instead, when Claude has one). Say no to anything you would rather not have.
 When a new version comes out, Claude Code tells you after its answer. Run `/svipall:update` and
 restart Claude Code.
 

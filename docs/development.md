@@ -27,8 +27,8 @@ Three things to know for a source build (`svipall doctor` reports browser and mo
   depends on the platform, and `--no-default-features --features impersonate` omits local models.
 
 No BoringSSL toolchain at all? `cargo build --release --no-default-features` builds without the
-TLS emulation and the default local-model features, and falls back to reqwest. `web_status` reports which engine is live
-under `http_engine`. Asking for the emulating one explicitly on such a build is a **hard error
+TLS emulation and the default local-model features, and falls back to reqwest. `web_status(sections="browser")` reports which engine
+is live under `http_engine`. Asking for the emulating one explicitly on such a build is a **hard error
 rather than a silent downgrade**, because a silent downgrade is exactly the failure that is hard to
 notice.
 

@@ -82,15 +82,19 @@ reputation, rotates external addresses or invents trust at the remote server.
 Admission also allows `request_limit=12` top-level visits in
 `request_window_seconds=60`, with `request_min_interval_ms=1000` and at most
 `auto_max_attempts=6` transport attempts per automatic fetch, and all identities and forced tiers share
-the persistent `(domain, exit)` ledger. Exceeding a window starts
-`request_cooldown_seconds=900` of backoff. HTTP 429/503 ends the fetch and retains the longer of
-this backoff and `Retry-After`, which rejected calls do not extend. Browser subresources, redirects,
-warmup and page-triggered traffic are not individual accounting entries, and local hosts are exempt.
+the persistent `(host, exit)` ledger with every other session and process on the machine. One
+top-level fetch is one visit. A full window makes the fetch wait for a free slot when that fits in
+half its timeout or in the caller's `wait`, and refuses it with the seconds left otherwise. It never
+starts a hold. A server's `Retry-After` is kept as given. A 429 without one backs off 30, 120, 480
+and then `request_cooldown_seconds=900` seconds, and a 503 without one pauses 30 seconds. Browser
+subresources, redirects, warmup and page-triggered traffic are not individual accounting entries,
+and local hosts are exempt.
 
 All these settings are available through CLI and `web_status(configure={...})`, without editing
 files or restarting the server. Results expose remaining cooldown seconds and preserve the last
-page if later attempts are refused. `clear_cooldown` clears the older hard-block cooldown only,
-not the persistent visit ledger. Fresh cache hits stay available without making a request.
+page if later attempts are refused. `clear_cooldown` clears the hard-block cooldown, the ledger's
+holds, strikes and visit window, and the remembered failed walk, on every exit. Fresh cache hits
+stay available without making a request.
 
 Route evidence combines useful full-quality delivery and latency: a route needs two supporting
 observations to be promoted and the evidence expires after 24 hours. Repeated failures pause that route for

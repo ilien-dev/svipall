@@ -61,8 +61,9 @@ drive. MCP is one front end of three, not the product.
 <summary><b>Will it get my IP blocked?</b></summary>
 
 It can, and the tool is built around that being the scarce resource. Top-level attempts are paced
-per domain and exit, a persistent visit window limits bursts, full `Retry-After` backoff is kept, a
-hard block puts the domain on a 15-minute cooldown, and a reputation ledger tracks what each address
+per host and exit, a persistent visit window shared by every session on the machine limits bursts,
+`Retry-After` is kept as given, a 429 backs off from 30 seconds to 15 minutes over repeated strikes,
+a hard block puts the domain on a 15-minute cooldown, and a reputation ledger tracks what each address
 has spent with each host and decays it with a six-hour half-life. Two crawls of the same site cannot
 run at once for exactly this reason. None of that makes you invisible. This project's own benchmark
 has watched a home address get worse at three targets over a day of runs, and
