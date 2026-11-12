@@ -409,3 +409,39 @@ async fn an_engine_host_held_by_retry_after_is_skipped_not_waited_for() {
         "the zero answer says the engine was held: {named}"
     );
 }
+
+/// The Brave results page, as it came back from the real engine on 2026-11-12 for "rust async
+/// runtime". The http tier was refused with 429 twice, twenty minutes apart, so this page was
+/// fetched once through the browser tier: it is the document after the page's scripts ran, saved
+/// as is except for the coordinates the engine guessed from this machine's address.
+#[tokio::test]
+async fn a_real_brave_results_page_is_read() {
+    let site = Site::start(vec![("/brave", page("brave.results.html"))]).await;
+    let out = server(&site)
+        .search_json(params("rust async runtime", Some("brave")))
+        .await;
+    assert_eq!(attempt(&out, "brave")["outcome"], "results", "{out}");
+    assert_eq!(out["engine"], "brave", "{out}");
+    let first = &out["results"][0];
+    assert_eq!(
+        first["url"], "https://rust-lang.github.io/async-book/08_ecosystem/00_chapter.html",
+        "{out}"
+    );
+    assert_eq!(
+        first["title"], "The Async Ecosystem - Asynchronous Programming in Rust",
+        "{out}"
+    );
+    assert!(
+        first["snippet"]
+            .as_str()
+            .unwrap_or_default()
+            .starts_with("The word"),
+        "{out}"
+    );
+    let urls = urls(&out);
+    assert!(urls.len() >= 8, "{out}");
+    assert!(
+        urls.iter().all(|u| !u.contains("search.brave.com")),
+        "no engine-internal link is a result: {out}"
+    );
+}

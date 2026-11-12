@@ -296,41 +296,64 @@ pub fn parse_bing(html: &str) -> Vec<SearchResult> {
         .collect()
 }
 
+/// Brave's result page. Read from a real one (`tests/fixtures/search/brave.results.html`): each web
+/// result is a `div.snippet[data-type="web"]` in the main column, with its link first, the title
+/// in `.search-snippet-title` and the text in `.generic-snippet .content`. The older layout, a
+/// `#results` list, is still read.
 pub fn parse_brave(html: &str) -> Vec<SearchResult> {
     let doc = Html::parse_document(html);
     let a_sel = sel("a[href]");
-    let t_sel = sel(".title, .snippet-title, h2, h3");
-    let d_sel = sel(".snippet-description, .snippet-content, .description");
-    doc.select(&sel(
-        "#results .snippet[data-type=\"web\"], #results .snippet",
-    ))
-    .filter_map(|r| {
-        let a = r.select(&a_sel).find(|a| {
-            a.value()
-                .attr("href")
-                .map(|h| h.starts_with("http"))
+    let t_sel = sel(".search-snippet-title, .title, .snippet-title, h2, h3");
+    let d_sel =
+        sel(".generic-snippet .content, .snippet-description, .snippet-content, .description");
+    let mut blocks: Vec<_> = doc.select(&sel(".snippet[data-type=\"web\"]")).collect();
+    if blocks.is_empty() {
+        blocks = doc.select(&sel("#results .snippet")).collect();
+    }
+    blocks
+        .into_iter()
+        .filter_map(|r| {
+            let a = r.select(&a_sel).find(|a| {
+                a.value()
+                    .attr("href")
+                    .map(|h| h.starts_with("http"))
+                    .unwrap_or(false)
+            })?;
+            let url = a.value().attr("href")?.to_string();
+            // A link back into the engine (a "more results from" cluster, a related search) is not
+            // a result.
+            if url::Url::parse(&url)
+                .ok()
+                .and_then(|u| u.host_str().map(|h| h.ends_with("search.brave.com")))
                 .unwrap_or(false)
-        })?;
-        let url = a.value().attr("href")?.to_string();
-        let title = r
-            .select(&t_sel)
-            .next()
-            .map(|t| clean(&t.text().collect::<String>()))
-            .filter(|t| !t.is_empty())
-            .unwrap_or_else(|| clean(&a.text().collect::<String>()));
-        let snippet = r
-            .select(&d_sel)
-            .next()
-            .map(|s| clean(&s.text().collect::<String>()))
-            .unwrap_or_default();
-        Some(SearchResult {
-            title,
-            url,
-            snippet,
-            ..Default::default()
+            {
+                return None;
+            }
+            let title = r
+                .select(&t_sel)
+                .next()
+                .map(|t| {
+                    t.value()
+                        .attr("title")
+                        .map(clean)
+                        .filter(|t| !t.is_empty())
+                        .unwrap_or_else(|| clean(&t.text().collect::<String>()))
+                })
+                .filter(|t| !t.is_empty())
+                .unwrap_or_else(|| clean(&a.text().collect::<String>()));
+            let snippet = r
+                .select(&d_sel)
+                .next()
+                .map(|s| clean(&s.text().collect::<String>()))
+                .unwrap_or_default();
+            Some(SearchResult {
+                title,
+                url,
+                snippet,
+                ..Default::default()
+            })
         })
-    })
-    .collect()
+        .collect()
 }
 
 /// The text of the first `<tag>…</tag>` in `xml`, CDATA unwrapped and entities decoded.
@@ -1447,6 +1470,16 @@ mod tests {
     }
 
     #[test]
+    fn every_web_result_on_a_real_brave_page_has_its_link_title_and_text() {
+        let rows = parse_brave(&fixture("brave.results.html"));
+        assert_eq!(rows.len(), 20, "the page holds twenty web results");
+        for r in &rows {
+            assert!(r.url.starts_with("https://"), "{r:?}");
+            assert!(!r.title.is_empty() && !r.snippet.is_empty(), "{r:?}");
+        }
+    }
+
+    #[test]
     fn a_click_redirect_unwraps_and_a_broken_one_is_kept() {
         let wrapped = "https://www.bing.com/ck/a?!&&p=abc&u=a1aHR0cHM6Ly9ydXN0LWxhbmcub3JnLw&ntb=1";
         assert_eq!(unwrap_redirect(wrapped), "https://rust-lang.org/");
@@ -1467,6 +1500,7 @@ mod tests {
             ("bing.results.html", "bing", 200, Outcome::Results),
             ("bing.es.html", "bing", 200, Outcome::Results),
             ("brave.captcha.html", "brave", 429, Outcome::Challenge),
+            ("brave.results.html", "brave", 200, Outcome::Results),
             ("news.results.xml", NEWS, 200, Outcome::Results),
             ("news.empty.xml", NEWS, 200, Outcome::Empty),
         ] {
