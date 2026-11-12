@@ -7666,16 +7666,11 @@ impl SvipallServer {
             obj.insert("blocked_reason".into(), json!(r));
             obj.insert(
                 "note".into(),
-                json!(format!(
-                    "the challenge did not clear. {}",
-                    crate::steer::wall_next_step(
-                        &wall,
-                        &domain_from_url(&final_url),
-                        "warm",
-                        self.solver_state.is_some(),
-                        self.dashboard(),
-                        None,
-                    )
+                json!(crate::steer::solve_did_not_clear(
+                    &wall,
+                    &domain_from_url(&final_url),
+                    self.solver_state.is_some(),
+                    self.dashboard(),
                 )),
             );
         }

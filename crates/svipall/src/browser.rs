@@ -2763,6 +2763,19 @@ impl BrowserPool {
     /// refusal. The browser has to go first — on Windows the directory is locked while it runs —
     /// and the lock is released a moment after the process is, hence the short retry.
     pub async fn retire_profile(&self, dir: &std::path::Path) -> bool {
+        self.close_profile(dir).await;
+        for _ in 0..8 {
+            if !dir.exists() || std::fs::remove_dir_all(dir).is_ok() {
+                return true;
+            }
+            tokio::time::sleep(Duration::from_millis(300)).await;
+        }
+        false
+    }
+
+    /// Close whatever browser holds this profile, so another browser (a visible one, for a
+    /// person) can open it: a profile directory is locked while a browser runs on it.
+    pub async fn close_profile(&self, dir: &std::path::Path) {
         let needle = dir.to_string_lossy().to_string();
         let keys: Vec<String> = self
             .pool
@@ -2777,16 +2790,9 @@ impl BrowserPool {
             self.release_kept(|key| key.starts_with(&k)).await;
             if let Some(p) = self.pool.lock().await.remove(&k) {
                 p.close().await;
-                tracing::info!("closed browser on a retired profile {}", k);
+                tracing::info!("closed browser on profile {}", k);
             }
         }
-        for _ in 0..8 {
-            if !dir.exists() || std::fs::remove_dir_all(dir).is_ok() {
-                return true;
-            }
-            tokio::time::sleep(Duration::from_millis(300)).await;
-        }
-        false
     }
 
     pub async fn shutdown(&self) {

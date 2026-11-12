@@ -929,7 +929,7 @@ async fn this_machines_address_is_masked_in_tables_and_in_a_diff() {
 async fn this_machines_address_is_masked_in_a_snapshot() {
     svipall_core::own_ip::learn(&["203.0.113.61".parse().unwrap()]);
     let page = "<!doctype html><html><head><title>Who</title></head><body><main>\
-        <h1>Who is reading</h1><p>Your address is 203.0.113.61 and you are welcome.</p>\
+        <h1>Welcome, visitor from 203.0.113.61</h1><p>You are welcome.</p>\
         <button>Continue</button></main></body></html>";
     let site = Site::start(vec![("/who", Reply::html(page))]).await;
     let server = local_server();
@@ -942,7 +942,32 @@ async fn this_machines_address_is_masked_in_a_snapshot() {
     server.shutdown_configuration().await;
     let out = out.unwrap();
     println!("{out}");
-    assert!(out.to_string().contains("you are welcome"), "{out}");
+    assert!(out.to_string().contains("Welcome, visitor from"), "{out}");
     assert!(!out.to_string().contains("203.0.113.61"), "{out}");
     assert!(out["own_ip_masked"].as_u64().unwrap_or(0) >= 1, "{out}");
+}
+
+/// Item 15, measured live: solve_and_continue on a managed challenge that never cleared answered
+/// with a note whose advice was to call solve_and_continue. Its note names the ways that are left.
+#[tokio::test]
+#[ignore = "opens a local browser"]
+async fn a_solve_that_did_not_clear_does_not_send_the_caller_back_to_it() {
+    let url = "http://solve-fifteen.test/wall";
+    let site = Site::start(vec![(url, Reply::cloudflare())]).await;
+    svipall_core::store::ROUTES.insert("solve-fifteen.test", &site.url(""));
+    let server = remote_server();
+    assert!(server.pool().available(), "manual test requires a browser");
+    let out = server
+        .solve_and_continue_json(
+            serde_json::from_value(serde_json::json!({"url": url, "timeout_s": 5})).unwrap(),
+        )
+        .await;
+    svipall_core::store::ROUTES.remove("solve-fifteen.test");
+    server.shutdown_configuration().await;
+    let out = out.unwrap();
+    println!("{out}");
+    assert_eq!(out["still_blocked"], true, "{out}");
+    let note = out["note"].as_str().unwrap_or_default();
+    assert!(!note.contains("solve_and_continue(url) answers"), "{note}");
+    assert!(note.contains("again meets the same check"), "{note}");
 }

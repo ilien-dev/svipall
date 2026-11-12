@@ -131,6 +131,22 @@ pub fn wall_next_step(
     s
 }
 
+/// `solve_and_continue` ran and the wall is still there. The general wall advice offers
+/// solve_and_continue whenever a solver exists, which here is the call that just failed: measured
+/// live on two managed challenges, the note sent the caller straight back into the same check.
+pub fn solve_did_not_clear(kind: &WallKind, domain: &str, solver: bool, dashboard: &str) -> String {
+    let mut s = format!(
+        "the challenge did not clear. {}",
+        wall_next_step(kind, domain, "warm", false, dashboard, None)
+    );
+    s.push_str(" Calling solve_and_continue again meets the same check");
+    if solver {
+        s.push_str(&format!("; a person can answer it at {dashboard}"));
+    }
+    s.push('.');
+    s
+}
+
 fn wall_advice(kind: &WallKind, tier: &str, solver: bool, dashboard: &str) -> String {
     // The domain used to be spelled out here. It is the host of the `url` in the same response,
     // so it said nothing the reader did not have, and on a `raw:` page it rendered as "the
@@ -336,6 +352,15 @@ mod tests {
             "{long}"
         );
         assert!(server_backoff(503, 30, false, "x.test").contains("server error"));
+    }
+
+    #[test]
+    fn a_solve_that_did_not_clear_does_not_send_the_caller_back_to_it() {
+        let note = solve_did_not_clear(&WallKind::Cloudflare, "x.test", true, "http://d/human");
+        assert!(!note.contains("solve_and_continue(url) answers"), "{note}");
+        assert!(note.contains("again meets the same check"), "{note}");
+        assert!(note.contains("http://d/human"), "{note}");
+        assert!(note.contains("web_login"), "{note}");
     }
 
     #[test]

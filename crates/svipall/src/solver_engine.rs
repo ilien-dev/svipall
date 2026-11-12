@@ -237,6 +237,7 @@ impl SolveEngine {
             let d = svipall_core::domain_from_url(page_url);
             svipall_core::reputation::spend(&d, opts.proxy.as_deref(), opts.tier.as_str(), false);
         }
+        let exit = opts.proxy.clone();
         let (_pooled, page) = self.pool.page(&opts).await?;
         let result = async {
             self.pool.navigate(&page, page_url).await?;
@@ -266,6 +267,12 @@ impl SolveEngine {
                 let profile_dir = Some(std::path::PathBuf::from(svipall_core::auto_profile_path(
                     page_url, true,
                 )));
+                // The headless browser that just tried is still running on this profile, and a
+                // locked profile cannot be opened a second time: the visible window failed with
+                // "in use by another browser process" every time it was reached.
+                if let Some(dir) = profile_dir.as_deref() {
+                    self.pool.close_profile(dir).await;
+                }
                 let visible = PageOpts {
                     mobile: false,
                     tier: BrowserTier::Real,
@@ -275,7 +282,9 @@ impl SolveEngine {
                         None,
                     ),
                     profile_dir,
-                    proxy: None,
+                    // The exit the headless attempt used: a check passed from another address
+                    // clears nothing for the next fetch, which leaves through this one.
+                    proxy: exit,
                     visible: true,
                 };
                 let (_p, page) = self.pool.page(&visible).await?;
