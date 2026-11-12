@@ -2337,6 +2337,75 @@ mod tests {
         assert!(js.contains("credentials: 'include'"), "{js}");
     }
 
+    /// The signed proof counted here, against a live site that checks it.
+    ///
+    /// Every browser tier runs the page's own scripts, so on a live site the widget does the sum
+    /// and this path never runs. Here the widget's script is kept from arriving, which leaves
+    /// the element with nothing behind it: the case `try_signed_pow` exists for. By hand, once.
+    ///
+    /// ```text
+    /// cargo test -p svipall --lib -- --ignored --nocapture counted_here_on_a_live_site
+    /// ```
+    #[tokio::test]
+    #[ignore = "live network and a real browser"]
+    async fn a_signed_proof_is_counted_here_on_a_live_site_whose_widget_never_ran() {
+        use svipall_cdp::cdp::browser_protocol::network::{EnableParams, SetBlockedUrLsParams};
+        let home = std::env::temp_dir().join(format!("svipall-pow-live-{}", std::process::id()));
+        std::fs::create_dir_all(&home).expect("a home of its own");
+        std::env::set_var("SVIPALL_HOME", &home);
+        std::env::set_var("SVIPALL_HUMAN_ASSIST", "0");
+        let cfg = svipall_core::Config::default();
+        let pool = Arc::new(BrowserPool::new(cfg.clone()));
+        let engine = SolveEngine::new(pool.clone(), &cfg);
+        let url = "https://www.mojeek.com/search?q=borrow+checker+lifetimes";
+        let opts = PageOpts {
+            mobile: false,
+            tier: BrowserTier::Real,
+            profile_dir: Some(home.join("profile")),
+            proxy: None,
+            visible: false,
+            identity_seed: None,
+        };
+        let (_pooled, page) = pool.page(&opts).await.expect("a page");
+        page.execute(EnableParams::default())
+            .await
+            .expect("network");
+        page.execute(SetBlockedUrLsParams::new(vec![
+            "*/js/page_specific/altcha.js*".into(),
+        ]))
+        .await
+        .expect("the widget's script blocked");
+        pool.navigate(&page, url).await.expect("navigated");
+        let widget_ran = crate::apart::flag(&page, "!!customElements.get('altcha-widget')").await;
+        let started = Instant::now();
+        let solved = engine
+            .wait_and_submit(&page, Duration::from_secs(60))
+            .await
+            .expect("the loop ran");
+        let (html, final_url) = pool.content(&page).await.expect("content");
+        let parts = svipall_core::parse_page(&html, &svipall_core::ParseWants::text());
+        let results_page = html
+            .to_lowercase()
+            .contains("<title>borrow checker lifetimes");
+        eprintln!(
+            "widget_ran={widget_ran} solved={solved} in {:.1}s final_url={final_url} results_page={results_page} chars={}",
+            started.elapsed().as_secs_f32(),
+            parts.text.chars().count()
+        );
+        pool.close_page(page).await;
+        assert!(!widget_ran, "the widget's script arrived after all");
+        assert!(
+            solved,
+            "{}",
+            &parts.text.chars().take(300).collect::<String>()
+        );
+        assert!(
+            final_url.contains("/search?q=borrow"),
+            "left on {final_url}"
+        );
+        assert!(results_page, "not the results page");
+    }
+
     /// The probe's vocabulary: every `out.kind = "…"` it can say.
     fn probe_kinds() -> Vec<String> {
         PROBE_JS
