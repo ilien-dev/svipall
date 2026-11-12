@@ -39,6 +39,9 @@ pub enum Outcome {
     Solved { strategy: &'static str },
     /// The page stopped being a wall while it was waited on, with nothing asked of it.
     Passed,
+    /// The wall went away and the site's own refusal stands in its place. Not cleared, and not
+    /// something a strategy, a longer wait or a person can answer.
+    Refused,
     /// The budget for the modality ran out. A person is the next step, not another guess.
     Exhausted { modality: Modality },
     /// Time ran out with no challenge ever recognised.
@@ -70,6 +73,12 @@ pub trait Surface: Sync {
     /// that verifies the visitor by itself asks no question, so this is the one way its passing
     /// is ever noticed before the deadline.
     fn through(&self) -> BoxFuture<'_, bool> {
+        Box::pin(async { false })
+    }
+    /// Has the wall been replaced by the site's own refusal? Asked right after `through`, of the
+    /// same look at the page: the other thing a challenge can turn into, and the one a wait
+    /// would otherwise sit on until the deadline.
+    fn refused(&self) -> BoxFuture<'_, bool> {
         Box::pin(async { false })
     }
 }
@@ -163,6 +172,9 @@ pub async fn run<S: Surface>(
             if surface.through().await {
                 return Outcome::Passed;
             }
+            if surface.refused().await {
+                return Outcome::Refused;
+            }
             if Instant::now() >= deadline {
                 return match seen {
                     Some(m) => Outcome::Exhausted { modality: m },
@@ -248,6 +260,8 @@ mod tests {
         answers: AtomicUsize,
         /// The page lets the visitor through by itself once it has been probed this many times.
         through_after: Option<usize>,
+        /// The site's own refusal stands where the wall was once it has been probed this often.
+        refused_after: Option<usize>,
     }
 
     impl Fake {
@@ -258,6 +272,7 @@ mod tests {
                 probes: AtomicUsize::new(0),
                 answers: AtomicUsize::new(0),
                 through_after: None,
+                refused_after: None,
             }
         }
     }
@@ -269,6 +284,12 @@ mod tests {
         fn through(&self) -> BoxFuture<'_, bool> {
             Box::pin(async move {
                 self.through_after
+                    .is_some_and(|n| self.probes.load(AtomicOrdering::SeqCst) >= n)
+            })
+        }
+        fn refused(&self) -> BoxFuture<'_, bool> {
+            Box::pin(async move {
+                self.refused_after
                     .is_some_and(|n| self.probes.load(AtomicOrdering::SeqCst) >= n)
             })
         }
@@ -373,6 +394,27 @@ mod tests {
         assert!(out.cleared());
         assert!(started.elapsed() < Duration::from_secs(5));
         assert_eq!(page.probes.load(AtomicOrdering::SeqCst), 3);
+    }
+
+    #[tokio::test]
+    async fn a_wall_replaced_by_a_refusal_ends_the_wait_as_one() {
+        // The challenge went away and the site's own server said no in its place. Nothing on
+        // that page will ever be recognised or let anyone through, so the deadline is the only
+        // other way out: measured as ninety seconds spent on a bare "403 Forbidden".
+        let mut page = Fake::new(vec![None, None], usize::MAX);
+        page.refused_after = Some(2);
+        let started = Instant::now();
+        let out = run(
+            &page,
+            &[],
+            &no_history,
+            &mut nothing,
+            Duration::from_secs(30),
+        )
+        .await;
+        assert_eq!(out, Outcome::Refused);
+        assert!(!out.cleared(), "a refusal is not a cleared wall");
+        assert!(started.elapsed() < Duration::from_secs(5));
     }
 
     #[tokio::test]
