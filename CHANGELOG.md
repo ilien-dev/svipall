@@ -23,7 +23,7 @@ Five changes alter what a caller sees:
   `tiers`, `exits`, `reputation`, `h3`, `browser`, `cache`, `crawls`, `profiles`, `solver`,
   `models`, `identity`) adds the rest, also as `GET /v1/status?sections=` and
   `svipall status --sections`. A clearing action answers with what it cleared and nothing else. The
-  full report was about 11,500 characters, most of it `h3_offered_by`.
+  full report was about 11,500 characters, inflated by `h3_offered_by`.
 - **Search `attempts` are objects**: `engine`, `outcome`, `count`, `status`, `detail`, `ms`.
 - **`request_cooldown_seconds` now means the longest backoff** after repeated 429s, not the hold
   every refusal started.
@@ -127,9 +127,12 @@ Pages, browsers and the CLI:
   own is never touched, and the stale warning prints once.
 - **The CLI** takes `--help` on every subcommand, and an unknown flag is an error naming the
   nearest one. `svipall log --since-secs 600` used to ignore the flag and run anyway.
-- **The prompts**: the server instructions and tool descriptions open with when to use each tool,
-  name `web_probe`, `web_video`, `wait`, `json_path` and binary `out_file`, and fit in 38,663
-  characters where 1.3.1 had grown past its own 40,750 cap. When the session has the
+- **The prompts**: the descriptions of the tools agents passed over (`web_fetch`, `web_search`,
+  `web_fetch_many`, `web_probe`, `web_video`, `web_status`, and the crawl, map, snapshot,
+  screenshot, capture, site search, diff, login and session tools) now open with when to use them,
+  and the instructions name `web_probe`, `web_video`, `wait`, `json_path` and binary `out_file`.
+  The whole tool list is 38,547 characters, against about 38,950 on 1.3.1, with `web_probe` and
+  the new parameters added. When the session has the
   `searchGitHub` tool of the grep.app MCP server, the instructions, the skill and the setup memory
   prefer it for finding code across GitHub repositories, and Svipall does that job when it is
   absent.

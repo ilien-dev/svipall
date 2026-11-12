@@ -36,7 +36,8 @@ Most of these are permanent and deliberate, but one is a build you have to ask f
   detected browsers. A build **two or more majors** behind the stable channel is flagged for the opposite
   reason: it differs substantially from the reference stable channel. This is a diagnostic
   heuristic, not proof of detection. `web_status` and applicable blocked-result notes can report
-  these conditions, and `browser_setup` installs or updates a
+  these conditions. The managed browser updates itself once it is two majors behind stable, and
+  `browser_setup` installs or updates a
   dedicated Chrome for Testing.
 - **Software rendering can affect fingerprint consistency.** A browser may report `SwiftShader`
   or `llvmpipe` without hardware acceleration. This does not uniquely identify a VM. Changing a
