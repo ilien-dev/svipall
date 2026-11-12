@@ -1924,8 +1924,17 @@ impl SvipallServer {
                     "continue".into(),
                     json!(format!(
                         "Truncated: this part holds {} of the page's {} blocks. Next part: \
-                         web_fetch(url=\"{}\", cursor=\"{c}\"); the cursor keeps this call's query.",
-                        out.blocks_returned, out.total_blocks, url
+                         web_fetch(url=\"{}\", cursor=\"{c}\"{}); the cursor keeps this call's query.",
+                        out.blocks_returned,
+                        out.total_blocks,
+                        url,
+                        // The cursor carries the query, not the projection: a `json_path` has to
+                        // be passed again, or the continuation pages another document.
+                        p.json_path
+                            .as_deref()
+                            .filter(|j| !j.trim().is_empty())
+                            .map(|j| format!(", json_path={j:?}"))
+                            .unwrap_or_default()
                     )),
                 );
                 obj.insert("cursor".into(), json!(c));

@@ -377,6 +377,7 @@ async fn the_same_fetch_through_http_and_through_the_seam_return_the_same_object
 
 #[tokio::test]
 async fn a_fetch_over_rest_waits_out_a_full_window_when_told_to() {
+    support::isolate();
     // `wait` is a parameter of the same struct the route deserialises, so the route has it; this is
     // the proof that it is honoured there, and that `wait=0` over REST refuses instead.
     let url = "http://rest-wait.test/article";

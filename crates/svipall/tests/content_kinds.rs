@@ -163,6 +163,7 @@ async fn an_html_wall_labelled_as_json_is_still_a_wall() {
 #[tokio::test]
 #[ignore = "opens a local browser against a loopback proxy"]
 async fn a_refusal_the_browser_renders_again_is_not_delivered() {
+    support::isolate();
     let url = "http://forum-thirteen.test/r/rust/top.json";
     let site = Site::start(vec![(
         url,
@@ -837,6 +838,7 @@ async fn a_long_source_file_pages_back_together_exactly() {
 #[tokio::test]
 #[ignore = "opens a local browser against a loopback proxy"]
 async fn a_tiny_200_from_the_browser_after_a_403_is_not_delivered() {
+    support::isolate();
     let url = "http://manuals-eight.test/manual/1234/guide.html";
     let site = Site::start(vec![(
         url,
@@ -877,6 +879,7 @@ async fn a_tiny_200_from_the_browser_after_a_403_is_not_delivered() {
 /// Masked wherever page text reaches the caller: a table's cells and web_diff's added blocks too.
 #[tokio::test]
 async fn this_machines_address_is_masked_in_tables_and_in_a_diff() {
+    support::isolate();
     svipall_core::own_ip::learn(&["203.0.113.50".parse().unwrap()]);
     let table = "<!doctype html><html><head><title>Hosts</title></head><body><main>\
         <h1>Hosts</h1><p>Every visitor that reached this page in the last hour, with where they \
@@ -927,6 +930,7 @@ async fn this_machines_address_is_masked_in_tables_and_in_a_diff() {
 #[tokio::test]
 #[ignore = "opens a local browser"]
 async fn this_machines_address_is_masked_in_a_snapshot() {
+    support::isolate();
     svipall_core::own_ip::learn(&["203.0.113.61".parse().unwrap()]);
     let page = "<!doctype html><html><head><title>Who</title></head><body><main>\
         <h1>Welcome, visitor from 203.0.113.61</h1><p>You are welcome.</p>\
@@ -952,6 +956,7 @@ async fn this_machines_address_is_masked_in_a_snapshot() {
 #[tokio::test]
 #[ignore = "opens a local browser"]
 async fn a_solve_that_did_not_clear_does_not_send_the_caller_back_to_it() {
+    support::isolate();
     let url = "http://solve-fifteen.test/wall";
     let site = Site::start(vec![(url, Reply::cloudflare())]).await;
     svipall_core::store::ROUTES.insert("solve-fifteen.test", &site.url(""));

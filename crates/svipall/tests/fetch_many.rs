@@ -266,6 +266,13 @@ async fn a_cursor_the_set_issued_under_json_path_continues_on_web_fetch() {
     let text = next["content"].as_str().unwrap_or_default();
     assert_ne!(next["content"], first["content"], "{next}");
     assert!(!text.contains("noise"), "still the projection: {next}");
+    // And web_fetch's own hint for the part after this one names the path to pass again.
+    assert!(
+        next["continue"]
+            .as_str()
+            .is_some_and(|c| c.contains("json_path=")),
+        "{next}"
+    );
     assert!(
         !text.contains("\"id\": 1,"),
         "not restarted from the top: {next}"

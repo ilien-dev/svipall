@@ -340,6 +340,7 @@ async fn two_searches_on_one_engine_are_paced() {
 /// skipped, says why, and the next engine answers.
 #[tokio::test]
 async fn an_engine_host_held_by_retry_after_is_skipped_not_waited_for() {
+    support::isolate();
     let host = "engine-held.test";
     let site = Site::start(vec![
         (

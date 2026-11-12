@@ -623,6 +623,7 @@ async fn web_fetch_many_waits_when_asked_and_refuses_when_not() {
 /// Item 6: web_video's `wait` reaches the caption fetch, which the default would refuse.
 #[tokio::test]
 async fn web_video_waits_as_long_as_it_is_told() {
+    support::isolate();
     let host = "video-wait.test";
     let page = "http://video-wait.test/talk";
     let site = Site::start(vec![
