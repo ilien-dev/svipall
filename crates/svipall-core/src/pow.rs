@@ -248,7 +248,7 @@ impl Limits {
 const MAX_STATED_NUMBER: u64 = 50_000_000;
 
 fn unhex(s: &str) -> Option<Vec<u8>> {
-    if s.len() % 2 != 0 || !s.is_ascii() {
+    if !s.len().is_multiple_of(2) || !s.is_ascii() {
         return None;
     }
     (0..s.len())
@@ -317,7 +317,7 @@ impl Signed {
             } => {
                 let want = unhex(challenge)?;
                 for n in 0..=(*maxnumber).min(MAX_STATED_NUMBER) {
-                    if n % 4096 == 0 && limits.stop() {
+                    if n.is_multiple_of(4096) && limits.stop() {
                         return None;
                     }
                     if hash.digest(&[salt.as_bytes(), n.to_string().as_bytes()]) == want {
