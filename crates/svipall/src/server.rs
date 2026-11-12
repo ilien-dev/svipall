@@ -5256,7 +5256,9 @@ impl SvipallServer {
             // site of four hundred pages changes five in a week; re-reading the other 395 costs the
             // same as the first run did, in requests and in the site's patience.
             if p.since_last_crawl.unwrap_or(false) {
-                let (queued, skipped) = self.seed_from_sitemap(&start, &mut frontier).await;
+                let (queued, skipped) = self
+                    .seed_from_sitemap(&start, robots.as_ref(), &mut frontier)
+                    .await;
                 skipped_unchanged = skipped;
                 tracing::info!(queued, skipped, "incremental seed from sitemap");
             }
@@ -6401,6 +6403,7 @@ impl SvipallServer {
     async fn seed_from_sitemap(
         &self,
         start: &str,
+        robots: Option<&svipall_core::Robots>,
         frontier: &mut svipall_core::frontier::Frontier,
     ) -> (usize, usize) {
         use svipall_core::incremental::{decide, Entry};
@@ -6418,24 +6421,62 @@ impl SvipallServer {
             None => format!("{}://{host}", parsed.scheme()),
         };
         let (mut queued, mut skipped) = (0usize, 0usize);
-        for guess in svipall_core::sitemap::SITEMAP_GUESSES {
+        // Where robots.txt says the sitemap is, when it says: it was read a moment ago for this
+        // very crawl, and a sitemap it names can live anywhere. Only a site that names none is
+        // guessed at, and then by the two spellings nearly every site uses: each guess is a
+        // visit out of the twelve this host allows in a minute, taken from the pages the crawl
+        // is about to read.
+        let named: Vec<String> = robots.map(|r| r.sitemaps.clone()).unwrap_or_default();
+        let guessing = named.is_empty();
+        // Popped from the end, so the first of each list is tried first.
+        let mut queue: Vec<String> = if guessing {
+            svipall_core::sitemap::SITEMAP_GUESSES
+                .iter()
+                .take(2)
+                .rev()
+                .map(|g| format!("{origin}{g}"))
+                .collect()
+        } else {
+            named.into_iter().rev().collect()
+        };
+        // Bounded, because every document is a visit and an index can nest without end.
+        let mut documents = 0usize;
+        while let Some(next) = queue.pop() {
+            if documents >= 6 {
+                break;
+            }
             let out = self
                 .fetch_json(WebFetchParams {
-                    url: format!("{origin}{guess}"),
+                    url: next,
                     mode: Some("http".into()),
                     robots: Some("ignore".into()),
                     extraction: Some("html".into()),
                     ..Default::default()
                 })
                 .await;
-            let Some(body) = out.value["content"].as_str() else {
+            let delivered = (200..300).contains(&out.value["status"].as_u64().unwrap_or(0))
+                && out.value["blocked_reason"].is_null();
+            let Some(body) = out.value["content"].as_str().filter(|_| delivered) else {
                 continue;
             };
-            let Ok(svipall_core::sitemap::Sitemap::Urls(entries)) =
-                svipall_core::sitemap::parse(body.as_bytes(), 5_000)
-            else {
-                continue;
+            let entries = match svipall_core::sitemap::parse(body.as_bytes(), 5_000) {
+                Ok(svipall_core::sitemap::Sitemap::Urls(entries)) => entries,
+                // A site of any size publishes an index of sitemaps rather than one sitemap.
+                Ok(svipall_core::sitemap::Sitemap::Index(children)) => {
+                    if guessing && documents == 0 {
+                        queue.clear();
+                    }
+                    documents += 1;
+                    queue.extend(children.into_iter().take(5).rev());
+                    continue;
+                }
+                Err(_) => continue,
             };
+            // The guesses are spellings of one file: the first that is there ends them.
+            if guessing && documents == 0 {
+                queue.clear();
+            }
+            documents += 1;
             for e in entries {
                 let entry = Entry {
                     url: e.url.clone(),
@@ -6459,9 +6500,6 @@ impl SvipallServer {
                 }) {
                     queued += 1;
                 }
-            }
-            if queued > 0 || skipped > 0 {
-                break;
             }
         }
         (queued, skipped)
