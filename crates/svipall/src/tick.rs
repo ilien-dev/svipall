@@ -205,9 +205,34 @@ pub async fn document_age_ms(page: &Page) -> f64 {
         .unwrap_or(0.0)
 }
 
+/// When the document was created, on the page's own clock, in milliseconds since the epoch.
+/// Zero when it cannot say. A reload or a navigation gives the tab a new one.
+pub async fn document_born(page: &Page) -> f64 {
+    crate::apart::eval(page, "performance.timeOrigin")
+        .await
+        .ok()
+        .and_then(|v| v.as_f64())
+        .unwrap_or(0.0)
+}
+
+/// Is the document read `now` another one than the document read `then`? An answer that could
+/// not be read is not evidence of one.
+pub fn another_document(then: f64, now: f64) -> bool {
+    then > 0.0 && now > 0.0 && (now - then).abs() > 1.0
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn a_document_is_another_one_only_when_both_readings_say_so() {
+        assert!(another_document(1_794_471_751_000.0, 1_794_471_757_300.5));
+        assert!(!another_document(1_794_471_751_000.0, 1_794_471_751_000.2));
+        // A page that could not answer, before or after, has not been shown to have changed.
+        assert!(!another_document(0.0, 1_794_471_757_300.5));
+        assert!(!another_document(1_794_471_751_000.0, 0.0));
+    }
 
     #[test]
     fn the_box_is_placed_by_fraction_of_the_frame_wherever_the_frame_is() {

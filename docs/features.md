@@ -94,6 +94,7 @@ automatic-routing behavior are:
 | `vendor` | A detected fingerprinting wall; `wall_vendor` and `wall_evidence` identify a recognized sign | prefer permitted headful emulation; fallback depends on the remaining plan and budgets |
 | `empty` | Rendered no text at all | climb; or `web_act` with a wait, or a `css_selector` for the region you need |
 | `status` | A recognized HTTP refusal status | obey reported backoff; status and policy determine whether further attempts are allowed |
+| `origin` | The challenge was passed and the site's own server then refused (`challenge_passed` is set) | **stops the ladder**: there is nothing to solve, so `web_route` to another exit, or `web_login` if the site serves members only |
 | `gate` | A **geo or consent** gate instead of the page — not a captcha | **stops the ladder**, because no tier dismisses a cookie banner: `web_act` to click through, or `web_route` to change country |
 | `login` | A detected sign-in wall | stop escalation; use `web_login` for an authorized manual sign-in if appropriate |
 | `paywall` | Detected subscription or restricted content | stop escalation; an entitled session may be required, and a proxy does not grant access |

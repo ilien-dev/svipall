@@ -194,6 +194,58 @@ async fn cut_then_resumed(engine: &str) {
     assert!(!PathBuf::from(format!("{}.part", target.display())).exists());
 }
 
+/// The rate is of the bytes that arrived over the time they took to arrive.
+///
+/// It was the bytes over the whole call: the wait for the server's answer and, on a resumed
+/// download, the time spent reading the `.part` back for its checksum. A fast transfer of the
+/// last megabytes of a large file read 0.8 MB/s.
+#[tokio::test]
+async fn the_rate_of_a_resumed_download_counts_the_transfer_and_nothing_else() {
+    let d = dir("rate");
+    let body = archive(600_000);
+    let kept = 350_000;
+    let site = Site::start(vec![(
+        "/model.bin",
+        Reply::bytes(&body, "application/octet-stream")
+            .header("ETag", "\"v1\"")
+            // The server thinks for half a second before it answers. None of that is transfer.
+            .slow(500),
+    )])
+    .await;
+    let target = d.join("model.bin");
+    std::fs::write(format!("{}.part", target.display()), &body[..kept]).unwrap();
+    std::fs::write(
+        format!("{}.part.meta", target.display()),
+        serde_json::json!({"url": site.url("/model.bin"), "etag": "\"v1\"",
+                           "expected_bytes": body.len()})
+        .to_string(),
+    )
+    .unwrap();
+
+    let out = server()
+        .fetch_json(params(site.url("/model.bin"), Some(target.clone())))
+        .await
+        .value;
+    assert_eq!(out["file"]["resumed_from"], kept, "{out}");
+    assert_eq!(out["file"]["sha256"], sha(&body), "{out}");
+    let file = &out["file"];
+    let transferred = (body.len() - kept) as u64;
+    assert_eq!(file["transferred_bytes"], transferred, "{out}");
+    let (rate, transfer_ms, elapsed_ms) = (
+        file["bytes_per_sec"].as_u64().unwrap(),
+        file["transfer_ms"].as_u64().unwrap(),
+        file["elapsed_ms"].as_u64().unwrap(),
+    );
+    assert!(elapsed_ms >= 500, "the call includes the wait: {out}");
+    assert!(
+        transfer_ms + 400 < elapsed_ms,
+        "the transfer does not include the wait: {out}"
+    );
+    assert_eq!(rate, transferred * 1000 / transfer_ms.max(1), "{out}");
+    // Over the whole call these bytes would read under 500 kB/s.
+    assert!(rate > transferred * 2, "{out}");
+}
+
 #[tokio::test]
 async fn a_server_whose_copy_changed_sends_the_whole_file_and_it_starts_over() {
     let d = dir("changed");

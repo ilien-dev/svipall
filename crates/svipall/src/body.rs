@@ -183,6 +183,8 @@ pub struct Spill {
     pub resumed_from: u64,
     pub expected: Option<u64>,
     pub resumable: bool,
+    /// When the body started arriving, for the rate.
+    arriving_since: Instant,
 }
 
 /// Where a response body goes. See the module doc.
@@ -290,6 +292,8 @@ impl Sink {
             resumed_from,
             expected,
             resumable,
+            // After the `.part` was read back: from here on, time is bytes arriving.
+            arriving_since: Instant::now(),
         })
     }
 
@@ -314,6 +318,7 @@ impl Sink {
             hasher,
             written,
             resumed_from,
+            arriving_since,
             ..
         } = spill;
         drop(file);
@@ -326,6 +331,10 @@ impl Sink {
         }
         let _ = std::fs::remove_file(&meta);
         let elapsed = self.started.elapsed().as_millis().max(1) as u64;
+        // The rate is of what arrived over the time it took to arrive. The call also waited for
+        // the server's answer and, when resuming, read the `.part` back for its checksum:
+        // counted in, a fast transfer of the last megabytes of a large file read 0.8 MB/s.
+        let transfer = arriving_since.elapsed().as_millis().max(1) as u64;
         let mut info = json!({
             "out_file": target.to_string_lossy(),
             "bytes": written,
@@ -333,10 +342,12 @@ impl Sink {
             "content_type": self.content_type(),
             "complete": true,
             "elapsed_ms": elapsed,
-            "bytes_per_sec": (written - resumed_from) * 1000 / elapsed,
+            "transfer_ms": transfer,
+            "bytes_per_sec": (written - resumed_from) * 1000 / transfer,
         });
         if resumed_from > 0 {
             info["resumed_from"] = json!(resumed_from);
+            info["transferred_bytes"] = json!(written - resumed_from);
         }
         Some(info)
     }

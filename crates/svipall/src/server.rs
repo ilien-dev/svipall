@@ -194,6 +194,10 @@ struct TierOutcome {
     /// What the warm wait did and why it stopped. `None` at every other tier, because no other
     /// tier waits.
     warm: Option<Value>,
+    /// Whether this attempt saw a challenge on the page, and what stood in its place when the
+    /// wait ended: the page, the site's own refusal, or nothing it could name. See `passage`.
+    challenged: bool,
+    behind: crate::passage::Behind,
     /// The key this attempt's page is filed under when it was worth keeping. `None` when nothing
     /// was kept — an isolated fetch, the http tier, or a page not worth returning to.
     kept_key: Option<String>,
@@ -327,7 +331,16 @@ enum WarmEnd {
     Deadline,
     /// The page said it was nearly through, the deadline moved once, and it still did not arrive.
     ExtendedThenDeadline,
+    /// The challenge was passed and the site's own server then refused. Nothing left to wait for.
+    OriginRefused,
 }
+
+/// How long the headful tier gives a challenge it finds itself looking at.
+///
+/// Measured: an interstitial that needs nothing clears five to six seconds after its document
+/// starts, and one that wants a tick gets it at six (`tick`). Twelve from the first look covers
+/// both and the reload that follows. A strategy already at work is never cut short by it.
+const CHALLENGE_WAIT_MS: u64 = 12_000;
 
 impl WarmEnd {
     fn as_str(self) -> &'static str {
@@ -337,6 +350,7 @@ impl WarmEnd {
             Self::Blamed => "blamed",
             Self::Deadline => "deadline",
             Self::ExtendedThenDeadline => "extended-then-deadline",
+            Self::OriginRefused => "origin-refused",
         }
     }
 }
@@ -426,6 +440,10 @@ fn warm_should_stop(
     already_extended: bool,
     reports_progress: bool,
 ) -> Option<WarmEnd> {
+    // Before `delivered`: a server's bare refusal is a few words that read as a page.
+    if *kind == WallKind::Origin {
+        return Some(WarmEnd::OriginRefused);
+    }
     if delivered {
         return Some(WarmEnd::Cleared);
     }
@@ -812,6 +830,8 @@ fn file_outcome(sink: &crate::body::Sink, final_url: &str, mut info: Value) -> T
         scroll_rounds: None,
         cookies: svipall_core::classify::cookie_names(&sink.headers),
         warm: None,
+        challenged: false,
+        behind: crate::passage::Behind::Unknown,
         kept_key: None,
         headers: sink.headers.clone(),
         media: None,
@@ -2375,6 +2395,8 @@ impl SvipallServer {
             scroll_rounds: None,
             cookies: svipall_core::classify::cookie_names(&r.headers),
             warm: None,
+            challenged: false,
+            behind: crate::passage::Behind::Unknown,
             kept_key: None,
             headers: r.headers,
             media,
@@ -2420,6 +2442,14 @@ impl SvipallServer {
         }
         if self.pool.navigate(page, &root).await.is_err() {
             return;
+        }
+        // A front door that is itself an interstitial has nothing to glance at, and a pointer
+        // moving over a page that is verifying its visitor is the one thing a reader never does
+        // there. The page that was asked for shows the same check and is where it is waited out.
+        if let Ok((html, _)) = self.pool.content(page).await {
+            if svipall_core::challenge_is_self_verifying(&PageView::new(&html, "")) {
+                return;
+            }
         }
         // A glance, not a read: somebody who came for the deep link looks at the front page for a
         // couple of seconds and clicks. Anything longer is measured against the fetch it delays,
@@ -2547,7 +2577,8 @@ impl SvipallServer {
                         && parts.text.trim().len() >= 200
                     {
                         return Ok((live.status, live.html, live.url, None, live.headers, cookies,
-                            Some(json!({"ended":"cleared","document_reused":true,"network_fetch":true})), Some(true)));
+                            Some(json!({"ended":"cleared","document_reused":true,"network_fetch":true})), Some(true),
+                            (false, crate::passage::Behind::Unknown)));
                     }
                 }
             }
@@ -2558,6 +2589,12 @@ impl SvipallServer {
             let mut status = self.pool.navigate(&page, url).await?;
             if let Some(w) = watch.as_mut() {
                 w.drain();
+                // The page's own status when the watch saw it answer. The one the navigation
+                // reports is the frame's last finished request, or nothing read as 200: a bare
+                // "403 Forbidden" came back from this tier as a delivered page.
+                if let Some(own) = w.status() {
+                    status = own;
+                }
             }
             if self.cfg.block_ads {
                 // Before the HTML is read, not after: a consent overlay that is still up when the
@@ -2608,11 +2645,42 @@ impl SvipallServer {
                     status = 200;
                 }
             }
-            if tier == BrowserTier::Warm {
+            // The strategies that answer challenges used to run only from `solve_and_continue`;
+            // a plain fetch nudged the page and hoped. Now every turn of the wait is a turn of
+            // the strategy loop, so a press-and-hold, a hash puzzle or an audio clip is
+            // answered here rather than reported as a wall the caller has to come back for.
+            let engine = match &self.solver_state {
+                Some(st) => SolveEngine::with_state(self.pool.clone(), &self.cfg, st.clone()),
+                None => SolveEngine::new(self.pool.clone(), &self.cfg),
+            };
+            // Was a challenge here, and what stands in its place now.
+            let mut passage = crate::passage::Passage::default();
+            // The warm tier waits on whatever it finds. The headful tier below it used to read
+            // the page a second after it loaded and leave, so an interstitial that lets a
+            // visitor through in six cost a failed attempt and a second visit before the tier
+            // that waits. It now waits too, on a challenge and on nothing else: a page that is
+            // not one is read and returned exactly as before.
+            let waits = match tier {
+                BrowserTier::Warm => true,
+                BrowserTier::Real => {
+                    let parts = extraction::parse_page(&html, &ParseWants::text());
+                    let view = PageView::new(&html, &parts.text).on_the_wire(&headers, &cookies);
+                    classify_view(status, &html, &view).0.is_some()
+                        && (svipall_core::challenge_is_self_verifying(&view)
+                            || engine.probe_only(&page).await.is_some()
+                            || crate::tick::target(&page).await.is_some())
+                }
+                _ => false,
+            };
+            if waits {
                 let initial_view = PageView::new(&html, "").on_the_wire(&headers, &cookies);
-                let warm_budget = svipall_core::warm::wait_budget_ms(
-                    self.cfg.warm_wait_ms, self.cfg.warm_max_wait_ms, self.cfg.warm_adaptive,
-                    svipall_core::classify::is_proof_of_work_wall(&initial_view));
+                let warm_budget = if tier == BrowserTier::Warm {
+                    svipall_core::warm::wait_budget_ms(
+                        self.cfg.warm_wait_ms, self.cfg.warm_max_wait_ms, self.cfg.warm_adaptive,
+                        svipall_core::classify::is_proof_of_work_wall(&initial_view))
+                } else {
+                    CHALLENGE_WAIT_MS.min(self.cfg.warm_max_wait_ms)
+                };
                 let wait_started = Instant::now();
                 let hard_deadline = wait_started + Duration::from_millis(self.cfg.warm_max_wait_ms);
                 let mut deadline = wait_started + Duration::from_millis(warm_budget);
@@ -2622,16 +2690,10 @@ impl SvipallServer {
                 // it was last earned, and whether it has already been re-earned in this wait.
                 let mut cleared_at = Instant::now();
                 let mut reissued = false;
-                // The strategies that answer challenges used to run only from `solve_and_continue`;
-                // a plain fetch nudged the page and hoped. Now every turn of the wait is a turn of
-                // the strategy loop, so a press-and-hold, a hash puzzle or an audio clip is
-                // answered here rather than reported as a wall the caller has to come back for.
-                let engine = match &self.solver_state {
-                    Some(st) => SolveEngine::with_state(self.pool.clone(), &self.cfg, st.clone()),
-                    None => SolveEngine::new(self.pool.clone(), &self.cfg),
-                };
                 let started = Instant::now();
                 let mut iterations = 0u32;
+                // Turns spent doing nothing, because the page was verifying the visitor by itself.
+                let mut quiet_turns = 0u32;
                 // What the page looked like just before a reissue, so the log can say whether
                 // re-earning the clearance achieved anything. The baseline cannot answer that.
                 let mut before_reissue: Option<(WallKind, usize)> = None;
@@ -2643,6 +2705,23 @@ impl SvipallServer {
                     let parts = extraction::parse_page(&html, &ParseWants::text());
                     let view = PageView::new(&html, &parts.text).on_the_wire(&headers, &cookies);
                     let (reason, kind) = classify_view(status, &html, &view);
+                    // A challenge that let the visitor through and a server behind it that then
+                    // said no: nothing on that page is waiting for anything, so neither does this.
+                    // `status` rather than the wire's own: a page with text to show for itself has
+                    // already overruled a 4xx above, and that page is never called a refusal.
+                    let behind = passage.look(
+                        watch.as_ref().map_or(0, |w| w.documents()),
+                        watch.as_ref().and_then(|w| w.status()).map(|_| status),
+                        &kind,
+                        crate::passage::walled(reason.is_some(), &kind, status, &parts.text),
+                    );
+                    let kind = match behind {
+                        crate::passage::Behind::Refused(_) => WallKind::Origin,
+                        _ => kind,
+                    };
+                    // The page that answered where the challenge was is the page, however little
+                    // it says: there is nothing more of it to wait for.
+                    let delivered = reason.is_none() || behind == crate::passage::Behind::Page;
                     if let Some((k, len)) = before_reissue.take() {
                         reissue_changed = k != kind || html.len() != len;
                     }
@@ -2661,7 +2740,7 @@ impl SvipallServer {
                         && (!self.cfg.warm_adaptive || Instant::now() < hard_deadline);
                     let past = Instant::now() > deadline;
                     if let Some(end) =
-                        warm_should_stop(reason.is_none(), &kind, blamed, past, extended, progress)
+                        warm_should_stop(delivered, &kind, blamed, past, extended, progress)
                     {
                         break (end, kind);
                     }
@@ -2710,8 +2789,9 @@ impl SvipallServer {
                         self.pool.settle(&page, Duration::from_millis(1500)).await;
                         cleared_at = Instant::now();
                     } else if !actionable
-                        && svipall_core::challenge_is_self_verifying(view.low_text())
+                        && svipall_core::challenge_is_self_verifying(&view)
                     {
+                        quiet_turns += 1;
                         tokio::time::sleep(Duration::from_millis(1500)).await;
                     } else if let Err(e) = engine.wait_and_submit(&page, turn).await {
                         tracing::debug!("warm attempt: {e}");
@@ -2724,6 +2804,9 @@ impl SvipallServer {
                     if let Some(w) = watch.as_mut() {
                         w.drain();
                         headers = w.headers().to_vec();
+                        if let Some(own) = w.status() {
+                            status = own;
+                        }
                     }
                     cookies = self.pool.cookie_names(&page).await;
                     let l = look(&html, &headers, &cookies);
@@ -2747,7 +2830,8 @@ impl SvipallServer {
                 warm = Some(json!({
                     "ended": ending.as_str(),
                     "iterations": iterations,
-                    "secs": (started.elapsed().as_secs_f32() * 10.0).round() / 10.0,
+                    "secs": (started.elapsed().as_secs_f64() * 10.0).round() / 10.0,
+                    "quiet_turns": quiet_turns,
                     "reissued": reissued,
                     "reissue_changed": reissue_changed,
                     "budget_ms": warm_budget,
@@ -2773,6 +2857,7 @@ impl SvipallServer {
                 cookies,
                 warm,
                 keep,
+                (passage.challenged(), passage.behind()),
             ))
         }
         .await;
@@ -2805,7 +2890,7 @@ impl SvipallServer {
                 }
             }
         }
-        let (status, html, final_url, scroll_rounds, headers, cookies, warm, _) = result?;
+        let (status, html, final_url, scroll_rounds, headers, cookies, warm, _, trail) = result?;
         Ok(TierOutcome {
             status,
             html,
@@ -2815,6 +2900,8 @@ impl SvipallServer {
             headers,
             cookies,
             warm,
+            challenged: trail.0,
+            behind: trail.1,
             kept_key,
             media: None,
             document: None,
@@ -3510,6 +3597,12 @@ impl SvipallServer {
                     continue;
                 }
             };
+            // The site's own refusal behind a passed challenge keeps the status the site gave it.
+            let mut o = o;
+            if let crate::passage::Behind::Refused(s) = o.behind {
+                o.status = s;
+            }
+            let o = o;
             last_identity = if bt.is_none() {
                 "emulated"
             } else {
@@ -3678,8 +3771,17 @@ impl SvipallServer {
             {
                 reason = None;
             }
+            // What this tier found where a challenge had been. The site's own refusal is said as
+            // that, whatever its few words classify as. A page is the page however short it is:
+            // 78 characters behind a passed challenge were reported as the refusal the http tier
+            // had got, because that is what a short page after a refusal used to mean.
+            let behind = o.behind;
+            if let crate::passage::Behind::Refused(s) = behind {
+                reason = Some(svipall_core::classify::origin_refusal(s));
+                kind = WallKind::Origin;
+            }
             // The refusal an earlier tier got, rendered again by a browser and reported as 200.
-            if reason.is_none() && bt.is_some() {
+            if reason.is_none() && bt.is_some() && behind != crate::passage::Behind::Page {
                 if let Some(why) =
                     svipall_core::classify::tiny_after_refusal(refused_with, o.status, &parts.text)
                 {
@@ -3830,6 +3932,7 @@ impl SvipallServer {
                         | WallKind::SoftNotFound
                         | WallKind::Login
                         | WallKind::Paywall
+                        | WallKind::Origin
                 )
             {
                 use svipall_core::automatic::Feedback;
@@ -3877,6 +3980,10 @@ impl SvipallServer {
                     "title": parts.title, "attempts": attempts,
                 });
                 let obj = value.as_object_mut().expect("object");
+                // The page stood behind a challenge that this fetch passed.
+                if o.challenged {
+                    obj.insert("challenge_passed".into(), json!(true));
+                }
                 if let Some(m) = &o.media {
                     obj.insert("media".into(), m.clone());
                 }
@@ -4229,6 +4336,7 @@ impl SvipallServer {
                         | WallKind::SoftNotFound
                         | WallKind::Login
                         | WallKind::Paywall
+                        | WallKind::Origin
                 );
             let next = if terminal {
                 tiers.len()
@@ -4432,6 +4540,7 @@ impl SvipallServer {
             "wall_vendor": wire.as_ref().map(|(id, _)| *id),
             "wall_evidence": wire.as_ref().map(|(_, e)| e.as_str()),
             "warm": o.warm,
+            "challenge_passed": (kind == WallKind::Origin).then_some(true),
             "note": note,
             "challenge": challenge,
             "widgets": widgets,
@@ -7680,7 +7789,14 @@ impl SvipallServer {
             None => SolveEngine::new(self.pool.clone(), &self.cfg),
         };
         let wait = Duration::from_secs(p.timeout_s.unwrap_or(120));
-        let (html, final_url, solved) = engine
+        let crate::solver_engine::InPlace {
+            html,
+            final_url,
+            solved,
+            status,
+            challenged,
+            behind,
+        } = engine
             .solve_in_place(&p.url, p.profile.as_deref(), wait)
             .await?;
 
@@ -7701,16 +7817,31 @@ impl SvipallServer {
         );
         let parts = extraction::parse_page(&html, &wants);
         let view = PageView::new(&html, &parts.text);
-        let (reason, wall) = classify_view(200, &html, &view);
+        // Judged by the status the page itself answered with: a server's bare "403 Forbidden"
+        // read as a 200 is a few words and no wall, and was reported as a solved challenge.
+        let judged = crate::solver_engine::judged_status(status, &html, &parts.text);
+        let (reason, wall) = match behind {
+            crate::passage::Behind::Refused(s) => (
+                Some(svipall_core::classify::origin_refusal(s)),
+                WallKind::Origin,
+            ),
+            // What answered where the challenge was is the page, however little it says.
+            crate::passage::Behind::Page => (None, WallKind::None),
+            _ => classify_view(judged, &html, &view),
+        };
 
         let mut value = json!({
             "url": p.url,
             "final_url": final_url,
-            "solved": solved,
+            "solved": solved && reason.is_none(),
             "still_blocked": reason.is_some(),
             "wall_kind": format!("{:?}", wall).to_lowercase(),
             "title": parts.title,
         });
+        // The challenge itself was passed, whatever stood behind it.
+        if challenged && (reason.is_none() || wall == WallKind::Origin) {
+            value["challenge_passed"] = json!(true);
+        }
         if let Some(r) = reason {
             let obj = value.as_object_mut().expect("object");
             obj.insert("blocked_reason".into(), json!(r));
@@ -9173,6 +9304,12 @@ mod warm_tests {
         assert_eq!(
             warm_should_stop(false, &WallKind::Vendor, false, false, false, false),
             None
+        );
+        // The site's own refusal behind a passed challenge ends the wait at once, with time left
+        // and even though its few words read as a delivered page.
+        assert_eq!(
+            warm_should_stop(true, &WallKind::Origin, false, false, false, false),
+            Some(WarmEnd::OriginRefused)
         );
     }
 

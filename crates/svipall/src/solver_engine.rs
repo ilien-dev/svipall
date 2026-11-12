@@ -50,6 +50,9 @@ pub struct SolveEngine {
     /// Pages a strategy has acted on in a way that leaves no token to read: a tick, a form sent.
     /// On those, the widget no longer asking is what an answer looks like.
     acted: std::sync::Mutex<std::collections::HashSet<String>>,
+    /// The document a box was ticked on, by when it was created. A widget on a later document
+    /// of the same tab is another widget: see `stopped_asking`.
+    ticked_on: std::sync::Mutex<std::collections::HashMap<String, f64>>,
 }
 
 /// Hidden field each provider writes its response token into.
@@ -109,6 +112,7 @@ impl SolveEngine {
             corpus: cfg.corpus_keep_days > 0,
             ticked: Default::default(),
             acted: Default::default(),
+            ticked_on: Default::default(),
             auto_wait: Duration::from_millis(cfg.warm_wait_ms.max(8_000)),
             human_wait: Duration::from_secs(
                 std::env::var("SVIPALL_HUMAN_WAIT_SECS")
@@ -214,7 +218,7 @@ impl SolveEngine {
         page_url: &str,
         profile: Option<&str>,
         wait: Duration,
-    ) -> anyhow::Result<(String, String, bool)> {
+    ) -> anyhow::Result<InPlace> {
         if !self.pool.available() {
             anyhow::bail!(
                 "no Chromium-based browser found; browser_setup(action=\"install\") fetches one"
@@ -248,11 +252,25 @@ impl SolveEngine {
         let exit = opts.proxy.clone();
         let (_pooled, page) = self.pool.page(&opts).await?;
         let result = async {
+            // Before the navigation: the first document's answer is the first thing back.
+            let trail = Trail::start(&page).await;
             self.pool.navigate(&page, page_url).await?;
-            let mut solved = self.wait_and_submit(&page, wait).await?;
+            // The loop looks at the page for the trail only while nothing on it is recognised.
+            // A widget answered by a strategy never passes through there, so the page is looked
+            // at here as well: on arrival, and when the loop is done with it. Twice at the end,
+            // because a refusal is only called one on the second look.
+            let surface = PageSurface::new(self, &page).on(Some(&trail));
+            surface.look().await;
+            let mut solved = self.wait_and_submit_on(&page, wait, Some(&trail)).await?;
+            if surface.look().await == Some(true) && trail.challenged() {
+                tokio::time::sleep(Duration::from_millis(800)).await;
+                surface.look().await;
+            }
+            let refused = matches!(trail.behind(), crate::passage::Behind::Refused(_));
             // The models had their turn. A person at the dashboard — on a phone, on another
             // machine — gets the same page, parked here, before a window is opened on this one.
-            if !solved && self.human_assist && self.state.is_some() {
+            // Not a refusal from the site itself: there is nothing on it for anyone to answer.
+            if !solved && !refused && self.human_assist && self.state.is_some() {
                 if let Some(modality) = self.probe_only(&page).await {
                     solved = self
                         .hand_to_dashboard(&page, modality, self.human_wait)
@@ -261,13 +279,27 @@ impl SolveEngine {
             }
             // Whatever happened, report what the page says now.
             let (html, final_url) = self.pool.content(&page).await?;
-            Ok::<_, anyhow::Error>((html, final_url, solved))
+            Ok::<_, anyhow::Error>(InPlace {
+                html,
+                final_url,
+                solved,
+                status: trail.status(),
+                challenged: trail.challenged(),
+                behind: trail.behind(),
+            })
         }
         .await;
         self.pool.close_page(page).await;
 
         match result {
-            Ok(r) if r.2 || !self.human_assist || self.state.is_some() => Ok(r),
+            Ok(r)
+                if r.solved
+                    || !self.human_assist
+                    || self.state.is_some()
+                    || matches!(r.behind, crate::passage::Behind::Refused(_)) =>
+            {
+                Ok(r)
+            }
             // Nothing cleared on its own, there is no dashboard to hand it to, and a person is
             // allowed to help: same page, visible.
             _ => {
@@ -300,7 +332,14 @@ impl SolveEngine {
                     self.pool.navigate(&page, page_url).await?;
                     let solved = self.wait_and_submit(&page, self.human_wait).await?;
                     let (html, final_url) = self.pool.content(&page).await?;
-                    Ok::<_, anyhow::Error>((html, final_url, solved))
+                    Ok::<_, anyhow::Error>(InPlace {
+                        html,
+                        final_url,
+                        solved,
+                        status: None,
+                        challenged: false,
+                        behind: crate::passage::Behind::Unknown,
+                    })
                 }
                 .await;
                 self.pool.close_page(page).await;
@@ -338,7 +377,12 @@ impl SolveEngine {
         if !target.due {
             return Ok(Step::NotApplicable);
         }
+        let born = crate::tick::document_born(page).await;
         self.ticked.lock().expect("lock").insert(key.clone());
+        self.ticked_on
+            .lock()
+            .expect("lock")
+            .insert(key.clone(), born);
         self.acted.lock().expect("lock").insert(key);
         tracing::info!(widget = target.widget, "ticking the widget's box");
         let seed = self.pool.identity().noise_seed;
@@ -382,24 +426,45 @@ impl SolveEngine {
     /// An answer in its field is one. Its absence is one only on a page that is no longer a wall:
     /// an interstitial that refuses the visitor reloads into itself, and for a moment in between
     /// its widget is gone too. Measured as a tick "clearing" a wall that was still there.
+    ///
+    /// A widget still asking is the one that was ticked only on the document it was ticked on.
+    /// Measured on a demo page behind an interstitial: the tick passed, the page that replaced
+    /// the wall showed widgets of its own, and the wait sat out its twenty-five seconds on them.
     async fn stopped_asking(&self, page: &Page) -> bool {
         match crate::tick::asking(page).await {
             crate::tick::Asking::Answered => true,
-            crate::tick::Asking::Yes => false,
+            crate::tick::Asking::Yes => {
+                let ticked_on = self
+                    .ticked_on
+                    .lock()
+                    .expect("lock")
+                    .get(page.target_id().inner())
+                    .copied();
+                match ticked_on {
+                    Some(then) => {
+                        crate::tick::another_document(then, crate::tick::document_born(page).await)
+                            && !self.walled(page).await
+                    }
+                    None => false,
+                }
+            }
             crate::tick::Asking::Gone => !self.walled(page).await,
         }
     }
 
     /// Is the page still a wall? What ends a wait on one that lets the visitor through by itself.
+    ///
+    /// By the rule the browser tiers deliver on (`passage::walled`): a few lines of text in a
+    /// great deal of markup read as "needs a browser to render", and this is the browser. Taken
+    /// for a wall, such a page kept a tick that had passed waiting out its whole deadline.
     pub(crate) async fn walled(&self, page: &Page) -> bool {
         let Ok((html, _)) = self.pool.content(page).await else {
             return true;
         };
         let parts = svipall_core::parse_page(&html, &svipall_core::ParseWants::text());
         let view = svipall_core::classify::PageView::new(&html, &parts.text);
-        svipall_core::classify::classify_view(200, &html, &view)
-            .0
-            .is_some()
+        let (reason, kind) = svipall_core::classify::classify_view(200, &html, &view);
+        crate::passage::walled(reason.is_some(), &kind, 200, &parts.text)
     }
 
     /// The signed challenge, counted here and handed back through the page's own form.
@@ -892,7 +957,18 @@ impl SolveEngine {
         page: &Page,
         wait: Duration,
     ) -> anyhow::Result<bool> {
-        let surface = PageSurface::new(self, page);
+        self.wait_and_submit_on(page, wait, None).await
+    }
+
+    /// [`Self::wait_and_submit`] for a tab whose way through its challenge is being kept, so a
+    /// refusal from the site itself ends the wait instead of running it out.
+    async fn wait_and_submit_on(
+        &self,
+        page: &Page,
+        wait: Duration,
+        trail: Option<&Trail>,
+    ) -> anyhow::Result<bool> {
+        let surface = PageSurface::new(self, page).on(trail);
         let list = strategies();
 
         // What worked *here* before — on this widget asking this question — with the whole
@@ -957,7 +1033,13 @@ impl SolveEngine {
         if outcome.cleared() && outcome != Outcome::Passed {
             let pushed = crate::apart::text(page, SUBMIT_JS).await;
             tracing::info!(outcome = %pushed, "challenge token produced");
-            self.pool.settle(page, Duration::from_millis(2500)).await;
+            // A token is on its way somewhere, by the form just sent or by the widget's own
+            // callback, and the page it leads to is given time to arrive. No token at all is a
+            // wall that was ticked and went away: the page behind it is already here, and
+            // waiting for it to finish loading cost twelve seconds on a page that had its text.
+            if pushed != "no-token" {
+                self.pool.settle(page, Duration::from_millis(2500)).await;
+            }
         }
         Ok(outcome.cleared())
     }
@@ -1164,6 +1246,19 @@ pub(crate) fn strategies<'a>() -> Vec<&'a dyn Strategy<PageSurface<'a>>> {
     ]
 }
 
+/// What `solve_in_place` left the page as.
+pub struct InPlace {
+    pub html: String,
+    pub final_url: String,
+    /// Whether the page stopped being a wall.
+    pub solved: bool,
+    /// The status the page's own document answered with, when it was seen answering.
+    pub status: Option<u16>,
+    /// Whether a challenge was seen on the page, and what stood in its place at the end.
+    pub challenged: bool,
+    pub behind: crate::passage::Behind,
+}
+
 /// How many attempts a route needs before its own numbers outrank the machine-wide ones.
 const ROUTE_MIN_ATTEMPTS: u32 = 3;
 
@@ -1180,6 +1275,85 @@ pub struct PageSurface<'a> {
     /// What the last probe found, so "settled" can mean "that challenge is gone" for widgets that
     /// write no token and simply reload the page they were guarding.
     pub(crate) last: std::sync::Mutex<Option<Modality>>,
+    /// The tab's way through its challenge, when the caller is keeping one. Without it the
+    /// surface cannot tell a refusal from a wall, and never claims to.
+    trail: Option<&'a Trail>,
+}
+
+/// What a tab solved in place has answered and what stood behind its challenge.
+///
+/// The document watch says what each page the tab loaded answered with, and `Passage` remembers
+/// whether one of them was a challenge. Together they tell the page behind a challenge, however
+/// short, from the site's own refusal, however much it looks like a page.
+pub(crate) struct Trail {
+    inner: std::sync::Mutex<TrailState>,
+}
+
+#[derive(Default)]
+struct TrailState {
+    watch: Option<crate::wire::DocumentWatch>,
+    passage: crate::passage::Passage,
+    /// The last look found an interstitial that verifies by itself: a page to leave alone.
+    quiet: bool,
+}
+
+/// The status a page is judged by: its own, unless it has text to show for itself.
+///
+/// A challenge that resolves in place leaves the page it was guarding behind the 403 it was
+/// served with, so rendered text overrules a refusal status. A few words do not: a server's bare
+/// "403 Forbidden" is the refusal. `None` is a tab nobody was watching, read as it always was.
+pub(crate) fn judged_status(own: Option<u16>, html: &str, text: &str) -> u16 {
+    use svipall_core::classify::{classify_view, PageView};
+    match own {
+        Some(s) if s >= 400 => {
+            let view = PageView::new(html, text);
+            let reads_as_a_page = classify_view(200, html, &view).0.is_none();
+            if reads_as_a_page && view.text.chars().count() >= 200 {
+                200
+            } else {
+                s
+            }
+        }
+        Some(s) => s,
+        None => 200,
+    }
+}
+
+impl Trail {
+    /// Start watching. Before the navigation, or the first document's answer is missed.
+    pub(crate) async fn start(page: &Page) -> Self {
+        Self {
+            inner: std::sync::Mutex::new(TrailState {
+                watch: crate::wire::DocumentWatch::start(page).await.ok(),
+                ..Default::default()
+            }),
+        }
+    }
+
+    /// How many documents the tab has loaded, and what the latest answered with.
+    fn documents(&self) -> (u32, Option<u16>) {
+        let mut state = self.inner.lock().expect("lock");
+        match state.watch.as_mut() {
+            Some(w) => {
+                w.drain();
+                (w.documents(), w.status())
+            }
+            None => (0, None),
+        }
+    }
+
+    /// The latest document's own status.
+    pub(crate) fn status(&self) -> Option<u16> {
+        self.documents().1
+    }
+
+    pub(crate) fn behind(&self) -> crate::passage::Behind {
+        self.inner.lock().expect("lock").passage.behind()
+    }
+
+    pub(crate) fn challenged(&self) -> bool {
+        self.inner.lock().expect("lock").passage.challenged()
+    }
 }
 
 impl<'a> PageSurface<'a> {
@@ -1189,7 +1363,33 @@ impl<'a> PageSurface<'a> {
             page,
             seen: std::sync::Mutex::new(None),
             last: std::sync::Mutex::new(None),
+            trail: None,
         }
+    }
+
+    pub(crate) fn on(mut self, trail: Option<&'a Trail>) -> Self {
+        self.trail = trail;
+        self
+    }
+
+    /// One look at the page for the trail: is it still a wall, and what does that make of the
+    /// challenge that was here. `None` when there is no trail to keep or the page cannot be read.
+    async fn look(&self) -> Option<bool> {
+        use svipall_core::classify::{classify_view, PageView};
+        let trail = self.trail?;
+        let (html, _) = self.engine.pool.content(self.page).await.ok()?;
+        let parts = svipall_core::parse_page(&html, &svipall_core::ParseWants::text());
+        let (documents, own) = trail.documents();
+        let status = judged_status(own, &html, &parts.text);
+        let view = PageView::new(&html, &parts.text);
+        let (reason, kind) = classify_view(status, &html, &view);
+        let walled = crate::passage::walled(reason.is_some(), &kind, status, &parts.text);
+        let mut state = trail.inner.lock().expect("lock");
+        state
+            .passage
+            .look(documents, own.map(|_| status), &kind, walled);
+        state.quiet = walled && svipall_core::challenge_is_self_verifying(&view);
+        Some(walled)
     }
 
     pub(crate) fn widget(&self) -> Option<&'static str> {
@@ -1358,7 +1558,20 @@ impl Surface for PageSurface<'_> {
     }
 
     fn through(&self) -> BoxFuture<'_, bool> {
-        Box::pin(async move { !self.engine.walled(self.page).await })
+        Box::pin(async move {
+            match self.look().await {
+                Some(walled) => !walled,
+                None => !self.engine.walled(self.page).await,
+            }
+        })
+    }
+
+    fn refused(&self) -> BoxFuture<'_, bool> {
+        Box::pin(async move {
+            // Of the look `through` just took: one read of the page answers both.
+            self.trail
+                .is_some_and(|t| matches!(t.behind(), crate::passage::Behind::Refused(_)))
+        })
     }
 
     fn probe(&self) -> BoxFuture<'_, Option<Modality>> {
@@ -1413,7 +1626,14 @@ impl Surface for PageSurface<'_> {
 
     fn settle(&self) -> BoxFuture<'_, ()> {
         Box::pin(async move {
-            self.engine.pool.nudge(self.page).await;
+            // A page that is verifying its visitor by itself is left alone, the way a person
+            // reading it leaves it alone: a pointer moving there is the script's tell.
+            let quiet = self
+                .trail
+                .is_some_and(|t| t.inner.lock().expect("lock").quiet);
+            if !quiet {
+                self.engine.pool.nudge(self.page).await;
+            }
             tokio::time::sleep(Duration::from_millis(900)).await;
         })
     }
@@ -2155,6 +2375,75 @@ mod tests {
         // which is a louder signal than anything in the audio.
         let js = fetch_clip_js("https://x.test/a.mp3");
         assert!(js.contains("credentials: 'include'"), "{js}");
+    }
+
+    /// The signed proof counted here, against a live site that checks it.
+    ///
+    /// Every browser tier runs the page's own scripts, so on a live site the widget does the sum
+    /// and this path never runs. Here the widget's script is kept from arriving, which leaves
+    /// the element with nothing behind it: the case `try_signed_pow` exists for. By hand, once.
+    ///
+    /// ```text
+    /// cargo test -p svipall --lib -- --ignored --nocapture counted_here_on_a_live_site
+    /// ```
+    #[tokio::test]
+    #[ignore = "live network and a real browser"]
+    async fn a_signed_proof_is_counted_here_on_a_live_site_whose_widget_never_ran() {
+        use svipall_cdp::cdp::browser_protocol::network::{EnableParams, SetBlockedUrLsParams};
+        let home = std::env::temp_dir().join(format!("svipall-pow-live-{}", std::process::id()));
+        std::fs::create_dir_all(&home).expect("a home of its own");
+        std::env::set_var("SVIPALL_HOME", &home);
+        std::env::set_var("SVIPALL_HUMAN_ASSIST", "0");
+        let cfg = svipall_core::Config::default();
+        let pool = Arc::new(BrowserPool::new(cfg.clone()));
+        let engine = SolveEngine::new(pool.clone(), &cfg);
+        let url = "https://www.mojeek.com/search?q=borrow+checker+lifetimes";
+        let opts = PageOpts {
+            mobile: false,
+            tier: BrowserTier::Real,
+            profile_dir: Some(home.join("profile")),
+            proxy: None,
+            visible: false,
+            identity_seed: None,
+        };
+        let (_pooled, page) = pool.page(&opts).await.expect("a page");
+        page.execute(EnableParams::default())
+            .await
+            .expect("network");
+        page.execute(SetBlockedUrLsParams::new(vec![
+            "*/js/page_specific/altcha.js*".into(),
+        ]))
+        .await
+        .expect("the widget's script blocked");
+        pool.navigate(&page, url).await.expect("navigated");
+        let widget_ran = crate::apart::flag(&page, "!!customElements.get('altcha-widget')").await;
+        let started = Instant::now();
+        let solved = engine
+            .wait_and_submit(&page, Duration::from_secs(60))
+            .await
+            .expect("the loop ran");
+        let (html, final_url) = pool.content(&page).await.expect("content");
+        let parts = svipall_core::parse_page(&html, &svipall_core::ParseWants::text());
+        let results_page = html
+            .to_lowercase()
+            .contains("<title>borrow checker lifetimes");
+        eprintln!(
+            "widget_ran={widget_ran} solved={solved} in {:.1}s final_url={final_url} results_page={results_page} chars={}",
+            started.elapsed().as_secs_f32(),
+            parts.text.chars().count()
+        );
+        pool.close_page(page).await;
+        assert!(!widget_ran, "the widget's script arrived after all");
+        assert!(
+            solved,
+            "{}",
+            &parts.text.chars().take(300).collect::<String>()
+        );
+        assert!(
+            final_url.contains("/search?q=borrow"),
+            "left on {final_url}"
+        );
+        assert!(results_page, "not the results page");
     }
 
     /// The probe's vocabulary: every `out.kind = "…"` it can say.

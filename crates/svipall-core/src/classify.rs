@@ -24,6 +24,9 @@ pub enum WallKind {
     /// that changes the answer, so it escalates like a login wall rather than stopping.
     Paywall,
     Status,
+    /// The challenge was passed and the site's own server then refused. Nothing to solve and no
+    /// tier to climb to: it is this client or this address the origin will not serve.
+    Origin,
 }
 
 static TITLE_RE: LazyLock<Regex> =
@@ -384,12 +387,35 @@ fn clamp_to_boundary(s: &str, limit: usize) -> &str {
     &s[..end]
 }
 
+/// How much of the end of a long document is kept for the structural check.
+const TAIL_LIMIT: usize = 24_000;
+
+/// The end of a document that runs past the scan, and nothing for one that does not.
+///
+/// An interstitial is a few kilobytes, so the scan covers all of it, until something on the
+/// machine writes into the page. Measured: a security product puts 220 KB of its own styles in
+/// the head of every document, and the interstitial's script and its line for readers without
+/// scripts, which close the body, land past the cap. The end of the document is where they are.
+fn tail_past_the_scan(html: &str) -> &str {
+    if html.len() <= SCAN_LIMIT {
+        return "";
+    }
+    let mut start = html.len().saturating_sub(TAIL_LIMIT).max(SCAN_LIMIT);
+    while start < html.len() && !html.is_char_boundary(start) {
+        start += 1;
+    }
+    &html[start..]
+}
+
 /// The two lowercased haystacks a classification needs, built once per response instead of once
 /// per `classify` call. Every needle in this module is ASCII, so `to_ascii_lowercase` gives the
 /// same answers as the Unicode-aware `to_lowercase` for roughly a tenth of the cost.
 pub struct PageView<'a> {
     pub text: &'a str,
     low_html: String,
+    /// The end of a document longer than the scan, lowercased. Empty for every other one. Only
+    /// what an interstitial is made of is looked for here: see [`tail_past_the_scan`].
+    low_tail: String,
     low_text: String,
     /// Response headers as `"\n{name}: {value}"`, lowercased. Empty unless the caller supplied
     /// them, which is why `new` costs no more than it did.
@@ -440,6 +466,7 @@ impl<'a> PageView<'a> {
         Self {
             text: text.trim(),
             low_html: clamp_to_boundary(html, SCAN_LIMIT).to_ascii_lowercase(),
+            low_tail: tail_past_the_scan(html).to_ascii_lowercase(),
             low_text: text.trim().to_ascii_lowercase(),
             low_head: String::new(),
             low_cookies: String::new(),
@@ -529,7 +556,12 @@ pub fn challenge_reports_progress(low_text: &str) -> bool {
 /// The right thing to do on one is nothing: a person reading "Just a moment" waits. Pointer
 /// activity and scrolling during that wait is what a script does, not what a person does, and it
 /// was the one thing the tool did on every turn of its wait.
-pub fn challenge_is_self_verifying(low_text: &str) -> bool {
+///
+/// Known by what the document is made of before by what it says. The wording changes: the page
+/// that read "Just a moment" reads "Performing security verification" now, and a list of phrases
+/// stopped matching it the day it did. The phrases stay for the pages that have no structure to
+/// go by.
+pub fn challenge_is_self_verifying(v: &PageView<'_>) -> bool {
     const SELF: &[&str] = &[
         "just a moment",
         "verify your session",
@@ -538,7 +570,43 @@ pub fn challenge_is_self_verifying(low_text: &str) -> bool {
         "checking if the site connection is secure",
         "please wait while we verify",
     ];
-    SELF.iter().any(|p| low_text.contains(p)) || challenge_reports_progress(low_text)
+    is_interstitial_document(v)
+        || SELF.iter().any(|p| v.low_text.contains(p))
+        || challenge_reports_progress(&v.low_text)
+}
+
+/// More text than this is a page with something of its own to say.
+const INTERSTITIAL_TEXT_LIMIT: usize = 600;
+
+/// Is the document itself an interstitial: a page whose only job is to run a check and leave?
+///
+/// Two shapes. The orchestrated challenge names its own script and its options object in the
+/// markup. Any other one has nothing of its own to show, reloads itself on a timer, and carries
+/// a line for the reader whose scripts are off, because without scripts it can never leave.
+fn is_interstitial_document(v: &PageView<'_>) -> bool {
+    let has = |needle: &str| v.low_html.contains(needle) || v.low_tail.contains(needle);
+    if cloudflare_is_managed_challenge(&v.low_html) || cloudflare_is_managed_challenge(&v.low_tail)
+    {
+        return true;
+    }
+    let reloads = [
+        "http-equiv=\"refresh\"",
+        "http-equiv='refresh'",
+        "http-equiv=refresh",
+    ]
+    .iter()
+    .any(|m| has(m));
+    reloads && has("<noscript") && v.text.chars().count() < INTERSTITIAL_TEXT_LIMIT
+}
+
+/// What to call a refusal that came from the site itself once its challenge had been passed.
+///
+/// Not a wall to solve: the check let the visitor in, and the server behind it then said no to
+/// this client or this address. Said in one place so the fetch and the solver report it alike.
+pub fn origin_refusal(status: u16) -> String {
+    format!(
+        "origin refusal: the challenge was passed, then the site's own server answered {status}"
+    )
 }
 
 /// Is this the *managed* Cloudflare challenge rather than the interstitial that clears itself?
@@ -1144,17 +1212,70 @@ mod tests {
 
     #[test]
     fn an_interstitial_that_verifies_on_its_own_is_recognised_as_one() {
+        let says = |text: &str| challenge_is_self_verifying(&PageView::new("", text));
         // A person reading "Just a moment" waits; pointer activity there is what a script does.
-        assert!(challenge_is_self_verifying(
-            "just a moment...\nwe must verify your session"
-        ));
-        assert!(challenge_is_self_verifying(
-            "verification successful. waiting for x to respond"
-        ));
-        assert!(!challenge_is_self_verifying(
-            "press and hold the button to confirm"
-        ));
-        assert!(!challenge_is_self_verifying("select all images with a bus"));
+        assert!(says("just a moment...\nwe must verify your session"));
+        assert!(says("verification successful. waiting for x to respond"));
+        assert!(!says("press and hold the button to confirm"));
+        assert!(!says("select all images with a bus"));
+    }
+
+    #[test]
+    fn an_interstitial_is_known_by_what_it_is_made_of_whatever_it_says() {
+        // The page as a browser rendered it on a live site, with the wording of the day:
+        // "Performing security verification". None of the phrases this was keyed on is in it.
+        let html = include_str!("../fixtures/walls/interstitial-verifying.html");
+        let text = "www.example.test\nPerforming security verification\n\nThis website uses a \
+                    security service to protect against malicious bots. This page is displayed \
+                    while the website verifies you are not a bot.\n\nRay ID: a593f17def41a670";
+        assert!(challenge_is_self_verifying(&PageView::new(html, text)));
+        // Measured on this machine: a security product writes 220 KB of its own styles into the
+        // head of every page the browser loads, which puts everything the interstitial is made
+        // of past the part of the markup that is scanned.
+        let injected = html.replace(
+            "<style></style>",
+            &format!("<style>{}</style>", ".abn{display:none}".repeat(13_000)),
+        );
+        assert!(injected.len() > SCAN_LIMIT + 200_000);
+        assert!(challenge_is_self_verifying(&PageView::new(&injected, text)));
+        // Reworded again tomorrow, it is still the same page.
+        let reworded = html.replace("Just a moment...", "One second");
+        assert!(challenge_is_self_verifying(&PageView::new(
+            &reworded,
+            "Confirming this visit"
+        )));
+        // A page with nothing of its own to show, that reloads itself and tells a reader without
+        // scripts to turn them on, is one too, whoever serves it.
+        let plain = "<html><head><title>Hold on</title><meta name=\"robots\" content=\"noindex\">\
+                     <meta http-equiv=\"refresh\" content=\"30\"></head><body><p>One moment.</p>\
+                     <noscript>Turn on JavaScript to continue.</noscript>\
+                     <script src=\"/check.js\"></script></body></html>";
+        assert!(challenge_is_self_verifying(&PageView::new(
+            plain,
+            "One moment."
+        )));
+        // An article on a site behind the same network is not: the network's script is on every
+        // page it serves, and a long page that refreshes itself is a live blog.
+        let body = "The council met on Tuesday and voted on the budget. ".repeat(40);
+        let article = format!(
+            "<html><head><meta http-equiv=\"refresh\" content=\"300\"></head><body>\
+             <script src=\"/cdn-cgi/challenge-platform/scripts/jsd/main.js\"></script>\
+             <article>{body}</article><noscript>Enable JavaScript for comments.</noscript>\
+             </body></html>"
+        );
+        assert!(!challenge_is_self_verifying(&PageView::new(
+            &article, &body
+        )));
+    }
+
+    #[test]
+    fn a_refusal_behind_a_passed_challenge_names_what_happened() {
+        let why = origin_refusal(403);
+        assert!(why.starts_with("origin refusal"), "{why}");
+        assert!(
+            why.contains("403") && why.contains("challenge was passed"),
+            "{why}"
+        );
     }
 
     #[test]

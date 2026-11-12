@@ -28,6 +28,8 @@ pub mod model_source;
 pub mod ocr;
 /// Tool arguments read against the tool's schema: lenient types, unknown keys named.
 pub mod params;
+/// What a tab found where a challenge was: the page, or the site's own refusal.
+pub mod passage;
 pub mod profiles;
 /// How a long job says how it is going, to whoever is listening.
 pub mod progress;

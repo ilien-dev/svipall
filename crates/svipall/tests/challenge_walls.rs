@@ -278,6 +278,36 @@ const POW_BARE: &str = r#"<!doctype html><html><head><title>Captcha</title></hea
 <altcha-widget challengeurl="/bare/challenge" name="altcha"></altcha-widget>
 </form></body></html>"#;
 
+/// An interstitial that verifies the visitor by itself and then reloads into whatever the site
+/// answers next. Built like the live one, with its options object in the markup, a timed reload
+/// and a line for the reader without scripts, and worded as the live one is today.
+const CLEARING: &str = r#"<!doctype html><html><head><title>Just a moment...</title>
+<meta name="robots" content="noindex,nofollow"><meta http-equiv="refresh" content="360"></head><body>
+<h1>127.0.0.1</h1><h2>Performing security verification</h2>
+<p>This website uses a security service to protect against malicious bots. This page is
+displayed while the website verifies you are not a bot.</p>
+<noscript><span id="challenge-error-text">Enable JavaScript and cookies to continue</span></noscript>
+<script>window._cf_chl_opt = {cRay: 'fixture'};
+setTimeout(() => { document.cookie = 'COOKIE=1; path=/'; location.reload(); }, AFTER);</script>
+</body></html>"#;
+
+fn clearing(cookie: &str, after_ms: u32) -> Resp {
+    Resp::html(
+        403,
+        CLEARING
+            .replace("COOKIE", cookie)
+            .replace("AFTER", &after_ms.to_string()),
+    )
+}
+
+/// A page that really is this short.
+const TINY: &str = "<!doctype html><html><head><title>Tiny</title></head><body><h1>Tiny</h1>\
+                    <p>You got past the challenge.</p></body></html>";
+
+/// What a web server says when it will not serve a client, with nothing else on the page.
+const STUB: &str = "<html><head><title>403 Forbidden</title></head><body><center>\
+                    <h1>403 Forbidden</h1></center><hr><center>nginx</center></body></html>";
+
 /// A page that prints what the browser says it is, in the document and in a worker.
 const WHO: &str = r#"<!doctype html><html><head><title>Who is asking</title></head><body>
 <h1>Who is asking</h1>
@@ -310,6 +340,9 @@ impl Wall {
                     let Some(req) = read(&mut sock).await else {
                         return;
                     };
+                    if req.path.starts_with("/hang") {
+                        tokio::time::sleep(Duration::from_secs(8)).await;
+                    }
                     let r = route(&req, port, &seen);
                     let mut head = format!(
                         "HTTP/1.1 {} X\r\nContent-Type: {}\r\nContent-Length: {}\r\nConnection: close\r\nCache-Control: no-store\r\n",
@@ -351,7 +384,16 @@ async fn read(sock: &mut tokio::net::TcpStream) -> Option<Req> {
     let head = String::from_utf8_lossy(&buf[..head_end]).into_owned();
     let mut lines = head.lines();
     let mut first = lines.next()?.split_whitespace();
-    let (method, path) = (first.next()?.to_string(), first.next()?.to_string());
+    let (method, target) = (first.next()?.to_string(), first.next()?.to_string());
+    // Asked as a proxy, the request line carries the whole address. The site is the same one
+    // whatever name it was reached by, and a name that is not loopback is what lets a fetch
+    // climb the ladder the way it does on the open web.
+    let path = match target.strip_prefix("http://") {
+        Some(rest) => rest
+            .find('/')
+            .map_or("/".to_string(), |i| rest[i..].to_string()),
+        None => target,
+    };
     let headers: HashMap<String, String> = lines
         .filter_map(|l| l.split_once(':'))
         .map(|(k, v)| (k.trim().to_ascii_lowercase(), v.trim().to_string()))
@@ -394,6 +436,13 @@ fn route(req: &Req, port: u16, seen: &Seen) -> Resp {
     };
     match (req.method.as_str(), path) {
         ("GET", "/who") => Resp::html(200, WHO.into()),
+        ("GET", "/") | ("GET", "/plain") => manual(),
+        ("GET", "/tiny") if req.cookie("tiny") => Resp::html(200, TINY.into()),
+        ("GET", "/tiny") => clearing("tiny", 2500),
+        ("GET", "/slow") if req.cookie("slow") => manual(),
+        ("GET", "/slow") => clearing("slow", 5000),
+        ("GET", "/refused") if req.cookie("refused") => Resp::html(403, STUB.into()),
+        ("GET", "/refused") => clearing("refused", 2500),
         ("GET", "/watched") if req.cookie("watched") => manual(),
         ("GET", "/watched") => Resp::html(403, WATCHED.into()),
         ("POST", "/watched/tripped") => {
@@ -402,6 +451,58 @@ fn route(req: &Req, port: u16, seen: &Seen) -> Resp {
         }
         ("GET", "/tick") if req.cookie("ticked") => manual(),
         ("GET", "/tick") => Resp::html(403, TICK.replace("PORT", &port.to_string())),
+        // The same wall in front of a page that takes eight seconds to finish loading: all of
+        // its text is there at once, and one picture is not.
+        ("GET", "/tick-heavy") if req.cookie("heavy") => {
+            let mut page = manual();
+            page.body = page
+                .body
+                .replace("</body>", "<img src=\"/hang\" alt=\"\"></body>");
+            page
+        }
+        ("GET", "/tick-heavy") => Resp::html(
+            403,
+            TICK.replace("PORT", &port.to_string())
+                .replace("ticked=1", "heavy=1"),
+        ),
+        ("GET", "/hang") => Resp::html(200, String::new()),
+        // And in front of a page that shows a widget of its own, beside a form nobody is
+        // filling in: the wall is gone, and a widget is still on the page asking.
+        ("GET", "/tick-widget") if req.cookie("widget") => {
+            let mut page = manual();
+            page.body = page.body.replace(
+                "</body>",
+                &format!(
+                    "<form><iframe src=\"http://localhost:{port}/challenges.cloudflare.com/\
+                     turnstile/frame\" width=\"300\" height=\"65\"></iframe></form></body>"
+                ),
+            );
+            page
+        }
+        ("GET", "/tick-widget") => Resp::html(
+            403,
+            TICK.replace("PORT", &port.to_string())
+                .replace("ticked=1", "widget=1"),
+        ),
+        // The same, where the page says very little: the demo page it was measured on is a
+        // few lines of text in a great deal of markup.
+        ("GET", "/tick-sparse") if req.cookie("sparse") => Resp::html(
+            200,
+            TINY.replace(
+                "</body>",
+                &format!(
+                    "<style>{}</style><form><iframe src=\"http://localhost:{port}/\
+                     challenges.cloudflare.com/turnstile/frame\" width=\"300\" height=\"65\">\
+                     </iframe></form></body>",
+                    ".demo-card{display:grid;gap:1rem}".repeat(6_000)
+                ),
+            ),
+        ),
+        ("GET", "/tick-sparse") => Resp::html(
+            403,
+            TICK.replace("PORT", &port.to_string())
+                .replace("ticked=1", "sparse=1"),
+        ),
         ("GET", "/challenges.cloudflare.com/turnstile/frame") => Resp::html(200, TICK_FRAME.into()),
         ("GET", "/pow") if req.cookie("pow") => manual(),
         ("GET", "/pow") => Resp::html(403, POW.into()),
@@ -561,6 +662,184 @@ async fn a_browser_tier_says_it_is_the_browser_it_is() {
             "{realm} something other than Chrome {installed}: {content}"
         );
     }
+}
+
+/// One fetch. With a tier named, of the loopback address. Without one, of a name that is not
+/// loopback, reached through the fixture as its proxy: a loopback fetch never leaves the http
+/// tier, and these tests are about what the tiers above it do.
+async fn fetch(site: &Wall, path: &str, mode: Option<&str>) -> (Value, Duration) {
+    let s = SvipallServer::new(
+        None,
+        svipall_core::Config {
+            request_min_interval_ms: 1,
+            http_engine: "reqwest".into(),
+            block_ads: false,
+            ..Default::default()
+        },
+        None,
+    );
+    let (url, proxy) = match mode {
+        Some(_) => (site.url(path), None),
+        None => (
+            format!("http://behind{}.test{path}", path.replace('/', "-")),
+            Some(site.url("")),
+        ),
+    };
+    let started = Instant::now();
+    let out = s
+        .fetch_json(svipall::tools::WebFetchParams {
+            url,
+            proxy,
+            mode: mode.map(str::to_string),
+            cache: Some("bypass".into()),
+            robots: Some("ignore".into()),
+            ..Default::default()
+        })
+        .await
+        .value;
+    s.shutdown_configuration().await;
+    eprintln!("{path}: {:.1}s {out}", started.elapsed().as_secs_f32());
+    (out, started.elapsed())
+}
+
+#[tokio::test]
+#[ignore = "needs a real browser"]
+async fn a_tier_looking_at_an_interstitial_gives_it_the_time_it_needs() {
+    // The headful tier read the page a second after it loaded and reported the interstitial it
+    // was still showing. Every such site cost one failed attempt before the tier that waits.
+    support::isolate();
+    let site = Wall::start().await;
+    let (out, _) = fetch(&site, "/slow", Some("real")).await;
+    assert_eq!(out["title"], "The manual", "{out}");
+    assert_eq!(out["tier_used"], "real", "{out}");
+    assert!(out["blocked_reason"].is_null(), "{out}");
+    assert_eq!(out["challenge_passed"], true, "{out}");
+}
+
+#[tokio::test]
+#[ignore = "needs a real browser"]
+async fn a_page_that_is_no_challenge_is_not_waited_on() {
+    support::isolate();
+    let site = Wall::start().await;
+    let (out, took) = fetch(&site, "/plain", Some("real")).await;
+    assert_eq!(out["title"], "The manual", "{out}");
+    assert!(out["warm"].is_null(), "a wait was spent on a page: {out}");
+    assert!(out["challenge_passed"].is_null(), "{out}");
+    // A browser start, a load and the settle after it. The wait a challenge gets is twelve more.
+    assert!(took < Duration::from_secs(12), "took {took:?}");
+}
+
+#[tokio::test]
+#[ignore = "needs a real browser"]
+async fn a_page_with_a_widget_of_its_own_is_not_taken_for_the_wall_it_replaced() {
+    // Measured on a demo page: its interstitial was ticked and gave way to a page that shows
+    // widgets of its own, and the tick went on waiting twenty-five seconds for "the widget" to
+    // stop asking. The one it ticked was gone with the document it was on.
+    support::isolate();
+    let site = Wall::start().await;
+    for (path, title) in [("/tick-widget", "The manual"), ("/tick-sparse", "Tiny")] {
+        let (out, _) = fetch(&site, path, Some("real")).await;
+        assert_eq!(out["title"], title, "{out}");
+        assert!(out["blocked_reason"].is_null(), "{out}");
+        let secs = out["warm"]["secs"].as_f64().unwrap_or(f64::MAX);
+        assert!(secs < 12.0, "{path}: the wait took {secs}s: {out}");
+    }
+}
+
+#[tokio::test]
+#[ignore = "needs a real browser"]
+async fn a_ticked_wall_that_is_gone_is_not_waited_on_for_a_form_it_never_had() {
+    // Measured on a crates index: the box was ticked, the wall was gone four seconds later, and
+    // the fetch then spent twelve more waiting for the page behind it to finish loading, in
+    // case a form had been sent. Nothing had: a wall that goes away has no form.
+    support::isolate();
+    let site = Wall::start().await;
+    let (out, _) = fetch(&site, "/tick-heavy", Some("real")).await;
+    assert_eq!(out["title"], "The manual", "{out}");
+    let secs = out["warm"]["secs"].as_f64().unwrap_or(f64::MAX);
+    // Six seconds for the widget to have had its chance, the tick, and the look after it.
+    assert!(secs < 10.0, "the wait took {secs}s: {out}");
+}
+
+#[tokio::test]
+#[ignore = "needs a real browser"]
+async fn a_short_page_behind_a_passed_challenge_is_the_page() {
+    // Measured on a public test page: the challenge cleared, the page behind it was 78
+    // characters, and because the http tier had been refused first it was reported as "the
+    // refusal again, not the page".
+    support::isolate();
+    let site = Wall::start().await;
+    let (out, _) = fetch(&site, "/tiny", None).await;
+    assert!(out["blocked_reason"].is_null(), "{out}");
+    assert_eq!(out["title"], "Tiny", "{out}");
+    assert_eq!(out["status"], 200, "{out}");
+    assert!(
+        out["content"]
+            .as_str()
+            .unwrap_or("")
+            .contains("You got past the challenge"),
+        "{out}"
+    );
+    assert_eq!(out["challenge_passed"], true, "{out}");
+}
+
+fn assert_the_origin_refused(out: &Value) {
+    assert_eq!(out["wall_kind"], "origin", "{out}");
+    assert_eq!(out["challenge_passed"], true, "{out}");
+    let reason = out["blocked_reason"].as_str().unwrap_or("");
+    assert!(reason.starts_with("origin refusal"), "{out}");
+    assert!(reason.contains("403"), "{out}");
+    let note = out["note"].as_str().unwrap_or("");
+    assert!(
+        note.contains("web_route") && note.contains("web_login"),
+        "{out}"
+    );
+    assert!(
+        !note.contains("solve_and_continue(url) answers"),
+        "there is no challenge left to answer: {out}"
+    );
+    // Nothing is withheld: what the server said is still handed over.
+    assert!(
+        out["content"]
+            .as_str()
+            .unwrap_or("")
+            .contains("403 Forbidden"),
+        "{out}"
+    );
+}
+
+#[tokio::test]
+#[ignore = "needs a real browser"]
+async fn a_refusal_behind_a_passed_challenge_ends_the_solve_and_says_so() {
+    // Measured on a manuals site: the interstitial cleared, the site's own server answered a
+    // bare 403, and the solver waited out its whole timeout on a page with nothing to solve.
+    support::isolate();
+    let site = Wall::start().await;
+    let (out, took) = solve(&site, "/refused").await;
+    assert_eq!(out["solved"], false, "{out}");
+    assert_eq!(out["still_blocked"], true, "{out}");
+    assert_the_origin_refused(&out);
+    assert!(took < Duration::from_secs(25), "took {took:?}");
+}
+
+#[tokio::test]
+#[ignore = "needs a real browser"]
+async fn a_refusal_behind_a_passed_challenge_ends_the_fetch_and_says_so() {
+    support::isolate();
+    let site = Wall::start().await;
+    let (out, _) = fetch(&site, "/refused", None).await;
+    assert_the_origin_refused(&out);
+    assert_eq!(out["status"], 403, "{out}");
+    let attempts = out["attempts"].as_array().cloned().unwrap_or_default();
+    // The tier that passed the challenge is the last one asked: no tier above it would be
+    // answered differently by the same server.
+    assert!(
+        !attempts
+            .iter()
+            .any(|a| a.as_str().unwrap_or("").starts_with("warm")
+                || a.as_str().unwrap_or("").starts_with("native")),
+        "{out}"
+    );
 }
 
 /// The fixture server is the judge in the tests above, so its own judgement is checked without a

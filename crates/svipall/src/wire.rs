@@ -70,7 +70,28 @@ pub struct DocumentWatch {
         svipall_cdp::cdp::browser_protocol::network::EventResponseReceived,
     >,
     main_frame: Option<String>,
+    seen: Seen,
+}
+
+/// What the document responses said, reduced to what is kept.
+///
+/// The status is the page's own. The one the navigation reports is whichever request of the
+/// frame finished last, or nothing at all, and nothing read as 200: measured on a server's bare
+/// "403 Forbidden", which one browser reported as 403 and another as a delivered page.
+#[derive(Debug, Default, Clone, PartialEq)]
+pub struct Seen {
     headers: Vec<(String, String)>,
+    status: Option<u16>,
+    documents: u32,
+}
+
+impl Seen {
+    /// A response for the page itself arrived, replacing the one before it.
+    pub fn arrived(&mut self, status: i64, headers: Vec<(String, String)>) {
+        self.headers = headers;
+        self.status = u16::try_from(status).ok().filter(|s| *s >= 100);
+        self.documents += 1;
+    }
 }
 
 impl DocumentWatch {
@@ -90,7 +111,7 @@ impl DocumentWatch {
         Ok(Self {
             events,
             main_frame,
-            headers: Vec::new(),
+            seen: Seen::default(),
         })
     }
 
@@ -104,14 +125,28 @@ impl DocumentWatch {
                 frame.as_deref(),
                 self.main_frame.as_deref(),
             ) {
-                self.headers = headers_from_cdp(ev.response.headers.inner());
+                self.seen.arrived(
+                    ev.response.status,
+                    headers_from_cdp(ev.response.headers.inner()),
+                );
             }
         }
     }
 
     /// The latest document response's headers.
     pub fn headers(&self) -> &[(String, String)] {
-        &self.headers
+        &self.seen.headers
+    }
+
+    /// The latest document response's status. `None` until one has arrived.
+    pub fn status(&self) -> Option<u16> {
+        self.seen.status
+    }
+
+    /// How many document responses have arrived: one per page the tab has loaded, so a number
+    /// that moved is a page that was replaced.
+    pub fn documents(&self) -> u32 {
+        self.seen.documents
     }
 }
 
@@ -139,6 +174,24 @@ mod tests {
         // Unknown frame: no answer rather than a guess.
         assert!(!is_the_document("Document", None, Some("F1")));
         assert!(!is_the_document("Document", Some("F1"), None));
+    }
+
+    #[test]
+    fn each_document_response_replaces_the_one_before_and_is_counted() {
+        let mut seen = Seen::default();
+        assert_eq!((seen.status, seen.documents), (None, 0));
+        // The interstitial, then the page it was guarding.
+        seen.arrived(403, vec![("server".into(), "edge".into())]);
+        assert_eq!((seen.status, seen.documents), (Some(403), 1));
+        seen.arrived(200, vec![("server".into(), "origin".into())]);
+        assert_eq!((seen.status, seen.documents), (Some(200), 2));
+        assert_eq!(
+            seen.headers,
+            vec![("server".to_string(), "origin".to_string())]
+        );
+        // A status that is not one is no status, never a guess.
+        seen.arrived(0, Vec::new());
+        assert_eq!((seen.status, seen.documents), (None, 3));
     }
 
     #[test]

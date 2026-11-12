@@ -135,6 +135,11 @@ pub fn wall_next_step(
 /// solve_and_continue whenever a solver exists, which here is the call that just failed: measured
 /// live on two managed challenges, the note sent the caller straight back into the same check.
 pub fn solve_did_not_clear(kind: &WallKind, domain: &str, solver: bool, dashboard: &str) -> String {
+    // The challenge did clear. What is left is the site saying no, and that is all there is to
+    // say: neither another call nor a person at the dashboard has anything to answer.
+    if *kind == WallKind::Origin {
+        return wall_next_step(kind, domain, "warm", false, dashboard, None);
+    }
     let mut s = format!(
         "the challenge did not clear. {}",
         wall_next_step(kind, domain, "warm", false, dashboard, None)
@@ -176,6 +181,12 @@ fn wall_advice(kind: &WallKind, tier: &str, solver: bool, dashboard: &str) -> St
         WallKind::SoftNotFound => "The page answered 200 but says it does not exist. Check the address; escalating tiers cannot help, and the stub is not the page you asked for.".to_string(),
         WallKind::Paywall => format!("The article exists and is being withheld behind a subscription. {login_hint} Only a profile that is signed in changes the answer; a proxy does not."),
         WallKind::Status => format!("Hard HTTP block at tier {tier}. Use web_route with a proxy."),
+        WallKind::Origin => format!(
+            "The challenge was passed at tier {tier}, and the site's own server then refused: \
+             it will not serve this client or this address. That is not a challenge to solve, \
+             so no higher tier and no solver changes it. Route the domain through another exit \
+             with web_route, or sign in once with web_login(url) if the site serves members only."
+        ),
         WallKind::None => String::new(),
     }
 }
@@ -338,6 +349,17 @@ mod tests {
         assert!(
             wall_next_step(&WallKind::Cloudflare, "x", "warm", false, d, None)
                 .contains("web_login")
+        );
+        // A refusal behind a passed challenge leaves nothing to solve, and the note says so
+        // instead of sending the caller back into a check that is no longer there.
+        let origin = solve_did_not_clear(&WallKind::Origin, "x.test", true, d);
+        assert!(
+            origin.contains("challenge was passed") && origin.contains("web_route"),
+            "{origin}"
+        );
+        assert!(
+            !origin.contains("did not clear") && !origin.contains(d),
+            "{origin}"
         );
         assert_eq!(duration(40), "40s");
         assert_eq!(duration(900), "15 min");
