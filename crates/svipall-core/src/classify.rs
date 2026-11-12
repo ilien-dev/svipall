@@ -1015,10 +1015,13 @@ fn classify_body(status: u16, html: &str, v: &PageView<'_>) -> (Option<String>, 
         if let Some(title) = caps.get(1) {
             let t = title.as_str().trim();
             if CAPTCHA_TITLES.contains(&t) {
-                return (
-                    Some(format!("challenge page (title: {})", t)),
-                    WallKind::Generic,
-                );
+                // A title says something is in the way; the widget on the page says what, and
+                // whether a loop or a model is what answers it.
+                let reason = match crate::challenge::detect_all(html).first() {
+                    Some(w) => format!("challenge page (title: {t}, widget: {})", w.widget),
+                    None => format!("challenge page (title: {t})"),
+                };
+                return (Some(reason), WallKind::Generic);
             }
         }
     }
