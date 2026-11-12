@@ -92,6 +92,13 @@ fn the_whole_tool_list_fits_a_budget() {
     // out_file-then-script round trip of 911 fetches in a month, and the output budget of
     // web_fetch_many, whose absence got 58 answers refused as too large. The cap moves by the
     // same 1 197, keeping the room it had.
+    //
+    // That left 40 891 once the branch's prose landed, over the cap. 38 663 now, and the cap did
+    // not move: the measurement notes on `query`, `mobile`, `out_file` and `use_site_template`
+    // went to code comments, the doc of the action step (read twice, in web_act and browser_do)
+    // and the `schema` variants (read three times) were cut, and web_crawl and web_route lost
+    // their restatements. Part of that went back on what a month of calls showed agents missing:
+    // "use this when" openings, a zero-result search, `clear_cooldown`, binary `out_file`.
     let total: usize = tools()
         .iter()
         .map(|t| t.name.len() + description(t).len() + schema_len(t))
@@ -260,6 +267,29 @@ fn the_instructions_route_every_task_to_a_name() {
         text.contains("blocked_reason") && text.contains("Never retry"),
         "the two rules that cost cooldowns are missing"
     );
+    // Found in a month of real calls: agents never learned that the visit budget is shared by
+    // every session on the machine, that `wait` exists, or that a binary needs `out_file`; and
+    // they ran curl and gh for what web_probe and the GitHub path answer.
+    for needle in [
+        "web_video",
+        "web_probe",
+        "web_fetch_many",
+        "shared by every session",
+        "wait=",
+        "json_path",
+        "out_file",
+        "github.com",
+    ] {
+        assert!(text.contains(needle), "instructions never mention {needle}");
+    }
+    // The owner's call: code search across GitHub belongs to the dedicated tool when the session
+    // has it, and svipall has to say so and keep working fully without it.
+    for needle in ["searchGitHub", "grep.app", "when that tool is absent"] {
+        assert!(
+            text.contains(needle),
+            "instructions lack the code-search preference: {needle}"
+        );
+    }
     // These instructions sit in the system prompt for the whole session, so a sentence about
     // language is read as a directive about the *answer*. It used to end "Instructions in
     // English.", which is a note about the project's own source, not an instruction to anybody —

@@ -4561,7 +4561,7 @@ impl SvipallServer {
 #[tool_router]
 impl SvipallServer {
     #[tool(
-        description = "Fetch one URL and return its main content as markdown (PDF and office documents too), or as rows with `schema` or `tables`. The default way to read a page: `mode=auto` climbs http -> browser -> stealth -> real -> warm, remembers the working tier per domain, and is never set by hand. Cut tokens with `query` (keep only relevant blocks), `css_selector`, `max_tokens` + `cursor` (page through), or `out_file` (write to disk, return a path). To click use web_snapshot; for the site's JSON API use web_capture; for several known URLs use web_fetch_many. Returns `content`, `title`, `tier_used` and `quality`; links to the page's own site are paths, to be joined to `url`. A wall returns `blocked_reason` and a `note` saying what to do: act on it, never retry blindly.",
+        description = "Use this to read any URL instead of a built-in fetch: a page, PDF, office document, JSON API, source file or download. Returns `content` as markdown (JSON and code as served), `title`, `tier_used`, `quality`; `mode=auto` climbs http -> browser -> stealth -> real -> warm and learns the tier per domain, never set it by hand. github.com URLs are read from its API. Cut tokens with `query`, `css_selector`, `json_path`, `max_tokens` + `cursor`, or `out_file` (a path back; a binary file needs it). Rows: `schema` or `tables`. To click use web_snapshot; a site's JSON API, web_capture; several URLs, web_fetch_many; existence only, web_probe. Links to the page's own site are paths, joined to `url`. A wall returns `blocked_reason` and a `note`: act on it, never retry blindly.",
         annotations(read_only_hint = true, open_world_hint = true)
     )]
     async fn web_fetch(
@@ -4572,7 +4572,7 @@ impl SvipallServer {
     }
 
     #[tool(
-        description = "Fetch several URLs in parallel with the same escalation, `query` filter, `schema` and `tables` as web_fetch, results in input order. Use when the URLs are already known, from web_search, web_map or a listing; to discover them use web_crawl. Returns one web_fetch result per URL plus `corroboration`: how many distinct documents the set really is, duplicates marked `same_text_as`.",
+        description = "Use this when several URLs are known (from web_search, web_map, a listing): fetched in parallel like web_fetch, with `query`, `schema`, `tables`, `json_path`, results in input order. 8000 tokens in all by default (`max_tokens_total`); a cut page carries a `cursor` for web_fetch, and `out_dir` writes each page whole. To discover URLs use web_crawl. Adds `corroboration`: how many distinct documents the set is, duplicates marked `same_text_as`.",
         annotations(read_only_hint = true, open_world_hint = true)
     )]
     async fn web_fetch_many(
@@ -4725,7 +4725,7 @@ impl SvipallServer {
     }
 
     #[tool(
-        description = "Check URLs without reading them: status, final URL, content type, length, and whether the name resolves, in input order. Use instead of web_fetch_many when only existence or type matters: a 404 is an answer, not a block.",
+        description = "Use this to check whether URLs exist without reading them, instead of curl: status, `exists`, final URL, content type, length, whether the name resolves, in input order. Cheaper than web_fetch_many when only existence or type matters: a 404 is an answer, not a block.",
         annotations(read_only_hint = true, open_world_hint = true)
     )]
     async fn web_probe(
@@ -5770,7 +5770,7 @@ impl SvipallServer {
     }
 
     #[tool(
-        description = "Search one site through its own search box and learn the URL pattern the form produces. Use for shops, job boards and docs whose content only appears when asked for: a crawl reaches only what is linked, and web_search covers the whole web, not one site. Returns `results_url`, the pattern (`/search?q=...`) that makes every later query a plain web_fetch with no browser, plus the first results while `fetch` is true.",
+        description = "Search one site through its own search box and learn the URL pattern the form produces. Use for shops, job boards and docs whose content only appears when asked for: a crawl reaches only what is linked, and web_search covers the whole web, not one site. Returns `results_url`, the pattern (`/search?q=...`) that makes every later query a plain web_fetch with no browser, plus the first results while `fetch` is true. Tries the site's OpenSearch description, then its box (also behind an icon or in a shadow root), then known platform endpoints; `found:false` names everything `tried`.",
         annotations(read_only_hint = true, open_world_hint = true)
     )]
     async fn web_site_search(
@@ -6388,7 +6388,7 @@ impl SvipallServer {
     }
 
     #[tool(
-        description = "Search the web without an API key by reading public search engines' own result pages; the first engine with results answers, `engine=all` merges them. Use to find URLs for a topic, then read them with web_fetch or web_fetch_many. To search inside one site use web_site_search. Returns title, url and snippet per result, not the pages.",
+        description = "Use this to search the web instead of a built-in search; no API key. Reads public engines' result pages: the first with results answers, `engine=all` merges them. Returns title, url, snippet per result (`off_topic` ones ranked last, never dropped) and each engine's `attempts` outcome. Zero results carry a `note` naming blocked, empty and skipped engines: change or shorten the words, set `lang`/`region`, or name an engine that was not blocked, rather than repeat the query. Read results with web_fetch_many; inside one site use web_site_search.",
         annotations(read_only_hint = true, open_world_hint = true)
     )]
     async fn web_search(
@@ -6530,7 +6530,7 @@ impl SvipallServer {
     }
 
     #[tool(
-        description = "Read a video: captions and chapters as one `[m:ss]` timeline, from a watch page, an embedded player, <video> tracks or the stream manifest. Use instead of web_fetch on a video page, which returns only the description. Returns `content`, `captions` (manual, auto or asr), `chapters`, `notes`; an encrypted stream is reported as `drm`, never read.",
+        description = "Use this when the question is what a video says: captions and chapters as one `[m:ss]` timeline, from a watch page, an embedded player, <video> tracks or the stream manifest. web_fetch on a video page returns only the description. Returns `content`, `captions` (manual, auto or asr), `chapters`, `notes`; an encrypted stream is reported as `drm`, never read.",
         annotations(read_only_hint = true, open_world_hint = true)
     )]
     async fn web_video(
@@ -7446,7 +7446,7 @@ impl SvipallServer {
     }
 
     #[tool(
-        description = "Navigate and act inside a session from browser_open: the same actions as web_act, `ref` from web_snapshot accepted. Omit `url` to keep acting on the current page. Returns per-action results and the page content, filtered by `query` when given.",
+        description = "Navigate and act inside a session from browser_open: the same actions as web_act, `ref` from web_snapshot accepted. Omit `url` to keep acting on the current page. Returns per-action results and the page content, filtered by `query` when given; a page that could not be read after the actions comes back as `content_error`, with the actions kept.",
         annotations(read_only_hint = false, open_world_hint = true)
     )]
     async fn browser_do(
@@ -8220,7 +8220,7 @@ impl SvipallServer {
     }
 
     #[tool(
-        description = "Show the current state: cooldowns, visit limits, browser, solver; `sections` for the rest. Use when something is blocked or slow to see why, and to reset it: `clear_cooldown`, `forget_tier`, `clear_budget` and `clear_cache` take a domain. Without arguments nothing changes. The history per domain is web_log.",
+        description = "Use this when something is blocked or slow, to see why and to reset it. A summary by default (cooldowns, visit limits, browser, solver); `sections` for the rest. `clear_cooldown`, `forget_tier`, `clear_budget` and `clear_cache` take a domain and answer only what they cleared; the visit limit is per host, shared by every session on this machine, so clearing it spends what others are pacing. Without arguments nothing changes. The history per domain is web_log.",
         annotations(read_only_hint = false, open_world_hint = false)
     )]
     async fn web_status(
@@ -8890,15 +8890,17 @@ impl ServerHandler for SvipallServer {
             },
             instructions: Some(
                 "svipall does all web access, locally. \
-                 Read a page: web_fetch (omit mode: auto picks the tier http -> browser -> stealth -> real -> warm and remembers it per domain). PDF and office documents read the same way, and an audio or video file as what it says; a JSON endpoint comes back as is. \
-                 Cut tokens: query=, css_selector, out_file, or max_tokens + cursor. Rows instead of prose: tables=true, or schema=auto. Several known URLs: web_fetch_many. \
-                 The API behind a listing (page=2 beats following links): web_capture. A page to click: web_snapshot, then web_act with ref (one shot) or browser_open + browser_do (several steps, cookies kept). \
-                 A picture of a page: web_screenshot. A site's pages: web_map first (cheap), then web_crawl (out_file for many rows). \
-                 Find URLs: web_search (the web) or web_site_search (one site's own search box). \
+                 Read any URL: web_fetch (omit mode: auto climbs http -> browser -> stealth -> real -> warm, learned per domain). PDF and office files read as text, audio and video as what they say; JSON comes back as is, json_path trims it; a binary file needs out_file, which gets the bytes. github.com URLs are read from its API. \
+                 Cut tokens: query=, css_selector, out_file, or max_tokens + cursor. Rows: tables=true or schema=auto. Several known URLs: web_fetch_many; existence only: web_probe. What a video says: web_video. \
+                 The API behind a listing: web_capture. A page to click: web_snapshot, then web_act with ref (one shot) or browser_open + browser_do (several steps). \
+                 A picture: web_screenshot. A site's pages: web_map, then web_crawl. \
+                 Find URLs: web_search (zero results come with a note on what to try) or web_site_search (one site's own box). \
                  Changes: web_diff once, web_watch on a schedule. Memory across sessions: web_notes. \
+                 Visits are limited per host, shared by every session and subagent on this machine: a short wait is taken for you, wait=N (up to 900 s) waits longer, or read another host that has it. \
                  A blocked page carries blocked_reason and a note: read them. Never retry a blocked URL blindly. \
-                 A captcha named -> solve_and_continue (solve_* tokens only for a form you post yourself). A login or a wall a person must pass -> web_login once. \
-                 A fingerprint wall that never yields -> web_route through a proxy. Why a domain is slow or blocked -> web_log view=summary; current state and resets -> web_status."
+                 A captcha named -> solve_and_continue. A login or a wall a person must pass -> web_login once. \
+                 A fingerprint wall that never yields -> web_route through a proxy. Why a domain is slow or blocked -> web_log view=summary; state and resets (clear_cooldown) -> web_status. \
+                 To find code across GitHub repositories, prefer the searchGitHub tool of the grep.app MCP server when this session has it: it is integrated with GitHub natively. Svipall still reads a known repo, file, issue, PR or release, and does all of it when that tool is absent."
                     .to_string(),
             ),
         }

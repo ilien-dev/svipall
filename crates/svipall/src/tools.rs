@@ -6,11 +6,10 @@ use std::collections::HashMap;
 
 #[derive(Debug, Clone, Default, Deserialize, JsonSchema)]
 pub struct WebFetchParams {
-    /// The page. Also `raw:<html>` for markup you already have (no request is made) and
-    /// `file:///path` for a local file under `~/.svipall/in` or a configured `local_roots` entry.
+    /// The page. Also `raw:<html>` (no request) or `file:///path` under `~/.svipall/in` or
+    /// `local_roots`.
     pub url: String,
-    /// Leave unset: auto learns the tier per domain. Forcing one (http, browser, stealth, real,
-    /// warm) is for debugging and is slower or weaker.
+    /// Leave unset: auto learns the tier per domain. A forced tier is slower or weaker.
     #[serde(default)]
     pub mode: Option<String>,
     /// markdown (default), text, or html (the raw markup, many times the tokens).
@@ -19,13 +18,14 @@ pub struct WebFetchParams {
     /// Keep only the elements this CSS selector matches, e.g. "article" or "#prices".
     #[serde(default)]
     pub css_selector: Option<String>,
-    /// Drop navigation, footers and sidebars. Default true; false returns the whole body.
+    /// Drop navigation, footers and sidebars. Default true.
     #[serde(default)]
     pub main_content_only: Option<bool>,
-    /// Keep only the blocks relevant to these words (BM25), e.g. "shipping costs". The cheapest
-    /// way to read a long page for one fact, and how much it saves is decided by the query, not
-    /// the page: measured on two long articles, "robots.txt" and "caching headers" left 6% and
-    /// 13% of the page, while "history of scraping" left 88%. Name the fact, not the topic.
+    // Measured on two long articles: "robots.txt" and "caching headers" left 6% and 13% of the
+    // page, "history of scraping" left 88%. How much it saves is decided by the query.
+    /// Keep only the blocks relevant to these words, e.g. "shipping costs": the cheapest way to
+    /// one fact. Name the fact, not the topic: a specific query left 6% of a long page, a broad
+    /// one 88%.
     #[serde(default)]
     pub query: Option<String>,
     /// Timeout in ms for the whole ladder. Default 60000.
@@ -37,10 +37,10 @@ pub struct WebFetchParams {
     /// Profile saved by web_login whose cookies to use. Implies a browser tier.
     #[serde(default)]
     pub profile: Option<String>,
-    /// Highest tier the ladder may climb to: http, browser, stealth, real, warm (default).
+    /// Highest tier to climb to: http, browser, stealth, real, warm (default).
     #[serde(default)]
     pub max_tier: Option<String>,
-    /// HTTP method for the http tier: GET (default), POST, PUT, DELETE, HEAD.
+    /// GET (default), POST, PUT, DELETE, HEAD (http tier only).
     #[serde(default)]
     pub method: Option<String>,
     /// Request body for POST/PUT (http tier only).
@@ -49,79 +49,73 @@ pub struct WebFetchParams {
     /// Extra request headers (http tier only).
     #[serde(default)]
     pub headers: Option<HashMap<String, String>>,
-    /// Rows instead of prose, returned as `extracted`. E.g. `{"name": "products", "base_selector":
-    /// "div.product", "fields": [{"name": "title", "selector": "h2 a"}, {"name": "url", "selector":
-    /// "a", "type": "attribute", "attribute": "href"}]}`; types text (default), attribute, number,
-    /// exists, list, html, markdown. A named schema is remembered per domain, and a selector a
-    /// redesign breaks is relocated and reported as `healed`.
+    /// Rows instead of prose, as `extracted`. "auto", or e.g. `{"name": "products",
+    /// "base_selector": "div.product", "fields": [{"name": "title", "selector": "h2 a"}, {"name":
+    /// "url", "selector": "a", "type": "attribute", "attribute": "href"}]}`; types text, attribute,
+    /// number, exists, list, html, markdown. "auto" returns the schema it used as
+    /// `induced_schema`; a selector a redesign broke is relocated and reported as `healed`.
     #[serde(default)]
     #[schemars(with = "Option<SchemaSpec>")]
     pub schema: Option<serde_json::Value>,
-    /// Cap on the content returned, cut on block boundaries. Default 25000. A truncated result
-    /// carries a `cursor`.
+    /// Cap on the content, cut on block boundaries. Default 25000; a cut result carries a `cursor`.
     #[serde(default)]
     pub max_tokens: Option<usize>,
-    /// Continue a truncated response from where it stopped: the `cursor` of the previous result.
+    /// The `cursor` of a truncated result, to continue it.
     #[serde(default)]
     pub cursor: Option<String>,
     /// Add `metadata`: canonical URL, language, author, dates, OpenGraph, JSON-LD, feeds.
     #[serde(default)]
     pub include_metadata: Option<bool>,
-    /// Add `links`, split into internal and external, plus images.
+    /// Add `links` (internal and external, absolute) and images.
     #[serde(default)]
     pub include_links: Option<bool>,
     // Off by default on a measurement, not caution: on TECO, the one corpus that ships sibling
     // pages, a template learned from sixteen siblings saved 3.4% of the delivered text and removed
     // one word of human-labelled main content. One is too many for a default. The record is still
     // learned on every fetch, so turning this on works at once.
-    /// Strip what this site repeats on every page (banners, footers), learned from earlier fetches
-    /// of the same site. Off by default: it can take a word of real content with it. A response it
-    /// changed says `"template": {"learned_from": 16, "removed_blocks": 3}`.
+    /// Strip what this site repeats on every page, learned from earlier fetches. Off by default:
+    /// it can take real content with it.
     #[serde(default)]
     pub use_site_template: Option<bool>,
-    /// Add `quality_detail`: integrity verdict with reasons, optimisation traits, near-duplicates
-    /// in the cache, provenance (byline, date, citations). For judging a source; the compact
-    /// `quality` field is always present.
+    /// Add `quality_detail`: verdict with reasons, near-duplicates, provenance.
     #[serde(default)]
     pub include_quality: Option<bool>,
-    /// robots.txt policy: warn (default: fetch, and say whether robots.txt disallows it), obey
-    /// (refuse a disallowed URL), ignore.
+    /// robots.txt: warn (default: fetch and say if disallowed), obey, ignore.
     #[serde(default)]
     pub robots: Option<String>,
-    /// Skip images, fonts, stylesheets and video in browser tiers. Faster on heavy pages; off by
-    /// default because some anti-bot scripts notice a page whose images never loaded.
+    /// Skip images, fonts, stylesheets and video in browser tiers. Faster; some anti-bot scripts
+    /// notice it.
     #[serde(default)]
     pub text_only: Option<bool>,
-    /// Ask as a phone: phone identity and viewport. Only worth it where a site serves a lighter
-    /// page to phones — a responsive site, which is most of them, returns the same bytes: measured
-    /// byte-identical on two sites at both the http and browser tiers. It also costs a browser
-    /// page of its own, since no warm page is reused, and rules out the native last resort.
+    // Measured byte-identical on two responsive sites at both the http and browser tiers; no warm
+    // page is reused, and the native last resort is ruled out.
+    /// Ask as a phone. Most sites send the same bytes, and it costs a browser page of its own.
     #[serde(default)]
     pub mobile: Option<bool>,
-    /// Write the content to this file and return the path instead: measured, a 418-character
-    /// response against the 34 746 characters of the page it wrote. Relative paths land in
-    /// ~/.svipall/out/. With `schema` or `tables` a .csv, .json or .jsonl name writes the rows in
-    /// that format.
+    // Measured: a 418-character response against the 34 746 characters of the page it wrote.
+    /// Write to this file and return the path, not the content. A .md .txt .json .csv .html name
+    /// gets the text (rows with schema/tables); any other name, or a binary body, gets the bytes
+    /// as served, resumed by calling again. Relative paths land in ~/.svipall/out/.
     #[serde(default)]
     pub out_file: Option<String>,
-    /// Return the page's data tables as typed rows, `tables: [{caption, header, rows}]`, instead
-    /// of prose: a fraction of the markdown, columns kept. Layout tables are skipped.
+    /// The page's data tables as typed rows, `{caption, header, rows}`, instead of prose.
     #[serde(default)]
     pub tables: Option<bool>,
-    /// Scroll a page that loads as you go before reading it: "auto" until it stops growing (up to
-    /// 40 screens, one "load more" click), or a number of rounds. Implies a browser tier.
+    /// Scroll a page that loads as you go: "auto" until it stops growing, or a number of rounds.
+    /// Implies a browser tier.
     #[serde(default)]
     pub scroll: Option<String>,
-    /// A throwaway browser profile for this fetch alone: no cookies in, nothing left behind.
+    /// A throwaway browser profile: no cookies in, none left behind.
     #[serde(default)]
     pub isolated: Option<bool>,
     /// auto (default: serve a fresh copy, revalidate a stale one), read, write, bypass, refresh.
     #[serde(default)]
     pub cache: Option<String>,
-    /// Seconds to wait out a full visit budget or a hold, up to 900. Unset: only half the timeout.
+    /// Seconds to wait out a full visit window or a hold, up to 900. Unset: up to half the
+    /// timeout; 0 never waits.
     #[serde(default)]
     pub wait: Option<u64>,
-    /// Walk the ladder though it just failed on this site.
+    /// Walk the ladder again though it failed on this site in the last 10 minutes.
     #[serde(default)]
     pub fresh: Option<bool>,
     /// Only these fields of a JSON answer, e.g. `items[:5].{name, owner.login}` (`.a`, `[0]`,
@@ -143,10 +137,10 @@ pub struct WebFetchManyParams {
     /// Highest tier the ladder may climb to. Default warm.
     #[serde(default)]
     pub max_tier: Option<String>,
-    /// Keep only the blocks relevant to these words (BM25), on every page.
+    /// Keep only the blocks relevant to these words, on every page.
     #[serde(default)]
     pub query: Option<String>,
-    /// Rows instead of prose from every page, as on web_fetch: "auto" or your own selectors.
+    /// Rows instead of prose from every page, as on web_fetch.
     #[serde(default)]
     #[schemars(with = "Option<SchemaSpec>")]
     pub schema: Option<serde_json::Value>,
@@ -204,12 +198,11 @@ pub struct WebCrawlParams {
     /// markdown (default), text, or html.
     #[serde(default)]
     pub extraction: Option<String>,
-    /// Rank pages by relevance to these words, keep only the relevant blocks, and stop when new
-    /// pages add nothing (see `stop_when_saturated`).
+    /// Rank pages by relevance to these words, keep the relevant blocks, stop when new pages add
+    /// nothing.
     #[serde(default)]
     pub query: Option<String>,
-    /// Rows instead of prose from every page, as on web_fetch: "auto" or your own selectors. With
-    /// `out_file`, one row per item, each carrying its page's `url`.
+    /// Rows from every page, as on web_fetch; with `out_file`, one row per item with its `url`.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     #[schemars(with = "Option<SchemaSpec>")]
     pub schema: Option<serde_json::Value>,
@@ -225,35 +218,30 @@ pub struct WebCrawlParams {
     /// robots.txt policy: obey (default for crawling), warn, ignore.
     #[serde(default)]
     pub robots: Option<String>,
-    /// Skip near-duplicate pages, reporting what they duplicate instead of their content.
-    /// Default true.
+    /// Skip near-duplicate pages, naming what they duplicate. Default true.
     #[serde(default)]
     pub dedup: Option<bool>,
     /// Output shape: pages (default), llms.txt, llms-full.txt.
     #[serde(default)]
     pub output: Option<String>,
-    /// More sites to crawl alongside `url`, under the same page and token budget. Each domain gets
-    /// an equal share of the pages, so one large site cannot spend the whole run.
+    /// More sites to crawl alongside `url`; each domain gets an equal share of the budget.
     #[serde(default)]
     pub also: Option<Vec<String>>,
-    /// Seed from the site's sitemap and fetch only what its `lastmod` says has changed since this
-    /// machine last read it. A page with no date is always fetched: silence is not "unchanged".
+    /// Fetch only what the sitemap's `lastmod` says changed since the last crawl; undated pages
+    /// are always fetched.
     #[serde(default)]
     pub since_last_crawl: Option<bool>,
-    /// Write the pages to this file instead of returning them, as CSV, JSON or JSON Lines
-    /// depending on the extension. What comes back is a path and a count.
+    /// Write the pages to this .csv, .json or .jsonl file; a path and a count come back.
     #[serde(default)]
     pub out_file: Option<String>,
-    /// Scroll every page until it stops growing before reading it (`"auto"` or a round count),
-    /// for sites whose listings load as you scroll. Implies browser tiers; slower.
+    /// Scroll every page until it stops growing ("auto" or a round count). Implies browser tiers.
     #[serde(default)]
     pub scroll: Option<String>,
-    /// Ordering: best_first (default when a query is given), bfs, or dfs to follow one branch to
-    /// its end before starting the next — what a manual or a paginated listing wants.
+    /// best_first (default with a query), bfs, or dfs: one branch to its end, for a manual or a
+    /// paginated listing.
     #[serde(default)]
     pub strategy: Option<String>,
-    /// Stop once the crawl stops learning anything new about `query`. Default true when a query
-    /// is given.
+    /// Stop once new pages add nothing about `query`. Default true with a query.
     #[serde(default)]
     pub stop_when_saturated: Option<bool>,
     /// Whole-crawl token cap. Default 60000.
@@ -262,8 +250,8 @@ pub struct WebCrawlParams {
     /// Give up after this long regardless. Default 120000.
     #[serde(default)]
     pub max_duration_ms: Option<u64>,
-    /// Resume an interrupted crawl by the `crawl_id` it returned: queue, pages already fetched and
-    /// parameters all come back. web_status lists the ones with work left.
+    /// Resume an interrupted crawl by the `crawl_id` it returned; web_status lists those with work
+    /// left.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub crawl_id: Option<String>,
 }
@@ -272,12 +260,10 @@ pub struct WebCrawlParams {
 pub struct WebCaptureParams {
     /// The page whose requests to record.
     pub url: String,
-    /// Only responses whose URL contains this, e.g. "/api/". Leave it out the first time to see
-    /// everything the page asked for.
+    /// Only responses whose URL contains this, e.g. "/api/". Omit it the first time.
     #[serde(default)]
     pub pattern: Option<String>,
-    /// Return the response bodies too. Off by default because they are large; turn it on once
-    /// `pattern` names the endpoint you want.
+    /// Return the response bodies too, once `pattern` names the endpoint. Default false.
     #[serde(default)]
     pub bodies: Option<bool>,
     /// Per-body character cap. Default 20000.
@@ -298,11 +284,10 @@ pub struct WebCaptureParams {
 pub struct WebSnapshotParams {
     /// The page to read.
     pub url: String,
-    /// Only nodes whose name or role contains this, e.g. "add to cart" or "button". Far fewer
-    /// tokens when you know what you are looking for.
+    /// Only nodes whose name or role contains this, e.g. "add to cart" or "button".
     #[serde(default)]
     pub find: Option<String>,
-    /// How deep into the page to look. 3 or 4 usually reaches the controls that matter.
+    /// How deep to look; 3 or 4 usually reaches the controls.
     #[serde(default)]
     pub max_depth: Option<usize>,
     /// Cap on nodes returned. Default 200.
@@ -539,12 +524,12 @@ pub struct WebRouteParams {
     /// Proxy URL, e.g. "socks5h://user:pass@host:1080" (socks5h resolves DNS at the exit).
     #[serde(default)]
     pub proxy: Option<String>,
-    /// ISO country the proxy exits from, e.g. "DE", so the browser announces a matching timezone
-    /// and language. Declared, never detected: that would need a geolocation service.
+    // Declared, never detected: detecting it would need a geolocation service.
+    /// ISO country the proxy exits from, e.g. "DE", for a matching timezone and language.
     #[serde(default)]
     pub country: Option<String>,
-    /// Several exits instead of one: the domain sticks to the first that works and moves on when
-    /// that one is blocked twice.
+    /// Several exits: the domain sticks to the first that works, moving on when it is blocked
+    /// twice.
     #[serde(default)]
     pub proxies: Option<Vec<String>>,
     /// ISO country of each entry in `proxies`, by position; `country` covers the rest.
@@ -553,11 +538,10 @@ pub struct WebRouteParams {
     /// Remove the route for `domain`.
     #[serde(default)]
     pub remove: Option<bool>,
-    /// Test the exits configured for `domain` instead of changing them: did each answer, how fast,
-    /// any DNS leak or scheme problem.
+    /// Test `domain`'s exits instead of changing them: answered, latency, DNS leak.
     #[serde(default)]
     pub check: Option<bool>,
-    /// The URL a `check` fetches through each exit. Default: a small neutral page.
+    /// The URL a `check` fetches. Default: a small neutral page.
     #[serde(default)]
     pub check_url: Option<String>,
 }
@@ -569,7 +553,8 @@ pub struct WebStatusParams {
     /// Save browser and session policy settings for later calls; open sessions keep theirs.
     #[serde(default)]
     pub configure: Option<serde_json::Value>,
-    /// Domain whose holds of every kind should be cleared.
+    /// Domain to clear on every exit: hard-block cooldown, server holds and strikes, visit window,
+    /// remembered failure. Not `clear_budget`'s standing.
     #[serde(default)]
     pub clear_cooldown: Option<String>,
     /// More of the report: "all", or names from the summary's `sections`, comma-separated.
@@ -735,36 +720,34 @@ pub struct WebProfileParams {
 #[schemars(untagged, inline)]
 #[allow(dead_code)]
 pub enum SchemaSpec {
-    /// "auto": read the page's own repeated structure; the schema used comes back as
-    /// `induced_schema`, to pass next time.
+    /// "auto": the page's own repeated structure.
     Auto(String),
-    /// Your own: `{"name", "base_selector", "fields": [{"name", "selector", "type", "attribute"}]}`,
-    /// as shown on web_fetch.
+    /// Your own selectors, as on web_fetch.
     Spec(serde_json::Map<String, serde_json::Value>),
 }
 
-/// One step of web_act or browser_do.
+// One step of web_act or browser_do. A `//` comment on purpose: a doc comment here lands in both
+// tools' schemas, where the model reads it twice and learns nothing.
 #[derive(JsonSchema)]
 #[schemars(inline)]
 #[allow(dead_code)]
 pub struct Action {
-    /// verify: is the element there, visible, holding `value`; answers without the page. console:
-    /// what the page logged. hold: press and hold for `ms`, for a hold-to-verify widget.
+    /// verify: the element is there, visible, holding `value`, without the page. console: the
+    /// page's log. hold: press and hold `ms`.
     #[serde(rename = "do")]
     pub kind: ActionKind,
-    /// The element, as a `ref` from web_snapshot, e.g. "e12". Preferred over `selector`.
+    /// The element's `ref` from web_snapshot, e.g. "e12". Preferred.
     #[serde(rename = "ref")]
     pub reference: Option<String>,
-    /// The element as a CSS selector when there is no ref; for wait, the element to wait for.
+    /// A CSS selector when there is no ref; for wait, the element to wait for.
     pub selector: Option<String>,
-    /// type, fill: what to type. `${NAME}` is replaced from ~/.svipall/secrets.env, so a password
-    /// never appears here.
+    /// type, fill: the text; `${NAME}` is filled from ~/.svipall/secrets.env.
     pub text: Option<String>,
     /// press: the key, e.g. Enter, Tab, ArrowDown.
     pub key: Option<String>,
     /// select: the option. verify: the value or text expected.
     pub value: Option<String>,
-    /// wait: how long (default 1000; with a selector, the deadline, 10000). hold: default 2000.
+    /// wait: ms (default 1000; 10000 with a selector). hold: default 2000.
     pub ms: Option<u64>,
     /// scroll: how far. Default 600.
     pub pixels: Option<i64>,
