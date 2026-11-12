@@ -39,6 +39,7 @@ fn params(url: &str) -> WebFetchParams {
 const ARTICLE: &str = "<main><h1>Exit report</h1><p>This report contains the requested observations, their context, and an explanation of the method, with enough substantive detail to inspect the result without relying on a title or an empty placeholder.</p></main>";
 
 async fn a_dead_exit_is_passed_over_without_costing_it_anything(engine: &str, domain: &str) {
+    support::isolate();
     let url = format!("http://{domain}/article");
     let site = Site::start(vec![(url.as_str(), Reply::html(ARTICLE))]).await;
     let dead = dead_proxy().await;
@@ -98,6 +99,7 @@ async fn a_dead_exit_is_passed_over_on_the_impersonating_engine() {
 
 #[tokio::test]
 async fn a_407_is_the_exit_asking_for_credentials_not_the_site_refusing() {
+    support::isolate();
     let domain = "exit-auth.test";
     let url = format!("http://{domain}/article");
     let site = Site::start(vec![(

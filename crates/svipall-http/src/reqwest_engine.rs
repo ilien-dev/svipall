@@ -41,6 +41,35 @@ impl HttpFetcher for ReqwestFetcher {
     }
 
     async fn send(&self, req: HttpRequest) -> anyhow::Result<HttpResponse> {
+        let resp = self.request(req, None)?.send().await?;
+        let mut out = head_of(&resp);
+        out.body = resp.bytes().await?.to_vec();
+        Ok(out)
+    }
+
+    async fn send_streaming(
+        &self,
+        req: HttpRequest,
+        sink: &mut (dyn crate::BodySink + Send),
+        total: Option<std::time::Duration>,
+    ) -> anyhow::Result<HttpResponse> {
+        let mut resp = self.request(req, total)?.send().await?;
+        let out = head_of(&resp);
+        sink.begin(out.status, &out.final_url, &out.headers)?;
+        // No read timeout per request in this client: a stall is bounded by `total` alone.
+        while let Some(chunk) = resp.chunk().await? {
+            sink.write(&chunk)?;
+        }
+        Ok(out)
+    }
+}
+
+impl ReqwestFetcher {
+    fn request(
+        &self,
+        req: HttpRequest,
+        total: Option<std::time::Duration>,
+    ) -> anyhow::Result<reqwest::RequestBuilder> {
         let method = reqwest::Method::from_bytes(req.method.to_uppercase().as_bytes())?;
         let mut headers = HeaderMap::new();
         for (k, v) in &req.headers {
@@ -55,32 +84,30 @@ impl HttpFetcher for ReqwestFetcher {
         if let Some(body) = req.body {
             r = r.body(body);
         }
-        let resp = r.send().await?;
-        let status = resp.status().as_u16();
-        let final_url = resp.url().to_string();
-        let http_version = match resp.version() {
-            reqwest::Version::HTTP_2 => "HTTP/2.0",
-            reqwest::Version::HTTP_3 => "HTTP/3.0",
-            reqwest::Version::HTTP_10 => "HTTP/1.0",
-            _ => "HTTP/1.1",
-        };
-        let headers: Vec<(String, String)> = resp
-            .headers()
-            .iter()
-            .map(|(k, v)| (k.to_string(), v.to_str().unwrap_or_default().to_string()))
-            .collect();
-        let content_type = headers
-            .iter()
-            .find(|(k, _)| k.eq_ignore_ascii_case("content-type"))
-            .map(|(_, v)| v.to_ascii_lowercase())
-            .unwrap_or_default();
-        Ok(HttpResponse {
-            status,
-            final_url,
-            headers,
-            content_type,
-            body: resp.bytes().await?.to_vec(),
-            http_version,
-        })
+        if let Some(t) = total {
+            r = r.timeout(t);
+        }
+        Ok(r)
     }
+}
+
+/// Status, address and headers of a response, with no body yet.
+fn head_of(resp: &reqwest::Response) -> HttpResponse {
+    let http_version = match resp.version() {
+        reqwest::Version::HTTP_2 => "HTTP/2.0",
+        reqwest::Version::HTTP_3 => "HTTP/3.0",
+        reqwest::Version::HTTP_10 => "HTTP/1.0",
+        _ => "HTTP/1.1",
+    };
+    let headers: Vec<(String, String)> = resp
+        .headers()
+        .iter()
+        .map(|(k, v)| (k.to_string(), v.to_str().unwrap_or_default().to_string()))
+        .collect();
+    crate::bodiless(
+        resp.status().as_u16(),
+        resp.url().to_string(),
+        headers,
+        http_version,
+    )
 }

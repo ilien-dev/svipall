@@ -23,7 +23,8 @@ USAGE:
 
 COMMANDS:
     fetch <url> [--query Q] [--out FILE] [--text] [--mobile] [--isolated] [--full] [--tables]
-                [--scroll auto|N] [--schema auto|JSON]
+                [--scroll auto|N] [--schema auto|JSON] [--wait SECS] [--fresh]
+                [--json-path PATH] [--timeout MS] [--stdin]
                 [--extraction markdown|text|html] [--cache auto|bypass|refresh] [--mode TIER]
                             Fetch a page, climbing the tier ladder as far as it needs to.
                             <url> may be file:///path (under local_roots) or raw: with --stdin.
@@ -32,33 +33,39 @@ COMMANDS:
                             its rows, with the schema it worked out in induced_schema.
     crawl <url> [--pages N] [--depth N] [--query Q] [--out FILE] [--dfs] [--since-last]
                             Crawl a site. --out writes .csv/.json/.jsonl instead of printing.
+    probe <url>... [--timeout MS]
+                            Whether each URL exists, without reading it: status, final URL,
+                            content type, length, and whether the name resolves. A 404 is an
+                            answer here, not a block.
     snapshot <url>          The page as roles, names and refs — a fraction of the tokens.
     capture <url> [--pattern P] [--bodies]
                             The JSON the page itself fetched: usually the site's real API.
-    video <url> [--lang L] [--frames N] [--out FILE]
+    video <url> [--lang L] [--frames N] [--out FILE] [--wait SECS]
                             A video's captions and chapters as one timeline, from its player,
                             an embed, <video> tracks, JSON-LD or the stream manifest.
-    search <query> [--engine E]
-                            Search without an API key. --engine all merges every engine.
+    search <query> [--engine E] [--lang L] [--region CC] [--limit N]
+                            Search without an API key. --engine all merges every engine,
+                            --engine news searches recent articles.
     map <url>               A site's URLs from robots.txt, sitemaps and feeds.
-    log [--summary] [--domain D]
+    log [--view recent|summary] [--summary] [--domain D] [--since SECS] [--limit N]
                             What this installation has been doing, and which walls it met.
-    notes <get|set|list|delete> [key] [value]
+    notes <get|set|list|delete> [key] [value] [--prefix P]
                             Remember something between runs.
-    watch <add|list|check|remove> [url] [--every SECS] [--selector CSS]
+    watch <add|list|check|remove> [url] [--every SECS] [--selector CSS] [--label L]
                             Report when a page changes.
     profile <list|export|import> [name] [--file F] [--password P]
                             Move a logged-in profile between machines.
     route <list|add|remove|check> [domain] [--proxy URL | --proxies A,B,C] [--country CC | --countries CC,CC] [--check-url URL]
                             One exit per domain, or a pool the domain moves through as exits
                             get blocked. Subdomains inherit.
-    status                  Learned tiers, cooldowns, routes, profiles, solver state.
+    status [--sections all|LIST] [--clear-cooldown DOMAIN]
+                            A summary of what is in the way; --sections adds tiers, exits, …
     serve [--port N] [--bind ADDR]
                             The same server over HTTP: POST /v1/fetch, /v1/crawl, /v1/search …
                             one endpoint per tool, so any language can drive it. Loopback and a
                             bearer key by default; the key is printed once and kept in
                             ~/.svipall/api_key. Runs until ctrl-c.
-    browser [status|install|update|remove]
+    browser [status|install|update|remove] [--artifact chrome|chrome-headless-shell]
                             Which browser runs, or download Chrome for Testing (~190 MB).
     models [status|install|remove] [--from-file FILE]
                             Which captcha models this build has, and install the ones it does not
@@ -67,8 +74,8 @@ COMMANDS:
                             build with no `onnx-*` feature cannot read them: `status` says so.
     update [--check]        Update both binaries to the latest stable release through the channel
                             that installed them, and refresh the skills copied by hand. --check
-                            only compares versions.
-    config show             Show effective settings (secrets redacted).
+                            only compares versions; --install is the older spelling of the default.
+    config show            Show effective settings (secrets redacted).
     config set key=value... Save validated settings; the next command uses them automatically.
     config preset local|auto|emulated|native
                             Use local defaults or the experimental real-hardware browser mode.
@@ -97,9 +104,50 @@ Everything prints one JSON object to stdout. Errors go to stderr.
 #[tokio::main]
 async fn main() {
     let args: Vec<String> = std::env::args().skip(1).collect();
-    if args.is_empty() || args[0] == "-h" || args[0] == "--help" || args[0] == "help" {
+    if args.is_empty() || args[0] == "-h" || args[0] == "--help" {
         eprint!("{USAGE}");
         std::process::exit(if args.is_empty() { 1 } else { 0 });
+    }
+    // `svipall help log` is `svipall log --help`.
+    if args[0] == "help" {
+        match args.get(1) {
+            None => {
+                eprint!("{USAGE}");
+                std::process::exit(0);
+            }
+            Some(cmd) => match help_for(cmd) {
+                Some(text) => {
+                    eprint!("{text}");
+                    std::process::exit(0);
+                }
+                None => {
+                    eprintln!("svipall: {}", unknown_command(cmd));
+                    std::process::exit(1);
+                }
+            },
+        }
+    }
+    // Help and the flags are settled before anything else happens. `run` provisions a browser
+    // first, so `svipall fetch --help` on a machine without one would otherwise start a 190 MB
+    // download to print three lines; and a flag nobody reads is a limit the caller believes was
+    // applied.
+    if args[0] != "hook" && !matches!(args[0].as_str(), "--version" | "-V" | "version") {
+        if args[1..].iter().any(|a| a == "--help" || a == "-h") {
+            match help_for(&args[0]) {
+                Some(text) => {
+                    eprint!("{text}");
+                    std::process::exit(0);
+                }
+                None => {
+                    eprintln!("svipall: {}", unknown_command(&args[0]));
+                    std::process::exit(1);
+                }
+            }
+        }
+        if let Err(e) = check_args(&args[0], &args[1..]) {
+            eprintln!("svipall: {e}");
+            std::process::exit(1);
+        }
     }
     // Answered before the config is read, the logger is built or a directory is created. An
     // installer asks this of a binary it has just unpacked and may not yet own a home for, and a
@@ -223,6 +271,9 @@ async fn run(args: &[String]) -> anyhow::Result<Value> {
                     // Debugging only: the ladder knows better, which is why the skill says never.
                     mode: flags.value("mode"),
                     timeout: flags.number("timeout").map(|n| n as u64),
+                    wait: flags.number("wait").map(|n| n as u64),
+                    fresh: flags.has("fresh").then_some(true),
+                    json_path: flags.value("json-path"),
                     // `--schema auto` for a listing nobody has selectors for, or a JSON object for
                     // one written by hand. A malformed object is reported by the extractor as a
                     // schema error rather than swallowed here, which is where every other bad
@@ -250,6 +301,17 @@ async fn run(args: &[String]) -> anyhow::Result<Value> {
                 })
                 .await)
         }
+        "probe" => {
+            if positional.is_empty() {
+                anyhow::bail!("probe needs at least one url");
+            }
+            Ok(server
+                .probe_json(WebProbeParams {
+                    urls: positional.clone(),
+                    timeout: flags.number("timeout").map(|n| n as u64),
+                })
+                .await)
+        }
         "snapshot" => {
             let url = first.ok_or_else(|| anyhow::anyhow!("snapshot needs a url"))?;
             server
@@ -267,6 +329,9 @@ async fn run(args: &[String]) -> anyhow::Result<Value> {
             }
             if let Some(out) = flags.value("out") {
                 p["out_file"] = json!(out);
+            }
+            if let Some(n) = flags.number("wait") {
+                p["wait"] = json!(n as u64);
             }
             server.video_json(serde_json::from_value(p)?).await
         }
@@ -286,20 +351,16 @@ async fn run(args: &[String]) -> anyhow::Result<Value> {
             if query.trim().is_empty() {
                 anyhow::bail!("search needs something to search for");
             }
-            let engine = flags.value("engine");
-            let fetcher = server.fetcher();
-            let out = match engine.as_deref() {
-                Some("all" | "merge") => {
-                    svipall::search::search_all(fetcher.as_ref(), &query, 10).await
-                }
-                e => svipall::search::search(fetcher.as_ref(), &query, 10, e).await,
-            };
-            Ok(json!({
-                "query": query,
-                "engine": out.engine,
-                "count": out.results.len(),
-                "results": out.results,
-            }))
+            // The same handler as MCP and REST, so exits, pacing and engine health apply here too.
+            Ok(server
+                .search_json(svipall::tools::WebSearchParams {
+                    query,
+                    engine: flags.value("engine"),
+                    limit: flags.number("limit"),
+                    lang: flags.value("lang"),
+                    region: flags.value("region"),
+                })
+                .await)
         }
         "map" => {
             let url = first.ok_or_else(|| anyhow::anyhow!("map needs a url"))?;
@@ -308,14 +369,15 @@ async fn run(args: &[String]) -> anyhow::Result<Value> {
                 .await
         }
         "log" => server.log_json(WebLogParams {
-            view: Some(
+            // `--view` is the tool's own parameter name; `--summary` is the older shorthand.
+            view: Some(flags.value("view").unwrap_or_else(|| {
                 if flags.has("summary") {
                     "summary"
                 } else {
                     "recent"
                 }
-                .to_string(),
-            ),
+                .to_string()
+            })),
             domain: flags.value("domain"),
             since_secs: flags.number("since").map(|n| n as i64),
             limit: flags.number("limit"),
@@ -454,7 +516,15 @@ async fn run(args: &[String]) -> anyhow::Result<Value> {
                 }
             }
         }
-        "status" => server.status_json(serde_json::from_value(json!({}))?).await,
+        "status" => {
+            server
+                .status_json(WebStatusParams {
+                    sections: flags.value("sections"),
+                    clear_cooldown: flags.value("clear-cooldown"),
+                    ..Default::default()
+                })
+                .await
+        }
         // Reads this machine rather than a page, which is why it takes the config and nothing else.
         "models" => {
             svipall::model_install::run(
@@ -478,6 +548,9 @@ async fn run(args: &[String]) -> anyhow::Result<Value> {
                     8788
                 });
             let bind = flags.value("bind").unwrap_or_else(|| cfg.rest_bind.clone());
+            // A server that runs for days keeps its browser current, as svipall-mcp does. A
+            // one-shot command does not: it would exit halfway through the download.
+            tokio::spawn(svipall::provision::auto_update_in_background(cfg.clone()));
             svipall::rest::serve(server.clone(), &bind, port).await?;
             Ok(json!({
                 "served": format!("http://{bind}:{port}/v1/"),
@@ -485,7 +558,7 @@ async fn run(args: &[String]) -> anyhow::Result<Value> {
                 "stopped": "ctrl-c",
             }))
         }
-        other => anyhow::bail!("unknown command '{other}'\n\n{USAGE}"),
+        other => anyhow::bail!("{}", unknown_command(other)),
     };
     // A browser the pool still holds keeps the process alive after the answer has been printed:
     // a fetch that finished in four seconds sat there for ten minutes. Measured, then fixed.
@@ -510,7 +583,292 @@ const SWITCHES: &[&str] = &[
     "stdin",
     "check",
     "install",
+    "bodies",
+    "fresh",
 ];
+
+/// What one command accepts. The only list of flags there is: the parser checks against it, and
+/// a test holds it to the usage text, so a flag cannot be read without being documented or
+/// documented without being read.
+struct Spec {
+    name: &'static str,
+    switches: &'static [&'static str],
+    values: &'static [&'static str],
+}
+
+const SPECS: &[Spec] = &[
+    Spec {
+        name: "fetch",
+        switches: &[
+            "text", "mobile", "isolated", "full", "tables", "stdin", "fresh",
+        ],
+        values: &[
+            "query",
+            "out",
+            "scroll",
+            "schema",
+            "extraction",
+            "cache",
+            "mode",
+            "timeout",
+            "wait",
+            "json-path",
+        ],
+    },
+    Spec {
+        name: "crawl",
+        switches: &["dfs", "since-last"],
+        values: &["pages", "depth", "query", "out"],
+    },
+    Spec {
+        name: "probe",
+        switches: &[],
+        values: &["timeout"],
+    },
+    Spec {
+        name: "snapshot",
+        switches: &[],
+        values: &[],
+    },
+    Spec {
+        name: "capture",
+        switches: &["bodies"],
+        values: &["pattern"],
+    },
+    Spec {
+        name: "video",
+        switches: &[],
+        values: &["lang", "frames", "out", "wait"],
+    },
+    Spec {
+        name: "search",
+        switches: &[],
+        values: &["engine", "lang", "region", "limit"],
+    },
+    Spec {
+        name: "map",
+        switches: &[],
+        values: &[],
+    },
+    Spec {
+        name: "log",
+        switches: &["summary"],
+        values: &["view", "domain", "since", "limit"],
+    },
+    Spec {
+        name: "notes",
+        switches: &[],
+        values: &["prefix"],
+    },
+    Spec {
+        name: "watch",
+        switches: &[],
+        values: &["every", "selector", "label"],
+    },
+    Spec {
+        name: "profile",
+        switches: &[],
+        values: &["file", "password"],
+    },
+    Spec {
+        name: "route",
+        switches: &[],
+        values: &["proxy", "proxies", "country", "countries", "check-url"],
+    },
+    Spec {
+        name: "status",
+        switches: &[],
+        values: &["sections", "clear-cooldown"],
+    },
+    Spec {
+        name: "serve",
+        switches: &[],
+        values: &["port", "bind"],
+    },
+    Spec {
+        name: "browser",
+        switches: &[],
+        values: &["artifact"],
+    },
+    Spec {
+        name: "models",
+        switches: &[],
+        values: &["from-file"],
+    },
+    Spec {
+        name: "update",
+        // `--install` is the older spelling of the default, and the update skill still names it.
+        switches: &["check", "install"],
+        values: &[],
+    },
+    Spec {
+        name: "config",
+        switches: &[],
+        values: &[],
+    },
+    Spec {
+        name: "doctor",
+        switches: &[],
+        values: &[],
+    },
+    Spec {
+        name: "hook",
+        switches: &[],
+        values: &[],
+    },
+    Spec {
+        name: "solver",
+        switches: &[],
+        values: &["out", "since", "modality", "source"],
+    },
+    Spec {
+        name: "quality",
+        switches: &[],
+        values: &["count", "since", "out", "in", "epochs", "lr"],
+    },
+];
+
+fn spec(cmd: &str) -> Option<&'static Spec> {
+    SPECS.iter().find(|s| s.name == cmd)
+}
+
+/// One command's part of the usage text: every entry that starts with its name, continuation
+/// lines included. Cut out of `USAGE` rather than written twice, so the two cannot drift.
+fn help_for(cmd: &str) -> Option<String> {
+    let s = spec(cmd)?;
+    let mut out = String::new();
+    let mut inside = false;
+    for line in USAGE.lines() {
+        // An entry starts four spaces in; anything deeper continues the one above it.
+        if line.starts_with("     ") {
+            if inside {
+                out.push_str(line);
+                out.push('\n');
+            }
+        } else if let Some(head) = line.strip_prefix("    ") {
+            inside = head == cmd || head.starts_with(&format!("{cmd} "));
+            if inside {
+                out.push_str("svipall ");
+                out.push_str(head);
+                out.push('\n');
+            }
+        } else {
+            inside = false;
+        }
+    }
+    if out.is_empty() {
+        out = format!("svipall {cmd}\n");
+    }
+    if s.switches.is_empty() && s.values.is_empty() {
+        out.push_str("\nTakes no flags.\n");
+    } else if !s.values.is_empty() {
+        out.push_str("\nA value that begins with -- is written --flag=value.\n");
+    }
+    Some(out)
+}
+
+/// The closest of `options` to `word`, by edit distance, when it is close enough to be a typo or
+/// a near-miss rather than a different word altogether.
+fn closest<'a>(word: &str, options: impl IntoIterator<Item = &'a str>) -> Option<&'a str> {
+    options
+        .into_iter()
+        .map(|o| {
+            // A shared prefix is the strongest hint there is: `--since-secs` means `--since`.
+            let d = if word.starts_with(o) || o.starts_with(word) {
+                0
+            } else {
+                edit_distance(word, o)
+            };
+            (d, o)
+        })
+        .filter(|(d, o)| *d <= (o.len().max(word.len()) / 2).max(2))
+        .min_by_key(|(d, _)| *d)
+        .map(|(_, o)| o)
+}
+
+fn edit_distance(a: &str, b: &str) -> usize {
+    let (a, b): (Vec<char>, Vec<char>) = (a.chars().collect(), b.chars().collect());
+    let mut row: Vec<usize> = (0..=b.len()).collect();
+    for i in 1..=a.len() {
+        let mut prev = row[0];
+        row[0] = i;
+        for j in 1..=b.len() {
+            let cur = row[j];
+            row[j] = if a[i - 1] == b[j - 1] {
+                prev
+            } else {
+                1 + prev.min(row[j]).min(row[j - 1])
+            };
+            prev = cur;
+        }
+    }
+    row[b.len()]
+}
+
+fn unknown_command(cmd: &str) -> String {
+    match closest(cmd, SPECS.iter().map(|s| s.name)) {
+        Some(near) => format!(
+            "unknown command '{cmd}'; did you mean `svipall {near}`? (svipall --help lists them)"
+        ),
+        None => format!("unknown command '{cmd}' (svipall --help lists them)"),
+    }
+}
+
+/// Refuse a flag the command does not read, naming the nearest one it does.
+///
+/// Measured: `svipall log --view summary --since-secs 5000000` ran the default view over the
+/// default hour and printed it, and nothing about the answer said two flags had been dropped.
+fn check_args(cmd: &str, args: &[String]) -> Result<(), String> {
+    let Some(s) = spec(cmd) else {
+        return Err(unknown_command(cmd));
+    };
+    let flags = Flags::parse(args);
+    // Checked first: the argument that looks like a flag is this one's value more often than a
+    // flag of its own, and calling it unknown sent the caller after the wrong thing.
+    let mut wanting: Vec<(&String, &String)> = flags
+        .followed_by_flag
+        .iter()
+        .filter(|(name, _)| s.values.contains(&name.as_str()))
+        .collect();
+    wanting.sort();
+    if let Some((name, next)) = wanting.first() {
+        return Err(format!(
+            "--{name} needs a value, and the next argument {next} looks like a flag, so it was \
+             not taken as one. If {next} is the value, write --{name}={next}"
+        ));
+    }
+    let known = |n: &str| s.switches.contains(&n) || s.values.contains(&n);
+    let mut names: Vec<&String> = flags.named.keys().chain(flags.switches.iter()).collect();
+    names.sort();
+    for name in names {
+        if known(name) {
+            continue;
+        }
+        let all = s.switches.iter().chain(s.values.iter()).copied();
+        return Err(match closest(name, all) {
+            Some(near) => format!(
+                "unknown flag --{name} for `svipall {cmd}`; did you mean --{near}? \
+                 (svipall {cmd} --help lists its flags)"
+            ),
+            None if s.switches.is_empty() && s.values.is_empty() => {
+                format!("unknown flag --{name}: `svipall {cmd}` takes no flags")
+            }
+            None => format!(
+                "unknown flag --{name} for `svipall {cmd}` (svipall {cmd} --help lists its flags)"
+            ),
+        });
+    }
+    // A flag that wants a value and was left without one is parsed as a switch, and then read as
+    // absent: `--domain` at the end of the line would quietly mean every domain.
+    for name in &flags.switches {
+        if s.values.contains(&name.as_str()) {
+            return Err(format!(
+                "--{name} needs a value (svipall {cmd} --help shows what it takes)"
+            ));
+        }
+    }
+    Ok(())
+}
 
 /// `--name value` and `--name`, plus whatever is left over.
 ///
@@ -521,6 +879,8 @@ struct Flags {
     named: std::collections::HashMap<String, String>,
     switches: std::collections::HashSet<String>,
     positional: Vec<String>,
+    /// A flag left without a value because the next argument began with `--`, and that argument.
+    followed_by_flag: std::collections::HashMap<String, String>,
 }
 
 impl Flags {
@@ -543,6 +903,9 @@ impl Flags {
                         out.named.insert(name.to_string(), args[i + 1].clone());
                         i += 1;
                     } else {
+                        if let Some(next) = args.get(i + 1).filter(|n| n.len() > 2) {
+                            out.followed_by_flag.insert(name.to_string(), next.clone());
+                        }
                         out.switches.insert(name.to_string());
                     }
                 }
@@ -683,6 +1046,72 @@ mod tests {
     }
 
     #[test]
+    fn every_flag_a_command_reads_is_in_its_own_help() {
+        // The table is what the parser accepts and the usage text is what a person reads; a flag
+        // in one and not the other is either refused while documented or accepted while secret.
+        for s in SPECS {
+            let help = help_for(s.name).expect("every spec has help");
+            for flag in s.switches.iter().chain(s.values.iter()) {
+                assert!(
+                    help.contains(&format!("--{flag}")),
+                    "svipall {} --help does not mention --{flag}:\n{help}",
+                    s.name
+                );
+            }
+            for sw in s.switches {
+                assert!(SWITCHES.contains(sw), "--{sw} must be declared a switch");
+            }
+        }
+    }
+
+    #[test]
+    fn every_command_line_the_skill_teaches_is_accepted() {
+        // Unknown flags are errors now, so a flag the skill shows and the binary does not read
+        // would send an agent into a refusal. Every `svipall <cmd> …` the skill spells out, up to
+        // its comment or the end of the code span, must pass the same check the binary runs.
+        let skill = include_str!("../../../../skill/SKILL.md");
+        let mut checked = 0;
+        for line in skill.lines() {
+            let mut rest = line;
+            while let Some(at) = rest.find("svipall ") {
+                let tail = &rest[at + "svipall ".len()..];
+                let end = tail.find(['`', '#', '|', '<', ')']).unwrap_or(tail.len());
+                let words: Vec<String> = tail[..end]
+                    .split_whitespace()
+                    .filter(|w| !w.starts_with('[') && !w.ends_with(']'))
+                    .map(str::to_string)
+                    .collect();
+                rest = &tail[end..];
+                let Some(cmd) = words.first() else { continue };
+                if spec(cmd).is_none() || !words.iter().any(|w| w.starts_with("--")) {
+                    continue;
+                }
+                checked += 1;
+                assert!(
+                    check_args(cmd, &words[1..]).is_ok(),
+                    "the skill teaches `svipall {}`, which the binary refuses: {:?}",
+                    words.join(" "),
+                    check_args(cmd, &words[1..])
+                );
+            }
+        }
+        assert!(
+            checked >= 10,
+            "the skill's command lines were found: {checked}"
+        );
+    }
+
+    #[test]
+    fn a_flag_the_command_does_not_read_is_refused_with_the_nearest_one() {
+        let e = check_args("log", &args(&["--since-secs", "5"])).unwrap_err();
+        assert!(e.contains("--since-secs") && e.contains("--since"), "{e}");
+        assert!(check_args("log", &args(&["--view", "summary", "--since", "9"])).is_ok());
+        let e = check_args("map", &args(&["https://x.test/", "--limit", "3"])).unwrap_err();
+        assert!(e.contains("takes no flags"), "{e}");
+        assert!(check_args("log", &args(&["--domain"])).is_err());
+    }
+
+    #[test]
     fn a_number_that_is_not_a_number_is_absent_rather_than_zero() {
         // Zero pages is a crawl that fetches nothing and reports success.
         let f = Flags::parse(&args(&["--pages", "lots"]));
@@ -743,6 +1172,7 @@ mod tests {
         for cmd in [
             "fetch",
             "crawl",
+            "probe",
             "snapshot",
             "capture",
             "video",

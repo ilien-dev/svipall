@@ -1,5 +1,222 @@
 # Changelog
 
+## 1.4.0 — 2026-11-11
+
+Most of this release comes from reading 2,361 real tool calls made on 1.3.1 between 10 October and
+11 November, and fixing what they ran into.
+
+Five changes alter what a caller sees:
+
+- **An unknown parameter refuses the call.** It used to be dropped without a word, so a caller
+  could believe a limit was applied when it was not. The refusal names the parameter and the
+  closest real one (MCP `invalid_params`, REST `400`). Numbers and booleans sent as strings
+  (`"6000"`, `"true"`) are now read as what they say.
+- **`web_fetch_many` has a total budget by default.** `max_tokens_total` is 8000 unless set, split
+  evenly across the pages (`max_tokens` caps one page, never below 150). A cut page carries
+  `truncated` and a `cursor`, and the top-level `continue` names the `web_fetch` call that reads
+  the rest. `out_dir` writes every page whole, `out_file` (`.json`/`.jsonl`) writes the set and
+  returns a summary, and an answer still over 45,000 characters goes to a file under
+  `~/.svipall/out/`. About 58 answers in a month were refused by the client as too large. Results
+  now come back in the order the URLs were given, and `reordered_for_diversity` is gone.
+- **`web_status` is a summary by default**: home, version, cooldowns, server holds, request
+  limits, identity, and a short browser and solver line. `sections` (`all`, or any of `holds`,
+  `tiers`, `exits`, `reputation`, `h3`, `browser`, `cache`, `crawls`, `profiles`, `solver`,
+  `models`, `identity`) adds the rest, also as `GET /v1/status?sections=` and
+  `svipall status --sections`. A clearing action answers with what it cleared and nothing else. The
+  full report was about 11,500 characters, inflated by `h3_offered_by`.
+- **Search `attempts` are objects**: `engine`, `outcome`, `count`, `status`, `detail`, `ms`.
+- **`request_cooldown_seconds` now means the longest backoff** after repeated 429s, not the hold
+  every refusal started.
+
+The visit limit:
+
+- **A full window is a wait, never a hold.** The 13th visit in a minute used to write a 900 s
+  hold. Now the fetch waits for the oldest visit to leave the window when that fits in half its
+  timeout, and otherwise is refused with `blocked_reason: "visit_limit"` and the exact seconds
+  until a slot frees.
+- **One fetch is one visit.** Every tier a fetch climbed was charged, so one walk up the ladder
+  spent 5 or 6 of the 12.
+- **The budget says it is shared.** It belongs to every session, subagent and process on the
+  machine, and a refusal or a nearly spent window now says so in `visit_budget`. A crawl the limit
+  stops says `stopped_by: "visit_limit"`.
+- **`wait`** on `web_fetch`, `web_fetch_many` and `web_video` (`--wait` on the CLI) waits out a
+  full window, a server's backoff or the hard-block cooldown, up to 900 s on top of `timeout`.
+  `wait=0` never waits. `waited` says what was waited for.
+- **The server's word, and short backoff.** `Retry-After: 2` became 900 s. A `Retry-After` is now
+  honoured as given, up to an hour. Without one, a 429 pauses 30 s, then 120, 480 and 900, and
+  strikes are forgotten after 30 quiet minutes. A 503 without one pauses 30 s and counts no
+  strike, since it is a server error. The 15-minute hard-block cooldown follows only a status or
+  vendor wall at the real or warm tier when the pool has no other exit.
+- **A hopeless wall answers fast.** A walk that failed all the way up is remembered per origin
+  and exit for 10 minutes, and the next call returns it at once (`remembered`, `attempts: []`).
+  Those walks took 30 to 58 s each time. `fresh=true` walks again.
+- **`clear_cooldown` clears everything it names**: the hard-block cooldown, the ledger's holds
+  and strikes, the visit window and the remembered failure, on every exit. It used to leave the
+  ledger alone.
+
+Files, JSON and APIs:
+
+- **Binary bodies are bytes.** Archives, extensions, packages, fonts and images asked for with
+  `out_file` all arrived as mojibake. An `out_file` with any name other than a text one (`.md`,
+  `.txt`, `.json`, `.jsonl`, `.csv`, `.html`) now gets the body as served, streamed to disk, with
+  `file{bytes, sha256, content_type, complete, bytes_per_sec}`. A binary body is written as bytes
+  whatever the name. Without `out_file` it is described, never decoded, and the note says to pass
+  one. The in-memory cap is 100 MiB (`SVIPALL_MAX_BODY_BYTES`).
+- **Downloads resume.** A cut transfer leaves `<out_file>.part`, and the same call again asks for
+  the rest with `Range` and `If-Range` (`file.resumed_from`). A server whose copy changed sends it
+  whole again. CLI `fetch --out` behaves the same. `bytes_per_sec` is the bytes that arrived over
+  the time they took (`file.transfer_ms`). It used to include the wait for the server and the
+  re-read of the `.part` file, so a fast resume read 0.8 MB/s.
+- **`json_path`** on `web_fetch` and `web_fetch_many` (`--json-path`) keeps only the fields asked
+  for: `.a`, `["a b"]`, `[0]`, `[-1]`, `[1:5]`, `[*]`, `{a, b.c}`. It replaces the
+  `out_file`-then-script round trip of 911 fetches in a month. No match is `null` with
+  `json_path_note`, and a body that is not JSON comes back whole with `json_path_error`.
+- **JSON, text and code come back as served**, plain text and code byte for byte and paged by
+  line. A non-HTML `2xx` is no longer phrase-matched as a wall: a GitHub search answer quoting
+  "access denied" climbed every tier for 33 s. On such a response only 401, 403, 407, 421, 429,
+  444 and 503 are walls, 404 and 410 are not found, and any other status is the API's answer.
+  `quality` judges JSON as JSON and text by whether it is empty. Before, 58% of good answers read
+  `thin`.
+- **`web_probe`** (`/v1/probe`, `svipall probe`) answers whether URLs exist: status, `exists`,
+  final URL, type, length, whether the name resolves, eight at a time, headers only. A 404 is an
+  answer.
+- **GitHub through its API.** A repo root, `tree`, `blob` (with `#L10-L20`), `issues/N`, `pull/N`,
+  releases and `commit/<sha>` on github.com are read from the REST API or the raw file host, with
+  every comment and review in order. Agents had fallen back to `gh api` about 50 times. A token in
+  `GITHUB_TOKEN` goes to `api.github.com` only. A rate limit reads `rate_limited_until`, never a
+  wall, and starts no cooldown. On a secondary limit (a 429 or 403 with `Retry-After` while the
+  hourly quota has requests left) that time comes from `Retry-After`, not from the quota's reset
+  up to an hour away. `json_path`, `quality`, `query`, `max_tokens` and `out_file`
+  work there as on any page. On a rendered issue or repo, `json_path` cannot apply, and
+  `json_path_error` gives the API URL that holds the JSON.
+
+Search:
+
+- **A zero-result answer says why.** 28% of searches came back empty, mostly a captcha or an
+  anomaly page parsed as "no results". Every engine answer is now classified (`results`, `empty`,
+  `challenge`, `blocked`, `unparsed`, `error`, `skipped`), and an empty answer carries a `note`
+  naming each and what to try.
+- **Failing engines rest.** Health is kept per engine, host and exit in
+  `~/.svipall/search_engines.json`. A refusing engine rests from 10 minutes up to 6 hours, and
+  engines are asked in order of recent on-topic results. A host on hold is skipped, also when
+  named. Search leaves through the engine host's `web_route` exit and is paced per host.
+- **Better results**: redirect-wrapped links are unwrapped, `lang` and `region` set the locale
+  (inferred from the query otherwise), a result sharing no word with the query (fewer than two,
+  for three words or more) is marked `off_topic` and ranked last, and a long query with a weak
+  answer is retried once shortened. `engine=news` searches recent articles.
+- **A one-word answer is named.** Bing sometimes answers a query of three words or more for one of
+  them, so "python dataclass default factory list" brings back python.org. That attempt's
+  `detail` and the `note` now say so. Every result is still returned.
+- **Brave's results are read.** Until now the parser had only ever been given a captcha page. It
+  now reads the engine's current layout and is tested on a real results page.
+
+Pages, browsers and the CLI:
+
+- **The "Performing security verification" interstitial clears.** It never did, at any tier,
+  for two reasons. Each was found by adding one thing at a time to a browser nothing was
+  driving. The browser tiers said they were Chrome 149, the newest handshake the http tier can
+  forge, while the browser running was 154. They now state the version of the browser that runs,
+  and the http tier keeps its ceiling. The wait also asked the page for its answer field from the
+  page's own world, where that page watches the lookup and fails the visitor for it. Everything
+  svipall asks a page on its own account now runs in the isolated world. A widget still showing
+  its box 6 s after the document started gets one tick. `lib.rs` was blocked after 95 s and is
+  now read in 15 s.
+- **The `real` tier waits on a challenge.** It read the page about a second after it loaded, so
+  every interstitial cost a failed attempt before `warm`. It now gives a challenge up to 12 s,
+  and a page that is not one is read as before. The wait leaves an interstitial alone while it
+  verifies (`warm.quiet_turns`), and the interstitial is recognised by what its markup is made
+  of, since its wording changed and the phrase list stopped matching. `lib.rs/crates/tokio` took
+  25.5 s and passed at `warm`. It takes 14.4 s and passes at `real`.
+- **A short page behind a challenge is the page.** A test page of 78 characters was reported as
+  "the refusal again, not the page" because the http tier had been refused first. A result
+  reached through a challenge carries `challenge_passed`.
+- **A refusal from the site itself is said as one.** On manualslib.com the interstitial clears
+  and the site's own server then answers a bare 403. `solve_and_continue` spent its whole 90 s
+  there and `web_fetch` climbed on. Both now stop with `wall_kind: "origin"` and a
+  `blocked_reason` that starts `origin refusal`, in about 9 s. The note says there is nothing to
+  solve and names `web_route` and `web_login`.
+- **A browser tier reports the document's own status.** The status came from the navigation,
+  and with Chrome for Testing 154 a bare `403 Forbidden` came back as a delivered `200`.
+- **A tick that passed is not waited on.** After a tick the wait went on for a form that was
+  never sent, or took a widget on the next page for the one it had ticked. On a demo page the
+  wait fell from 29 s to 8 s.
+- **A proof-of-work captcha is answered.** `blocked_reason` names the widget
+  (`widget: altcha.org`). Its box is ticked and its own script does the sum and posts the form.
+  Where no widget is running, the signed challenge is counted locally, in the SHA form up to its
+  `maxnumber` and in the PBKDF2 form, on a blocking thread that stops when the caller gives up.
+  A Mojeek search was blocked after 93 s and now returns its results in 9 s.
+- **`solve_and_continue` returns when the wall is gone**, not at `timeout_s`, and `solved` says
+  whether the page stopped being a wall.
+- **Walls in four more languages.** Spanish, Portuguese, French and German walls are recognised,
+  and a browser tier no longer turns a 130-byte refusal after a 403 into a delivered page.
+- **Punctuated query words match literally**, so `query="--effort"` finds the flag and not the
+  page header.
+- **Cursors survive.** A cursor keeps the query it was issued with and survives a cache hit, and
+  `continue` names the exact next call, `json_path` included.
+- **A small budget gets filled.** When the next block is too big for what is left and a quarter
+  or more of the budget is unused, the block is cut after a table row, a line or a sentence, and
+  the cursor picks up right after the cut. With `max_tokens=300`, a page that opened with one
+  line and then an infobox returned 10 tokens.
+- **Tables lose blank rows, blank columns and repeated columns**, and a PDF placed glyph by glyph
+  reads as words.
+- **Notes say only what is true**: no 15-minute cooldown that was never set, no security-product
+  or old-browser hint on a plain 404, no `web_login` advice for a generic wall. A failed
+  `solve_and_continue` no longer tells the caller to call it again, and its visible window opens on
+  the profile and exit the headless try used.
+- **This machine's address is masked.** Learned only from wall pages that printed it, never looked
+  up, it comes back as `[own IP]` in the page text of every tool (`own_ip_masked`). The same goes
+  for text written to `out_file` or `out_dir` (the first wall that names it included), the
+  request log and `web_capture` bodies. A binary download is still written byte for byte.
+- **Downloads stream on every engine.** Over HTTP/3 a body used to be collected in memory before
+  it reached the file, and the page timeout bounded it instead of the call's. It now goes to disk as it
+  arrives and is decoded on the way. When QUIC does not answer, the fallback streams it too. A
+  4.06 GiB download cut just past the 4 GiB mark resumed with the right sha256, and memory
+  peaked at 29 MiB.
+- **`web_map`** reads `llms.txt`, lists in `sources_used` only sources that produced URLs, and
+  reports `robots.present` only for a real robots file. **`web_site_search`** tries OpenSearch,
+  then a search box behind an icon or in a shadow root, then known platform endpoints, and
+  `found: false` names everything it tried.
+- **Browser errors keep their cause.** `browser_do` keeps its per-action results and reports
+  `content_error` when the page read fails, a locked profile says so, and an unknown action verb is
+  refused before a browser starts.
+- **The managed browser updates itself** in the background when it is two majors behind stable,
+  checked at most every 20 hours (`browser_auto_update`, on by default). A `browser_path` of your
+  own is never touched, and the stale warning prints once.
+- **The CLI** takes `--help` on every subcommand, and an unknown flag is an error naming the
+  nearest one. `svipall log --since-secs 600` used to ignore the flag and run anyway. A value
+  that starts with `--` is refused with the form that works: `--query=--effort`.
+- **The prompts**: the descriptions of the tools agents passed over (`web_fetch`, `web_search`,
+  `web_fetch_many`, `web_probe`, `web_video`, `web_status`, and the crawl, map, snapshot,
+  screenshot, capture, site search, diff, login and session tools) now open with when to use them,
+  and the instructions name `web_probe`, `web_video`, `wait`, `json_path` and binary `out_file`.
+  The whole tool list is 38,547 characters, against about 38,950 on 1.3.1, with `web_probe` and
+  the new parameters added. When the session has the
+  `searchGitHub` tool of the grep.app MCP server, the instructions, the skill and the setup memory
+  prefer it for finding code across GitHub repositories, and Svipall does that job when it is
+  absent.
+
+What did not improve:
+
+- manualslib.com is still not read from this machine. Its challenge is passed, and its own
+  server then answers 403 to two different browser builds, on the front page, a brand page and
+  a manual, with and without a referrer. The 403 carries no header or text that says why. A
+  security product on this machine intercepts TLS for every browser, so the address and that
+  shared handshake could not be told apart from here.
+- Mojeek is not a `web_search` engine. It answers a plain HTTP request with its captcha page,
+  and search has no browser to answer it with. `web_fetch` reads a Mojeek results page in 19 s.
+- The http tier still says Chrome 149 while the browser tiers say the browser that runs. Read
+  on loopback, Chrome 154 sends two TLS extensions and three signature algorithms that the 149
+  handshake does not, so the http tier cannot claim 154.
+- On a site whose front page loads slowly the `real` tier still spends that time before the
+  wait starts: 25 of the 34 s one demo page took.
+- Bing's one-word answers are only labelled. From this machine every multi-word query got one
+  for a stretch, with every request shape tried and in a browser too, and ten minutes later the
+  same request was answered whole. No change on our side was shown to bring it back.
+- Brave's http tier still answers 429 from this machine. The real page the parser was tested on
+  came through the browser tier.
+- Not verified: a real GitHub 429. The secondary-limit test runs against an answer built from the
+  shape GitHub documents.
+
 ## 1.3.1 — 2026-10-02
 
 - **A route set with `web_route` applies to the very next fetch.** `web_route` wrote

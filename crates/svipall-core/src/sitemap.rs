@@ -311,6 +311,76 @@ pub const SITEMAP_GUESSES: &[&str] = &[
 /// Common feed paths, for sites without autodiscovery `<link>` tags.
 pub const FEED_GUESSES: &[&str] = &["/feed", "/feed.xml", "/rss.xml", "/atom.xml", "/index.xml"];
 
+/// Where a site publishes its map for language models: a markdown list of its pages.
+pub const LLMS_TXT: &str = "/llms.txt";
+
+/// Whether a body is an HTML document rather than the text or XML file that was asked for.
+///
+/// A missing `/robots.txt` on a site that answers every path with its application shell comes back
+/// `200 text/html`, and reading that as robots rules reported a robots file nobody wrote.
+pub fn looks_like_html(body: &str) -> bool {
+    let head: String = body
+        .trim_start_matches('\u{feff}')
+        .trim_start()
+        .chars()
+        .take(512)
+        .collect::<String>()
+        .to_ascii_lowercase();
+    head.starts_with("<!doctype html")
+        || head.starts_with("<html")
+        || head.starts_with("<head")
+        || head.starts_with("<body")
+        || (head.starts_with('<') && (head.contains("<html") || head.contains("<body")))
+}
+
+/// One page an `llms.txt` names.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct LlmsLink {
+    pub url: String,
+    pub title: String,
+}
+
+/// The pages an `llms.txt` lists: every markdown link `[title](url)` that resolves to http(s)
+/// against `base`, in order, once each.
+pub fn parse_llms_txt(body: &str, base: &str, max: usize) -> Vec<LlmsLink> {
+    let Ok(base) = url::Url::parse(base) else {
+        return Vec::new();
+    };
+    let mut out: Vec<LlmsLink> = Vec::new();
+    let mut seen = std::collections::HashSet::new();
+    let mut rest = body;
+    while out.len() < max {
+        let Some(open) = rest.find('[') else { break };
+        let after = &rest[open + 1..];
+        let Some(close) = after.find("](") else { break };
+        let title = &after[..close];
+        let target_start = &after[close + 2..];
+        let Some(end) = target_start.find(')') else {
+            break;
+        };
+        let target = target_start[..end].split_whitespace().next().unwrap_or("");
+        rest = &target_start[end + 1..];
+        // A bracket inside the title text is not a link of its own.
+        if title.contains('\n') {
+            continue;
+        }
+        let Ok(resolved) = base.join(target) else {
+            continue;
+        };
+        if !matches!(resolved.scheme(), "http" | "https") {
+            continue;
+        }
+        let url = resolved.to_string();
+        if seen.insert(url.clone()) {
+            out.push(LlmsLink {
+                url,
+                title: title.trim().to_string(),
+            });
+        }
+    }
+    out
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -477,5 +547,30 @@ mod tests {
     fn a_feed_with_no_items_is_empty_not_an_error() {
         let empty = r#"<rss version="2.0"><channel><title>Nothing</title></channel></rss>"#;
         assert!(parse_feed(empty.as_bytes(), 50).unwrap().is_empty());
+    }
+
+    #[test]
+    fn an_llms_txt_lists_its_pages_resolved_and_once() {
+        let body = "# Site\n\n> About.\n\n## Docs\n- [Guide](/guide): start here\n\
+                    - [API](https://example.com/api \"title\")\n- [Guide again](/guide)\n\
+                    - [Mail](mailto:x@example.com)\n";
+        let links = parse_llms_txt(body, "https://example.com/", 50);
+        let urls: Vec<&str> = links.iter().map(|l| l.url.as_str()).collect();
+        assert_eq!(
+            urls,
+            ["https://example.com/guide", "https://example.com/api"]
+        );
+        assert_eq!(links[0].title, "Guide");
+    }
+
+    #[test]
+    fn an_html_page_is_not_mistaken_for_a_text_file() {
+        assert!(looks_like_html(
+            "<!DOCTYPE html><html><body>not found</body></html>"
+        ));
+        assert!(looks_like_html("\n  <html lang=en>"));
+        assert!(!looks_like_html("User-agent: *\nDisallow: /private\n"));
+        assert!(!looks_like_html("<?xml version=\"1.0\"?><urlset></urlset>"));
+        assert!(!looks_like_html("# Site\n- [a](/a)"));
     }
 }

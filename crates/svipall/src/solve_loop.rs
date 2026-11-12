@@ -37,6 +37,11 @@ pub enum Outcome {
     AlreadyAnswered,
     /// Cleared by this strategy.
     Solved { strategy: &'static str },
+    /// The page stopped being a wall while it was waited on, with nothing asked of it.
+    Passed,
+    /// The wall went away and the site's own refusal stands in its place. Not cleared, and not
+    /// something a strategy, a longer wait or a person can answer.
+    Refused,
     /// The budget for the modality ran out. A person is the next step, not another guess.
     Exhausted { modality: Modality },
     /// Time ran out with no challenge ever recognised.
@@ -45,7 +50,10 @@ pub enum Outcome {
 
 impl Outcome {
     pub fn cleared(&self) -> bool {
-        matches!(self, Outcome::AlreadyAnswered | Outcome::Solved { .. })
+        matches!(
+            self,
+            Outcome::AlreadyAnswered | Outcome::Solved { .. } | Outcome::Passed
+        )
     }
 }
 
@@ -60,6 +68,18 @@ pub trait Surface: Sync {
     /// Wait for the page to catch up after an attempt. A no-op in tests.
     fn settle(&self) -> BoxFuture<'_, ()> {
         Box::pin(async {})
+    }
+    /// Has the page stopped being a wall? Asked only while nothing is recognised on it: a wall
+    /// that verifies the visitor by itself asks no question, so this is the one way its passing
+    /// is ever noticed before the deadline.
+    fn through(&self) -> BoxFuture<'_, bool> {
+        Box::pin(async { false })
+    }
+    /// Has the wall been replaced by the site's own refusal? Asked right after `through`, of the
+    /// same look at the page: the other thing a challenge can turn into, and the one a wait
+    /// would otherwise sit on until the deadline.
+    fn refused(&self) -> BoxFuture<'_, bool> {
+        Box::pin(async { false })
     }
 }
 
@@ -149,6 +169,12 @@ pub async fn run<S: Surface>(
     let mut seen: Option<Modality> = None;
     loop {
         let Some(modality) = surface.probe().await else {
+            if surface.through().await {
+                return Outcome::Passed;
+            }
+            if surface.refused().await {
+                return Outcome::Refused;
+            }
             if Instant::now() >= deadline {
                 return match seen {
                     Some(m) => Outcome::Exhausted { modality: m },
@@ -232,6 +258,10 @@ mod tests {
         settles_after: usize,
         probes: AtomicUsize,
         answers: AtomicUsize,
+        /// The page lets the visitor through by itself once it has been probed this many times.
+        through_after: Option<usize>,
+        /// The site's own refusal stands where the wall was once it has been probed this often.
+        refused_after: Option<usize>,
     }
 
     impl Fake {
@@ -241,6 +271,8 @@ mod tests {
                 settles_after,
                 probes: AtomicUsize::new(0),
                 answers: AtomicUsize::new(0),
+                through_after: None,
+                refused_after: None,
             }
         }
     }
@@ -248,6 +280,18 @@ mod tests {
     impl Surface for Fake {
         fn settled(&self) -> BoxFuture<'_, bool> {
             Box::pin(async move { self.answers.load(AtomicOrdering::SeqCst) >= self.settles_after })
+        }
+        fn through(&self) -> BoxFuture<'_, bool> {
+            Box::pin(async move {
+                self.through_after
+                    .is_some_and(|n| self.probes.load(AtomicOrdering::SeqCst) >= n)
+            })
+        }
+        fn refused(&self) -> BoxFuture<'_, bool> {
+            Box::pin(async move {
+                self.refused_after
+                    .is_some_and(|n| self.probes.load(AtomicOrdering::SeqCst) >= n)
+            })
         }
         fn probe(&self) -> BoxFuture<'_, Option<Modality>> {
             Box::pin(async move {
@@ -328,6 +372,49 @@ mod tests {
         .await;
         assert_eq!(out, Outcome::AlreadyAnswered);
         assert_eq!(page.probes.load(AtomicOrdering::SeqCst), 0, "never probed");
+    }
+
+    #[tokio::test]
+    async fn a_wall_that_lets_the_visitor_through_ends_the_wait_when_it_does() {
+        // An interstitial that verifies by itself asks nothing, so nothing is ever recognised.
+        // Waiting on it used to mean waiting out the whole deadline after it had already gone:
+        // a minute and a half on a page that took five seconds.
+        let mut page = Fake::new(vec![None, None, None], usize::MAX);
+        page.through_after = Some(3);
+        let started = Instant::now();
+        let out = run(
+            &page,
+            &[],
+            &no_history,
+            &mut nothing,
+            Duration::from_secs(30),
+        )
+        .await;
+        assert_eq!(out, Outcome::Passed);
+        assert!(out.cleared());
+        assert!(started.elapsed() < Duration::from_secs(5));
+        assert_eq!(page.probes.load(AtomicOrdering::SeqCst), 3);
+    }
+
+    #[tokio::test]
+    async fn a_wall_replaced_by_a_refusal_ends_the_wait_as_one() {
+        // The challenge went away and the site's own server said no in its place. Nothing on
+        // that page will ever be recognised or let anyone through, so the deadline is the only
+        // other way out: measured as ninety seconds spent on a bare "403 Forbidden".
+        let mut page = Fake::new(vec![None, None], usize::MAX);
+        page.refused_after = Some(2);
+        let started = Instant::now();
+        let out = run(
+            &page,
+            &[],
+            &no_history,
+            &mut nothing,
+            Duration::from_secs(30),
+        )
+        .await;
+        assert_eq!(out, Outcome::Refused);
+        assert!(!out.cleared(), "a refusal is not a cleared wall");
+        assert!(started.elapsed() < Duration::from_secs(5));
     }
 
     #[tokio::test]

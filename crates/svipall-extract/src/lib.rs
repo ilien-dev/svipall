@@ -1025,7 +1025,17 @@ impl Md {
 }
 
 /// BM25 filter over markdown blocks Ã¢ÂÂ local, no dependencies.
+///
+/// A query word with punctuation in it (a flag, an identifier, a path) is matched literally
+/// first: the blocks that contain it, narrowed to the lines that do, are the answer, however short
+/// the page is. Only when no block contains it does the word ranking below run.
 pub fn bm25_filter(markdown: &str, query: &str, keep: usize) -> String {
+    let literals = literal_terms(query);
+    if !literals.is_empty() {
+        if let Some(found) = literal_filter(markdown, &literals, keep) {
+            return found;
+        }
+    }
     let blocks: Vec<&str> = markdown
         .split("\n\n")
         .map(|b| b.trim())
@@ -1115,6 +1125,111 @@ pub fn bm25_filter(markdown: &str, query: &str, keep: usize) -> String {
         .map(|&i| blocks[i])
         .collect::<Vec<_>>()
         .join("\n\n")
+}
+
+/// Words of a query that carry punctuation inside them: `--effort`, `foo_bar`, `a/b/c.rs`,
+/// `Option<usize>`. The word tokenizer splits each of those into fragments that are on every line
+/// of a reference page, so the one thing the caller typed exactly was the one thing it could not
+/// look for.
+///
+/// Only the punctuation of code and the command line counts: a leading dash, or one of
+/// `_ / \ < > : . # @ = $ [ ] { }` inside the word. An apostrophe or a hyphen inside a word
+/// ("what's", "e-mail") is prose, and matching it literally would throw away the rest of the query.
+fn literal_terms(query: &str) -> Vec<String> {
+    const CODE: &[char] = &[
+        '_', '/', '\\', '<', '>', ':', '.', '#', '@', '=', '$', '[', ']', '{', '}',
+    ];
+    query
+        .split_whitespace()
+        .map(|w| w.trim_matches(|c: char| matches!(c, '"' | '\'' | '`' | ',' | ';' | '(' | ')')))
+        .map(|w| w.trim_end_matches(['.', '?', '!', ':']))
+        .filter(|w| {
+            w.chars().any(char::is_alphanumeric) && (w.starts_with('-') || w.contains(CODE))
+        })
+        .map(str::to_lowercase)
+        .collect()
+}
+
+/// Markdown blocks, with a fenced code block kept whole across its blank lines.
+fn fenced_blocks(markdown: &str) -> Vec<String> {
+    let mut out = Vec::new();
+    let mut cur: Vec<&str> = Vec::new();
+    let mut fence = false;
+    for line in markdown.lines() {
+        let t = line.trim_start();
+        if t.starts_with("```") || t.starts_with("~~~") {
+            fence = !fence;
+        }
+        if line.trim().is_empty() && !fence {
+            if !cur.is_empty() {
+                out.push(cur.join("\n"));
+                cur.clear();
+            }
+            continue;
+        }
+        cur.push(line);
+    }
+    if !cur.is_empty() {
+        out.push(cur.join("\n"));
+    }
+    out
+}
+
+/// A long block cut down to the lines that hold the literal, with what makes them readable: a
+/// table keeps its header row and separator, a code fence its opening and closing lines.
+fn narrow_block(block: &str, hit: &dyn Fn(&str) -> bool) -> String {
+    let lines: Vec<&str> = block.lines().collect();
+    let matching = lines.iter().filter(|l| hit(l)).count();
+    if lines.len() <= 3 || matching * 2 > lines.len() {
+        return block.to_string();
+    }
+    let is_sep = |l: &str| {
+        l.trim().starts_with('|') && l.chars().all(|c| matches!(c, '|' | '-' | ':' | ' '))
+    };
+    let first = lines[0].trim_start();
+    let table = first.starts_with('|') && lines.get(1).is_some_and(|l| is_sep(l));
+    let fenced = first.starts_with("```") || first.starts_with("~~~");
+    let last = lines.len() - 1;
+    lines
+        .iter()
+        .enumerate()
+        .filter(|(i, l)| (table && *i < 2) || (fenced && (*i == 0 || *i == last)) || hit(l))
+        .map(|(_, l)| *l)
+        .collect::<Vec<_>>()
+        .join("\n")
+}
+
+/// The blocks that contain one of the literal terms, in page order, each under the heading it
+/// sits in. `None` when nothing does, so the caller falls back to ranking by words.
+fn literal_filter(markdown: &str, literals: &[String], keep: usize) -> Option<String> {
+    let blocks = fenced_blocks(markdown);
+    let hit = |s: &str| {
+        let low = s.to_lowercase();
+        literals.iter().any(|t| low.contains(t.as_str()))
+    };
+    let mut out: Vec<String> = Vec::new();
+    let mut heading: Option<usize> = None;
+    let mut heading_used: Option<usize> = None;
+    let mut taken = 0usize;
+    for (i, b) in blocks.iter().enumerate() {
+        if b.starts_with('#') {
+            heading = Some(i);
+        }
+        if !hit(b) {
+            continue;
+        }
+        // The section a match sits in is what says which table of flags it came from.
+        if let Some(h) = heading.filter(|&h| h != i && heading_used != Some(h)) {
+            out.push(blocks[h].clone());
+            heading_used = Some(h);
+        }
+        out.push(narrow_block(b, &hit));
+        taken += 1;
+        if taken >= keep {
+            break;
+        }
+    }
+    (taken > 0).then(|| out.join("\n\n"))
 }
 
 #[cfg(test)]
@@ -1683,6 +1798,36 @@ mod tests {
     fn bm25_returns_everything_when_the_query_has_no_word_characters() {
         let md = "one\n\ntwo\n\nthree\n\nfour\n\nfive";
         assert_eq!(bm25_filter(md, "!!! ???", 2), md);
+    }
+
+    #[test]
+    fn a_query_with_punctuation_is_matched_literally() {
+        let md = "# Reference\n\nEffort goes into every flag, so effort is a word on every line.\n\n\
+                  ## Flags\n\n| Flag | Meaning |\n| --- | --- |\n| `--model` | the model |\n\
+                  | `--effort` | how hard to think |\n| `--verbose` | every step |\n| `--max-turns` | turn cap |\n\n\
+                  The `foo_bar` setting is an `Option<usize>`.\n\n\
+                  ```\nfn main() {}\n\n// see a/b/c.rs\n```\n\nThe end.";
+        let flag = bm25_filter(md, "--effort", 40);
+        assert!(flag.contains("how hard to think"), "{flag}");
+        assert!(!flag.contains("--model"), "only the matching row: {flag}");
+        assert!(
+            flag.contains("| Flag | Meaning |"),
+            "the table keeps its header: {flag}"
+        );
+        assert!(flag.contains("## Flags"), "the section it sits in: {flag}");
+        assert!(!flag.contains("every line"), "{flag}");
+        for (q, want) in [
+            ("foo_bar", "`foo_bar` setting"),
+            ("Option<usize>", "`Option<usize>`"),
+            ("a/b/c.rs", "// see a/b/c.rs"),
+        ] {
+            let out = bm25_filter(md, q, 40);
+            assert!(out.contains(want), "{q}: {out}");
+            assert!(!out.contains("The end."), "{q}: {out}");
+        }
+        // Prose punctuation is not a literal, and a literal nobody wrote falls back to words.
+        assert_eq!(literal_terms("what's new in e-mail?"), Vec::<String>::new());
+        assert_eq!(bm25_filter(md, "--nowhere", 40), md);
     }
 
     #[test]

@@ -50,6 +50,12 @@ pub struct Reply {
     /// "while". Giving a route a latency is what turns "cancel it before it finishes" from a race
     /// the test usually wins into one it cannot lose.
     pub delay_ms: u64,
+    /// Send only this many bytes of the body on the first request, under the full
+    /// `Content-Length`, and hang up: a download cut short, as a dropped connection leaves it.
+    pub cut_first_at: Option<usize>,
+    /// What this route answers from its second request on: a site that refused the first visitor
+    /// and lets the next one through, or the other way round.
+    pub later: Option<Box<Reply>>,
 }
 
 impl Reply {
@@ -60,6 +66,8 @@ impl Reply {
             body: body.into(),
             headers: Vec::new(),
             delay_ms: 0,
+            cut_first_at: None,
+            later: None,
         }
     }
 
@@ -87,6 +95,8 @@ impl Reply {
             body: body.into(),
             headers: Vec::new(),
             delay_ms: 0,
+            cut_first_at: None,
+            later: None,
         }
     }
 
@@ -98,6 +108,8 @@ impl Reply {
             body: body.to_vec(),
             headers: Vec::new(),
             delay_ms: 0,
+            cut_first_at: None,
+            later: None,
         }
     }
 
@@ -108,6 +120,18 @@ impl Reply {
 
     pub fn header(mut self, k: &str, v: &str) -> Self {
         self.headers.push((k.into(), v.into()));
+        self
+    }
+
+    /// Cut the first transfer of this route after `n` bytes. See `cut_first_at`.
+    pub fn cut_first_at(mut self, n: usize) -> Self {
+        self.cut_first_at = Some(n);
+        self
+    }
+
+    /// Answer `later` to every request after the first. See `later`.
+    pub fn then(mut self, later: Reply) -> Self {
+        self.later = Some(Box::new(later));
         self
     }
 
@@ -136,6 +160,16 @@ impl Reply {
         )
         .with_status(401)
     }
+}
+
+/// A request header's value, by name in any case.
+fn header_value(head: &str, name: &str) -> Option<String> {
+    head.lines().find_map(|l| {
+        let (k, v) = l.split_once(':')?;
+        k.trim()
+            .eq_ignore_ascii_case(name)
+            .then(|| v.trim().to_string())
+    })
 }
 
 /// The `Range: bytes=a-b` of a request, clamped to a body of `len` bytes.
@@ -195,14 +229,33 @@ impl Site {
                     let head = String::from_utf8_lossy(&buf).to_string();
                     let target = head.split_whitespace().nth(1).unwrap_or("/").to_string();
                     let path = target.split('?').next().unwrap_or("/").to_string();
-                    *h.lock().unwrap().entry(path.clone()).or_insert(0) += 1;
+                    let nth = {
+                        let mut hits = h.lock().unwrap();
+                        let n = hits.entry(path.clone()).or_insert(0);
+                        *n += 1;
+                        *n
+                    };
 
                     let reply = t.get(&target).or_else(|| t.get(&path)).cloned();
                     let mut reply = reply.unwrap_or_else(|| {
                         Reply::html("<html><body>not found</body></html>").with_status(404)
                     });
+                    if nth > 1 {
+                        if let Some(later) = reply.later.take() {
+                            reply = *later;
+                        }
+                    }
+                    // `If-Range` as the specification has it: a validator that no longer matches
+                    // this reply's ETag means "send the whole thing", never the range.
+                    let if_range = header_value(&head, "if-range");
+                    let etag = reply
+                        .headers
+                        .iter()
+                        .find(|(k, _)| k.eq_ignore_ascii_case("etag"))
+                        .map(|(_, v)| v.clone());
+                    let range_ok = if_range.is_none() || if_range == etag;
                     // A media element seeks by range; without one it can only play from the top.
-                    if let Some((a, b)) = byte_range(&head, reply.body.len()) {
+                    if let Some((a, b)) = byte_range(&head, reply.body.len()).filter(|_| range_ok) {
                         let total = reply.body.len();
                         reply.body = reply.body[a..=b].to_vec();
                         reply.status = 206;
@@ -222,7 +275,12 @@ impl Site {
                     }
                     out.push_str("\r\n");
                     let mut out = out.into_bytes();
-                    out.extend_from_slice(&reply.body);
+                    match reply.cut_first_at {
+                        Some(n) if nth == 1 => {
+                            out.extend_from_slice(&reply.body[..n.min(reply.body.len())])
+                        }
+                        _ => out.extend_from_slice(&reply.body),
+                    }
                     if reply.delay_ms > 0 {
                         tokio::time::sleep(std::time::Duration::from_millis(reply.delay_ms)).await;
                     }

@@ -66,7 +66,7 @@ without its credentials, and the exit is passed over **on every domain** for 120
 health and spends no reputation budget, and the domain gets no cooldown for it.
 
 A timeout is not counted. A slow site and a slow exit look the same from here, so a timeout is
-still an ordinary failure. `web_status` lists the unreachable exits under `exit_health.down`, each
+still an ordinary failure. `web_status(sections="exits")` lists the unreachable exits under `exit_health.down`, each
 with its cause and the seconds left.
 
 ## Supervised tunnels
@@ -102,7 +102,7 @@ answers, the exit is usable again, without waiting out the 120 seconds. If somet
 answers on the port when the server starts, the supervisor uses it as it is (`adopted`) and never
 kills it. The processes Svipall started stop with it.
 
-`web_status` shows each tunnel under `tunnels`: whether it is `up`, its `pid`, how many times it
+`web_status(sections="exits")` shows each tunnel under `tunnels`: whether it is `up`, its `pid`, how many times it
 was restarted and its last error. `svipall doctor` reports a tunnel whose program is not installed.
 The one-shot `svipall` command does not supervise: it uses a tunnel while one of the servers keeps
 it alive. A change to `[[tunnels]]` takes effect when the server restarts.
@@ -111,8 +111,10 @@ it alive. A change to `[[tunnels]]` takes effect when the server restarts.
 
 `throttle.rs` keys pacing and strikes by `(domain, exit)` as well, so ten exits actually buy
 throughput instead of ten addresses sharing one gap. Per-domain alone are the two things that
-really are about the site rather than the address: `Retry-After` (honoured up to two minutes) and
-the hard cooldown after that (fifteen minutes).
+really are about the site rather than the address: `Retry-After` in this process (honoured up to
+two minutes) and the hard cooldown (fifteen minutes, set only after a status or vendor wall at the
+real or warm tier when no other exit is left). The visit ledger shared by every process keys its
+own `Retry-After` holds, kept as given up to an hour, by `(domain, exit)`.
 
 The gap between requests is tuned from the host's own latency and refusals, with floors and
 ceilings per tier (100 ms to 2 s on `http`, 400 ms to 5 s on the browser tiers), and a strike

@@ -209,7 +209,7 @@ fn repeated_failures_skip_wasted_routes_but_keep_an_emulated_browser_probe() {
 
 #[test]
 fn traffic_limits_survive_reopen_and_do_not_extend_when_refused() {
-    use svipall_core::traffic::Ledger;
+    use svipall_core::traffic::{Admission, Ledger};
     let path =
         std::env::temp_dir().join(format!("svipall-traffic-{}.sqlite3", uuid::Uuid::new_v4()));
     let cfg = Config {
@@ -221,25 +221,165 @@ fn traffic_limits_survive_reopen_and_do_not_extend_when_refused() {
     let ledger = Ledger::open(&path).unwrap();
     assert_eq!(ledger.pace("a.test", None, 100000, 1000).unwrap(), 0);
     assert_eq!(ledger.pace("a.test", None, 100100, 1000).unwrap(), 900);
-    assert_eq!(ledger.reserve("a.test", None, &cfg, 100).unwrap(), None);
-    assert_eq!(ledger.reserve("a.test", None, &cfg, 101).unwrap(), None);
+    assert_eq!(
+        ledger.reserve("a.test", None, &cfg, 100).unwrap(),
+        Admission::Granted { visits_left: 1 }
+    );
+    assert_eq!(
+        ledger.reserve("a.test", None, &cfg, 101).unwrap(),
+        Admission::Granted { visits_left: 0 }
+    );
+    // A full window is the wait for its oldest visit to leave it, and writes no hold.
     assert_eq!(
         ledger.reserve("a.test", None, &cfg, 102).unwrap(),
-        Some(900)
+        Admission::Full { wait: 58 }
     );
+    assert_eq!(ledger.remaining("a.test", None, 102).unwrap(), 0);
     assert_eq!(
         ledger.reserve("a.test", Some("other"), &cfg, 103).unwrap(),
-        None
+        Admission::Granted { visits_left: 1 }
     );
-    assert_eq!(ledger.reserve("b.test", None, &cfg, 103).unwrap(), None);
+    assert_eq!(
+        ledger.reserve("b.test", None, &cfg, 103).unwrap(),
+        Admission::Granted { visits_left: 1 }
+    );
     drop(ledger);
     let ledger = Ledger::open(&path).unwrap();
     assert_eq!(ledger.pace("a.test", None, 100200, 1000).unwrap(), 1800);
     assert_eq!(
-        ledger.reserve("a.test", None, &cfg, 202).unwrap(),
-        Some(800)
+        ledger.reserve("a.test", None, &cfg, 130).unwrap(),
+        Admission::Full { wait: 30 },
+        "the window survives a reopen"
     );
-    assert_eq!(ledger.reserve("a.test", None, &cfg, 1002).unwrap(), None);
+    assert_eq!(
+        ledger.reserve("a.test", None, &cfg, 160).unwrap(),
+        Admission::Granted { visits_left: 0 },
+        "and slides: the first visit has left it"
+    );
+    drop(ledger);
+    std::fs::remove_file(path).unwrap();
+}
+
+#[test]
+fn server_backoff_honours_retry_after_and_escalates_strikes_from_short() {
+    use svipall_core::traffic::{Backoff, Ledger, FIRST_STRIKE_SECS, MAX_RETRY_AFTER_SECS};
+    let path =
+        std::env::temp_dir().join(format!("svipall-backoff-{}.sqlite3", uuid::Uuid::new_v4()));
+    let cfg = Config::default();
+    let ledger = Ledger::open(&path).unwrap();
+    let ask = |why, now| ledger.backoff("s.test", None, why, &cfg, now).unwrap();
+    assert_eq!(
+        ask(Backoff::RetryAfter(2), 1000),
+        2,
+        "a short Retry-After as given"
+    );
+    assert_eq!(
+        ask(Backoff::RetryAfter(10_000_000), 1000),
+        MAX_RETRY_AFTER_SECS,
+        "an absurd one bounded"
+    );
+    assert_eq!(ask(Backoff::ServerError, 1000), FIRST_STRIKE_SECS);
+    // Strikes: short first, the cooldown only after repeated ones.
+    let strikes: Vec<u64> = (0..5)
+        .map(|i| ask(Backoff::RateLimited, 2000 + i))
+        .collect();
+    assert_eq!(strikes, vec![30, 120, 480, 900, 900]);
+    // A 503 adds no strike, and strikes are forgotten after a quiet half hour.
+    assert_eq!(ask(Backoff::RateLimited, 2000 + 1801 + 4), 30);
+    // A hold is never shortened by a later, shorter one.
+    assert!(ledger.remaining("s.test", None, 2000).unwrap() > 1000);
+    // Cleared for the domain on every exit, strikes included.
+    ledger
+        .backoff(
+            "s.test",
+            Some("socks5h://exit:1"),
+            Backoff::RateLimited,
+            &cfg,
+            5000,
+        )
+        .unwrap();
+    let cleared = ledger.clear("s.test").unwrap();
+    assert_eq!(cleared.holds, 2, "{cleared:?}");
+    assert_eq!(ledger.remaining("s.test", None, 5000).unwrap(), 0);
+    assert_eq!(
+        ask(Backoff::RateLimited, 5001),
+        30,
+        "strikes went with the hold"
+    );
+    drop(ledger);
+    std::fs::remove_file(path).unwrap();
+}
+
+#[test]
+fn a_version_one_ledger_is_carried_over_once() {
+    use svipall_core::traffic::{Admission, Ledger};
+    let path =
+        std::env::temp_dir().join(format!("svipall-migrate-{}.sqlite3", uuid::Uuid::new_v4()));
+    let cfg = Config {
+        request_limit: 2,
+        request_window_seconds: 60,
+        ..Default::default()
+    };
+    // What a 1.3 binary leaves behind: one visit for a route, keyed exactly as the ledger keys it.
+    {
+        let conn = rusqlite::Connection::open(&path).unwrap();
+        conn.execute_batch(
+            "CREATE TABLE visits_v1 (route TEXT NOT NULL, at INTEGER NOT NULL);
+            CREATE TABLE holds_v1 (route TEXT PRIMARY KEY, until INTEGER NOT NULL);",
+        )
+        .unwrap();
+        let route = format!(
+            "{:x}",
+            <sha2::Sha256 as sha2::Digest>::digest(
+                serde_json::to_vec(&("m.test", None::<&str>)).unwrap()
+            )
+        );
+        conn.execute(
+            "INSERT INTO visits_v1(route, at) VALUES (?1, 100)",
+            [&route],
+        )
+        .unwrap();
+    }
+    for _ in 0..2 {
+        drop(Ledger::open(&path).unwrap());
+    }
+    let ledger = Ledger::open(&path).unwrap();
+    assert_eq!(
+        ledger.reserve("m.test", None, &cfg, 110).unwrap(),
+        Admission::Granted { visits_left: 0 },
+        "the old visit counts, once"
+    );
+    drop(ledger);
+    std::fs::remove_file(path).unwrap();
+}
+
+#[test]
+fn a_remembered_failure_expires_and_is_cleared_with_the_domain() {
+    use svipall_core::traffic::Ledger;
+    let path =
+        std::env::temp_dir().join(format!("svipall-failure-{}.sqlite3", uuid::Uuid::new_v4()));
+    let ledger = Ledger::open(&path).unwrap();
+    let origin = "https://f.test";
+    ledger
+        .remember_failure(origin, None, "f.test", "warm", "{}", 1000)
+        .unwrap();
+    assert!(ledger
+        .recall_failure(origin, None, 1100, 600)
+        .unwrap()
+        .is_some());
+    assert!(ledger
+        .recall_failure(origin, Some("other"), 1100, 600)
+        .unwrap()
+        .is_none());
+    assert!(ledger
+        .recall_failure(origin, None, 1700, 600)
+        .unwrap()
+        .is_none());
+    assert_eq!(ledger.clear("f.test").unwrap().remembered_failures, 1);
+    assert!(ledger
+        .recall_failure(origin, None, 1100, 600)
+        .unwrap()
+        .is_none());
     drop(ledger);
     std::fs::remove_file(path).unwrap();
 }
@@ -262,7 +402,7 @@ fn concurrent_visits_cannot_overdraw_the_window() {
                     .unwrap()
                     .reserve("race.test", None, &cfg, 100)
                     .unwrap()
-                    .is_none()
+                    .is_granted()
             })
         })
         .collect();

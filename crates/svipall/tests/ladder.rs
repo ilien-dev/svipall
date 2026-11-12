@@ -1048,7 +1048,7 @@ async fn a_site_that_offers_h3_is_remembered_and_not_spoken_to_over_it_by_defaul
     let out = s.fetch_json(http(&site.url("/"))).await;
     assert_eq!(out.value["tier_used"], "http");
     let status = s
-        .status_json(serde_json::from_value(serde_json::json!({})).unwrap())
+        .status_json(serde_json::from_value(serde_json::json!({"sections": "h3"})).unwrap())
         .await
         .unwrap();
     let offered = status["h3_offered_by"].as_array().expect("list");
@@ -1371,23 +1371,21 @@ async fn syndicated_copies_are_counted_once_and_still_all_returned() {
     // And every one of them still carries its text.
     assert!(results.iter().all(|r| !text(r).is_empty()), "{results:?}");
 
-    // ▲ The ordering, which is the other half. Three copies of one wire story followed by the one
-    // page that says something else: the different page is what the caller should read second, and
-    // the reorder is announced rather than done quietly. The caller's own first choice never moves.
-    assert_eq!(out["reordered_for_diversity"], true, "{out:?}");
-    assert!(
-        results[0]["url"]
-            .as_str()
-            .is_some_and(|u| u.ends_with("/a")),
-        "the caller's first choice moved: {:?}",
-        results[0]
-    );
-    assert!(
-        results[1]["url"]
-            .as_str()
-            .is_some_and(|u| u.ends_with("/d")),
-        "the only result that adds anything was left at the bottom: {results:?}"
-    );
+    // ▲ The ordering. The description promises input order, and a caller that zips its own list
+    // with `results` by position read the wrong page for the wrong URL when the set was reordered
+    // for diversity. `same_text_as` already says which ones repeat; the order is the caller's.
+    assert!(out.get("reordered_for_diversity").is_none(), "{out:?}");
+    let order: Vec<&str> = results
+        .iter()
+        .map(|r| r["url"].as_str().unwrap_or_default())
+        .collect();
+    let asked = [
+        site.url("/a"),
+        site.url("/b"),
+        site.url("/c"),
+        site.url("/d"),
+    ];
+    assert_eq!(order, asked, "results are not in input order: {results:?}");
 }
 
 /// ▲ A cache is supposed to change how fast an answer arrives, never what the answer is. Three of
@@ -1644,7 +1642,7 @@ async fn a_site_seen_often_enough_has_its_own_furniture_taken_off() {
 async fn web_status_says_whether_http3_is_built_and_whether_it_is_enabled() {
     let s = server();
     let status = s
-        .status_json(serde_json::from_value(serde_json::json!({})).unwrap())
+        .status_json(serde_json::from_value(serde_json::json!({"sections": "h3"})).unwrap())
         .await
         .unwrap();
     let h3 = &status["http3"];
@@ -1850,7 +1848,10 @@ async fn web_status_reports_the_budget_and_clear_budget_empties_it() {
     svipall_core::reputation::add(domain, None, svipall_core::reputation::budget() * 0.9);
 
     let before = s
-        .status_json(Default::default())
+        .status_json(svipall::tools::WebStatusParams {
+            sections: Some("reputation".into()),
+            ..Default::default()
+        })
         .await
         .expect("status")
         .get("reputation")
@@ -1867,10 +1868,13 @@ async fn web_status_reports_the_budget_and_clear_budget_empties_it() {
     let after = s
         .status_json(svipall::tools::WebStatusParams {
             clear_budget: Some(domain.into()),
+            sections: Some("reputation".into()),
             ..Default::default()
         })
         .await
         .expect("status");
+    assert_eq!(after["cleared_budget"], domain, "{after}");
+    assert!(after["reputation"].is_object(), "{after}");
     assert!(
         after["reputation"]["by_domain"][domain].is_null(),
         "clear_budget must empty it: {}",
@@ -1883,7 +1887,10 @@ async fn the_status_report_names_the_pages_being_held() {
     // A held page is a Chrome tab this process is keeping alive. That is exactly the kind of thing
     // an operator should be able to see, rather than infer from memory use.
     let out = server()
-        .status_json(Default::default())
+        .status_json(svipall::tools::WebStatusParams {
+            sections: Some("browser".into()),
+            ..Default::default()
+        })
         .await
         .expect("status");
     let kept = out["browser"]["kept"]

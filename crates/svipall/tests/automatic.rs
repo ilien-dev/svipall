@@ -144,7 +144,7 @@ async fn a_visit_limit_keeps_unrequested_crawl_pages_pending() {
             ..Default::default()
         })
         .await;
-    assert_eq!(out["stopped_by"], "cooldown", "{out}");
+    assert_eq!(out["stopped_by"], "visit_limit", "{out}");
     assert_eq!(out["refused_without_asking"], 1, "{out}");
     assert_eq!(site.hits(root), 0);
     svipall_core::store::ROUTES.remove("crawl-limit.test");
@@ -171,7 +171,8 @@ async fn forced_mode_and_identity_changes_cannot_reset_visit_limit() {
     let mut p = params(&site, url);
     p.mode = Some("http".into());
     let out = native.fetch_json(p).await.value;
-    assert_eq!(out["wall_kind"], "cooldown", "{out}");
+    // The window is full, not the site on hold: the next slot, never a quarter of an hour.
+    assert_eq!(out["wall_kind"], "visit_limit", "{out}");
     assert!(out["cooldown_seconds_left"].as_u64().unwrap() > 0);
     assert_eq!(site.hits(url), 2);
 }

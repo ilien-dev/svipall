@@ -13,9 +13,10 @@ labels what came back; a built-in fetch has no notion of a wall, and a challenge
 Claude Code's `WebFetch` hands that page to a small model, which summarises it like any other.
 
 One server, two surfaces: `svipall …` from a shell, and the MCP tools an assistant calls. The shell
-costs a fraction of the tokens; the tools are the same operations under other names, and the table
-near the end of this file maps one to the other. Every command prints one JSON object to stdout,
-with diagnostics on stderr, so `svipall ... | jq` works.
+costs a fraction of the tokens; the table near the end maps one to the other. Every command prints
+one JSON object to stdout, diagnostics on stderr. `svipall <cmd> --help` lists a command's flags;
+an unknown flag is an error naming the nearest real one, and an unknown MCP or REST parameter
+refuses the call the same way. Numbers and booleans may arrive as strings.
 
 ## Start here
 
@@ -29,59 +30,111 @@ tier that works, and remembering it for that domain. Do not pick a tier by hand.
 
 Identity defaults to `auto`: learned emulated routes first, at most one native fallback last.
 Native exposes real device characteristics; `config set auto_native_fallback=false` prohibits that
-automatic fallback. Respect `cooldown_seconds_left` and `stopped_reason`; switching modes does not
-reset the persistent visit limit (12 top-level attempts/60s/domain/exit, 15-minute cooldown by
-default). Browser resources and page-triggered requests are additional traffic. No route or mode
-guarantees anonymity or successful delivery. `status` shows the effective policy.
+automatic fallback. No route or mode guarantees anonymity or successful delivery.
 
-`svipall doctor` answers what this installation can actually do — which browser would run, which
-captcha models are compiled in, whether the dashboard port is free — and names the command that
-fixes anything that is wrong. Run it once before concluding a site is the problem.
+`svipall doctor` says what this installation can do — which browser would run, which captcha models
+are compiled in, whether the dashboard port is free — and names the fix for anything wrong. Run it
+before concluding a site is the problem. The managed browser updates itself in the background once
+it is two majors behind stable (`config set browser_auto_update=false` stops it); a `browser_path`
+of your own is never touched.
+
+## The visit limit, and waiting
+
+Visits are limited **per host and exit, and shared by every session and subagent on this machine**:
+12 per 60 s by default. One fetch is one visit however many tiers it climbs.
+
+- A full window is a wait, never a hold. A fetch waits by itself when that fits in half its
+  timeout; `--wait 300` (MCP `wait`, up to 900 s, on top of `timeout`) waits longer, `wait=0`
+  never. It covers the window, a server's backoff and the hard-block cooldown, not the address
+  budget. `waited` says what for.
+- Refused, the result says `blocked_reason: "visit_limit"` (the window) or `"cooldown"`, with
+  `cooldown_seconds_left` and `visit_budget`. Wait, or read another host that has the same thing.
+- `Retry-After` is honoured as given. A 429 without it pauses 30 s, then 120, 480, 900
+  (`request_cooldown_seconds` is that maximum); a 503 pauses 30 s. The 15-minute hard-block cooldown
+  follows only a status or vendor wall at the real or warm tier when no other exit is left.
+- A walk that failed to the top is remembered per origin for 10 minutes and answered from memory
+  (`remembered`, `attempts: []`); `--fresh` (MCP `fresh=true`) walks again.
+- `svipall status --clear-cooldown shop.example` (MCP `web_status(clear_cooldown=…)`) clears all of
+  the above for that domain on every exit, and answers only that. The address budget is
+  `clear_budget`, route learning `forget_tier`.
+
+`svipall status` is a summary; `--sections holds,tiers,exits` (or `all`) adds the rest.
 
 ## When a page comes back blocked
 
 The result carries `blocked_reason`, `wall_kind`, `wall_vendor`, `widgets` and a `note` saying what
 to do. Read it rather than retrying: a blind retry on a wall is how a domain earns a cooldown.
 `wall_vendor` names the product guarding the domain by its own endpoint, and appears on a page that
-arrived too — it says who is watching, not that anything was withheld.
+arrived too — it says who is watching, not that anything was withheld. Walls are recognised in
+Spanish, Portuguese, French and German too.
 
 - The note names a captcha widget → the MCP server's `solve_and_continue` solves it in place, or a
   person finishes it at the dashboard (`svipall status` prints the URL, and it works from a phone).
+- `wall_kind: "origin"` → the challenge was passed and the site's own server then refused. There is
+  nothing to solve: do not call `solve_and_continue`; route the domain through another exit.
 - A fingerprinting wall that never yields → route the domain through a proxy:
   `svipall route add shop.example --proxy socks5://… --country DE`, or a pool it moves through as
-  exits get blocked: `--proxies A,B,C --countries DE,DE,NL`. Subdomains inherit. `svipall status`
-  shows each exit's health and latency per domain; `svipall route check shop.example` tests them
-  (liveness, latency, DNS-leak) with no third-party service — prefer `socks5h://` over `socks5://`,
-  which resolves DNS on this machine.
+  exits get blocked: `--proxies A,B,C --countries DE,DE,NL`. Subdomains inherit.
+  `svipall route check shop.example` tests them (liveness, latency, DNS leak); prefer `socks5h://`,
+  which resolves DNS at the exit.
 - `blocked_reason: "address_budget"` → nothing was requested: this address has spent its standing
-  with that host and is being rested. The result says how many seconds until it has not. Route the
-  domain through a proxy, wait, or `web_status(clear_budget="shop.example")` if you mean to spend it
-  anyway. `svipall status` shows what every address has spent where.
-- `blocked_reason: "exit_down"` → the proxy itself did not answer, so the site was never asked.
-  The exit is passed over for two minutes with its standing intact. With a pool, fetch once more
-  and it leaves through another exit. With a single route, bring the proxy back first. A tunnel
-  declared as `[[tunnels]]` in the config comes back by itself; `svipall status` shows it.
+  with that host. Route through a proxy, wait, or `web_status(clear_budget="shop.example")`.
+- `blocked_reason: "exit_down"` → the proxy did not answer and the site was never asked. With a
+  pool, fetch once more and it leaves through another exit.
 - A login wall → `web_login` once, by hand, and the profile keeps the cookies.
+
+This machine's own address, once a wall page has printed it, comes back as `[own IP]` in every
+tool's page text, in text written to `out_file`/`out_dir` and in `web_log` (`own_ip_masked` counts
+them). A binary download is written as served. The address is never looked up.
 
 ## Reading a page cheaply
 
 | Want | Command |
 |---|---|
 | The prose | `svipall fetch URL` |
-| Only what is relevant | `svipall fetch URL --query "shipping costs"` |
-| Something to click | `svipall snapshot URL` — roles, names and refs. Measured: 12 tokens on a plain page, 1 600 on a dense one (the node list is capped at 200), against 8 700 for the same page's prose |
+| Only what is relevant | `svipall fetch URL --query "shipping costs"` — a word with a leading `-` or with `_ / . : # @ =` is matched literally, so `--effort` finds the flag |
+| Some fields of a JSON answer | `svipall fetch https://api.example/items --json-path 'items[:5].{name, id}'` — `.a`, `["a b"]`, `[-1]`, `[1:5]`, `[*]`, `{a, b.c}`; no match is `null` plus `json_path_note` |
+| Does it exist | `svipall probe URL1 URL2 --timeout 5000` — status, `exists`, final URL, type, length, whether the name resolves; a 404 is an answer |
+| A file, not a page | `svipall fetch https://x/pkg.tar.bz2 --out pkg.tar.bz2` — see Files below |
+| Something to click | `svipall snapshot URL` — roles, names and refs, a fraction of the prose |
 | The site's real API | `svipall capture URL` — the JSON the page itself fetched while loading |
-| What a video says | `svipall video URL --lang es` — captions and chapters as one `[m:ss]` timeline, not the description; `--frames 8` adds keyframes where the picture changes, as PNG paths in the timeline; no captions and a media file means local speech recognition once `svipall models install` has run |
+| What a video says | `svipall video URL --lang es` — captions and chapters as one `[m:ss]` timeline; `--frames 8` adds keyframes |
 | A lot of pages | `svipall crawl URL --out pages.csv` — writes a file, returns a path and a count |
-| A table, as rows | `svipall fetch URL --tables --out rows.csv` — typed rows with their columns, not a markdown grid |
-| A listing, as rows | `svipall fetch URL --schema auto` — reads the page's own repeated structure, names the columns for what they hold, and returns the schema it worked out in `induced_schema`. Keep that and pass it as `--schema '{…}'` next time. A page with no clear record set returns neither rather than guessing |
-| A document, not a page | `svipall fetch https://x/report.docx` — docx, xlsx, pptx, odt, epub, rtf, csv and pdf read as markdown, from the web or from `file://`. A PDF of scanned pages says so in `document.scanned`, and is read page by page, like an image, once `svipall models install` has run |
-| A recording, not a page | `svipall fetch https://x/episode?id=3` — an audio or video file, known by its type, comes back as what it says once `svipall models install` has run; `media` says what it was. A podcast feed read with `svipall map` gives each episode's `enclosure` and published `transcript` |
-| Markup you already have | `svipall fetch raw: --stdin < page.html`, or `svipall fetch file:///…/page.html` (under `~/.svipall/in` or `local_roots`) |
+| A table, as rows | `svipall fetch URL --tables --out rows.csv` — typed rows with their columns |
+| A listing, as rows | `svipall fetch URL --schema auto` — returns the schema it worked out in `induced_schema`; pass that as `--schema '{…}'` next time |
+| A document or a recording | `svipall fetch https://x/report.docx` — docx, xlsx, pptx, odt, epub, rtf, csv and pdf as markdown; scanned PDFs, audio and video once `svipall models install` has run |
+| Markup you already have | `svipall fetch raw: --stdin < page.html`, or `file:///…` under `~/.svipall/in` or `local_roots` |
 
-`svipall capture` is the one people forget. Most sites render from an endpoint their own JavaScript
-called a moment earlier, and that response is smaller, already typed and far more stable than the
-HTML built from it. An endpoint that took `page=1` will take `page=2`.
+`svipall capture` is the one people forget: most sites render from an endpoint their own JavaScript
+called a moment earlier, smaller and more stable than the HTML. One that took `page=1` takes `page=2`.
+
+**JSON, text and code come back as served**: JSON as JSON, a source file or plain text byte for
+byte, paged by line. A non-HTML `2xx` is never taken for a wall by its words and never climbs to a
+browser; there only 401, 403, 407, 421, 429, 444 and 503 are walls, 404 and 410 not found, and any
+other status (202, 400, 422…) is the API's answer.
+
+**Files.** An `out_file` (`--out`) named `.md .txt .json .jsonl .csv .html` gets the text. Any other
+name, or a binary body, gets the bytes as served, with `file{bytes, sha256, content_type,
+complete}`. Without `out_file` a binary body is described, never decoded. A cut transfer leaves
+`<out_file>.part` (`file.partial`); the same call resumes it (`file.resumed_from`). Give large
+downloads a larger `timeout`.
+
+**Cut answers** carry `cursor` and `continue`, the exact next call. A cursor keeps the query it was
+issued with and survives a cache hit; `json_path` is not in it, so pass it again.
+
+## GitHub
+
+`fetch` reads github.com URLs from the API or the raw host: a repo root (facts, tree, README),
+`tree/…`, `blob/…#L10-L20` (the raw file, those lines), `issues/N` and `pull/N` (every comment and
+review with author, date and reactions; a PR adds branches, merge state, files), releases and
+`commit/<sha>`. An `https://api.github.com/…` GET comes back as is, `json_path` applied; `via` says which path answered.
+Discussions, gists, lists, wikis and actions read as the page, as does a fetch with an explicit
+`mode`, `css_selector`, `schema` or `profile`. Unauthenticated, the API allows 60 requests an hour;
+`GITHUB_TOKEN` in `~/.svipall/secrets.env` raises it (code search needs it) and goes to
+`api.github.com` only. A rate limit reads `rate_limited_until`, not a wall; a secondary limit (429
+or 403 with `Retry-After`) takes it from `Retry-After`.
+
+To find code across GitHub repositories, prefer the searchGitHub tool of the grep.app MCP server when this session has it: it is integrated with GitHub natively. Svipall still reads a known repo, file, issue, PR or release, and does all of it when that tool is absent.
 
 ## Crawling
 
@@ -92,15 +145,27 @@ svipall crawl https://docs.example/ --since-last     # only what the sitemap say
 svipall crawl https://a.example/ --out rows.jsonl    # to a file, not through the context
 ```
 
-A crawl returns a `crawl_id`. If it is interrupted, pass that id back and it continues from where it
-stopped rather than starting over.
+A crawl returns a `crawl_id`; pass it back and an interrupted crawl continues where it stopped.
 
 ## Finding things
 
 ```bash
 svipall search "rust async runtime" --engine all   # every engine, merged by agreement
+svipall search "precio del cobre" --lang es --region MX
 svipall map https://example.com                    # the site's URLs, a few hundred tokens
 ```
+
+`attempts` holds one object per engine with its `outcome` (results, empty, challenge, blocked,
+unparsed, error, skipped). A failing engine rests for a while, remembered across runs; one whose
+host is on hold is skipped, even when named. Results sharing no word with the query (fewer than
+two, for three words or more) are marked `off_topic` and ranked last; an engine that answered for
+one word of a long query says so in its attempt's `detail`. **Zero results carry a `note`**
+naming what was blocked, empty or skipped and what to try: other or fewer words,
+`lang`/`region`, `engine=news`, an engine that was not blocked. Do not repeat the same query.
+
+`map` reads robots.txt, sitemaps, `llms.txt`, feeds and homepage links; `sources_used` lists only
+those that produced URLs. `web_site_search` tries OpenSearch, then the search box (also behind an
+icon or in a shadow root), then known platform endpoints; `found: false` names everything `tried`.
 
 ## Remembering across runs
 
@@ -110,44 +175,45 @@ svipall notes get shop/last_id
 svipall watch add https://example.com/changelog --every 3600
 svipall watch add https://shop.example/item --selector ".price"   # one region; survives a redesign
 svipall watch check                                # what changed since last time
-svipall log --summary                              # which domains are slow or blocked, and why
+svipall log --view summary                         # which domains are slow or blocked, and why
 svipall solver export-corpus --out ./corpus       # every captcha seen + answer, for training your own models
 svipall quality ask --count 20                    # put pages in front of a person at the dashboard to rate
-svipall quality export-training --out set.jsonl   # those ratings plus what the log implies, as training data
-svipall quality train --in set.jsonl --out ~/.svipall/models
-svipall models status                             # embedded, installed, and whether this build can read one
 svipall models install                            # the release's models archive into ~/.svipall/models/
 ```
 
-`svipall log --summary` is worth a look when a site starts failing: a domain that is half blocked and
-slow is a domain whose learned tier is wrong.
+A domain half blocked and slow in the log summary is a domain whose learned tier is wrong.
 
 ## The same operations, as MCP tools
 
 | You want | Call |
 |---|---|
-| One page as clean Markdown (PDF and office documents too) | `web_fetch` — `query=` for one fact from a long page |
+| One page, document, JSON answer or file | `web_fetch` — `query=` for one fact, `json_path` for JSON fields, `out_file` for a file |
 | A table or a listing as rows | `web_fetch` with `tables=true`, or `schema="auto"` |
-| Several known pages | `web_fetch_many` |
+| Several known pages | `web_fetch_many` — 8000 tokens in all by default (`max_tokens_total`), input order; a cut page has a `cursor` for `web_fetch`; `out_dir` writes each whole |
+| Whether URLs exist | `web_probe` |
 | A site's URLs, before deciding what to fetch | `web_map` — a few hundred tokens |
-| A whole site, or many pages of one | `web_crawl` (`out_file` for anything large; `schema` or `tables` for rows) |
+| A whole site, or many pages of one | `web_crawl` (`out_file` for anything large) |
 | To search the web | `web_search` (no API key) |
 | A site's own search box | `web_site_search` |
-| The API behind a listing | `web_capture` — the JSON the page itself fetched; `page=2` beats following links |
-| Something to click, type or scroll | `web_snapshot` first, then `web_act` with `ref` (one shot), or `browser_open` → `browser_do` … → `browser_close` when cookies must stay alive |
-| What a video says: captions and chapters as one timeline | `web_video` — a watch page, a page that embeds a player, a `<video>` or a media file; `frames=8` for keyframes |
-| A picture of a page | `web_screenshot` (`mobile` for a phone); a screenshot cannot be clicked |
-| To get past a login or a gate by hand, once | `web_login` — the cookies are kept |
-| To send a domain through a proxy | `web_route` |
+| The API behind a listing | `web_capture` — `page=2` beats following links |
+| Something to click, type or scroll | `web_snapshot`, then `web_act` with `ref` (one shot), or `browser_open` → `browser_do` … → `browser_close` when cookies must stay alive |
+| What a video says | `web_video`; `frames=8` for keyframes |
+| A picture of a page | `web_screenshot` (`mobile` for a phone) |
+| A login or a gate passed by hand, once | `web_login` — the cookies are kept |
+| A domain through a proxy | `web_route` |
 | What changed since last time | `web_diff` once, `web_watch` on a schedule |
-| To remember something across sessions | `web_notes` |
+| Something remembered across sessions | `web_notes` |
 | Why a domain is slow or blocked | `web_log view=summary` |
-| Current state, and resets | `web_status` |
+| Current state, and resets | `web_status` (`sections` for more) |
+
+`web_act` and `browser_do` take `click, type, fill, press, hover, select, scroll, wait, eval, goto,
+verify, console, screenshot, hold`; an unknown verb is refused before a browser starts. When the
+page cannot be read after the actions, `browser_do` keeps their results and says why in
+`content_error`. A profile another process holds says so.
 
 A captcha named in `blocked_reason` goes to `solve_and_continue`; the `solve_*` tools return a bare
-token bound to the session that produced it, for a form you post yourself. `web_status` reports the
-dashboard URL for the challenges a person has to answer. **Human verification that needs a person:
-stop and say so.** Do not loop.
+token bound to the session that produced it, for a form you post yourself. **Human verification
+that needs a person: stop and say so.** Do not loop.
 
 ## From another language
 
@@ -157,36 +223,28 @@ curl -sH "Authorization: Bearer $KEY" -H 'content-type: application/json' \
      -d '{"url":"https://example.com","query":"pricing"}' localhost:8788/v1/fetch
 ```
 
-Same objects as the CLI. A blocked page is a `200` carrying `blocked_reason`; only a bad request or
-a broken installation is not.
+Same objects as the CLI; `GET /v1/status?sections=holds` reads the status. A blocked page is a
+`200` carrying `blocked_reason`; only a bad request or a broken installation is not.
 
 ## What a page says about itself
 
-Every delivered page carries `quality`: `full` when there is nothing to report, otherwise `partial`
-(cut off) or `thin` (a husk), with `quality_reasons` naming why. A page withheld behind a
-subscription comes back as `wall_kind: paywall`, and a 200 that is really a missing page as
-`softnotfound` — neither is content, and no tier fixes either. `optimization: high` appears only on
-the far end of pages built for a ranking. `web_fetch_many` adds `corroboration`, which says how many
-of the results are actually different documents rather than one story on five hostnames.
+Every delivered page carries `quality`: `full`, `partial` (cut off) or `thin` (a husk), with
+`quality_reasons`. JSON is judged as JSON (`partial` truncated, `thin` empty or malformed); text
+and code are `full` unless empty. `wall_kind: paywall` and `softnotfound` are not content, and no
+tier fixes either. `web_fetch_many` adds `corroboration`: how many results are different documents.
 
-Links in the markdown are written the way the page wrote them: a link to the page's own site is a
-path (`/wiki/Web_crawler`), to be joined to that response's `url`; a link to another host is
-absolute. Measured across four real pages, that is 15% of the delivered text. `include_links`
-returns every link absolute when a ready-to-fetch list is what is wanted.
+A link to the page's own site is a path (`/wiki/Web_crawler`), joined to that response's `url`;
+`include_links` returns every link absolute. `final_url` appears only when a redirect moved the page.
 
-A field that reports an *event* is there only when the event happened: `final_url` when a redirect
-moved the page, `native_fallback` when a real-device attempt was made. `identity_used` is always
-present — silence is not a way to say that nothing about this machine was exposed.
-
-**None of it ever withholds a page.** They are labels: the odd, thin, heavily-optimised page that
-happens to hold the answer is returned exactly like any other, and what to do about it is yours.
+**None of it ever withholds a page.** They are labels: the odd, thin page that holds the answer is
+returned like any other, and what to do about it is yours.
 
 ## Rules worth keeping
 
 - **Never retry a blocked URL blindly.** Read `blocked_reason` and act on it.
 - **Never set the tier by hand.** `auto` learns; a fixed tier is either slower or weaker.
+- **The visit budget is everybody's.** Wait, or use another host, rather than clearing it.
 - **Prefer `snapshot` to prose when the next step is a click**, and `capture` to parsing HTML.
-- **Send bulk results to a file.** `--out` on `fetch` and `crawl` costs a path instead of the rows.
+- **Send bulk results and every binary file to a file.** `--out` costs a path instead of the rows.
 - **Credentials never go in a command.** Put them in `~/.svipall/secrets.env` and refer to them by
-  name as `${SHOP_PASSWORD}`; the value is substituted on the way to the browser and never appears
-  in the transcript.
+  name as `${SHOP_PASSWORD}`; the value never appears in the transcript.

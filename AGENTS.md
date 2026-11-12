@@ -1,60 +1,58 @@
 # Svipall
 
-Local-first Rust web scraping + captcha MCP server.
-Evade anti-bot walls; never break access controls. Everything runs locally.
+Local-first web scraping + captcha MCP server in Rust. Defeat anti-bot walls **by evading them**,
+never by breaking access controls.
 
 ## Layout
+`crates/svipall-*` plus `bench/` (a workspace member).
+- `core` — classify, ladder, identity+`coherence`, `quality`, policy, `exits`, throttle, widgets,
+  `answer`, `session`, SQLite stores, config. `extract` — extraction, MIT/Apache, re-exported.
+- `cdp` and `quic` (quiche+h3) are **vendored**: every deviation needs a `PATCHES.md` entry.
+- `http`: `impersonate` (default) = Chrome/Firefox TLS+HTTP2 on BoringSSL. `http3`
+  (opt-in) uses QUIC only where `Alt-Svc` said so: never a first visit, never past a proxy.
+- `solver` store+API, `dashboard` human panel, `models` ONNX, `mcp` both binaries.
 
-`crates/svipall-*`; `bench/` is also a workspace member.
+## How it works
+- One identity (`IdentityProfile`) drives TLS, headers, CDP, the stealth script and every worker
+  realm. Never state a version elsewhere; `bench fingerprint --engine chrome` checks it offline.
+- One DOM parse per response: ask via `ParseWants`, read from `PageParts`.
+- **Nothing is ever withheld.** `quality` labels a page, never filters one (`anti_discard.rs`).
+- Schema selectors are fingerprinted per domain; a redesign relocates by similarity (`healed`).
+- Pointer, keyboard, wheel go through `behavior`. No bare click, `scrollBy` or forged event.
+- Nothing of ours is readable from the page: no named global, no shadowed host object, no realm
+  disagreeing with another. `bench tells` asserts it at every tier, offline, in `qc`.
+- Hidden text never reaches the model (`extraction::sanitize`). Secrets are named from
+  `~/.svipall/secrets.env`; the value never enters a call.
+- Exits are the operator's; a pool keeps one (`sticky`) until retired, then heals.
+  `throttle`/`exit_health`/`reputation` key by `(domain, exit)`, home included; browser proxy
+  auth is CDP, not argv.
+- CLI, MCP and `serve` (REST, keyed, loopback) are one server; tests keep `skill/SKILL.md`, the
+  plugin's copy of it and `rest::ROUTES` in step with it.
+- A challenge is a *modality* x a *widget*: a new one is a row in `WIDGETS` plus a fixture in
+  `core/fixtures/widgets/`. `Modality::Text` is unreachable from the live loop, by test.
+- `solve_loop` orders strategies by what worked on this route (`outcomes`); a decline costs no
+  attempt. Never a cascade of `if`s. Then the dashboard: parked page, answer replayed.
+- Answers are `core::answer::Answer`, checked against the modality. **Every coordinate is a fraction
+  0..1 of its asset, never a pixel.**
+- Bump `SCHEMA_VERSION` (`solver/src/db.rs`) on any schema change: every statement is
+  `IF NOT EXISTS`, so older machines fail without it.
 
-- `core`: classify, ladder, identity/coherence, quality, policy, exits, throttle, widgets,
-answer, session, SQLite, config. `extract`: MIT/Apache extraction, re-exported.
-- Vendored `cdp` and `quic` (quiche+h3): record every deviation in `PATCHES.md`.
-- `http`: default `impersonate` provides Chrome/Firefox TLS+HTTP2 via BoringSSL.
-Opt-in `http3` requires prior `Alt-Svc`; never on first visits or through proxies.
-- `solver`: store/API; `dashboard`: human panel; `models`: ONNX; `mcp`: both binaries.
-
-## Invariants
-
-- `IdentityProfile` drives TLS, headers, CDP, stealth and every worker realm. Never hardcode
-versions elsewhere. Check offline with `bench fingerprint --engine chrome`.
-- Parse each response once: request `ParseWants`, read `PageParts`.
-- Return every page: `quality` labels, never filters (`anti_discard.rs`).
-- Fingerprint schema selectors per domain; heal redesigns by similarity (`healed`).
-- Route pointer, keyboard and wheel through `behavior`; no bare clicks, `scrollBy` or forged events.
-- Expose no named globals or shadowed host objects; keep realms consistent.
-`bench tells` checks every tier offline in QC.
-- Strip hidden text with `extraction::sanitize`. Reference secrets by name from
-`~/.svipall/secrets.env`; never put values in calls.
-- Operator-owned exits stay `sticky` until retired, then heal. Key `throttle`, `exit_health`
-and `reputation` by `(domain, exit)`, including home. Browser proxy auth uses CDP, never argv.
-- CLI, MCP and keyed loopback REST `serve` share one server. Keep `skill/SKILL.md`, its plugin
-copy and `rest::ROUTES` synchronized through tests.
-- Challenges = modality x widget: add a `WIDGETS` row and `core/fixtures/widgets/` fixture.
-Tests keep `Modality::Text` unreachable from the live loop.
-- `solve_loop` ranks strategies using route `outcomes`; declines cost no attempt.
-No cascaded `if`s. Fall back to dashboard with parked page and answer replay.
-- Use modality-checked `core::answer::Answer`; coordinates are asset fractions 0..1, never pixels.
-- Schema changes require bumping `SCHEMA_VERSION` in `solver/src/db.rs`:
-`IF NOT EXISTS` alone breaks older installations.
-
-## Workflow
-
-- TDD: write a test that fails without the behavior change, then implement.
-- Quality gate: `scripts/qc.ps1` or `bash scripts/qc.sh`; `-Fix`/`--fix` applies fmt+clippy.
-Integration tests: `<crate>/tests/`. Run ignored network/browser tests manually.
-- Measure benchmarks; regenerate `bench/baseline/` exactly per its README.
-Improvements count only when the median leaves the previous range. Publish null results too.
-- No third-party services, remote deployment, API keys, paid solvers or geolocation.
-No vendor brand names in code; name protocols by endpoint.
-- English only. **AGENTS.md must never exceed 1000 tokens.** Trim before adding instructions.
-QC/CI enforce the same token estimate as CLAUDE.md via `scripts/check-claude-md.{ps1,sh}`.
+## Rules
+- **TDD.** A test before the behaviour, and it must fail without the change.
+- **Quality gate** `scripts/qc.ps1` / `qc.sh` (`-Fix`/`--fix` = fmt+clippy). Integration tests
+  in `<crate>/tests/`; `#[ignore]` ones (network/browser) run by hand.
+- **Benchmarks are measured, not asserted.** Baselines in `bench/baseline/`, regenerated exactly
+  as its README says. **A change counts only when the median leaves the previous range.** Publish
+  the runs that improved nothing.
+- **No third-party services, no remote deploy.** No API keys, no paid solvers, no geolocation.
+  No vendor brand names in code; name protocols by endpoint.
+- **Reader-facing Markdown: run the `quiron` skill on every edit** (READMEs, `docs/`, root
+  guides, never agent files). Code, links, tables, headings, numbers stay.
+- **English only.** **Size-guarded file**; trim, don't expand.
 
 ## Build / run / ship
-
-`cargo build --release` needs cmake, nasm, perl, llvm; use a short `CARGO_TARGET_DIR` on Windows.
-Release uses `target-cpu=native`: never ship it; ship `--profile dist` artifacts.
-`svipall-mcp`: stdio + dashboard 8787; `svipall`: CLI; `svipall doctor`: install diagnostics.
-Config: `~/.svipall/config.toml`; README documents `SVIPALL_*`.
-Install via `install.{sh,ps1}`, package managers, crates.io, Docker or `plugins/svipall/`.
-Release = a `main` merge bumping `[workspace.package] version`.
+`cargo build --release` (cmake, nasm, perl, llvm; short `CARGO_TARGET_DIR` on Windows) is
+`target-cpu=native`: **never ship it**, artifacts are `--profile dist`. `svipall-mcp` over stdio +
+dashboard 8787; `svipall` is the CLI; `svipall doctor` reports an install. Config
+`~/.svipall/config.toml`; `SVIPALL_*` in the README. Release = a `main` merge bumping
+`[workspace.package] version`.

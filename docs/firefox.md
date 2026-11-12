@@ -96,7 +96,7 @@ else's: it disables Firefox's default `Mozilla`/`Mozilla` masking.
 
 The exception is a host with no usable GPU, where the renderer is `SwiftShader` or `llvmpipe`, the
 signature of a server. `coherence::is_software_renderer` detects that, the host-GPU mode is not
-entered, and `web_status` says so. That check ships today.
+entered, and `web_status(sections="browser")` says so. That check ships today.
 
 **B. Hardware entropy stays real.** Kasada's fourth layer measures the timing variance of JavaScript
 execution, and uniform server hardware is the tell. Running on the operator's machine is structurally

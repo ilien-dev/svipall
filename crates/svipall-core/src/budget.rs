@@ -4,8 +4,8 @@
 //! anything could be done about it. Only `web_crawl` had a cap, and it was a character count that
 //! cut mid-sentence.
 //!
-//! Truncation happens on block boundaries, using the same notion of a block as the BM25 filter, so
-//! a code fence or a table is never cut in half — that would turn valid markdown into noise.
+//! Truncation happens on block boundaries, using the same notion of a block as the BM25 filter. A
+//! block is cut only to fill a budget, a table or a fence after a whole row, a cut fence closed.
 //!
 //! A continuation carries two pieces of context so it is not read cold: the whole chain of
 //! headings it sits under, and optionally the tail of the page before it (`overlap_blocks`). Both
@@ -15,8 +15,7 @@
 
 use std::fmt::Write as _;
 
-/// Markdown blocks. Fenced code and GFM tables are atomic: splitting either produces something a
-/// model reads as broken rather than as truncated.
+/// Markdown blocks. A fenced code block or a GFM table is one block, never split at a blank line.
 pub fn blocks(markdown: &str) -> Vec<&str> {
     let mut out = Vec::new();
     let bytes = markdown.as_bytes();
@@ -83,21 +82,67 @@ pub struct Cursor {
     pub content_hash: u64,
     pub block: usize,
     pub char_off: usize,
+    /// The `query` the paged view was filtered by, `Some("")` for none.
+    ///
+    /// The hash is of the filtered view, so a continuation that filtered differently found a
+    /// different document and restarted from the top, "the page changed since that cursor was
+    /// issued", on a page that had not changed. Carried in the cursor, the view it was issued for
+    /// is the view it continues, whatever the next call's `query` says. `None` for a cursor from
+    /// before this field existed.
+    pub query: Option<String>,
 }
 
 impl Cursor {
     pub fn encode(&self) -> String {
-        format!("{:x}:{}:{}", self.content_hash, self.block, self.char_off)
+        let mut s = format!("{:x}:{}:{}", self.content_hash, self.block, self.char_off);
+        if let Some(q) = &self.query {
+            s.push_str(":q");
+            for b in q.as_bytes() {
+                let _ = write!(s, "{b:02x}");
+            }
+        }
+        s
     }
 
     pub fn decode(s: &str) -> Option<Self> {
         let mut parts = s.split(':');
         let hash = u64::from_str_radix(parts.next()?, 16).ok()?;
+        let block = parts.next()?.parse().ok()?;
+        let char_off = parts.next()?.parse().ok()?;
+        let query = match parts.next() {
+            None => None,
+            Some(q) => {
+                let hex = q.strip_prefix('q')?;
+                if hex.len() % 2 != 0 {
+                    return None;
+                }
+                let bytes = (0..hex.len())
+                    .step_by(2)
+                    .map(|i| u8::from_str_radix(hex.get(i..i + 2)?, 16).ok())
+                    .collect::<Option<Vec<u8>>>()?;
+                Some(String::from_utf8(bytes).ok()?)
+            }
+        };
+        if parts.next().is_some() {
+            return None;
+        }
         Some(Self {
             content_hash: hash,
-            block: parts.next()?.parse().ok()?,
-            char_off: parts.next()?.parse().ok()?,
+            block,
+            char_off,
+            query,
         })
+    }
+
+    /// The same cursor, saying which view it pages through.
+    pub fn for_query(encoded: &str, query: Option<&str>) -> String {
+        match Self::decode(encoded) {
+            Some(mut c) => {
+                c.query = Some(query.map(str::trim).unwrap_or_default().to_string());
+                c.encode()
+            }
+            None => encoded.to_string(),
+        }
     }
 }
 
@@ -139,6 +184,49 @@ fn cut_point(s: &str, limit: usize) -> usize {
         .or_else(|| window.rfind('\n').map(|i| i + 1))
         .or_else(|| window.rfind(' ').map(|i| i + 1))
         .unwrap_or(hard)
+}
+
+/// Below this many tokens left, a page that already returned something stops at the block boundary
+/// rather than ending on a sliver of the next block.
+const MIN_FILL_TOKENS: usize = 16;
+
+/// How many leading characters of `s` cost at most `units` quarter-tokens, at the rates
+/// `estimate_tokens` charges: one for a narrow character, five for a wide one.
+fn chars_within(s: &str, units: usize) -> usize {
+    let mut spent = 0usize;
+    s.chars()
+        .take_while(|c| {
+            spent += if (*c as u32) > 0x2E80 { 5 } else { 1 };
+            spent <= units
+        })
+        .count()
+}
+
+/// The run of backticks or tildes that opens a fenced block, when `block` is one.
+fn fence_marker(block: &str) -> Option<&str> {
+    let first = block.lines().next()?.trim_start();
+    let c = first.chars().next().filter(|c| *c == '`' || *c == '~')?;
+    let n = first.chars().take_while(|x| *x == c).count();
+    (n >= 3).then(|| &first[..n])
+}
+
+/// Where to cut a block that follows others on the page: after a whole row or line for a table or
+/// a fence, after a sentence, a line or a word for prose. `0` when no such boundary fits, and then
+/// the block waits whole for the next page.
+fn boundary_cut(rest: &str, limit: usize, whole: &str) -> usize {
+    let hard = rest
+        .char_indices()
+        .nth(limit)
+        .map(|(i, _)| i)
+        .unwrap_or(rest.len());
+    if fence_marker(whole).is_some() || whole.trim_start().starts_with('|') {
+        // Never part of a row: the next page starts on the row after the last one shown.
+        return rest[..hard].rfind('\n').map_or(0, |i| i + 1);
+    }
+    match cut_point(rest, limit) {
+        c if c == hard && hard < rest.len() => 0,
+        c => c,
+    }
 }
 
 /// The chain of headings above `idx`, outermost first, so a continuation says where it sits.
@@ -258,10 +346,20 @@ fn fill(
         } else {
             blocks[i]
         };
-        let cost = estimate_tokens(block);
+        let fence = fence_marker(blocks[i]);
+        // A fence resumed inside is reopened, so the rest of it still reads as code.
+        let reopen = match (off > 0, fence) {
+            (true, Some(_)) => blocks[i].lines().next().map(str::trim).unwrap_or_default(),
+            _ => "",
+        };
+        let cost = estimate_tokens(block) + estimate_tokens(reopen);
         if used + cost <= max_tokens {
             if !out.is_empty() {
                 out.push_str("\n\n");
+            }
+            if !reopen.is_empty() {
+                out.push_str(reopen);
+                out.push('\n');
             }
             out.push_str(block);
             used += cost;
@@ -270,17 +368,40 @@ fn fill(
             off = 0;
             continue;
         }
-        // A single block larger than the whole budget still has to make progress, or a caller
-        // paging through would loop forever on it.
+        // A block that does not fit is cut to fill what is left: always when nothing has been
+        // returned yet (a block larger than the whole budget still has to make progress, or a
+        // caller paging through would loop forever on it), and whenever a quarter of the budget
+        // or more is still unused. Measured: a 300-token budget on a page that opened with one
+        // short line and then an infobox table returned 10 tokens, the table left whole for later.
         let room = max_tokens.saturating_sub(used);
-        if returned == 0 && room > 0 {
-            let chars = room * 4;
-            let cut = cut_point(block, chars);
+        let underfilled = room >= MIN_FILL_TOKENS && room * 4 >= max_tokens;
+        if room > 0 && (returned == 0 || underfilled) {
+            // A fence that will be closed costs its markers too.
+            // Counted in what `estimate_tokens` charges, so a cut of wide characters stays in the
+            // budget; less the separator and a token for rounding.
+            let markers = fence.map_or(0, |f| f.len() + reopen.len() + 2);
+            let units = (room * 4).saturating_sub(markers + 6);
+            let chars = chars_within(block, units).max(usize::from(returned == 0));
+            let cut = if returned == 0 {
+                cut_point(block, chars)
+            } else {
+                boundary_cut(block, chars, blocks[i])
+            };
             if cut > 0 {
                 if !out.is_empty() {
                     out.push_str("\n\n");
                 }
-                out.push_str(&block[..cut]);
+                // A cut fence is closed here and reopened where the cursor resumes, so neither
+                // part reads as an unterminated code block. The markers are syntax, not content.
+                if !reopen.is_empty() {
+                    out.push_str(reopen);
+                    out.push('\n');
+                }
+                out.push_str(block[..cut].trim_end());
+                if let Some(f) = fence.filter(|_| cut < block.len()) {
+                    out.push('\n');
+                    out.push_str(f);
+                }
                 off += block[..cut].chars().count();
                 returned += 1;
             }
@@ -340,6 +461,7 @@ pub fn take(markdown: &str, opts: &BudgetOpts) -> Budgeted {
             content_hash: hash,
             block: page.block,
             char_off: page.off,
+            query: None,
         }
         .encode()
     });
@@ -355,9 +477,119 @@ pub fn take(markdown: &str, opts: &BudgetOpts) -> Budgeted {
     }
 }
 
+/// Take as much of a text that must come back as it is (a source file, plain text, an API's JSON)
+/// as fits, starting where the cursor says.
+///
+/// `take` reads markdown: it trims each block and joins blocks with one blank line, which is right
+/// for prose and changes a program. Here the unit is the line, kept with its own line ending, and
+/// nothing is added: no heading path, no overlap. A text that fits comes back byte for byte, and the
+/// parts a cursor pages through, put back together, are the text. A single line longer than the
+/// whole budget (minified JSON) is cut inside the line, so paging always makes progress.
+pub fn take_lines(text: &str, opts: &BudgetOpts) -> Budgeted {
+    let hash = crate::domain::stable_hash(text);
+    let lines: Vec<&str> = text.split_inclusive('\n').collect();
+    let total = lines.len();
+    let mut stale = false;
+    let (mut line, mut off) = match &opts.cursor {
+        Some(c) if c.content_hash == hash => (c.block, c.char_off),
+        Some(_) => {
+            stale = true;
+            (0, 0)
+        }
+        None => (0, 0),
+    };
+    if line >= total {
+        (line, off) = (0, 0);
+    }
+    let mut out = String::new();
+    let mut used = 0usize;
+    let mut returned = 0usize;
+    let mut truncated = false;
+    while line < total {
+        let rest = match lines[line].char_indices().nth(off) {
+            Some((b, _)) => &lines[line][b..],
+            None => "",
+        };
+        let cost = estimate_tokens(rest);
+        if used + cost <= opts.max_tokens {
+            out.push_str(rest);
+            used += cost;
+            returned += 1;
+            line += 1;
+            off = 0;
+            continue;
+        }
+        if returned == 0 {
+            // A line larger than the whole budget: as many characters as fit, and the rest of the
+            // line next time.
+            let chars = opts.max_tokens.max(1) * 4;
+            let piece: String = rest.chars().take(chars).collect();
+            off += piece.chars().count();
+            out.push_str(&piece);
+            returned += 1;
+        }
+        truncated = true;
+        break;
+    }
+    let next_cursor = truncated.then(|| {
+        Cursor {
+            content_hash: hash,
+            block: line,
+            char_off: off,
+            query: None,
+        }
+        .encode()
+    });
+    Budgeted {
+        tokens: estimate_tokens(&out),
+        content: out,
+        truncated,
+        next_cursor,
+        blocks_returned: returned,
+        total_blocks: total,
+        stale_cursor: stale,
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn a_text_that_fits_comes_back_byte_for_byte_and_one_that_does_not_pages_back_together() {
+        let text = "def f():\n    if x:\n\n\n        return 1\r\n    # end\n";
+        let all = take_lines(text, &plain(1000, None));
+        assert_eq!(all.content, text);
+        assert!(!all.truncated);
+
+        let mut joined = String::new();
+        let mut cursor = None;
+        loop {
+            let part = take_lines(text, &plain(3, cursor.take()));
+            assert!(!part.stale_cursor);
+            joined.push_str(&part.content);
+            match part.next_cursor {
+                Some(c) => cursor = Cursor::decode(&c),
+                None => break,
+            }
+        }
+        assert_eq!(joined, text);
+
+        // One line longer than the budget still makes progress, and still pages back together.
+        let long = "x".repeat(100);
+        let mut joined = String::new();
+        let mut cursor = None;
+        for _ in 0..100 {
+            let part = take_lines(&long, &plain(5, cursor.take()));
+            assert!(!part.content.is_empty());
+            joined.push_str(&part.content);
+            match part.next_cursor {
+                Some(c) => cursor = Cursor::decode(&c),
+                None => break,
+            }
+        }
+        assert_eq!(joined, long);
+    }
 
     /// The options every test that is not about paging context uses.
     fn plain(max_tokens: usize, cursor: Option<Cursor>) -> BudgetOpts {
@@ -642,6 +874,66 @@ mod tests {
     }
 
     #[test]
+    fn a_large_second_block_is_cut_on_a_row_to_fill_the_budget() {
+        let rows: Vec<String> = (0..100).map(|i| format!("| r{i:03} | v |")).collect();
+        let md = format!("short\n\n| k | v |\n| --- | --- |\n{}", rows.join("\n"));
+        let out = take(&md, &plain(100, None));
+        assert!(out.tokens >= 75, "{} tokens: {}", out.tokens, out.content);
+        assert!(
+            out.content.ends_with(" |"),
+            "ends on a whole row: {}",
+            out.content
+        );
+        let next = take(
+            &md,
+            &plain(10_000, out.next_cursor.as_deref().and_then(Cursor::decode)),
+        );
+        let both = format!("{}\n{}", out.content, next.content);
+        for i in 0..100 {
+            assert_eq!(both.matches(&format!("| r{i:03} |")).count(), 1, "{both}");
+        }
+    }
+
+    #[test]
+    fn a_cut_of_wide_characters_stays_inside_the_budget() {
+        let para = "汉字的句子很长。".repeat(60);
+        let table: Vec<String> = (0..60)
+            .map(|i| format!("| 行{i} | 汉字汉字汉字 |"))
+            .collect();
+        let fence: Vec<String> = (0..60).map(|i| format!("// 注释{i}汉字汉字")).collect();
+        for second in [
+            para.replace('。', "。 "),
+            format!("| 键 | 值 |\n| --- | --- |\n{}", table.join("\n")),
+            format!("```\n{}\n```", fence.join("\n")),
+            "汉".repeat(300),
+        ] {
+            let md = format!("short\n\n{second}");
+            for max in [40, 100, 160] {
+                let out = take(&md, &plain(max, None));
+                assert!(
+                    out.tokens <= max,
+                    "{} tokens over a budget of {max}: {}",
+                    out.tokens,
+                    out.content
+                );
+            }
+        }
+    }
+
+    #[test]
+    fn a_fence_cut_to_fill_the_budget_is_closed_and_reopened() {
+        let code: Vec<String> = (0..100).map(|i| format!("let x{i} = {i};")).collect();
+        let md = format!("short\n\n```rust\n{}\n```", code.join("\n"));
+        let first = take(&md, &plain(100, None));
+        assert!(first.tokens >= 75, "{}", first.content);
+        assert_eq!(first.content.matches("```").count(), 2, "{}", first.content);
+        let c = first.next_cursor.as_deref().and_then(Cursor::decode);
+        let rest = take(&md, &plain(10_000, c));
+        assert!(rest.content.starts_with("```rust\n"), "{}", rest.content);
+        assert_eq!(rest.content.matches("```").count(), 2, "{}", rest.content);
+    }
+
+    #[test]
     fn a_single_oversized_block_still_makes_progress() {
         let md = "x ".repeat(5000);
         let out = take(&md, &plain(50, None));
@@ -657,9 +949,24 @@ mod tests {
             content_hash: 0xdead_beef,
             block: 7,
             char_off: 42,
+            query: None,
         };
-        assert_eq!(Cursor::decode(&c.encode()), Some(c));
+        assert_eq!(Cursor::decode(&c.encode()), Some(c.clone()));
         assert_eq!(Cursor::decode("garbage"), None);
+        // The view travels with it, punctuation and all.
+        let q = Cursor::for_query(&c.encode(), Some("--effort: a/b <x>"));
+        assert_eq!(
+            Cursor::decode(&q).and_then(|c| c.query).as_deref(),
+            Some("--effort: a/b <x>")
+        );
+        assert_eq!(
+            Cursor::decode(&Cursor::for_query(&c.encode(), None))
+                .and_then(|c| c.query)
+                .as_deref(),
+            Some(""),
+            "no query is a view too"
+        );
+        assert_eq!(Cursor::decode("ab:1:2:zz"), None);
     }
 
     #[test]

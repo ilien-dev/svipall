@@ -50,6 +50,166 @@ pub async fn ensure_browser(cfg: &mut svipall_core::Config) -> Result<()> {
     Ok(())
 }
 
+/// How many majors behind the stable channel the managed browser may fall before it is replaced,
+/// and before anything says it is stale. One is an ordinary rollout: a major takes weeks to reach
+/// every machine, and acting on it would churn a healthy install every four weeks.
+pub const STALE_MAJORS: u16 = 2;
+
+/// Where the newest stable major the channel reported is kept, in the page store's key/value table.
+pub const LATEST_STABLE_KEY: &str = "browser/latest_stable_major";
+
+/// When the channel was last asked, as unix seconds.
+const STABLE_CHECKED_KEY: &str = "browser/stable_checked_at";
+
+/// How often a long-running server asks the channel. The channel ships a major every four weeks;
+/// asking more than daily buys nothing and costs a request at every start.
+const CHECK_EVERY_SECS: i64 = 20 * 3600;
+
+/// The newest stable Chrome major the release channel has reported, from the store.
+///
+/// This, and only this, is what "stale" is measured against. Another browser on the machine is not
+/// evidence of what is current: a system Chrome can itself be months old, or a beta ahead of
+/// stable, and comparing against it is how a current managed build was once called stale and a
+/// stale one was not.
+pub fn known_stable_major(store: Option<&svipall_core::cache::Store>) -> Option<u16> {
+    store?
+        .kv_get(LATEST_STABLE_KEY)
+        .and_then(|v| v.trim().parse().ok())
+        .filter(|m| *m > 0)
+}
+
+/// Remember what the channel said, so status and warnings never have to ask it again.
+pub fn remember_stable(store: Option<&svipall_core::cache::Store>, version: &str) {
+    if let (Some(store), Some(major)) = (store, crate::browser::major_of_public(version)) {
+        let _ = store.kv_set(LATEST_STABLE_KEY, &major.to_string());
+    }
+}
+
+/// What a background update should do, decided from facts alone so it can be tested without a
+/// network or a download.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Serialize)]
+#[serde(rename_all = "snake_case", tag = "plan")]
+pub enum UpdatePlan {
+    /// `browser_auto_update = false`, or an http-only installation.
+    Disabled,
+    /// The browser in use is not the managed one, or there is no managed one: a system browser
+    /// updates itself, and an explicit `browser_path` is never replaced.
+    NotManaged,
+    /// Within `STALE_MAJORS` of the channel, or the channel is unknown.
+    Current {
+        installed: u16,
+        stable: Option<u16>,
+    },
+    Update {
+        from: u16,
+        to: u16,
+    },
+}
+
+pub fn plan_update(enabled: bool, managed: Option<u16>, stable: Option<u16>) -> UpdatePlan {
+    if !enabled {
+        return UpdatePlan::Disabled;
+    }
+    let Some(installed) = managed else {
+        return UpdatePlan::NotManaged;
+    };
+    match stable {
+        Some(to) if to.saturating_sub(installed) >= STALE_MAJORS => UpdatePlan::Update {
+            from: installed,
+            to,
+        },
+        _ => UpdatePlan::Current { installed, stable },
+    }
+}
+
+/// Keep the managed browser within `STALE_MAJORS` of the stable channel.
+///
+/// What a long-running server runs once at start, in the background. Asks the channel at most every
+/// `CHECK_EVERY_SECS` (or now, with `force`), remembers the answer for every warning and status call
+/// that follows, and when the managed build has fallen behind, installs the current one and points
+/// `browser_path` at it — which is also what makes a running server switch on its next request,
+/// because the configuration it watches has changed.
+pub async fn auto_update(
+    cfg: &svipall_core::Config,
+    home: &Path,
+    prov: &Provisioner,
+    store: Option<&svipall_core::cache::Store>,
+    force: bool,
+) -> Result<serde_json::Value> {
+    let enabled = cfg.browser_auto_update && cfg.max_tier != "http";
+    let configured = cfg.browser_path.trim();
+    // An explicit path outside the managed directory is the operator's browser, never ours to swap.
+    let operator_owned = !configured.is_empty() && !Path::new(configured).starts_with(&prov.root);
+    let installed = prov.installed();
+    let managed = if operator_owned {
+        None
+    } else {
+        installed
+            .as_ref()
+            .and_then(|i| crate::browser::major_of_public(&i.version))
+    };
+    if !enabled || managed.is_none() {
+        let plan = plan_update(enabled, managed, known_stable_major(store));
+        return Ok(serde_json::json!({ "plan": plan }));
+    }
+    let now = chrono::Utc::now().timestamp();
+    let checked_at: i64 = store
+        .and_then(|s| s.kv_get(STABLE_CHECKED_KEY))
+        .and_then(|v| v.trim().parse().ok())
+        .unwrap_or(0);
+    let mut release = None;
+    if force || now - checked_at >= CHECK_EVERY_SECS {
+        let r = prov.latest_stable().await?;
+        remember_stable(store, &r.version);
+        if let Some(s) = store {
+            let _ = s.kv_set(STABLE_CHECKED_KEY, &now.to_string());
+        }
+        release = Some(r);
+    }
+    let plan = plan_update(true, managed, known_stable_major(store));
+    let UpdatePlan::Update { .. } = plan else {
+        return Ok(serde_json::json!({ "plan": plan, "checked": release.is_some() }));
+    };
+    // Known to be behind from an earlier look: the download URL still has to come from the channel.
+    let release = match release {
+        Some(r) => r,
+        None => prov.latest_stable().await?,
+    };
+    let mut log: Vec<String> = Vec::new();
+    let done = {
+        let mut sink = |line: String| {
+            tracing::info!("browser update: {line}");
+            log.push(line);
+        };
+        prov.install(&release, &mut sink).await?
+    };
+    svipall_core::config::update_in(home, serde_json::json!({ "browser_path": done.exe }))
+        .context("pointing browser_path at the updated browser")?;
+    Ok(serde_json::json!({ "plan": plan, "checked": true, "installed": done, "progress": log }))
+}
+
+/// `auto_update` as a server runs it at start: in the background, against the real channel, and
+/// never fatal — a machine offline today keeps the browser it has.
+pub async fn auto_update_in_background(cfg: svipall_core::Config) {
+    if !cfg.browser_auto_update || cfg.max_tier == "http" {
+        return;
+    }
+    let identity = svipall_core::IdentityProfile::resolve(None, &cfg);
+    let Ok(http) = svipall_http::build(svipall_http::FetcherConfig::new(identity)) else {
+        return;
+    };
+    let store = svipall_core::cache::Store::open().ok();
+    let prov = Provisioner::new(http, None);
+    let home = svipall_core::config::home_dir();
+    match auto_update(&cfg, &home, &prov, store.as_ref(), false).await {
+        Ok(v) if v.get("installed").is_some() => {
+            tracing::info!("managed browser updated: {v}");
+        }
+        Ok(v) => tracing::debug!("managed browser: {v}"),
+        Err(e) => tracing::warn!("managed browser update skipped: {e:#}"),
+    }
+}
+
 #[derive(Debug, Deserialize)]
 struct VersionsFile {
     channels: Channels,
@@ -127,18 +287,74 @@ fn parse_release(body: &[u8], platform: &str, artifact: &str) -> Result<Release>
     })
 }
 
+/// What a build being deleted is renamed to first, so a deletion that stops half way never leaves
+/// a directory that still looks like a build.
+const REMOVING: &str = ".removing";
+
+/// Delete every build under `cft` but the newest `keep`, whole or not at all.
+///
+/// A build some browser is still running from cannot be deleted on Windows: the files in use
+/// refuse, and a plain recursive delete had by then removed the ones before them, the side-by-side
+/// manifest first, leaving a build that no longer starts and a `browser_path` that may still point
+/// at it. So a build is renamed out of the way first: the rename fails while anything inside is in
+/// use, and then nothing has been touched. One that was renamed and not fully deleted is finished
+/// on a later call.
+fn prune_versions(cft: &std::path::Path, keep: usize) -> Vec<String> {
+    let entries: Vec<PathBuf> = std::fs::read_dir(cft)
+        .into_iter()
+        .flatten()
+        .flatten()
+        .map(|e| e.path())
+        .filter(|p| p.is_dir())
+        .collect();
+    let leftover = |p: &PathBuf| p.to_string_lossy().ends_with(REMOVING);
+    for dir in entries.iter().filter(|p| leftover(p)) {
+        let _ = std::fs::remove_dir_all(dir);
+    }
+    let mut versions: Vec<(u16, PathBuf)> = entries
+        .into_iter()
+        .filter(|p| !leftover(p))
+        .filter_map(|p| {
+            let name = p.file_name()?.to_string_lossy().to_string();
+            crate::browser::major_of_public(&name).map(|m| (m, p))
+        })
+        .collect();
+    versions.sort_by_key(|(major, _)| std::cmp::Reverse(*major));
+    let mut removed = Vec::new();
+    for (_, dir) in versions.into_iter().skip(keep) {
+        let mut aside = dir.clone().into_os_string();
+        aside.push(REMOVING);
+        let aside = PathBuf::from(aside);
+        if std::fs::rename(&dir, &aside).is_err() {
+            continue;
+        }
+        let _ = std::fs::remove_dir_all(&aside);
+        removed.push(dir.to_string_lossy().to_string());
+    }
+    removed
+}
+
 pub struct Provisioner {
     http: Arc<dyn HttpFetcher>,
     root: PathBuf,
     artifact: String,
+    /// The channel's version index. The live one, except in a test that serves its own.
+    index: String,
 }
 
 impl Provisioner {
     pub fn new(http: Arc<dyn HttpFetcher>, artifact: Option<&str>) -> Self {
+        Self::with_index(http, artifact, VERSIONS_URL)
+    }
+
+    /// The same, reading the version index from `index`: how the update path is exercised against
+    /// a local fixture with no network and no real download.
+    pub fn with_index(http: Arc<dyn HttpFetcher>, artifact: Option<&str>, index: &str) -> Self {
         Self {
             http,
             root: crate::browser::managed_browser_dir(),
             artifact: artifact.unwrap_or(CHROME_ARTIFACT).to_string(),
+            index: index.to_string(),
         }
     }
 
@@ -169,7 +385,7 @@ impl Provisioner {
         })?;
         let resp = self
             .http
-            .send(HttpRequest::get(VERSIONS_URL))
+            .send(HttpRequest::get(self.index.clone()))
             .await
             .context("asking Chrome for Testing which version is current")?;
         if resp.status >= 400 {
@@ -309,24 +525,7 @@ impl Provisioner {
 
     /// Keep the newest `keep` versions, delete the rest. A stale 400 MB build is pure waste.
     pub fn prune(&self, keep: usize) -> Vec<String> {
-        let cft = self.root.join("cft");
-        let mut versions: Vec<(u16, PathBuf)> = std::fs::read_dir(&cft)
-            .into_iter()
-            .flatten()
-            .flatten()
-            .filter(|e| e.path().is_dir())
-            .filter_map(|e| {
-                let name = e.file_name().to_string_lossy().to_string();
-                crate::browser::major_of_public(&name).map(|m| (m, e.path()))
-            })
-            .collect();
-        versions.sort_by_key(|(major, _)| std::cmp::Reverse(*major));
-        let mut removed = Vec::new();
-        for (_, dir) in versions.into_iter().skip(keep) {
-            if std::fs::remove_dir_all(&dir).is_ok() {
-                removed.push(dir.to_string_lossy().to_string());
-            }
-        }
+        let removed = prune_versions(&self.root.join("cft"), keep);
         // Abandoned partial downloads older than a week are not going to be resumed.
         if let Ok(rd) = std::fs::read_dir(self.root.join("downloads")) {
             for e in rd.flatten() {
@@ -436,6 +635,68 @@ mod tests {
         }
       }
     }"#;
+
+    fn build(cft: &std::path::Path, version: &str) -> PathBuf {
+        let dir = cft.join(version).join("chrome-win64");
+        std::fs::create_dir_all(&dir).unwrap();
+        std::fs::write(dir.join(format!("{version}.manifest")), "manifest").unwrap();
+        std::fs::write(dir.join("chrome.exe"), "binary").unwrap();
+        cft.join(version)
+    }
+
+    fn scratch(name: &str) -> PathBuf {
+        let dir = std::env::temp_dir().join(format!(
+            "svipall-prune-{}-{name}-{}",
+            std::process::id(),
+            std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .map(|d| d.as_nanos())
+                .unwrap_or(0)
+        ));
+        std::fs::create_dir_all(&dir).unwrap();
+        dir
+    }
+
+    #[test]
+    fn an_old_build_nothing_runs_from_is_deleted_whole() {
+        let cft = scratch("free");
+        let old = build(&cft, "154.0.8037.57");
+        let new = build(&cft, "157.0.8103.78");
+        let removed = prune_versions(&cft, 1);
+        assert_eq!(removed, vec![old.to_string_lossy().to_string()]);
+        assert!(!old.exists() && new.exists());
+        let left: Vec<_> = std::fs::read_dir(&cft).unwrap().flatten().collect();
+        assert_eq!(left.len(), 1, "nothing renamed aside is left behind");
+        let _ = std::fs::remove_dir_all(&cft);
+    }
+
+    /// The build a running browser came from lost its manifest and nothing else, and no longer
+    /// started ("side-by-side configuration is incorrect").
+    #[cfg(windows)]
+    #[test]
+    fn an_old_build_still_in_use_is_left_whole() {
+        use std::os::windows::fs::OpenOptionsExt;
+        let cft = scratch("held");
+        let old = build(&cft, "154.0.8037.57");
+        build(&cft, "157.0.8103.78");
+        let inner = old.join("chrome-win64");
+        // Shared for reading only, as a running executable is: it cannot be deleted or renamed.
+        let held = std::fs::OpenOptions::new()
+            .read(true)
+            .share_mode(1)
+            .open(inner.join("chrome.exe"))
+            .unwrap();
+        let removed = prune_versions(&cft, 1);
+        assert!(removed.is_empty(), "{removed:?}");
+        assert!(
+            inner.join("154.0.8037.57.manifest").exists(),
+            "a build that cannot be deleted whole is not deleted in part"
+        );
+        drop(held);
+        assert_eq!(prune_versions(&cft, 1).len(), 1, "and goes once it is free");
+        assert!(!old.exists());
+        let _ = std::fs::remove_dir_all(&cft);
+    }
 
     #[test]
     fn release_is_picked_for_the_requested_platform_and_artifact() {

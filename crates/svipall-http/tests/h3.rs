@@ -158,3 +158,87 @@ async fn a_network_that_swallows_udp_costs_seconds_rather_than_the_whole_budget(
         "gave up after {waited:?}; a dropped UDP port must not cost the page budget"
     );
 }
+
+/// A fallback that says which of its two ways it was asked, and with what deadline.
+struct Streams {
+    identity: IdentityProfile,
+    sent: Arc<AtomicUsize>,
+    streamed: Arc<std::sync::Mutex<Vec<Option<std::time::Duration>>>>,
+}
+
+#[async_trait::async_trait]
+impl HttpFetcher for Streams {
+    fn engine(&self) -> &'static str {
+        "streams"
+    }
+    fn identity(&self) -> &IdentityProfile {
+        &self.identity
+    }
+    async fn send(&self, _: HttpRequest) -> anyhow::Result<HttpResponse> {
+        self.sent.fetch_add(1, Ordering::Relaxed);
+        anyhow::bail!("a download must not be collected by the fallback")
+    }
+    async fn send_streaming(
+        &self,
+        req: HttpRequest,
+        sink: &mut (dyn svipall_http::BodySink + Send),
+        total: Option<std::time::Duration>,
+    ) -> anyhow::Result<HttpResponse> {
+        self.streamed.lock().unwrap().push(total);
+        sink.begin(200, &req.url, &[])?;
+        sink.write(b"over tcp")?;
+        Ok(HttpResponse {
+            status: 200,
+            final_url: req.url,
+            headers: vec![],
+            content_type: String::new(),
+            body: Vec::new(),
+            http_version: "HTTP/2.0",
+        })
+    }
+}
+
+#[tokio::test]
+async fn a_download_that_cannot_go_over_quic_is_streamed_by_the_tcp_engine() {
+    // The download path streams a body to disk and resumes a cut one. Falling back by collecting
+    // the body instead would hold a large file in memory and lose a cut one whole.
+    let sent = Arc::new(AtomicUsize::new(0));
+    let streamed = Arc::new(std::sync::Mutex::new(Vec::new()));
+    let fallback: Arc<dyn HttpFetcher> = Arc::new(Streams {
+        identity: identity(),
+        sent: sent.clone(),
+        streamed: streamed.clone(),
+    });
+    let mut cfg = FetcherConfig::new(identity());
+    cfg.timeout = std::time::Duration::from_secs(5);
+    let h3 = svipall_http::with_http3(&cfg, fallback).expect("h3 is compiled in");
+
+    struct Keep(Vec<u8>);
+    impl svipall_http::BodySink for Keep {
+        fn begin(&mut self, _: u16, _: &str, _: &[(String, String)]) -> anyhow::Result<()> {
+            Ok(())
+        }
+        fn write(&mut self, chunk: &[u8]) -> anyhow::Result<()> {
+            self.0.extend_from_slice(chunk);
+            Ok(())
+        }
+    }
+    let mut sink = Keep(Vec::new());
+    let total = std::time::Duration::from_secs(600);
+    let r = h3
+        .send_streaming(
+            HttpRequest::get("https://127.0.0.1:1/model.bin"),
+            &mut sink,
+            Some(total),
+        )
+        .await
+        .expect("the fallback's answer");
+    assert_eq!(r.http_version, "HTTP/2.0");
+    assert_eq!(sink.0, b"over tcp");
+    assert_eq!(sent.load(Ordering::Relaxed), 0, "the body was collected");
+    assert_eq!(
+        *streamed.lock().unwrap(),
+        vec![Some(total)],
+        "streamed once, under the caller's deadline"
+    );
+}

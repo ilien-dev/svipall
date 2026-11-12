@@ -6,7 +6,8 @@ use std::time::{Duration, Instant};
 use std::path::PathBuf;
 use std::sync::LazyLock;
 
-const COOLDOWN_SECONDS: u64 = 900; // 15 minutes after hard block
+/// How long a domain rests after a hard block survived the whole ladder.
+pub const COOLDOWN_SECONDS: u64 = 900;
 
 // The gap adapts to what the server actually does. Fixed gaps — 500ms and a flat 3s for browser
 // tiers — punished fast hosts: a warm crawl of thirty pages spent a minute and a half asleep on a
@@ -138,6 +139,20 @@ pub fn observe(domain: &str, exit: Option<&str>, tier: &str, outcome: Outcome) {
             }
         }
     }
+}
+
+/// Seconds left on the server's own `Retry-After` hold for this domain, which `throttle` would
+/// sleep through before the next request. A caller that must not wait asks this first.
+pub fn hold_left(domain: &str) -> u64 {
+    HOLDS
+        .lock()
+        .unwrap()
+        .get(domain)
+        .map(|until| {
+            let left = until.saturating_duration_since(Instant::now());
+            left.as_secs() + u64::from(left.subsec_nanos() > 0)
+        })
+        .unwrap_or(0)
 }
 
 /// `Retry-After`, which is either a number of seconds or an HTTP date.
@@ -296,12 +311,17 @@ pub fn set_cooldown(domain: &str) {
     write_file(&data);
 }
 
-pub fn clear_cooldown(domain: &str) {
+/// Clear this process's holds on the domain: the hard-block cooldown, here and on disk, and any
+/// `Retry-After` the pacer was waiting out. True when there was one.
+pub fn clear_cooldown(domain: &str) -> bool {
+    let mut had = cooldown_left(domain) > 0;
     COOLDOWNS.lock().unwrap().remove(domain);
+    had |= HOLDS.lock().unwrap().remove(domain).is_some();
     let mut data = read_file();
     if data.remove(domain).is_some() {
         write_file(&data);
     }
+    had
 }
 
 pub fn check_cooldown(domain: &str) -> Option<u64> {

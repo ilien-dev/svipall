@@ -1,9 +1,13 @@
 //! svipall library re-exports.
 
+/// Reading a page from the isolated world, where the page cannot watch.
+pub mod apart;
 pub mod asr;
 pub mod audio;
 pub mod behavior;
 pub mod blocklists;
+/// A response body kept as bytes: in memory to be read, or streamed to the file asked for.
+pub mod body;
 pub mod browser;
 pub mod capture;
 pub mod detect;
@@ -16,10 +20,16 @@ pub mod handoff;
 pub mod hooks;
 /// Work that outlives the request that asked for it.
 pub mod jobs;
+/// `json_path`: the fields of a JSON answer the caller asked for.
+pub mod json_select;
 /// Where a model comes from: the operator's file first, the embedded copy second.
 pub mod model_install;
 pub mod model_source;
 pub mod ocr;
+/// Tool arguments read against the tool's schema: lenient types, unknown keys named.
+pub mod params;
+/// What a tab found where a challenge was: the page, or the site's own refusal.
+pub mod passage;
 pub mod profiles;
 /// How a long job says how it is going, to whoever is listening.
 pub mod progress;
@@ -40,6 +50,8 @@ pub mod solve_loop;
 pub mod solver_engine;
 pub mod steer;
 pub mod substance;
+/// The box a widget is waiting on: where it is, and whether the widget is still asking.
+pub mod tick;
 pub mod tools;
 pub mod tunnels;
 /// Explicit release checks and user-confirmed updates of the shared installation.

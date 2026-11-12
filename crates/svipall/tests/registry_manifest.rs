@@ -431,3 +431,25 @@ fn the_plugin_carries_the_update_notice_and_tells_its_server_so() {
     let guide = read(&root, "docs/update.md");
     assert!(guide.contains("svipall update") && guide.to_lowercase().contains("close"));
 }
+
+/// The owner's call: code search across GitHub goes to the dedicated `searchGitHub` tool when the
+/// session has it, and Svipall stays the whole path when it does not. The memory block `/svipall:setup`
+/// writes says "every web access goes through" Svipall, so it has to carry that one exception, and
+/// the skill an agent reads has to agree with both.
+#[test]
+fn the_setup_memory_and_the_skill_leave_code_search_to_the_dedicated_tool() {
+    let root = workspace_root();
+    for file in [
+        "plugins/svipall/memory/SVIPALL.md",
+        "skill/SKILL.md",
+        "README.md",
+    ] {
+        let text = read(&root, file);
+        for needle in ["searchGitHub", "grep.app", "when that tool is absent"] {
+            assert!(
+                text.contains(needle),
+                "{file} lacks the code-search preference: {needle}"
+            );
+        }
+    }
+}

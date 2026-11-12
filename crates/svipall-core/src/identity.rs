@@ -187,16 +187,31 @@ pub struct MediaDevices {
 impl IdentityProfile {
     /// The rule: never claim a Chrome newer than the TLS layer can actually produce.
     ///
-    /// Two mismatches are possible when the installed browser is newer than the emulation ceiling.
-    /// Claiming the browser's version leaves a handshake that disagrees with the User-Agent, and
-    /// that cross-check is exactly what anti-bot vendors run. Claiming the emulated version instead
-    /// is only visible to a site that probes for JS APIs newer than the announced major, which is
-    /// rare and mostly harmless. So the advertised version is the lower of the two, and the browser
-    /// tiers override their UA down to match.
+    /// This is the http tier's identity, where the handshake is forged and the newest one that
+    /// can be forged is the ceiling. A User-Agent newer than its handshake is the cross-check
+    /// anti-bot vendors run, so the advertised version is the lower of the installed browser's
+    /// and the ceiling. The browser tiers make their own handshake: see [`Self::for_browser`].
     pub fn resolve(browser_major: Option<u16>, cfg: &crate::Config) -> Self {
         let major = browser_major
             .unwrap_or(MAX_EMULATED_CHROME)
             .min(MAX_EMULATED_CHROME);
+        Self::for_major(major, Os::host()).with_config(cfg)
+    }
+
+    /// The identity a browser tier wears: the version of the browser that is running.
+    ///
+    /// The browser tiers used to be overridden down to the http tier's ceiling, so that every
+    /// tier stated one version. That made each of them a browser claiming to be older than
+    /// itself, to a page that can see both: the handshake, the engine and every frame the
+    /// override does not reach are the real version. Measured on an interstitial with the whole
+    /// emulated identity replayed in a bare browser: claiming the real major it cleared in six
+    /// seconds, claiming the ceiling five majors below it never cleared, and nothing else in the
+    /// identity made a difference.
+    ///
+    /// The same rule as [`Self::resolve`], then, applied where it belongs: claim what the layer
+    /// that cannot lie will back up. Here that layer is the browser itself.
+    pub fn for_browser(browser_major: Option<u16>, cfg: &crate::Config) -> Self {
+        let major = browser_major.unwrap_or(MAX_EMULATED_CHROME);
         Self::for_major(major, Os::host()).with_config(cfg)
     }
 
@@ -669,6 +684,26 @@ mod tests {
         assert!(id
             .sec_ch_ua
             .contains(&format!("\"Google Chrome\";v=\"{}\"", MAX_EMULATED_CHROME)));
+    }
+
+    #[test]
+    fn a_browser_tier_claims_the_version_of_the_browser_it_runs() {
+        // The cap is about a handshake this project forges. A browser makes its own, and telling
+        // a page it is five majors older than the engine answering is the contradiction the cap
+        // was written to avoid: measured, an interstitial that lets Chrome 154 through in six
+        // seconds never lets through a Chrome 154 calling itself 149.
+        let newer = MAX_EMULATED_CHROME + 5;
+        let id = IdentityProfile::for_browser(Some(newer), &crate::Config::default());
+        assert_eq!(id.chrome_major, newer);
+        assert!(id.user_agent.contains(&format!("Chrome/{newer}.0.0.0")));
+        assert!(id.sec_ch_ua.contains(&format!("v=\"{newer}\"")));
+        assert_eq!(id.ua_metadata()["brands"][0]["version"], newer.to_string());
+        // The http tier, over the same installed browser, still claims what it can shake hands as.
+        let http = IdentityProfile::resolve(Some(newer), &crate::Config::default());
+        assert_eq!(http.chrome_major, MAX_EMULATED_CHROME);
+        // A browser whose version could not be read claims what the http tier does.
+        let unknown = IdentityProfile::for_browser(None, &crate::Config::default());
+        assert_eq!(unknown.chrome_major, MAX_EMULATED_CHROME);
     }
 
     #[test]

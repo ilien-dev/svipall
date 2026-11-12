@@ -916,8 +916,6 @@ pub struct LiveResponse {
 pub struct BrowserPool {
     exe: Option<PathBuf>,
     browser_major: Option<u16>,
-    /// Newest Chrome major seen on this machine, for the staleness advice. See `browser_advice`.
-    known_major: Option<u16>,
     identity: IdentityProfile,
     cfg: Config,
     pool: Mutex<HashMap<String, Arc<Pooled>>>,
@@ -1256,23 +1254,9 @@ pub fn detect_browser(cfg: &Config) -> Option<PathBuf> {
     detect_all(cfg).into_iter().next()
 }
 
-/// The newest Chrome major this machine has any evidence of, read from directory names only.
-///
-/// Free on purpose: `version_from_cli` would spawn every installed browser at startup to learn
-/// something that is only ever used to phrase a warning. A version that can only be had by running
-/// the binary is simply not counted.
-pub fn newest_installed_major(paths: &[PathBuf]) -> Option<u16> {
-    paths
-        .iter()
-        .filter_map(|p| version_from_sibling_dir(p).or_else(|| version_from_ancestor_dir(p)))
-        .max()
-}
-
-/// How many Chrome majors behind the newest known build is worth saying something about.
-///
-/// One is an ordinary rollout: a major takes weeks to reach every machine, so warning at one would
-/// fire on a healthy install every four weeks, and advice that always fires is advice nobody reads.
-const STALE_MAJORS: u16 = 2;
+/// How many Chrome majors behind the stable channel is worth saying something about; the same
+/// number the background update acts on, so the warning and the fix never disagree.
+const STALE_MAJORS: u16 = crate::provision::STALE_MAJORS;
 
 /// What is wrong with the browser that would be launched, in one sentence, or `None`.
 ///
@@ -1285,13 +1269,12 @@ const STALE_MAJORS: u16 = 2;
 /// One sentence, not two: the identity contradiction is the one an update cannot fix, so when both
 /// are true it is the one worth spending.
 ///
-/// `best_known` is the newest major this installation has any evidence of — another browser found
-/// on this machine, or the stable channel the provisioner last looked at. `None` when there is no
-/// evidence, and no evidence can never make something stale.
+/// `stable` is the stable channel's major as the provisioner last read it. `None` when it has never
+/// been read, and no evidence can never make something stale.
 pub fn browser_advice(
     exe: Option<&std::path::Path>,
     in_use: Option<u16>,
-    best_known: Option<u16>,
+    stable: Option<u16>,
 ) -> Option<String> {
     // No browser at all has its own error path with its own instructions.
     let exe = exe?;
@@ -1304,12 +1287,13 @@ pub fn browser_advice(
             exe.display()
         ));
     }
-    let (in_use, best) = (in_use?, best_known?);
+    let (in_use, best) = (in_use?, stable?);
     let behind = best.checked_sub(in_use).filter(|b| *b >= STALE_MAJORS)?;
     Some(format!(
-        "The browser in use is Chrome {in_use}, {behind} majors behind the newest this machine \
-         knows of ({best}); a user agent naming a Chrome that old is itself a signal. \
-         browser_setup(action=\"update\") refreshes the managed install."
+        "The browser in use is Chrome {in_use}, {behind} majors behind the stable channel \
+         ({best}); a user agent naming a Chrome that old is itself a signal. \
+         browser_setup(action=\"update\") refreshes the managed install; a running server does it \
+         on its own unless browser_auto_update is false."
     ))
 }
 
@@ -1360,29 +1344,81 @@ pub fn named_profile(name: &str) -> PathBuf {
     profiles_dir().join(safe_name(name))
 }
 
+/// Whether a running browser holds this profile directory.
+///
+/// Read from the lock the browser itself keeps, never guessed from the directory being there. On
+/// Windows that is `lockfile`, held open with no sharing for as long as the process lives; a
+/// leftover one opens fine and means nothing. Elsewhere it is the `SingletonLock` link, whose
+/// target ends in the owner's pid; a link to a pid that is gone is stale.
+pub fn profile_in_use(dir: &std::path::Path) -> bool {
+    #[cfg(windows)]
+    {
+        let lock = dir.join("lockfile");
+        if !lock.exists() {
+            return false;
+        }
+        // 32 is ERROR_SHARING_VIOLATION: somebody has it open and is not sharing.
+        matches!(
+            std::fs::OpenOptions::new().write(true).open(&lock),
+            Err(e) if e.raw_os_error() == Some(32)
+        )
+    }
+    #[cfg(not(windows))]
+    {
+        let Ok(target) = std::fs::read_link(dir.join("SingletonLock")) else {
+            return false;
+        };
+        let target = target.to_string_lossy().to_string();
+        let Some(pid) = target
+            .rsplit('-')
+            .next()
+            .and_then(|p| p.parse::<u32>().ok())
+        else {
+            return false;
+        };
+        if cfg!(target_os = "linux") {
+            std::path::Path::new(&format!("/proc/{pid}")).exists()
+        } else {
+            std::process::Command::new("kill")
+                .args(["-0", &pid.to_string()])
+                .stderr(std::process::Stdio::null())
+                .status()
+                .is_ok_and(|s| s.success())
+        }
+    }
+}
+
+/// What to say when a profile is held by somebody else, and what to do about it.
+pub fn profile_locked(dir: &std::path::Path) -> String {
+    format!(
+        "the profile directory {} is in use by another browser process, so it cannot be opened \
+         twice: close the window or the other svipall process using it (browser_close for a \
+         session of this server), or use a different profile",
+        dir.display()
+    )
+}
+
 impl BrowserPool {
     pub fn new(cfg: Config) -> Self {
         let (keep_max, keep_secs) = (cfg.warm_keep_max, cfg.warm_keep_secs);
-        let found = detect_all(&cfg);
-        let known_major = newest_installed_major(&found);
-        let exe = found.into_iter().next();
+        let exe = detect_all(&cfg).into_iter().next();
         let major = exe.as_deref().and_then(browser_version);
         match &exe {
+            // What is wrong with it is said by the server that owns this pool, once per process
+            // and against the stable channel; see `advice`.
             Some(p) => {
                 tracing::info!(
                     "browser tiers enabled: {} (Chrome {})",
                     p.display(),
                     major.map(|m| m.to_string()).unwrap_or_else(|| "?".into())
                 );
-                if let Some(advice) = browser_advice(Some(p), major, known_major) {
-                    tracing::warn!("{advice}");
-                }
             }
             None => tracing::warn!("no Chromium-based browser found; browser tiers disabled (set browser_path in ~/.svipall/config.toml, or call browser_setup)"),
         }
-        // Every tier states the same identity. Built once here so the browser and the http tier
-        // cannot drift apart.
-        let identity = IdentityProfile::resolve(major, &cfg);
+        // One identity for every browser tier, built once here, and it states the version of the
+        // browser that will run: see `IdentityProfile::for_browser` for what claiming the http
+        // tier's ceiling instead cost.
+        let identity = IdentityProfile::for_browser(major, &cfg);
         // The isolated world the CDP client evaluates in takes its name from the same seed as the
         // canvas noise, so one identity really does drive everything. Upstream shipped a constant
         // spelling out the automation library, which is free identification for anything that
@@ -1397,7 +1433,6 @@ impl BrowserPool {
         Self {
             exe,
             browser_major: major,
-            known_major,
             identity,
             cfg,
             pool: Mutex::new(HashMap::new()),
@@ -1425,14 +1460,10 @@ impl BrowserPool {
     /// What is wrong with the browser that would be launched, in one sentence, or `None`.
     ///
     /// `latest_stable` is what the provisioner last learned from the release channel, which the
-    /// caller reads from the store; without it the advice still has the survey of this machine to
-    /// work from, and simply knows less.
+    /// caller reads from the store. It is the only yardstick: another browser installed beside
+    /// this one says nothing about what is current. Without it nothing can be called stale.
     pub fn advice(&self, latest_stable: Option<u16>) -> Option<String> {
-        let best = match (self.known_major, latest_stable) {
-            (Some(a), Some(b)) => Some(a.max(b)),
-            (a, b) => a.or(b),
-        };
-        browser_advice(self.exe.as_deref(), self.browser_major, best)
+        browser_advice(self.exe.as_deref(), self.browser_major, latest_stable)
     }
 
     pub fn executable(&self) -> Option<String> {
@@ -1503,6 +1534,14 @@ impl BrowserPool {
     }
 
     async fn launch(&self, opts: &PageOpts) -> Result<Arc<Pooled>> {
+        // Before anything else, because nothing else can succeed: a profile another browser holds
+        // cannot be opened a second time, and Chromium's own answer is to hand the request to that
+        // other process and exit, which arrives here thirty seconds later as a launch timeout.
+        if let Some(dir) = opts.profile_dir.as_deref() {
+            if profile_in_use(dir) {
+                bail!("{}", profile_locked(dir));
+            }
+        }
         let exe = self.exe.clone().ok_or_else(|| {
             anyhow!("no Chromium-based browser found (set browser_path in ~/.svipall/config.toml)")
         })?;
@@ -1629,7 +1668,20 @@ impl BrowserPool {
                 if let Some(dir) = &scratch {
                     let _ = std::fs::remove_dir_all(dir);
                 }
-                return Err(anyhow::Error::new(e).context("launching browser"));
+                let e = anyhow::Error::new(e).context("launching browser");
+                // The same lock, seen from the other side: taken between the check above and the
+                // launch, or reported by the browser in its own words.
+                if let Some(dir) = opts.profile_dir.as_deref() {
+                    let chain = format!("{e:#}").to_ascii_lowercase();
+                    if profile_in_use(dir)
+                        || chain.contains("lock file")
+                        || chain.contains("singletonlock")
+                        || chain.contains("profile in use")
+                    {
+                        return Err(e.context(profile_locked(dir)));
+                    }
+                }
+                return Err(e);
             }
         };
         tokio::spawn(async move {
@@ -1987,12 +2039,7 @@ impl BrowserPool {
     pub async fn settle(&self, page: &Page, extra: Duration) {
         let deadline = Instant::now() + Duration::from_secs(10);
         while Instant::now() < deadline {
-            let ready = page
-                .evaluate("document.readyState")
-                .await
-                .ok()
-                .and_then(|r| r.value().and_then(|v| v.as_str().map(|s| s == "complete")))
-                .unwrap_or(false);
+            let ready = crate::apart::text(page, "document.readyState").await == "complete";
             if ready {
                 break;
             }
@@ -2002,7 +2049,16 @@ impl BrowserPool {
     }
 
     pub async fn content(&self, page: &Page) -> Result<(String, String)> {
-        let html = page.content().await.context("page content")?;
+        // Read from the isolated world, like everything else asked of a page while it may be
+        // deciding whether to let the visitor in (`apart`). A document with no such world, or
+        // one that answers nothing there, is read the protocol client's own way.
+        const DOCUMENT: &str = "(() => { const t = document.doctype; \
+             return (t ? new XMLSerializer().serializeToString(t) : '') \
+             + (document.documentElement ? document.documentElement.outerHTML : ''); })()";
+        let html = match crate::apart::text(page, DOCUMENT).await {
+            html if !html.is_empty() => html,
+            _ => page.content().await.context("page content")?,
+        };
         let url = page.url().await.ok().flatten().unwrap_or_default();
         Ok((html, url))
     }
@@ -2314,7 +2370,8 @@ impl BrowserPool {
             let ms = t0.elapsed().as_millis();
             out.push(match res {
                 Ok(v) => json!({"do": kind, "ok": true, "ms": ms, "value": v}),
-                Err(e) => json!({"do": kind, "ok": false, "ms": ms, "error": e.to_string()}),
+                // The whole chain: "element not found" alone does not say which element.
+                Err(e) => json!({"do": kind, "ok": false, "ms": ms, "error": format!("{e:#}")}),
             });
         }
         out
@@ -2412,7 +2469,11 @@ impl BrowserPool {
             }
             "hover" => {
                 let sel = selector.ok_or_else(|| anyhow!("hover needs selector"))?;
-                page.find_element(sel.as_str()).await.context("element not found")?.hover().await?;
+                page.find_element(sel.as_str())
+                    .await
+                    .context("element not found")?
+                    .hover()
+                    .await?;
                 Ok(Value::Null)
             }
             "type" | "fill" => {
@@ -2424,7 +2485,10 @@ impl BrowserPool {
                     &s("text").or(s("value")).unwrap_or_default(),
                     &crate::secrets::load(),
                 );
-                let el = page.find_element(sel.as_str()).await.context("element not found")?;
+                let el = page
+                    .find_element(sel.as_str())
+                    .await
+                    .context("element not found")?;
                 el.click().await?;
                 if kind == "fill" {
                     let _ = el.press_key("Control+a").await;
@@ -2441,7 +2505,11 @@ impl BrowserPool {
             "press" => {
                 let key = s("key").ok_or_else(|| anyhow!("press needs key"))?;
                 let target = selector.unwrap_or_else(|| "body".to_string());
-                page.find_element(target.as_str()).await.context("element not found")?.press_key(&key).await?;
+                page.find_element(target.as_str())
+                    .await
+                    .context("element not found")?
+                    .press_key(&key)
+                    .await?;
                 tokio::time::sleep(Duration::from_millis(300)).await;
                 Ok(Value::Null)
             }
@@ -2487,12 +2555,18 @@ impl BrowserPool {
                         tokio::time::sleep(Duration::from_millis(250)).await;
                     }
                 }
-                let ms = a.get("ms").and_then(|v| v.as_u64()).unwrap_or(1000).min(60_000);
+                let ms = a
+                    .get("ms")
+                    .and_then(|v| v.as_u64())
+                    .unwrap_or(1000)
+                    .min(60_000);
                 tokio::time::sleep(Duration::from_millis(ms)).await;
                 Ok(Value::Null)
             }
             "eval" | "evaluate" => {
-                let script = s("script").or(s("js")).ok_or_else(|| anyhow!("eval needs script"))?;
+                let script = s("script")
+                    .or(s("js"))
+                    .ok_or_else(|| anyhow!("eval needs script"))?;
                 let r = page.evaluate(script.as_str()).await?;
                 Ok(r.value().cloned().unwrap_or(Value::Null))
             }
@@ -2502,11 +2576,18 @@ impl BrowserPool {
                 Ok(json!({"status": status}))
             }
             "screenshot" => {
-                let png = self.screenshot(page, a.get("full_page").and_then(|v| v.as_bool()).unwrap_or(false)).await?;
+                let png = self
+                    .screenshot(
+                        page,
+                        a.get("full_page")
+                            .and_then(|v| v.as_bool())
+                            .unwrap_or(false),
+                    )
+                    .await?;
                 let path = save_png(&page.url().await.ok().flatten().unwrap_or_default(), &png)?;
                 Ok(json!({"path": path, "bytes": png.len()}))
             }
-            other => bail!("unknown action '{}' (click|hover|type|fill|press|select|scroll|wait|eval|goto|screenshot)", other),
+            other => bail!("{}", crate::tools::unknown_action(other)),
         }
     }
 
@@ -2687,6 +2768,19 @@ impl BrowserPool {
     /// refusal. The browser has to go first — on Windows the directory is locked while it runs —
     /// and the lock is released a moment after the process is, hence the short retry.
     pub async fn retire_profile(&self, dir: &std::path::Path) -> bool {
+        self.close_profile(dir).await;
+        for _ in 0..8 {
+            if !dir.exists() || std::fs::remove_dir_all(dir).is_ok() {
+                return true;
+            }
+            tokio::time::sleep(Duration::from_millis(300)).await;
+        }
+        false
+    }
+
+    /// Close whatever browser holds this profile, so another browser (a visible one, for a
+    /// person) can open it: a profile directory is locked while a browser runs on it.
+    pub async fn close_profile(&self, dir: &std::path::Path) {
         let needle = dir.to_string_lossy().to_string();
         let keys: Vec<String> = self
             .pool
@@ -2701,16 +2795,9 @@ impl BrowserPool {
             self.release_kept(|key| key.starts_with(&k)).await;
             if let Some(p) = self.pool.lock().await.remove(&k) {
                 p.close().await;
-                tracing::info!("closed browser on a retired profile {}", k);
+                tracing::info!("closed browser on profile {}", k);
             }
         }
-        for _ in 0..8 {
-            if !dir.exists() || std::fs::remove_dir_all(dir).is_ok() {
-                return true;
-            }
-            tokio::time::sleep(Duration::from_millis(300)).await;
-        }
-        false
     }
 
     pub async fn shutdown(&self) {

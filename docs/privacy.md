@@ -7,8 +7,8 @@ Lifted out of the README so that file stays readable. Everything here is the sam
   Visible malicious instructions can remain, so this is not a complete prompt-injection defense and
   returned page content has to be treated as untrusted data.
 - **Credentials can be referenced without placing values in a tool call.** `{"do":"type","ref":"e4","text":"${SHOP_PASSWORD}"}` is
-  substituted from `~/.svipall/secrets.env` on the way to the browser, and `web_status` lists
-  names, never values. Returned page text, screenshots or API responses can still expose data the site
+  substituted from `~/.svipall/secrets.env` on the way to the browser, and `web_status(sections="profiles")`
+  lists names, never values. Returned page text, screenshots or API responses can still expose data the site
   displays, because secret substitution is not output redaction.
 - **Origin policy, checked before the request:** `allow_origins`, `block_origins` (blocking wins)
   and `block_ads` (cached lists, silent when offline). `refuse_private_addresses` stops an agent

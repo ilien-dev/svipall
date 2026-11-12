@@ -11,10 +11,28 @@ use std::path::PathBuf;
 pub fn home_dir() -> PathBuf {
     match std::env::var_os("SVIPALL_HOME") {
         Some(dir) if !dir.is_empty() => PathBuf::from(dir),
-        _ => dirs::home_dir()
-            .unwrap_or_else(|| PathBuf::from("."))
-            .join(".svipall"),
+        _ => default_home(),
     }
+}
+
+#[cfg(not(test))]
+fn default_home() -> PathBuf {
+    dirs::home_dir()
+        .unwrap_or_else(|| PathBuf::from("."))
+        .join(".svipall")
+}
+
+/// This crate's own unit tests never see the developer's home: one of them taught the real
+/// `domain_tiers.json` a tier on every run.
+#[cfg(test)]
+fn default_home() -> PathBuf {
+    static HOME: std::sync::OnceLock<PathBuf> = std::sync::OnceLock::new();
+    HOME.get_or_init(|| {
+        let dir = std::env::temp_dir().join(format!("svipall-core-test-{}", std::process::id()));
+        let _ = std::fs::create_dir_all(&dir);
+        dir
+    })
+    .clone()
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
@@ -44,6 +62,10 @@ pub struct Config {
     pub request_min_interval_ms: u64,
     /// Provision the managed browser on startup when no local browser is available.
     pub browser_auto_install: bool,
+    /// Keep the managed browser current: a long-running server replaces it in the background when
+    /// it falls two or more majors behind the stable channel it was installed from. `false` keeps
+    /// whatever build is there until `browser_setup(action="update")` is asked for.
+    pub browser_auto_update: bool,
     /// Highest tier `mode=auto` may climb to: http | browser | stealth | real | warm.
     pub max_tier: String,
     /// If non-empty, nothing outside these origins is fetched.
@@ -203,6 +225,7 @@ impl Default for Config {
             request_cooldown_seconds: 900,
             request_min_interval_ms: 1000,
             browser_auto_install: true,
+            browser_auto_update: true,
             max_tier: "warm".into(),
             allow_origins: Vec::new(),
             block_origins: Vec::new(),

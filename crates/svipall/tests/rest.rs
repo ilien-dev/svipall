@@ -332,14 +332,13 @@ async fn reading_the_status_over_get_cannot_clear_anything() {
 #[tokio::test]
 async fn the_status_carries_no_null_fields_and_no_float_noise() {
     // What a model reads when something is blocked. `cache_cleared: null` on every call said
-    // nothing, and `soft_line: 0.699999988079071` was an f32 shown as f64.
-    let req = Request::builder()
-        .uri("/v1/status")
-        .header("host", "127.0.0.1:8788")
-        .header("authorization", format!("Bearer {KEY}"))
-        .body(Body::empty())
-        .expect("request");
-    let (status, body) = send(app(), req).await;
+    // nothing, and `soft_line: 0.699999988079071` was an f32 shown as f64. The reputation is a
+    // section of the report now, asked for by name.
+    let (status, body) = send(
+        app(),
+        signed("POST", "/v1/status", json!({"sections": "reputation"})),
+    )
+    .await;
     assert_eq!(status, StatusCode::OK);
     assert!(body.get("cache_cleared").is_none(), "{body}");
     assert_eq!(
@@ -374,4 +373,50 @@ async fn the_same_fetch_through_http_and_through_the_seam_return_the_same_object
             "`{key}` differs between the seam and the route"
         );
     }
+}
+
+#[tokio::test]
+async fn a_fetch_over_rest_waits_out_a_full_window_when_told_to() {
+    support::isolate();
+    // `wait` is a parameter of the same struct the route deserialises, so the route has it; this is
+    // the proof that it is honoured there, and that `wait=0` over REST refuses instead.
+    let url = "http://rest-wait.test/article";
+    let site = Site::start(vec![(
+        url,
+        Reply::page("Rest", &[]).header("cache-control", "no-store"),
+    )])
+    .await;
+    let s = SvipallServer::new(
+        None,
+        svipall_core::Config {
+            max_tier: "http".into(),
+            request_limit: 1,
+            request_window_seconds: 3,
+            request_min_interval_ms: 1,
+            http_engine: "reqwest".into(),
+            ..Default::default()
+        },
+        None,
+    );
+    let app = rest::router(s.clone(), runner(s), KEY, "127.0.0.1");
+    let body = |wait: u64| {
+        json!({"url": url, "proxy": site.url(""), "robots": "ignore", "cache": "bypass",
+               "timeout": 2_000, "wait": wait})
+    };
+    let (_, first) = send(app.clone(), signed("POST", "/v1/fetch", body(0))).await;
+    assert_eq!(first["status"], 200, "{first}");
+    let (_, refused) = send(app.clone(), signed("POST", "/v1/fetch", body(0))).await;
+    assert_eq!(refused["wall_kind"], "visit_limit", "{refused}");
+    let (status, out) = send(app, signed("POST", "/v1/fetch", body(5))).await;
+    assert_eq!(status, StatusCode::OK);
+    assert_eq!(out["status"], 200, "{out}");
+    assert!(out["waited"]["seconds"].as_u64().unwrap_or(0) >= 1, "{out}");
+    assert_eq!(site.hits(url), 2);
+}
+
+#[tokio::test]
+async fn reading_the_status_over_get_takes_the_sections_it_is_asked_for() {
+    let (status, body) = send(app(), signed("GET", "/v1/status?sections=h3", Value::Null)).await;
+    assert_eq!(status, StatusCode::OK);
+    assert!(body["http3"].is_object(), "{body}");
 }

@@ -22,6 +22,9 @@ flate2 = { version = "1.0", default-features = false, features = ["rust_backend"
 # Proof-of-work challenges: a hash loop, no model, no person. Already in the tree transitively;
 # declared here because this crate now uses it directly.
 sha2 = "0.10"
+# The signed proof-of-work challenge in its key-derivation form. Already in the tree under the
+# PDF reader.
+pbkdf2 = { version = "0.12", default-features = false, features = ["hmac"] }
 toml = { workspace = true }
 # The REST API's bearer key, generated on first use. v4 is the same recipe the dashboard's per-run
 # token already uses, and it is backed by the platform CSPRNG rather than something hand-rolled.

@@ -94,14 +94,16 @@ impl Modality {
     /// tile grid, on the other hand, teaches the widget what it is dealing with.
     pub fn attempt_budget(self) -> u8 {
         match self {
-            Modality::Nonce => 1,
+            // Two ways to the same answer, one try each: let the page's own widget do the sum,
+            // or do it here when the page has no widget running.
+            Modality::Nonce => 2,
             // A hold can land on the widget's placeholder before the real button has drawn;
             // measured on the site that asks for this most. The second try is cheap.
             Modality::Tiles | Modality::Points | Modality::Polygon | Modality::Drag => 2,
             Modality::Hold => 2,
             Modality::Text | Modality::Audio => 2,
             Modality::Slide | Modality::Rotate => 3,
-            // Passive: there is nothing to attempt, only to wait for.
+            // Waited for, and ticked once when it shows a box. A second tick is hammering.
             Modality::Token => 1,
             // Nothing tries this automatically: it exists to be handed to a person.
             Modality::Rate => 1,
@@ -130,6 +132,23 @@ pub struct WidgetSpec {
     pub default_modality: Modality,
     /// Almost always false: these answers are bound to a session and an address.
     pub token_reusable: bool,
+    /// The box a visitor is expected to tick, for the widgets that show one.
+    pub tick: Option<Tick>,
+}
+
+/// Where a widget's "I am human" box is.
+///
+/// A widget that decides it wants a click shows a box and waits, for as long as it takes. Nothing
+/// about the visitor is wrong at that point and nothing else will ever happen: measured on the
+/// interstitial, where a browser nobody was driving sat on that box for thirty seconds and one
+/// click on it let the page through.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub enum Tick {
+    /// Inside the widget's own frame, as a fraction of that frame's box. The frame is another
+    /// origin, so its inside cannot be asked where the box is; its outside can be measured.
+    InFrame { x: f64, y: f64 },
+    /// An element of the host document.
+    Selector(&'static str),
 }
 
 /// Every widget svipall knows how to recognise.
@@ -145,6 +164,8 @@ pub const WIDGETS: &[WidgetSpec] = &[
         response_field: Some("cf-turnstile-response"),
         default_modality: Modality::Token,
         token_reusable: false,
+        // Measured on the 300 by 65 frame: the box is 28 px in and half way down.
+        tick: Some(Tick::InFrame { x: 0.093, y: 0.5 }),
     },
     WidgetSpec {
         id: "google.com/recaptcha",
@@ -154,6 +175,7 @@ pub const WIDGETS: &[WidgetSpec] = &[
         response_field: Some("g-recaptcha-response"),
         default_modality: Modality::Token,
         token_reusable: false,
+        tick: None,
     },
     WidgetSpec {
         id: "hcaptcha.com",
@@ -163,6 +185,7 @@ pub const WIDGETS: &[WidgetSpec] = &[
         response_field: Some("h-captcha-response"),
         default_modality: Modality::Token,
         token_reusable: false,
+        tick: None,
     },
     WidgetSpec {
         id: "captcha-delivery.com",
@@ -172,6 +195,7 @@ pub const WIDGETS: &[WidgetSpec] = &[
         response_field: None,
         default_modality: Modality::Slide,
         token_reusable: false,
+        tick: None,
     },
     WidgetSpec {
         id: "client-api.arkoselabs.com",
@@ -181,6 +205,7 @@ pub const WIDGETS: &[WidgetSpec] = &[
         response_field: Some("fc-token"),
         default_modality: Modality::Tiles,
         token_reusable: false,
+        tick: None,
     },
     WidgetSpec {
         id: "api.geetest.com",
@@ -190,15 +215,27 @@ pub const WIDGETS: &[WidgetSpec] = &[
         response_field: None,
         default_modality: Modality::Slide,
         token_reusable: false,
+        tick: None,
     },
     WidgetSpec {
         id: "altcha.org",
         containers: &["altcha-widget", ".altcha", "[data-challengeurl]"],
-        key_attrs: &["data-challengeurl", "data-challenge", "data-sitekey"],
+        // `challenge` is what current pages write and `challengeurl` what older ones do; the
+        // `data-` forms are for a widget mounted on a plain element.
+        key_attrs: &[
+            "challengeurl",
+            "challenge",
+            "data-challengeurl",
+            "data-challenge",
+            "data-sitekey",
+        ],
         endpoints: &["altcha"],
         response_field: Some("altcha"),
         default_modality: Modality::Nonce,
         token_reusable: false,
+        tick: Some(Tick::Selector(
+            "altcha-widget input[type=checkbox], .altcha input[type=checkbox]",
+        )),
     },
     WidgetSpec {
         id: "friendlycaptcha.com",
@@ -208,6 +245,7 @@ pub const WIDGETS: &[WidgetSpec] = &[
         response_field: Some("frc-captcha-solution"),
         default_modality: Modality::Nonce,
         token_reusable: false,
+        tick: None,
     },
     WidgetSpec {
         id: "prosopo.io",
@@ -217,6 +255,7 @@ pub const WIDGETS: &[WidgetSpec] = &[
         response_field: Some("procaptcha-response"),
         default_modality: Modality::Nonce,
         token_reusable: false,
+        tick: None,
     },
     WidgetSpec {
         id: "service.mtcaptcha.com",
@@ -226,6 +265,7 @@ pub const WIDGETS: &[WidgetSpec] = &[
         response_field: Some("mtcaptcha-verifiedtoken"),
         default_modality: Modality::Token,
         token_reusable: false,
+        tick: None,
     },
     WidgetSpec {
         id: "captcha.awswaf.com",
@@ -235,6 +275,7 @@ pub const WIDGETS: &[WidgetSpec] = &[
         response_field: None,
         default_modality: Modality::Points,
         token_reusable: false,
+        tick: None,
     },
     WidgetSpec {
         id: "smartcaptcha.yandexcloud.net",
@@ -244,6 +285,7 @@ pub const WIDGETS: &[WidgetSpec] = &[
         response_field: Some("smart-token"),
         default_modality: Modality::Token,
         token_reusable: false,
+        tick: None,
     },
     WidgetSpec {
         id: "turing.captcha.qcloud.com",
@@ -253,6 +295,7 @@ pub const WIDGETS: &[WidgetSpec] = &[
         response_field: None,
         default_modality: Modality::Slide,
         token_reusable: false,
+        tick: None,
     },
     WidgetSpec {
         id: "captcha.gateway.imperva.com",
@@ -262,6 +305,7 @@ pub const WIDGETS: &[WidgetSpec] = &[
         response_field: None,
         default_modality: Modality::Hold,
         token_reusable: false,
+        tick: None,
     },
     WidgetSpec {
         id: "captcha.atb-captcha.com",
@@ -271,6 +315,7 @@ pub const WIDGETS: &[WidgetSpec] = &[
         response_field: None,
         default_modality: Modality::Slide,
         token_reusable: false,
+        tick: None,
     },
 ];
 
@@ -378,9 +423,10 @@ mod tests {
 
     #[test]
     fn attempt_budgets_reflect_what_a_retry_is_worth() {
-        // A nonce either verifies or was misparsed, so a second try is wasted. A slider has a
+        // A nonce has two ways to its answer and neither is worth repeating. A slider has a
         // tolerance. Guessing repeatedly at a grid teaches the widget what it is dealing with.
-        assert_eq!(Modality::Nonce.attempt_budget(), 1);
+        assert_eq!(Modality::Nonce.attempt_budget(), 2);
+        assert_eq!(Modality::Token.attempt_budget(), 1);
         assert_eq!(Modality::Slide.attempt_budget(), 3);
         assert_eq!(Modality::Tiles.attempt_budget(), 2);
         for m in [Modality::Nonce, Modality::Tiles, Modality::Audio] {

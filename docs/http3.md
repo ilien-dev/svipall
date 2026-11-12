@@ -205,7 +205,7 @@ http3 = true
 
 ## When h3 is actually used
 
-Three facts have to line up, and `web_status.http3` reports each one separately so a caller looking
+Three facts have to line up, and `web_status(sections="h3")` reports each one separately under `http3` so a caller looking
 at a TCP fetch with an `Alt-Svc` in hand can see which said no: the binary was built
 `--features http3`, `http3 = true` in the config, and **this domain advertised h3**.
 

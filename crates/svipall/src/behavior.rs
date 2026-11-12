@@ -13,7 +13,6 @@
 //! Everything in the first half of this file is pure and tested. Only the `dispatch` half needs a
 //! browser.
 
-use serde_json::Value;
 use std::collections::HashMap;
 use std::time::Duration;
 use svipall_cdp::cdp::browser_protocol::input::{
@@ -455,7 +454,7 @@ pub async fn box_of(page: &Page, selector: &str) -> Option<(f64, f64, f64, f64)>
             return {{x: r.x, y: r.y, w: r.width, h: r.height}};
         }})()"#
     );
-    let v = page.evaluate(js).await.ok()?.into_value::<Value>().ok()?;
+    let v = crate::apart::eval(page, &js).await.ok()?;
     Some((
         v.get("x")?.as_f64()?,
         v.get("y")?.as_f64()?,
