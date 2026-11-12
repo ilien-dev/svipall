@@ -11,10 +11,28 @@ use std::path::PathBuf;
 pub fn home_dir() -> PathBuf {
     match std::env::var_os("SVIPALL_HOME") {
         Some(dir) if !dir.is_empty() => PathBuf::from(dir),
-        _ => dirs::home_dir()
-            .unwrap_or_else(|| PathBuf::from("."))
-            .join(".svipall"),
+        _ => default_home(),
     }
+}
+
+#[cfg(not(test))]
+fn default_home() -> PathBuf {
+    dirs::home_dir()
+        .unwrap_or_else(|| PathBuf::from("."))
+        .join(".svipall")
+}
+
+/// This crate's own unit tests never see the developer's home: one of them taught the real
+/// `domain_tiers.json` a tier on every run.
+#[cfg(test)]
+fn default_home() -> PathBuf {
+    static HOME: std::sync::OnceLock<PathBuf> = std::sync::OnceLock::new();
+    HOME.get_or_init(|| {
+        let dir = std::env::temp_dir().join(format!("svipall-core-test-{}", std::process::id()));
+        let _ = std::fs::create_dir_all(&dir);
+        dir
+    })
+    .clone()
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize)]

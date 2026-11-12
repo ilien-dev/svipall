@@ -287,6 +287,53 @@ fn parse_release(body: &[u8], platform: &str, artifact: &str) -> Result<Release>
     })
 }
 
+/// What a build being deleted is renamed to first, so a deletion that stops half way never leaves
+/// a directory that still looks like a build.
+const REMOVING: &str = ".removing";
+
+/// Delete every build under `cft` but the newest `keep`, whole or not at all.
+///
+/// A build some browser is still running from cannot be deleted on Windows: the files in use
+/// refuse, and a plain recursive delete had by then removed the ones before them, the side-by-side
+/// manifest first, leaving a build that no longer starts and a `browser_path` that may still point
+/// at it. So a build is renamed out of the way first: the rename fails while anything inside is in
+/// use, and then nothing has been touched. One that was renamed and not fully deleted is finished
+/// on a later call.
+fn prune_versions(cft: &std::path::Path, keep: usize) -> Vec<String> {
+    let entries: Vec<PathBuf> = std::fs::read_dir(cft)
+        .into_iter()
+        .flatten()
+        .flatten()
+        .map(|e| e.path())
+        .filter(|p| p.is_dir())
+        .collect();
+    let leftover = |p: &PathBuf| p.to_string_lossy().ends_with(REMOVING);
+    for dir in entries.iter().filter(|p| leftover(p)) {
+        let _ = std::fs::remove_dir_all(dir);
+    }
+    let mut versions: Vec<(u16, PathBuf)> = entries
+        .into_iter()
+        .filter(|p| !leftover(p))
+        .filter_map(|p| {
+            let name = p.file_name()?.to_string_lossy().to_string();
+            crate::browser::major_of_public(&name).map(|m| (m, p))
+        })
+        .collect();
+    versions.sort_by_key(|(major, _)| std::cmp::Reverse(*major));
+    let mut removed = Vec::new();
+    for (_, dir) in versions.into_iter().skip(keep) {
+        let mut aside = dir.clone().into_os_string();
+        aside.push(REMOVING);
+        let aside = PathBuf::from(aside);
+        if std::fs::rename(&dir, &aside).is_err() {
+            continue;
+        }
+        let _ = std::fs::remove_dir_all(&aside);
+        removed.push(dir.to_string_lossy().to_string());
+    }
+    removed
+}
+
 pub struct Provisioner {
     http: Arc<dyn HttpFetcher>,
     root: PathBuf,
@@ -478,24 +525,7 @@ impl Provisioner {
 
     /// Keep the newest `keep` versions, delete the rest. A stale 400 MB build is pure waste.
     pub fn prune(&self, keep: usize) -> Vec<String> {
-        let cft = self.root.join("cft");
-        let mut versions: Vec<(u16, PathBuf)> = std::fs::read_dir(&cft)
-            .into_iter()
-            .flatten()
-            .flatten()
-            .filter(|e| e.path().is_dir())
-            .filter_map(|e| {
-                let name = e.file_name().to_string_lossy().to_string();
-                crate::browser::major_of_public(&name).map(|m| (m, e.path()))
-            })
-            .collect();
-        versions.sort_by_key(|(major, _)| std::cmp::Reverse(*major));
-        let mut removed = Vec::new();
-        for (_, dir) in versions.into_iter().skip(keep) {
-            if std::fs::remove_dir_all(&dir).is_ok() {
-                removed.push(dir.to_string_lossy().to_string());
-            }
-        }
+        let removed = prune_versions(&self.root.join("cft"), keep);
         // Abandoned partial downloads older than a week are not going to be resumed.
         if let Ok(rd) = std::fs::read_dir(self.root.join("downloads")) {
             for e in rd.flatten() {
@@ -605,6 +635,68 @@ mod tests {
         }
       }
     }"#;
+
+    fn build(cft: &std::path::Path, version: &str) -> PathBuf {
+        let dir = cft.join(version).join("chrome-win64");
+        std::fs::create_dir_all(&dir).unwrap();
+        std::fs::write(dir.join(format!("{version}.manifest")), "manifest").unwrap();
+        std::fs::write(dir.join("chrome.exe"), "binary").unwrap();
+        cft.join(version)
+    }
+
+    fn scratch(name: &str) -> PathBuf {
+        let dir = std::env::temp_dir().join(format!(
+            "svipall-prune-{}-{name}-{}",
+            std::process::id(),
+            std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .map(|d| d.as_nanos())
+                .unwrap_or(0)
+        ));
+        std::fs::create_dir_all(&dir).unwrap();
+        dir
+    }
+
+    #[test]
+    fn an_old_build_nothing_runs_from_is_deleted_whole() {
+        let cft = scratch("free");
+        let old = build(&cft, "154.0.8037.57");
+        let new = build(&cft, "157.0.8103.78");
+        let removed = prune_versions(&cft, 1);
+        assert_eq!(removed, vec![old.to_string_lossy().to_string()]);
+        assert!(!old.exists() && new.exists());
+        let left: Vec<_> = std::fs::read_dir(&cft).unwrap().flatten().collect();
+        assert_eq!(left.len(), 1, "nothing renamed aside is left behind");
+        let _ = std::fs::remove_dir_all(&cft);
+    }
+
+    /// The build a running browser came from lost its manifest and nothing else, and no longer
+    /// started ("side-by-side configuration is incorrect").
+    #[cfg(windows)]
+    #[test]
+    fn an_old_build_still_in_use_is_left_whole() {
+        use std::os::windows::fs::OpenOptionsExt;
+        let cft = scratch("held");
+        let old = build(&cft, "154.0.8037.57");
+        build(&cft, "157.0.8103.78");
+        let inner = old.join("chrome-win64");
+        // Shared for reading only, as a running executable is: it cannot be deleted or renamed.
+        let held = std::fs::OpenOptions::new()
+            .read(true)
+            .share_mode(1)
+            .open(inner.join("chrome.exe"))
+            .unwrap();
+        let removed = prune_versions(&cft, 1);
+        assert!(removed.is_empty(), "{removed:?}");
+        assert!(
+            inner.join("154.0.8037.57.manifest").exists(),
+            "a build that cannot be deleted whole is not deleted in part"
+        );
+        drop(held);
+        assert_eq!(prune_versions(&cft, 1).len(), 1, "and goes once it is free");
+        assert!(!old.exists());
+        let _ = std::fs::remove_dir_all(&cft);
+    }
 
     #[test]
     fn release_is_picked_for_the_requested_platform_and_artifact() {

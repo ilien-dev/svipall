@@ -435,6 +435,7 @@ async fn status_sections_come_on_request() {
 /// Item 34: `domain_tiers.json` is shown only where it is read.
 #[tokio::test]
 async fn learned_domain_tiers_are_shown_only_where_the_ladder_reads_them() {
+    support::isolate();
     svipall_core::remember_tier("tiers-shown.test", "browser");
     let tiers = |identity: &str| {
         let server = SvipallServer::new(
