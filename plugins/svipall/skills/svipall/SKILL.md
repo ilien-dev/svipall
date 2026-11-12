@@ -156,7 +156,8 @@ svipall map https://example.com                    # the site's URLs, a few hund
 ```
 
 `attempts` holds one object per engine with its `outcome` (results, empty, challenge, blocked,
-unparsed, error, skipped). A failing engine rests for a while, remembered across runs; one whose
+unparsed, error, skipped). Over MCP a search the first engine answered, like a page that simply
+arrived, omits its single-entry `attempts` (a page also `chars` and an `emulated` `identity_used`). A failing engine rests for a while, remembered across runs; one whose
 host is on hold is skipped, even when named. Results sharing no word with the query (fewer than
 two, for three words or more) are marked `off_topic` and ranked last; an engine that answered for
 one word of a long query says so in its attempt's `detail`. **Zero results carry a `note`**

@@ -184,7 +184,8 @@ output can be piped to `jq`. `serve` is a long-running server, and help is writt
 
 A historical run of `svipall fetch https://example.com`, with the `content` string cut short.
 Current automatic fetches also report `identity_used`, and the fallback fields described below when
-they have something to report:
+they have something to report. Over MCP, a page that simply arrived leaves out a single-entry
+`attempts`, `chars` and an `identity_used` of `emulated`; the CLI and the REST API print them all:
 
 ```json
 {
@@ -295,7 +296,7 @@ its own tool is now a mode of one of the twelve, chosen by an argument.
 | `web_fetch` | `url` | Fetch a page as Markdown or structured JSON. `mode=auto` climbs the ladder. `schema` (self-healing), `tables`, `scroll`, `query`, `max_tokens`/`cursor`, `json_path`, `wait`, `fresh`, `cache`, `include_metadata`, `include_links`, `include_quality`, `use_site_template`, `robots`, `out_file`, `mobile`, `text_only`, `isolated`, `css_selector`, `profile`, `proxy`, `method`/`body`/`headers`. URLs may be `raw:<html>` or `file://` under `local_roots`. JSON, plain text and source files come back as served; a binary body goes to `out_file` as bytes; github.com URLs are read from the API |
 | `web_fetch` | `urls` | Bounded-parallel fetch of many URLs, results in input order. Every per-page argument of a single fetch applies to each page. The whole answer is held to `max_tokens_total` (8000 by default), a cut page carries a `cursor` to pass back with its `url`, and `out_dir` writes every page whole. Reports `corroboration` (how many *distinct* documents the set actually is) and marks each duplicate with `same_text_as` |
 | `web_fetch` | `urls` (or `url`) + `probe=true` | Status, `exists`, final URL, content type and length for each URL, and whether each name resolves. Stops at the headers. A 404 is an answer here |
-| `web_search` | `query` | DuckDuckGo / Bing / Brave without an API key; `engine="all"` merges by agreement, `lang` and `region` set the locale. Every engine's outcome is in `attempts`, a failing engine is rested and remembered, and a zero-result answer carries a `note` on what was blocked and what to try |
+| `web_search` | `query` | DuckDuckGo / Bing / Brave without an API key; `engine="all"` merges by agreement, `lang` and `region` set the locale. Every engine's outcome is in `attempts` (left out when the first engine asked found results), a failing engine is rested and remembered, and a zero-result answer carries a `note` on what was blocked and what to try |
 | `web_search` | `query` + `site` | Find a site's search through its OpenSearch description, its search box (also one opened by an icon or inside a shadow root) or a known platform endpoint, and learn the query-URL pattern. `found: false` lists what was tried |
 | `web_crawl` | `url` | Same-domain crawl with robots.txt, dedup, boilerplate removal, `strategy=dfs`, `scroll`, `schema`/`tables` for rows, `llms.txt`, file export, a saturation stop, and a `crawl_id` to resume |
 | `web_crawl` | `url` + `map=true` | A site's URLs without crawling it: robots.txt, sitemaps (nested indexes and `.gz` included), `llms.txt`, RSS/Atom feeds and homepage links, a few hundred tokens of structure instead of the thousands a crawl costs. `sources_used` names only the sources that gave URLs |

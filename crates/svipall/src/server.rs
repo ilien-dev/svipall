@@ -246,7 +246,9 @@ pub struct ShotOutcome {
     pub inline: bool,
 }
 
-fn ok(v: Value) -> Result<CallToolResult, McpError> {
+fn ok(mut v: Value) -> Result<CallToolResult, McpError> {
+    // What a model reads, and only that: see `surface::slim_response`.
+    crate::surface::slim_response(&mut v);
     Ok(CallToolResult::success(vec![Content::text(v.to_string())]))
 }
 
@@ -7907,6 +7909,19 @@ impl SvipallServer {
     /// The map itself, so the CLI and the tests can call it without the MCP wrapper.
     pub async fn map_json(&self, p: WebMapParams) -> anyhow::Result<Value> {
         let limit = p.limit.unwrap_or(1000).min(50_000);
+        // A conventional location is a guess, and every guess is a visit. On a site with no
+        // sitemap, no llms.txt and no feed there were twelve of them, which is a host's whole
+        // window: the home page, the one source that had anything, was then refused, and so was
+        // every page the caller meant to read next. So unless the caller named the sources, the
+        // guesses share half the window, most likely location first, and the rest are left
+        // untried and said to be.
+        let guess_budget = if p.sources.is_some() {
+            usize::MAX
+        } else {
+            (self.cfg.request_limit as usize / 2).max(2)
+        };
+        let mut guesses = 0usize;
+        let mut untried = 0usize;
         let sources: Vec<String> = p.sources.unwrap_or_else(|| {
             ["robots", "sitemap", "llms", "feeds", "links"]
                 .map(String::from)
@@ -7971,22 +7986,39 @@ impl SvipallServer {
         if want("sitemap") {
             // Whatever robots.txt named, then the conventional locations.
             let mut queue: Vec<String> = sitemaps.clone();
-            if queue.is_empty() {
+            let guessing = queue.is_empty();
+            if guessing {
+                // Reversed, because the queue is popped: `/sitemap.xml` is tried first.
                 queue.extend(
                     svipall_core::sitemap::SITEMAP_GUESSES
                         .iter()
+                        .rev()
                         .map(|g| format!("{origin}{g}")),
                 );
             }
+            // The sitemap guesses may take half of what the guesses have, so a feed still gets
+            // its turn.
+            let sitemap_share = (guess_budget / 2).max(1);
             let mut documents = 0usize;
             // Bounded: a nested index could otherwise walk a site forever.
             while let Some(next) = queue.pop() {
                 if documents >= 50 || urls.len() >= limit {
                     break;
                 }
+                if guessing && documents == 0 {
+                    if guesses >= sitemap_share {
+                        untried += 1;
+                        continue;
+                    }
+                    guesses += 1;
+                }
                 let Some(body) = get(next.clone()).await else {
                     continue;
                 };
+                // The guesses are spellings of one file: the first that is there ends them.
+                if guessing && documents == 0 {
+                    queue.clear();
+                }
                 documents += 1;
                 match svipall_core::sitemap::parse(body.as_bytes(), limit) {
                     Ok(svipall_core::sitemap::Sitemap::Index(children)) => {
@@ -8014,7 +8046,10 @@ impl SvipallServer {
         }
 
         // The site's own list of the pages worth reading, where it publishes one.
-        if want("llms") && urls.len() < limit {
+        if want("llms") && urls.len() < limit && guesses >= guess_budget {
+            untried += 1;
+        } else if want("llms") && urls.len() < limit {
+            guesses += 1;
             if let Some(body) = get(format!("{origin}{}", svipall_core::sitemap::LLMS_TXT)).await {
                 for l in svipall_core::sitemap::parse_llms_txt(&body, &origin, limit) {
                     if urls.len() >= limit || !seen.insert(l.url.clone()) {
@@ -8030,6 +8065,11 @@ impl SvipallServer {
                 if urls.len() >= limit {
                     break;
                 }
+                if guesses >= guess_budget {
+                    untried += 1;
+                    continue;
+                }
+                guesses += 1;
                 let Some(body) = get(format!("{origin}{guess}")).await else {
                     continue;
                 };
@@ -8106,12 +8146,25 @@ impl SvipallServer {
                     );
                 }
             }
+            // A home page the limiter or a wall kept back is why there are no links, and a map
+            // that says nothing about it reads as a site that links nowhere.
+            if let Some(why) = out.value["blocked_reason"].as_str() {
+                notes.push(format!(
+                    "the home page was not read ({why}), so its links are missing: {}",
+                    out.value["note"].as_str().unwrap_or("see web_status")
+                ));
+            }
             for link in out.links {
                 if urls.len() >= limit || !seen.insert(link.clone()) {
                     continue;
                 }
                 urls.push(json!({"url": link, "source": "links"}));
             }
+        }
+        if untried > 0 {
+            notes.push(format!(
+                "{untried} conventional sitemap and feed locations were not tried, to leave this host visits in its window; name `sources` (sitemap, llms, feeds) to try all of one"
+            ));
         }
 
         if let Some(inc) = &p.include {

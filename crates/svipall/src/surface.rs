@@ -864,9 +864,141 @@ pub fn translate(
     }
 }
 
+/// Drop from a result what says nothing its neighbours do not, before a model reads it.
+///
+/// Only at the MCP boundary: the CLI, the REST API and every `*_json` function still return the
+/// whole envelope, because a script may want `chars` and a person may want `attempts`. A model
+/// pays for each field on every call, and on a page that simply arrived these repeat what is
+/// already there: `attempts` with one entry restates `status` and `tier_used`, `identity_used`
+/// is the default unless it says otherwise, `chars` counts the `content` beside it, and the
+/// block counts of a cut page are spelled out in `continue`. Measured on a 300-token read of a
+/// documentation page: 661 characters of envelope before, 548 after; a search, 177 and 69.
+///
+/// Nothing is dropped from a page that was blocked, errored or took more than one attempt:
+/// there every field is evidence. Labels (`quality`, `optimization`, `wall_vendor`) always stay.
+pub fn slim_response(v: &mut Value) {
+    let Value::Object(obj) = v else { return };
+    let delivered = !obj.contains_key("blocked_reason")
+        && !obj.contains_key("error")
+        && obj
+            .get("status")
+            .and_then(Value::as_u64)
+            .is_none_or(|s| (200..400).contains(&s));
+    if delivered {
+        let one_plain_attempt = obj
+            .get("attempts")
+            .and_then(Value::as_array)
+            .is_some_and(|a| a.len() <= 1 && a.iter().all(Value::is_string));
+        if one_plain_attempt && obj.contains_key("tier_used") {
+            obj.remove("attempts");
+        }
+        if obj.get("identity_used").and_then(Value::as_str) == Some("emulated") {
+            obj.remove("identity_used");
+        }
+        if obj.get("content").is_some_and(Value::is_string) {
+            obj.remove("chars");
+        }
+        if obj.get("continue").is_some_and(Value::is_string) {
+            obj.remove("blocks_returned");
+            obj.remove("total_blocks");
+        }
+        // A search that found results on the first engine asked, with no locale of its own.
+        if obj.contains_key("query") && obj.contains_key("results") {
+            if obj
+                .get("locale")
+                .and_then(|l| l.get("from"))
+                .and_then(Value::as_str)
+                == Some("none")
+            {
+                obj.remove("locale");
+            }
+            let one_engine_answered = obj
+                .get("attempts")
+                .and_then(Value::as_array)
+                .is_some_and(|a| a.len() == 1 && a[0]["outcome"] == "results");
+            if one_engine_answered && obj.contains_key("engine") {
+                obj.remove("attempts");
+            }
+        }
+    }
+    for list in ["results", "pages"] {
+        if let Some(Value::Array(items)) = obj.get_mut(list) {
+            items.iter_mut().for_each(slim_response);
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn a_page_that_simply_arrived_loses_what_its_other_fields_already_say() {
+        let mut v = json!({"url": "u", "status": 200, "tier_used": "http", "quality": "full",
+            "optimization": "ordinary", "attempts": ["http: 200 (3ms) OK"],
+            "identity_used": "emulated", "chars": 5, "tokens_estimated": 2, "content": "hello",
+            "truncated": true, "blocks_returned": 1, "total_blocks": 9, "cursor": "c",
+            "continue": "Truncated: this part holds 1 of the page's 9 blocks."});
+        slim_response(&mut v);
+        assert_eq!(
+            v,
+            json!({"url": "u", "status": 200, "tier_used": "http", "quality": "full",
+                "optimization": "ordinary", "tokens_estimated": 2, "content": "hello",
+                "truncated": true, "cursor": "c",
+                "continue": "Truncated: this part holds 1 of the page's 9 blocks."})
+        );
+    }
+
+    #[test]
+    fn a_page_with_a_story_to_tell_keeps_all_of_it() {
+        // Blocked, errored, climbed, or read natively: every field is evidence.
+        for v in [
+            json!({"status": 403, "blocked_reason": "wall", "attempts": ["http: 403"], "identity_used": "emulated", "tier_used": "http"}),
+            json!({"status": 200, "tier_used": "browser", "attempts": ["http: 403 wall", "browser: 200 OK"], "content": "x"}),
+            json!({"status": 200, "tier_used": "real", "attempts": ["real: 200 OK"], "identity_used": "native", "content": "x"}),
+            json!({"error": "nope", "attempts": [], "chars": 0}),
+            json!({"status": 200, "out_file": "f.md", "chars": 2700, "bytes": 2724, "tier_used": "http", "attempts": ["a", "b"]}),
+        ] {
+            let mut slim = v.clone();
+            slim_response(&mut slim);
+            let kept = |k: &str| v.get(k).is_none() || slim.get(k).is_some();
+            if v["identity_used"] == "native" {
+                assert!(kept("identity_used"), "{slim}");
+                continue;
+            }
+            assert_eq!(slim, v);
+        }
+    }
+
+    #[test]
+    fn every_page_of_a_set_is_slimmed_and_a_plain_search_drops_its_one_attempt() {
+        let mut many = json!({"count": 1, "results": [{"status": 200, "tier_used": "http", "attempts": ["cache: hit, 2s old"], "chars": 1, "content": "x"}]});
+        slim_response(&mut many);
+        assert_eq!(
+            many["results"][0],
+            json!({"status": 200, "tier_used": "http", "content": "x"})
+        );
+        let mut crawl = json!({"count": 1, "pages": [{"status": 200, "tier_used": "http", "attempts": ["http: 200"], "identity_used": "emulated", "content": "x"}]});
+        slim_response(&mut crawl);
+        assert_eq!(
+            crawl["pages"][0],
+            json!({"status": 200, "tier_used": "http", "content": "x"})
+        );
+
+        let mut search = json!({"query": "q", "engine": "ddg", "count": 1, "results": [{"url": "u"}],
+            "attempts": [{"engine": "ddg", "outcome": "results", "count": 10}], "locale": {"from": "none"}});
+        slim_response(&mut search);
+        assert_eq!(
+            search,
+            json!({"query": "q", "engine": "ddg", "count": 1, "results": [{"url": "u"}]})
+        );
+        // Zero results, or a second engine: the attempts are the explanation.
+        let empty = json!({"query": "q", "engine": "ddg", "count": 0, "results": [],
+            "attempts": [{"engine": "ddg", "outcome": "empty"}], "locale": {"from": "query", "lang": "es"}});
+        let mut slim = empty.clone();
+        slim_response(&mut slim);
+        assert_eq!(slim, empty);
+    }
 
     fn args(v: Value) -> Map<String, Value> {
         v.as_object().expect("object").clone()

@@ -58,10 +58,34 @@ Measured:
   and once with the 2.0 list. With the 1.4.0 list both scored 40/40, and with the 2.0 list Haiku
   scored 40/40 and Sonnet 39/40. The miss was `browser` called with `open=true` and a `url`,
   which was refused at the time of the run and is the second item under "New behaviour" now.
-- **Did not change:** the response envelopes. Fields such as `attempts`, `optimization` and
-  `tokens_estimated` are as in 1.4.0.
+- **An MCP result is shorter on a page that simply arrived.** It drops the fields that repeat
+  their neighbours: `attempts` when it holds a single entry (`status` and `tier_used` say the
+  same), `identity_used` when it is `emulated` (the default), `chars` when `content` is beside it,
+  and `blocks_returned` and `total_blocks` on a cut page, where the `continue` sentence states
+  them. A search that found results on the first engine asked drops its single `attempts` entry
+  and a `locale` of `{"from": "none"}`. Each page inside `results` (several URLs) and `pages` (a
+  crawl) is treated the same.
+- **Nothing is dropped from a page that needs explaining.** A page that was blocked, errored, took
+  more than one attempt or was read with a native identity keeps every field. The labels
+  (`quality`, `optimization`, `wall_vendor`) and `tokens_estimated` always stay. The CLI and the
+  REST API return the whole envelope as before.
+- **The envelope, before → after.** Counted as the result's characters minus the page text or
+  search results it carries: a read cut at 300 tokens 661 → 548; a whole small page 270 → 195;
+  three URLs in one call 1,390 → 1,221; a five-result search 177 → 69.
 
 Fixed:
+
+- **A site map no longer spends a host's whole visit window on guesses.** On a site with no
+  robots.txt, sitemap, `llms.txt` or feed (found on rust-lang.org), `web_map` tried all twelve
+  conventional locations, which is the 12-visit window of a host. The thirteenth visit was the
+  home page, the one source with anything, and it was refused. The answer was zero URLs with no
+  explanation, and nothing could be read from that host for a minute. 1.3.1 and 1.4.0 behave the
+  same. Now, unless `sources` is named, the guesses share half the window (six by default), most
+  likely location first (`/sitemap.xml` before `/sitemap.xml.gz`), and the first sitemap spelling
+  that exists ends the sitemap guesses. Locations left untried are counted in `note`; naming
+  `sources` tries every location of those sources. A home page the limiter or a wall kept back is
+  also said in `note`. On rust-lang.org the map now returns the home page's links and a page can
+  be read straight after.
 
 - **The CLI no longer overflows its stack in an unoptimised build.** `svipall` ran its command on
   the main thread, whose stack is 1 MB on Windows, and an unoptimised build overflowed it on
