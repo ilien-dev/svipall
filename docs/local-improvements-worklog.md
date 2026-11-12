@@ -132,7 +132,7 @@ after the change; all eight browser tests, four HTTP tests and the live HTTP/3 t
 full gate was rerun after this correction and returned `QC PASSED`, exit 0 (`qc-complete.*`).
 No live comparison sample uses isolated mode, so the frozen fetching comparison is unaffected.
 
-The [completed findings](../bench/experiments/local-20260905/findings.md) publish delivery medians,
+The [completed findings](https://github.com/ilien-dev/svipall/blob/a4d76a31cf692e38dc356073df5d038310f1fa4b/bench/experiments/local-20260905/findings.md) publish delivery medians,
 full ranges, cumulative times, substantive recoveries, the empty Zillow reference, the minimal
 Home Depot responses, six unsuccessful challenge renewals and zero observed live document reuses.
 Scripts from the host's security software were observed in captured public HTML in all three

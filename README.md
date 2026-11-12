@@ -78,7 +78,7 @@ Every channel below installs the latest [release](https://github.com/ilien-dev/s
 built from the tree this README describes. `svipall doctor` reports what an installed build can do
 on the machine it is on.
 
-The [README factual audit](bench/experiments/native-auto-candidate2-20260907/readme-factual-audit.md)
+The [README factual audit](https://github.com/ilien-dev/svipall/blob/a4d76a31cf692e38dc356073df5d038310f1fa4b/bench/experiments/native-auto-candidate2-20260907/readme-factual-audit.md)
 records the source checks, documentation corrections and limits of this review.
 
 Choose agent-assisted setup, the Claude Code plugin, or a manual installation.

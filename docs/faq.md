@@ -90,7 +90,7 @@ at canadianinsider, which stayed gated on `http` in all three runs.
 Other outcomes varied across visits. The recorded DataDome browser visits returned a blocked-visitor
 interstitial, while bare HTTP on the same address received a different challenge: those observations
 do not isolate the cause to the IP address. `web_setup` with `do=route` can try an exit you supply, without guaranteeing
-acceptance. The [2026-09-06 automatic-policy snapshot](../bench/experiments/automatic-public-20260906/README.md)
+acceptance. The [2026-09-06 automatic-policy snapshot](https://github.com/ilien-dev/svipall/blob/a4d76a31cf692e38dc356073df5d038310f1fa4b/bench/experiments/automatic-public-20260906/README.md)
 reports delivery-check rates and content limitations on `dd8a304` and predates the browser
 directory/shutdown fix in `e60e10b`.
 </details>

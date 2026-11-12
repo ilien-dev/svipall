@@ -1,7 +1,7 @@
 # Baseline — 2026-09-02
 
 The historical numbers below retain their original protocol and raw logs. The separate
-[2026-09-05 local comparison](../experiments/local-20260905/README.md) records every first and
+[2026-09-05 local comparison](https://github.com/ilien-dev/svipall/blob/a4d76a31cf692e38dc356073df5d038310f1fa4b/bench/experiments/local-20260905/README.md) records every first and
 returning visit, invalid-status failures and delivered content. It uses saved before/after binaries
 with the same harness and model assets. Its scores must not be substituted into these old tables:
 the older verdict could label a status-zero response `ok`, and repeat handling also differs.
