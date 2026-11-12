@@ -1147,7 +1147,7 @@ impl SvipallServer {
             http_identity.engine,
             http_identity.chrome_major,
             http_identity.os,
-            identity.chrome_major
+            pool.identity().chrome_major
         );
         Self {
             live_policy: None,

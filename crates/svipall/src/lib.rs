@@ -1,5 +1,7 @@
 //! svipall library re-exports.
 
+/// Reading a page from the isolated world, where the page cannot watch.
+pub mod apart;
 pub mod asr;
 pub mod audio;
 pub mod behavior;
@@ -46,6 +48,8 @@ pub mod solve_loop;
 pub mod solver_engine;
 pub mod steer;
 pub mod substance;
+/// The box a widget is waiting on: where it is, and whether the widget is still asking.
+pub mod tick;
 pub mod tools;
 pub mod tunnels;
 /// Explicit release checks and user-confirmed updates of the shared installation.

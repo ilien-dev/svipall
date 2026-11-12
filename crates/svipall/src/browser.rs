@@ -1415,9 +1415,10 @@ impl BrowserPool {
             }
             None => tracing::warn!("no Chromium-based browser found; browser tiers disabled (set browser_path in ~/.svipall/config.toml, or call browser_setup)"),
         }
-        // Every tier states the same identity. Built once here so the browser and the http tier
-        // cannot drift apart.
-        let identity = IdentityProfile::resolve(major, &cfg);
+        // One identity for every browser tier, built once here, and it states the version of the
+        // browser that will run: see `IdentityProfile::for_browser` for what claiming the http
+        // tier's ceiling instead cost.
+        let identity = IdentityProfile::for_browser(major, &cfg);
         // The isolated world the CDP client evaluates in takes its name from the same seed as the
         // canvas noise, so one identity really does drive everything. Upstream shipped a constant
         // spelling out the automation library, which is free identification for anything that
@@ -2038,12 +2039,7 @@ impl BrowserPool {
     pub async fn settle(&self, page: &Page, extra: Duration) {
         let deadline = Instant::now() + Duration::from_secs(10);
         while Instant::now() < deadline {
-            let ready = page
-                .evaluate("document.readyState")
-                .await
-                .ok()
-                .and_then(|r| r.value().and_then(|v| v.as_str().map(|s| s == "complete")))
-                .unwrap_or(false);
+            let ready = crate::apart::text(page, "document.readyState").await == "complete";
             if ready {
                 break;
             }
@@ -2053,7 +2049,16 @@ impl BrowserPool {
     }
 
     pub async fn content(&self, page: &Page) -> Result<(String, String)> {
-        let html = page.content().await.context("page content")?;
+        // Read from the isolated world, like everything else asked of a page while it may be
+        // deciding whether to let the visitor in (`apart`). A document with no such world, or
+        // one that answers nothing there, is read the protocol client's own way.
+        const DOCUMENT: &str = "(() => { const t = document.doctype; \
+             return (t ? new XMLSerializer().serializeToString(t) : '') \
+             + (document.documentElement ? document.documentElement.outerHTML : ''); })()";
+        let html = match crate::apart::text(page, DOCUMENT).await {
+            html if !html.is_empty() => html,
+            _ => page.content().await.context("page content")?,
+        };
         let url = page.url().await.ok().flatten().unwrap_or_default();
         Ok((html, url))
     }
