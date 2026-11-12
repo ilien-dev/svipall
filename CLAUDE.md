@@ -4,13 +4,13 @@ Local-first web scraping + captcha MCP server in Rust. Defeat anti-bot walls **b
 never by breaking access controls.
 
 ## Layout
-`crates/svipall-*` plus `bench/`, a workspace member **not** under `crates/`.
+`crates/svipall-*` plus `bench/` (a workspace member).
 - `core` — classify, ladder, identity+`coherence`, `quality`, policy, `exits`, throttle, widgets,
   `answer`, `session`, SQLite stores, config. `extract` — extraction, MIT/Apache, re-exported.
 - `cdp` and `quic` (quiche+h3) are **vendored**: every deviation needs a `PATCHES.md` entry.
-- `http` tier; `impersonate` (default) = Chrome/Firefox TLS+HTTP2 on BoringSSL. `http3`
+- `http`: `impersonate` (default) = Chrome/Firefox TLS+HTTP2 on BoringSSL. `http3`
   (opt-in) uses QUIC only where `Alt-Svc` said so: never a first visit, never past a proxy.
-- `solver` store+API, `dashboard` human panel, `models` ONNX, `mcp` the product (both binaries).
+- `solver` store+API, `dashboard` human panel, `models` ONNX, `mcp` both binaries.
 
 ## How it works
 - One identity (`IdentityProfile`) drives TLS, headers, CDP, the stealth script and every worker
@@ -18,7 +18,7 @@ never by breaking access controls.
 - One DOM parse per response: ask via `ParseWants`, read from `PageParts`.
 - **Nothing is ever withheld.** `quality` labels a page, never filters one (`anti_discard.rs`).
 - Schema selectors are fingerprinted per domain; a redesign relocates by similarity (`healed`).
-- Pointer, keyboard, wheel go through `behavior`. Never a bare click, `scrollBy` or a forged event.
+- Pointer, keyboard, wheel go through `behavior`. No bare click, `scrollBy` or forged event.
 - Nothing of ours is readable from the page: no named global, no shadowed host object, no realm
   disagreeing with another. `bench tells` asserts it at every tier, offline, in `qc`.
 - Hidden text never reaches the model (`extraction::sanitize`). Secrets are named from
@@ -35,7 +35,7 @@ never by breaking access controls.
 - Answers are `core::answer::Answer`, checked against the modality. **Every coordinate is a fraction
   0..1 of its asset, never a pixel.**
 - Bump `SCHEMA_VERSION` (`solver/src/db.rs`) on any schema change: every statement is
-  `IF NOT EXISTS`, so without it dev works and every older machine fails.
+  `IF NOT EXISTS`, so older machines fail without it.
 
 ## Rules
 - **TDD.** A test before the behaviour, and it must fail without the change.
