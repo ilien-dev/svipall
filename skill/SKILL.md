@@ -124,7 +124,7 @@ issued with and survives a cache hit; `json_path` is not in it, so pass it again
 `fetch` reads github.com URLs from the API or the raw host: a repo root (facts, tree, README),
 `tree/…`, `blob/…#L10-L20` (the raw file, those lines), `issues/N` and `pull/N` (every comment and
 review with author, date and reactions; a PR adds branches, merge state, files), releases and
-`commit/<sha>`. An `https://api.github.com/…` GET comes back as is; `via` says which path answered.
+`commit/<sha>`. An `https://api.github.com/…` GET comes back as is, `json_path` applied; `via` says which path answered.
 Discussions, gists, lists, wikis and actions read as the page, as does a fetch with an explicit
 `mode`, `css_selector`, `schema` or `profile`. Unauthenticated, the API allows 60 requests an hour;
 `GITHUB_TOKEN` in `~/.svipall/secrets.env` raises it (code search needs it) and goes to

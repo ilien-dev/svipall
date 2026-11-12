@@ -761,6 +761,8 @@ fn help_for(cmd: &str) -> Option<String> {
     }
     if s.switches.is_empty() && s.values.is_empty() {
         out.push_str("\nTakes no flags.\n");
+    } else if !s.values.is_empty() {
+        out.push_str("\nA value that begins with -- is written --flag=value.\n");
     }
     Some(out)
 }
@@ -821,6 +823,20 @@ fn check_args(cmd: &str, args: &[String]) -> Result<(), String> {
         return Err(unknown_command(cmd));
     };
     let flags = Flags::parse(args);
+    // Checked first: the argument that looks like a flag is this one's value more often than a
+    // flag of its own, and calling it unknown sent the caller after the wrong thing.
+    let mut wanting: Vec<(&String, &String)> = flags
+        .followed_by_flag
+        .iter()
+        .filter(|(name, _)| s.values.contains(&name.as_str()))
+        .collect();
+    wanting.sort();
+    if let Some((name, next)) = wanting.first() {
+        return Err(format!(
+            "--{name} needs a value, and the next argument {next} looks like a flag, so it was \
+             not taken as one. If {next} is the value, write --{name}={next}"
+        ));
+    }
     let known = |n: &str| s.switches.contains(&n) || s.values.contains(&n);
     let mut names: Vec<&String> = flags.named.keys().chain(flags.switches.iter()).collect();
     names.sort();
@@ -863,6 +879,8 @@ struct Flags {
     named: std::collections::HashMap<String, String>,
     switches: std::collections::HashSet<String>,
     positional: Vec<String>,
+    /// A flag left without a value because the next argument began with `--`, and that argument.
+    followed_by_flag: std::collections::HashMap<String, String>,
 }
 
 impl Flags {
@@ -885,6 +903,9 @@ impl Flags {
                         out.named.insert(name.to_string(), args[i + 1].clone());
                         i += 1;
                     } else {
+                        if let Some(next) = args.get(i + 1).filter(|n| n.len() > 2) {
+                            out.followed_by_flag.insert(name.to_string(), next.clone());
+                        }
                         out.switches.insert(name.to_string());
                     }
                 }

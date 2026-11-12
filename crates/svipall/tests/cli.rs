@@ -99,6 +99,33 @@ fn an_unknown_flag_is_an_error_that_names_it_and_the_closest_valid_one() {
 }
 
 #[test]
+fn a_value_that_looks_like_a_flag_is_refused_naming_the_equals_form() {
+    let h = home("dashvalue");
+    let o = svipall(&h, &["fetch", "https://x.test/", "--query", "--effort"]);
+    let (out, err) = text(&o);
+    assert!(!o.status.success(), "refused, not guessed: {out}{err}");
+    assert!(
+        !err.contains("unknown flag"),
+        "--effort was meant as the value, not a flag: {err}"
+    );
+    assert!(
+        err.contains("--query") && err.contains("--query=--effort"),
+        "says why and names the form that works: {err}"
+    );
+    assert!(out.trim().is_empty(), "nothing ran: {out}");
+
+    // The per-command help says it, once.
+    let o = svipall(&h, &["fetch", "--help"]);
+    let (out, err) = text(&o);
+    let both = format!("{out}{err}");
+    assert_eq!(
+        both.matches("--flag=value").count(),
+        1,
+        "the = form is in the help once: {both}"
+    );
+}
+
+#[test]
 fn the_view_flag_of_log_is_honoured() {
     // `--view summary` used to be ignored and the recent view came back.
     let h = home("view");

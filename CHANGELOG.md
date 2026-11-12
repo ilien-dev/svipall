@@ -82,7 +82,9 @@ Files, JSON and APIs:
   releases and `commit/<sha>` on github.com are read from the REST API or the raw file host, with
   every comment and review in order. Agents had fallen back to `gh api` about 50 times. A token in
   `GITHUB_TOKEN` goes to `api.github.com` only. A rate limit reads `rate_limited_until`, never a
-  wall, and starts no cooldown.
+  wall, and starts no cooldown. `json_path`, `quality`, `query`, `max_tokens` and `out_file`
+  work there as on any page. On a rendered issue or repo, `json_path` cannot apply, and
+  `json_path_error` gives the API URL that holds the JSON.
 
 Search:
 
@@ -107,6 +109,10 @@ Pages, browsers and the CLI:
   page header.
 - **Cursors survive.** A cursor keeps the query it was issued with and survives a cache hit, and
   `continue` names the exact next call, `json_path` included.
+- **A small budget gets filled.** When the next block is too big for what is left and a quarter
+  or more of the budget is unused, the block is cut after a table row, a line or a sentence, and
+  the cursor picks up right after the cut. With `max_tokens=300`, a page that opened with one
+  line and then an infobox returned 10 tokens.
 - **Tables lose blank rows, blank columns and repeated columns**, and a PDF placed glyph by glyph
   reads as words.
 - **Notes say only what is true**: no 15-minute cooldown that was never set, no security-product
@@ -126,7 +132,8 @@ Pages, browsers and the CLI:
   checked at most every 20 hours (`browser_auto_update`, on by default). A `browser_path` of your
   own is never touched, and the stale warning prints once.
 - **The CLI** takes `--help` on every subcommand, and an unknown flag is an error naming the
-  nearest one. `svipall log --since-secs 600` used to ignore the flag and run anyway.
+  nearest one. `svipall log --since-secs 600` used to ignore the flag and run anyway. A value
+  that starts with `--` is refused with the form that works: `--query=--effort`.
 - **The prompts**: the descriptions of the tools agents passed over (`web_fetch`, `web_search`,
   `web_fetch_many`, `web_probe`, `web_video`, `web_status`, and the crawl, map, snapshot,
   screenshot, capture, site search, diff, login and session tools) now open with when to use them,

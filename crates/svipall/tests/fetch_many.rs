@@ -278,3 +278,77 @@ async fn a_cursor_the_set_issued_under_json_path_continues_on_web_fetch() {
         "not restarted from the top: {next}"
     );
 }
+
+/// A page whose second block is far larger than what a small budget has left after the first.
+fn short_then_table() -> Reply {
+    let rows: String = (0..200)
+        .map(|i| format!("<tr><td>ROW-{i:03}</td><td>value of the row numbered {i}</td></tr>"))
+        .collect();
+    Reply::html(&format!(
+        "<!doctype html><html><head><title>Infobox</title></head><body><main>\
+         <p>A short opening line.</p>\
+         <table><thead><tr><th>Key</th><th>Value</th></tr></thead><tbody>{rows}</tbody></table>\
+         <p>The closing paragraph after the table, PAGE-END.</p></main></body></html>"
+    ))
+}
+
+/// Measured: a 300-token budget on a page that opens with a short line and then an infobox table
+/// returned 10 tokens, because the table did not fit what was left and was neither cut nor
+/// skipped. A budget is there to be used, and the cursor has to carry on exactly after the cut.
+#[tokio::test]
+async fn a_small_budget_is_filled_and_the_cursor_carries_on_after_the_cut() {
+    let site = Site::start(vec![("/infobox", short_then_table())]).await;
+    let url = site.url("/infobox");
+    let server = server();
+    let fetch = |cursor: Option<String>| {
+        let server = &server;
+        let url = url.clone();
+        async move {
+            let mut args = json!({"url": url, "max_tier": "http", "max_tokens": 300});
+            if let Some(c) = cursor {
+                args["cursor"] = json!(c);
+            }
+            server
+                .fetch_json(serde_json::from_value(args).unwrap())
+                .await
+                .value
+        }
+    };
+    let first = fetch(None).await;
+    let used = first["tokens_estimated"].as_u64().unwrap_or(0);
+    assert!(
+        used >= 200,
+        "a 300-token budget returned {used} tokens: {first}"
+    );
+    assert_eq!(first["truncated"], true, "{first}");
+
+    let mut pages = vec![first["content"].as_str().unwrap_or_default().to_string()];
+    let mut cursor = first["cursor"].as_str().map(str::to_string);
+    for _ in 0..100 {
+        let Some(c) = cursor.take() else { break };
+        let next = fetch(Some(c)).await;
+        assert!(next.get("stale_cursor").is_none(), "{next}");
+        pages.push(next["content"].as_str().unwrap_or_default().to_string());
+        cursor = next["cursor"].as_str().map(str::to_string);
+    }
+    assert!(cursor.is_none(), "paging did not finish");
+    // What the overlap rule repeats is marked and sits above a rule; everything else is new text.
+    let fresh: Vec<&str> = pages
+        .iter()
+        .map(|p| match p.find("repeats the end of the previous page") {
+            Some(_) => p.split_once("\n---\n").map_or(p.as_str(), |(_, rest)| rest),
+            None => p.as_str(),
+        })
+        .collect();
+    let all = fresh.join("\n");
+    for i in 0..200 {
+        let row = format!("ROW-{i:03}");
+        assert_eq!(
+            all.matches(&row).count(),
+            1,
+            "{row} must arrive exactly once across the pages: {all}"
+        );
+    }
+    assert!(all.contains("A short opening line."), "{all}");
+    assert_eq!(all.matches("PAGE-END").count(), 1, "{all}");
+}

@@ -187,6 +187,37 @@ fn cut_point(s: &str, limit: usize) -> usize {
         .unwrap_or(hard)
 }
 
+/// Below this many tokens left, a page that already returned something stops at the block boundary
+/// rather than ending on a sliver of the next block.
+const MIN_FILL_TOKENS: usize = 16;
+
+/// The run of backticks or tildes that opens a fenced block, when `block` is one.
+fn fence_marker(block: &str) -> Option<&str> {
+    let first = block.lines().next()?.trim_start();
+    let c = first.chars().next().filter(|c| *c == '`' || *c == '~')?;
+    let n = first.chars().take_while(|x| *x == c).count();
+    (n >= 3).then(|| &first[..n])
+}
+
+/// Where to cut a block that follows others on the page: after a whole row or line for a table or
+/// a fence, after a sentence, a line or a word for prose. `0` when no such boundary fits, and then
+/// the block waits whole for the next page.
+fn boundary_cut(rest: &str, limit: usize, whole: &str) -> usize {
+    let hard = rest
+        .char_indices()
+        .nth(limit)
+        .map(|(i, _)| i)
+        .unwrap_or(rest.len());
+    if fence_marker(whole).is_some() || whole.trim_start().starts_with('|') {
+        // Never part of a row: the next page starts on the row after the last one shown.
+        return rest[..hard].rfind('\n').map_or(0, |i| i + 1);
+    }
+    match cut_point(rest, limit) {
+        c if c == hard && hard < rest.len() => 0,
+        c => c,
+    }
+}
+
 /// The chain of headings above `idx`, outermost first, so a continuation says where it sits.
 ///
 /// Ancestors only: a heading at the same or a deeper level than one already collected belongs to a
@@ -304,10 +335,20 @@ fn fill(
         } else {
             blocks[i]
         };
-        let cost = estimate_tokens(block);
+        let fence = fence_marker(blocks[i]);
+        // A fence resumed inside is reopened, so the rest of it still reads as code.
+        let reopen = match (off > 0, fence) {
+            (true, Some(_)) => blocks[i].lines().next().map(str::trim).unwrap_or_default(),
+            _ => "",
+        };
+        let cost = estimate_tokens(block) + estimate_tokens(reopen);
         if used + cost <= max_tokens {
             if !out.is_empty() {
                 out.push_str("\n\n");
+            }
+            if !reopen.is_empty() {
+                out.push_str(reopen);
+                out.push('\n');
             }
             out.push_str(block);
             used += cost;
@@ -316,17 +357,37 @@ fn fill(
             off = 0;
             continue;
         }
-        // A single block larger than the whole budget still has to make progress, or a caller
-        // paging through would loop forever on it.
+        // A block that does not fit is cut to fill what is left: always when nothing has been
+        // returned yet (a block larger than the whole budget still has to make progress, or a
+        // caller paging through would loop forever on it), and whenever a quarter of the budget
+        // or more is still unused. Measured: a 300-token budget on a page that opened with one
+        // short line and then an infobox table returned 10 tokens, the table left whole for later.
         let room = max_tokens.saturating_sub(used);
-        if returned == 0 && room > 0 {
-            let chars = room * 4;
-            let cut = cut_point(block, chars);
+        let underfilled = room >= MIN_FILL_TOKENS && room * 4 >= max_tokens;
+        if room > 0 && (returned == 0 || underfilled) {
+            // A fence that will be closed costs its markers too.
+            let markers = fence.map_or(0, |f| f.len() + reopen.len() + 2);
+            let chars = (room * 4).saturating_sub(markers);
+            let cut = if returned == 0 {
+                cut_point(block, chars)
+            } else {
+                boundary_cut(block, chars, blocks[i])
+            };
             if cut > 0 {
                 if !out.is_empty() {
                     out.push_str("\n\n");
                 }
-                out.push_str(&block[..cut]);
+                // A cut fence is closed here and reopened where the cursor resumes, so neither
+                // part reads as an unterminated code block. The markers are syntax, not content.
+                if !reopen.is_empty() {
+                    out.push_str(reopen);
+                    out.push('\n');
+                }
+                out.push_str(block[..cut].trim_end());
+                if let Some(f) = fence.filter(|_| cut < block.len()) {
+                    out.push('\n');
+                    out.push_str(f);
+                }
                 off += block[..cut].chars().count();
                 returned += 1;
             }
@@ -796,6 +857,40 @@ mod tests {
             "a mid-block resume is already contiguous: {}",
             third.content
         );
+    }
+
+    #[test]
+    fn a_large_second_block_is_cut_on_a_row_to_fill_the_budget() {
+        let rows: Vec<String> = (0..100).map(|i| format!("| r{i:03} | v |")).collect();
+        let md = format!("short\n\n| k | v |\n| --- | --- |\n{}", rows.join("\n"));
+        let out = take(&md, &plain(100, None));
+        assert!(out.tokens >= 75, "{} tokens: {}", out.tokens, out.content);
+        assert!(
+            out.content.ends_with(" |"),
+            "ends on a whole row: {}",
+            out.content
+        );
+        let next = take(
+            &md,
+            &plain(10_000, out.next_cursor.as_deref().and_then(Cursor::decode)),
+        );
+        let both = format!("{}\n{}", out.content, next.content);
+        for i in 0..100 {
+            assert_eq!(both.matches(&format!("| r{i:03} |")).count(), 1, "{both}");
+        }
+    }
+
+    #[test]
+    fn a_fence_cut_to_fill_the_budget_is_closed_and_reopened() {
+        let code: Vec<String> = (0..100).map(|i| format!("let x{i} = {i};")).collect();
+        let md = format!("short\n\n```rust\n{}\n```", code.join("\n"));
+        let first = take(&md, &plain(100, None));
+        assert!(first.tokens >= 75, "{}", first.content);
+        assert_eq!(first.content.matches("```").count(), 2, "{}", first.content);
+        let c = first.next_cursor.as_deref().and_then(Cursor::decode);
+        let rest = take(&md, &plain(10_000, c));
+        assert!(rest.content.starts_with("```rust\n"), "{}", rest.content);
+        assert_eq!(rest.content.matches("```").count(), 2, "{}", rest.content);
     }
 
     #[test]

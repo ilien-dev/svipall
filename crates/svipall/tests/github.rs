@@ -326,3 +326,118 @@ async fn a_direct_api_quota_refusal_is_not_a_wall() {
     assert_eq!(v["attempts"].as_array().map(Vec::len), Some(1), "{v}");
     assert!(svipall_core::check_cooldown("127.0.0.1").is_none());
 }
+
+// ---- the parameters of an ordinary fetch, on each of the three shapes --------------------------
+
+#[tokio::test]
+async fn json_path_on_an_api_url_is_applied_and_the_answer_is_labelled() {
+    let r = replay();
+    let v = fetch(json!({
+        "url": r.api_url("/repos/dtolnay/anyhow/issues/323"),
+        "json_path": "{number, title}",
+    }))
+    .await;
+    assert_eq!(v["via"], "github-api", "{v}");
+    let got: Value = serde_json::from_str(content(&v))
+        .unwrap_or_else(|_| panic!("content is not the projection: {v}"));
+    let whole: Value = serde_json::from_str(&fixture_text("issue_323")).expect("fixture");
+    assert_eq!(
+        got,
+        json!({"number": 323, "title": whole["title"]}),
+        "only the fields asked for: {v}"
+    );
+    assert_eq!(v["quality"], "full", "a JSON answer is labelled: {v}");
+    assert!(v.get("json_path_error").is_none(), "{v}");
+}
+
+#[tokio::test]
+async fn an_api_url_without_json_path_is_labelled_too() {
+    let r = replay();
+    let v = fetch(json!({"url": r.api_url("/repos/dtolnay/anyhow/issues/323")})).await;
+    assert_eq!(v["quality"], "full", "{v}");
+}
+
+#[tokio::test]
+async fn json_path_on_a_rendered_document_says_it_was_not_applied() {
+    let r = replay();
+    let v = fetch(json!({
+        "url": r.url("/dtolnay/anyhow/issues/323"),
+        "json_path": "title",
+        "cache": "bypass",
+    }))
+    .await;
+    assert_eq!(v["via"], "github-api", "{v}");
+    let why = v["json_path_error"]
+        .as_str()
+        .unwrap_or_else(|| panic!("json_path silently ignored: {v}"));
+    assert!(
+        why.contains(&r.api_url("/repos/dtolnay/anyhow/issues/323")),
+        "names the API URL that has the JSON: {why}"
+    );
+    assert!(
+        content(&v).contains("@RalfJung"),
+        "the document, whole: {v}"
+    );
+    assert!(v["quality"].is_string(), "{v}");
+}
+
+#[tokio::test]
+async fn rendered_documents_are_labelled_fresh_and_from_the_cache() {
+    let r = replay();
+    let url = r.url("/dtolnay/anyhow");
+    let server = server();
+    let first = server
+        .fetch_json(serde_json::from_value(json!({"url": url, "cache": "refresh"})).unwrap())
+        .await
+        .value;
+    assert_eq!(first["via"], "github-api", "{first}");
+    assert_eq!(first["quality"], "full", "{first}");
+    let hit = server
+        .fetch_json(serde_json::from_value(json!({"url": url, "cache": "auto"})).unwrap())
+        .await
+        .value;
+    assert_eq!(hit["from_cache"], true, "{hit}");
+    assert_eq!(
+        hit["quality"], first["quality"],
+        "the hit says the same: {hit}"
+    );
+}
+
+#[tokio::test]
+async fn a_raw_file_is_labelled_and_json_path_says_it_was_not_applied() {
+    let r = replay();
+    let v = fetch(json!({"url": r.url("/dtolnay/anyhow/blob/master/src/lib.rs")})).await;
+    assert_eq!(v["via"], "github-raw", "{v}");
+    assert_eq!(v["quality"], "full", "{v}");
+
+    let j = fetch(json!({
+        "url": r.url("/dtolnay/anyhow/blob/master/src/lib.rs"),
+        "json_path": "a",
+    }))
+    .await;
+    assert_eq!(j["via"], "github-raw", "{j}");
+    assert!(
+        j["json_path_error"]
+            .as_str()
+            .is_some_and(|e| e.contains("not JSON")),
+        "a source file is not JSON, and the result says so: {j}"
+    );
+    assert_eq!(content(&j).trim_end(), fixture_text("raw_lib").trim_end());
+}
+
+#[tokio::test]
+async fn web_fetch_many_applies_json_path_to_an_api_url() {
+    let r = replay();
+    let out = server()
+        .fetch_many_json(
+            serde_json::from_value(json!({
+                "urls": [r.api_url("/repos/dtolnay/anyhow/issues/323")],
+                "json_path": "number",
+            }))
+            .unwrap(),
+        )
+        .await;
+    let v = &out["results"][0];
+    assert_eq!(v["via"], "github-api", "{v}");
+    assert_eq!(content(v).trim(), "323", "{v}");
+}

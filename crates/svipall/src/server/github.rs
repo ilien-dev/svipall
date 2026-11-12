@@ -310,6 +310,47 @@ fn html_url(v: &Value, fallback: &str) -> String {
         .to_string()
 }
 
+/// The verdict the ordinary path puts on a delivered body, for one that arrived without a page to
+/// parse: judged by what it is (JSON, source text, or the markdown rendered here).
+fn label(
+    body: &str,
+    content_type: &str,
+    url: &str,
+    final_url: &str,
+) -> svipall_core::quality::Record {
+    let kind = svipall_core::quality::ContentKind::of(content_type, body);
+    let evidence = svipall_core::quality::Evidence::new(body.len(), body)
+        .between(url, final_url)
+        .typed(kind, body);
+    svipall_core::quality::Record {
+        integrity: svipall_core::quality::assess(&evidence),
+        optimization: None,
+        substance: crate::substance::assess(body),
+    }
+}
+
+/// `json_path` on a body that is one JSON answer: the projection, through the ordinary path's own
+/// function, or the body whole with the reason on the response.
+fn project(value: &mut Value, body: String, content_type: &str, p: &WebFetchParams) -> String {
+    let (Some(path), Some(obj)) = (
+        p.json_path.as_deref().filter(|s| !s.trim().is_empty()),
+        value.as_object_mut(),
+    ) else {
+        return body;
+    };
+    project_json(obj, &body, content_type, path).unwrap_or(body)
+}
+
+/// A document rendered here from several API answers is markdown, not one JSON body: `json_path`
+/// cannot apply to it, and the result says so and where the JSON is, rather than ignoring it.
+fn json_path_not_applicable(value: &mut Value, p: &WebFetchParams, api_url: &str) {
+    if p.json_path.as_deref().is_some_and(|s| !s.trim().is_empty()) {
+        value["json_path_error"] = json!(format!(
+            "this is a document rendered from the API as markdown, not a JSON body, so json_path              was not applied; the whole document is returned. The JSON is at {api_url}: fetch              that URL with json_path"
+        ));
+    }
+}
+
 impl SvipallServer {
     /// The hook at the start of the fetch path: the API for a URL that has an API shape, the
     /// ladder for everything else and for whatever the API would not serve.
@@ -452,6 +493,10 @@ impl SvipallServer {
             ));
         }
         let final_url = r.final_url.clone();
+        if let Some(obj) = value.as_object_mut() {
+            insert_quality(obj, &label(&body, &r.content_type, &p.url, &final_url));
+        }
+        let body = project(&mut value, body, &r.content_type, p);
         self.github_verbatim(&mut value, body, p);
         FetchOutcome {
             value,
@@ -509,6 +554,12 @@ impl SvipallServer {
                     "github": {"kind": t.kind_name()},
                 });
                 let final_url = hit.final_url.clone();
+                let record = stored_quality(hit.quality.as_deref())
+                    .unwrap_or_else(|| label(&hit.markdown, "text/markdown", &p.url, &final_url));
+                if let Some(obj) = value.as_object_mut() {
+                    insert_quality(obj, &record);
+                }
+                json_path_not_applicable(&mut value, p, &format!("{}{primary}", o.api));
                 self.github_deliver(&mut value, hit.markdown, p);
                 return Ok(FetchOutcome {
                     value,
@@ -534,6 +585,7 @@ impl SvipallServer {
             Err(f) => return Err(Fallback::from(f, "API", authenticated)),
         };
 
+        let record = label(&doc.markdown, "text/markdown", &p.url, &doc.final_url);
         if cacheable && cache_mode.may_write() {
             if let Some(store) = &self.store {
                 if let Err(e) = store.put(
@@ -547,7 +599,7 @@ impl SvipallServer {
                     Some(&doc.title),
                     &doc.markdown,
                     600,
-                    None,
+                    serde_json::to_string(&record).ok().as_deref(),
                 ) {
                     tracing::debug!("cache write skipped: {e}");
                 }
@@ -573,6 +625,10 @@ impl SvipallServer {
             }
             value["rate_limit"] = rl;
         }
+        if let Some(obj) = value.as_object_mut() {
+            insert_quality(obj, &record);
+        }
+        json_path_not_applicable(&mut value, p, &format!("{}{primary}", o.api));
         self.github_deliver(&mut value, doc.markdown, p);
         Ok(FetchOutcome {
             value,
@@ -806,6 +862,11 @@ impl SvipallServer {
                 content
             }
         };
+        let content_type = r.content_type;
+        if let Some(obj) = value.as_object_mut() {
+            insert_quality(obj, &label(&content, &content_type, &p.url, &raw_url));
+        }
+        let content = project(&mut value, content, &content_type, p);
         self.github_verbatim(&mut value, content, p);
         Ok(FetchOutcome {
             value,
