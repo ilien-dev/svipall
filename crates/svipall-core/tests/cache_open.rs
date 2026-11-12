@@ -41,3 +41,41 @@ fn every_opener_of_a_new_cache_gets_one() {
     }
     let _ = std::fs::remove_dir_all(&dir);
 }
+
+#[test]
+fn every_opener_of_a_new_visit_ledger_gets_one() {
+    // The ledger is what makes the visit limit one limit for every session on the machine. A
+    // server that could not open it refuses every fetch with "traffic ledger unavailable".
+    let dir = std::env::temp_dir().join(format!(
+        "svipall-ledger-open-{}-{}",
+        std::process::id(),
+        std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .map(|d| d.as_nanos())
+            .unwrap_or(0)
+    ));
+    std::fs::create_dir_all(&dir).expect("temp dir");
+    for round in 0..25 {
+        let path = dir.join(format!("traffic-{round}.sqlite3"));
+        let start = std::sync::Arc::new(std::sync::Barrier::new(8));
+        let openers: Vec<_> = (0..8)
+            .map(|_| {
+                let (path, start) = (path.clone(), start.clone());
+                std::thread::spawn(move || {
+                    start.wait();
+                    svipall_core::traffic::Ledger::open(&path)
+                        .map(|_| ())
+                        .map_err(|e| format!("{e:#}"))
+                })
+            })
+            .collect();
+        for opener in openers {
+            let opened = opener.join().expect("opener thread");
+            assert!(
+                opened.is_ok(),
+                "round {round}: an opener was left without a ledger: {opened:?}"
+            );
+        }
+    }
+    let _ = std::fs::remove_dir_all(&dir);
+}
