@@ -33,6 +33,7 @@ use crate::tools::*;
 
 /// Code-hosting URLs read through their API; the one hook is `github_or_page` in `fetch_json_inner`.
 mod github;
+mod video_look;
 
 /// Extensions a crawl never follows, because there is no text behind them.
 ///
@@ -6696,10 +6697,24 @@ impl SvipallServer {
 
     /// `web_video` without the protocol wrapper, for the REST API, the CLI and tests.
     pub async fn video_json(&self, p: WebVideoParams) -> anyhow::Result<Value> {
+        let look = match crate::video::Look::parse(
+            p.start.as_deref(),
+            p.end.as_deref(),
+            &p.at,
+            p.frames,
+            p.crop.as_deref(),
+            p.query.as_deref(),
+        ) {
+            Ok(l) => l,
+            // Nothing ran: an argument that cannot be read is said, not guessed at.
+            Err(e) => return Ok(json!({"url": p.url, "status": 0, "error": e})),
+        };
         // A wait the caller asked for is on top of the read, as it is on web_fetch.
-        let limit =
-            Duration::from_secs(90 + p.wait.map_or(0, |w| w.min(crate::steer::MAX_WAIT_SECS)));
-        match tokio::time::timeout(limit, self.video_inner(&p)).await {
+        let limit = video_look::limit(&look, p.wait);
+        // The work is told a little less than the call is given, so it ends by saying what it
+        // did not reach instead of being cut off mid-sentence.
+        let inner = limit.saturating_sub(Duration::from_secs(8));
+        match tokio::time::timeout(limit, self.video_inner(&p, &look, inner)).await {
             Ok(r) => r,
             Err(_) => Ok(json!({
                 "url": p.url, "status": 0, "error": "web_video timed out",
@@ -6708,9 +6723,16 @@ impl SvipallServer {
         }
     }
 
-    async fn video_inner(&self, p: &WebVideoParams) -> anyhow::Result<Value> {
+    async fn video_inner(
+        &self,
+        p: &WebVideoParams,
+        look: &crate::video::Look,
+        limit: Duration,
+    ) -> anyhow::Result<Value> {
         use crate::video::{self as vid, Found};
         use svipall_core::video::{self as v, StreamKind};
+
+        let started = Instant::now();
 
         let mut url = p.url.clone();
         let mut notes: Vec<String> = Vec::new();
@@ -6775,10 +6797,9 @@ impl SvipallServer {
 
         // A stream's manifest can list caption renditions the page did not, and it is where
         // encryption is declared: read before frames are asked of a picture nobody can decode.
-        let want_frames = p.frames.unwrap_or(0).min(crate::video_frames::MAX_FRAMES) as usize;
         let mut drm: Option<String> = None;
         let read_tracks = info.tracks.is_empty();
-        if read_tracks || want_frames > 0 {
+        if read_tracks || look.live() {
             let manifests: Vec<_> = info
                 .streams
                 .iter()
@@ -6816,8 +6837,7 @@ impl SvipallServer {
         let track = vid::pick_track(&info.tracks, p.lang.as_deref()).cloned();
         let borrow = v::sources::spec(info.source).and_then(|r| r.borrow.as_ref());
         // No browser here decodes a protected picture: asking would only wait out the player.
-        let frames_refused = drm.is_some() && want_frames > 0;
-        let want_frames = if frames_refused { 0 } else { want_frames };
+        let frames_refused = drm.is_some() && look.live();
         let mut cues = match (&track, borrow) {
             (Some(t), None) => self.video_captions(t, &mut notes, p.wait).await,
             (None, _) => {
@@ -6827,21 +6847,53 @@ impl SvipallServer {
             (Some(_), Some(_)) => Vec::new(),
         };
         let borrowing = track.as_ref().zip(borrow);
-        let mut frames = Vec::new();
-        if borrowing.is_some() || want_frames > 0 {
-            let moments = if want_frames > 0 {
-                self.video_storyboard_moments(&info, want_frames).await
-            } else {
-                None
-            };
-            let plan = (want_frames > 0).then_some((want_frames, moments));
+        // Words to read beside the picture: without them the picture gets twice the moments.
+        let spoken = track.is_some() || info.transcript.is_some();
+        let dir = Self::video_dir(&info, &final_url);
+        let index = crate::video_index::Index::load(&dir);
+        // The player's own thumbnails are pictures it publishes, not the stream: they are read
+        // whether or not the stream is encrypted.
+        let mut board = if look.off() {
+            video_look::Board::default()
+        } else {
+            self.video_board(&info, p.wait).await
+        };
+        // The video itself is played for a look that asks for it, and for a search with nothing
+        // else to search: no thumbnails, and no frame captured by an earlier call.
+        let nothing_to_search =
+            look.query.is_some() && !look.off() && board.is_empty() && index.frames.is_empty();
+        let capture = (look.live() || nothing_to_search) && drm.is_none();
+        // Evenly spread moments step over a slide shown for less than the gap between them. The
+        // thumbnails say where one was held, and the capture stops there too.
+        let with_held;
+        let look = match (capture, info.duration) {
+            (true, Some(d)) => {
+                let mut l = look.clone();
+                l.also = self.video_held(&mut board, look, d, spoken).await;
+                with_held = l;
+                &with_held
+            }
+            _ => look,
+        };
+        let reused = if capture {
+            match Self::video_cached(&index, look, info.duration, spoken) {
+                Ok(r) => r,
+                Err(e) => return Ok(json!({"url": p.url, "status": 0, "error": e})),
+            }
+        } else {
+            None
+        };
+        let mut captured = None;
+        if borrowing.is_some() || (capture && reused.is_none()) {
+            let plan = (capture && reused.is_none())
+                .then(|| (look, spoken, started + limit.mul_f32(0.55)));
             let live = self
                 .video_live(&final_url, &info, borrowing, plan, &mut notes)
                 .await;
             if let Some(c) = live.0 {
                 cues = c;
             }
-            frames = live.1;
+            captured = live.1;
         }
         let mut track = track;
         // A transcript the publisher wrote is read before anything a model hears.
@@ -6862,10 +6914,21 @@ impl SvipallServer {
                 "the stream is encrypted: reported, not read".into()
             });
         }
+        let looked = self
+            .video_looked(
+                &info, look, &dir, index, board, captured, reused, &cues, spoken, started, limit,
+                &mut notes,
+            )
+            .await;
         let reading = vid::Reading {
             cues,
             track,
-            frames,
+            frames: looked.frames,
+            sheets: looked.sheets,
+            seen: looked.seen,
+            window: look.window,
+            moments_only: look.only_exact(),
+            found: looked.found,
             notes,
         };
         let mut value = vid::summary(&info, &reading);
@@ -7077,12 +7140,7 @@ impl SvipallServer {
             }],
             ..VideoInfo::default()
         };
-        let mut reading = crate::video::Reading {
-            cues: Vec::new(),
-            track: None,
-            frames: Vec::new(),
-            notes: Vec::new(),
-        };
+        let mut reading = crate::video::Reading::default();
         let mut read_text: Option<String> = None;
         if kind == "image" {
             if crate::read_text::available() {
@@ -7246,57 +7304,6 @@ impl SvipallServer {
         ))
     }
 
-    /// The storyboard's scene changes, as the moments to capture. `None` when there is no
-    /// storyboard or none of its sheets came: the live page then samples evenly instead.
-    async fn video_storyboard_moments(
-        &self,
-        info: &svipall_core::video::VideoInfo,
-        n: usize,
-    ) -> Option<Vec<f64>> {
-        use crate::video_frames as vf;
-        if info.storyboard.is_empty() {
-            return None;
-        }
-        let mut sheets: HashMap<String, Option<image::DynamicImage>> = HashMap::new();
-        let fetcher = self.fetcher_for(
-            self.exit_for(&domain_from_url(&info.storyboard[0].sheet))
-                .as_deref(),
-        );
-        let (mut times, mut hists) = (Vec::new(), Vec::new());
-        for f in &info.storyboard {
-            if !sheets.contains_key(&f.sheet) {
-                // A two-hour video is a few dozen sheets; past that, its start is what is read.
-                if sheets.len() >= 40 {
-                    break;
-                }
-                let img = match fetcher.send(HttpRequest::get(f.sheet.clone())).await {
-                    Ok(r) if (200..300).contains(&r.status) => {
-                        image::load_from_memory(&r.body).ok()
-                    }
-                    _ => None,
-                };
-                sheets.insert(f.sheet.clone(), img);
-            }
-            if let Some(Some(sheet)) = sheets.get(&f.sheet) {
-                times.push(f.t);
-                hists.push(vf::histogram(&vf::crop(sheet, f.x, f.y, f.w, f.h)));
-            }
-        }
-        if times.is_empty() {
-            return None;
-        }
-        let span = info
-            .duration
-            .unwrap_or_else(|| times.last().copied().unwrap_or(0.0));
-        let gap = (span / (n as f64 * 4.0)).max(1.0);
-        Some(
-            vf::pick(&times, &hists, n, gap)
-                .into_iter()
-                .map(|i| times[i])
-                .collect(),
-        )
-    }
-
     /// One live page for everything that needs the player running: captions whose address only
     /// answers the player's own request (borrowed from the network, pointed at the wanted track,
     /// fetched from inside the page), and keyframes (the main `<video>` seeked and captured).
@@ -7310,18 +7317,18 @@ impl SvipallServer {
             &svipall_core::video::Track,
             &svipall_core::video::sources::Borrow,
         )>,
-        frames: Option<(usize, Option<Vec<f64>>)>,
+        frames: Option<(&crate::video::Look, bool, Instant)>,
         notes: &mut Vec<String>,
     ) -> (
         Option<Vec<svipall_core::video::Cue>>,
-        Vec<svipall_core::video::align::FrameRef>,
+        Option<video_look::Captured>,
     ) {
         use svipall_cdp::cdp::browser_protocol::network::{EnableParams, EventRequestWillBeSent};
         use svipall_core::video::{cues, sources, CaptionKind};
 
         if !self.pool.available() {
             notes.push(format!("this needs a browser: {}", no_browser_hint()));
-            return (None, Vec::new());
+            return (None, None);
         }
         // Headless: a windowed tier's compositor paints a paused, occluded window when it likes,
         // and measured on one video, seven of nine captures there waited out a 4 s limit; the
@@ -7342,17 +7349,17 @@ impl SvipallServer {
             .await
         {
             notes.push(e.to_string());
-            return (None, Vec::new());
+            return (None, None);
         }
         let (_pooled, page) = match self.pool.page(&opts).await {
             Ok(x) => x,
             Err(e) => {
                 notes.push(format!("no browser page: {e}"));
-                return (None, Vec::new());
+                return (None, None);
             }
         };
         let mut out_cues = None;
-        let mut out_frames = Vec::new();
+        let mut out_frames = None;
         let run =
             async {
                 let seen = Arc::new(StdMutex::new(Vec::<String>::new()));
@@ -7414,8 +7421,10 @@ impl SvipallServer {
                 }
                 }
 
-                if let Some((n, moments)) = frames {
-                    out_frames = self.video_capture(&page, info, n, moments, notes).await?;
+                if let Some((want, spoken, until)) = frames {
+                    out_frames = self
+                        .video_capture(&page, info, want, spoken, until, notes)
+                        .await?;
                 }
                 Ok::<_, anyhow::Error>(())
             }
@@ -7425,152 +7434,6 @@ impl SvipallServer {
             notes.push(format!("{e:#}"));
         }
         (out_cues, out_frames)
-    }
-
-    /// Seek the page's main video to each moment and capture it. Without moments from a
-    /// storyboard, candidates are sampled evenly and the ones where the picture changes are kept.
-    async fn video_capture(
-        &self,
-        page: &svipall_cdp::Page,
-        info: &svipall_core::video::VideoInfo,
-        n: usize,
-        moments: Option<Vec<f64>>,
-        notes: &mut Vec<String>,
-    ) -> anyhow::Result<Vec<svipall_core::video::align::FrameRef>> {
-        use crate::video_frames as vf;
-        use svipall_cdp::cdp::browser_protocol::page::CaptureScreenshotFormat;
-
-        // An advert plays first, and a player that has not started keeps the video off the page.
-        let state = watch_player(
-            page,
-            info.duration,
-            Duration::from_secs(45),
-            |p| matches!(p, vf::Playing::Main { .. }),
-            self.pool.identity().noise_seed,
-            notes,
-        )
-        .await?;
-        let length = match state {
-            vf::Playing::Main { picture: false, .. } => {
-                // A picture of no size is a stream this browser cannot decode (a codec it
-                // dropped), playing its sound and nothing else.
-                notes.push(
-                    "the browser decodes no picture for this video (its codec), so no frames"
-                        .into(),
-                );
-                return Ok(Vec::new());
-            }
-            vf::Playing::Main { length, .. } => length,
-            vf::Playing::Advert { .. } => {
-                notes.push(
-                    "an advert was still on screen when the wait ran out, so no frames".into(),
-                );
-                return Ok(Vec::new());
-            }
-            _ => {
-                notes.push("the player never showed the video itself, so no frames".into());
-                return Ok(Vec::new());
-            }
-        };
-        let duration = info.duration.unwrap_or(length);
-        let sampled = moments.is_none();
-        let times = moments
-            .unwrap_or_else(|| vf::uniform(duration, (n * vf::CANDIDATES_PER_FRAME).min(48)));
-
-        let mut shots: Vec<(f64, Vec<u8>)> = Vec::new();
-        let mut clipped = 0usize;
-        for t in times {
-            let Some(v) = quiet_eval(page, vf::seek_js(t)).await? else {
-                continue;
-            };
-            if v.get("ok").and_then(|o| o.as_bool()) != Some(true) {
-                continue;
-            }
-            let at = v.get("t").and_then(|x| x.as_f64()).unwrap_or(t);
-            // The element's own picture first: no controls, no captions drawn over it.
-            let grabbed = quiet_eval(page, vf::grab_js(vf::GRAB_MAX_WIDTH))
-                .await?
-                .and_then(|g| g.get("png").and_then(|p| p.as_str()).map(str::to_string))
-                .and_then(|b| {
-                    base64::Engine::decode(&base64::engine::general_purpose::STANDARD, b).ok()
-                });
-            if let Some(png) = grabbed {
-                shots.push((at, png));
-                continue;
-            }
-            let num = |k: &str| v.get(k).and_then(|x| x.as_f64()).unwrap_or(0.0);
-            // Where the player is, as the page itself measures it on this seek: a layout that
-            // moved (a banner, a theatre mode) moves the clip with it.
-            let params = svipall_cdp::page::ScreenshotParams::builder()
-                .format(CaptureScreenshotFormat::Png)
-                .clip(svipall_cdp::cdp::browser_protocol::page::Viewport {
-                    x: num("x"),
-                    y: num("y"),
-                    width: num("w"),
-                    height: num("h"),
-                    scale: 1.0,
-                })
-                .capture_beyond_viewport(true)
-                .build();
-            // One capture sometimes waits seconds on the compositor; a frame is not worth that.
-            let shot = tokio::time::timeout(Duration::from_secs(4), page.screenshot(params)).await;
-            if let Ok(Ok(png)) = shot {
-                clipped += 1;
-                shots.push((at, png));
-            }
-        }
-        if clipped > 0 {
-            notes.push(format!(
-                "{clipped} frame(s) could not be read from the player itself (a cross-origin or \
-                 protected stream), so they are screenshots and can show its controls"
-            ));
-        }
-        // A capture of nothing is not a frame: say how many there were rather than hand them over.
-        let thumbs: Vec<image::RgbImage> = shots
-            .iter()
-            .map(|(_, png)| {
-                image::load_from_memory(png)
-                    .map(|i| i.thumbnail(64, 64).to_rgb8())
-                    .unwrap_or_default()
-            })
-            .collect();
-        let (keep, blanks, repeats) = vf::informative(&thumbs);
-        if blanks > 0 {
-            notes.push(format!(
-                "{blanks} capture(s) came back blank and were left out"
-            ));
-        }
-        if repeats > 0 {
-            notes.push(format!(
-                "{repeats} capture(s) repeated an earlier picture and were left out"
-            ));
-        }
-        let hists: Vec<Vec<f32>> = keep.iter().map(|&i| vf::histogram(&thumbs[i])).collect();
-        shots = keep.into_iter().map(|i| shots[i].clone()).collect();
-        if sampled && shots.len() > n {
-            let times: Vec<f64> = shots.iter().map(|s| s.0).collect();
-            let gap = (duration / (n as f64 * 4.0)).max(1.0);
-            let picked = vf::pick(&times, &hists, n, gap);
-            shots = picked.iter().map(|&i| shots[i].clone()).collect();
-        }
-        let root = svipall_core::config::home_dir().join("out").join("video");
-        let name = match &info.id {
-            Some(id) => id.clone(),
-            None => domain_from_url(&page.url().await.ok().flatten().unwrap_or_default()),
-        };
-        let mut out = Vec::new();
-        for (t, png) in shots {
-            let path = vf::frame_path(&root, &name, t);
-            if let Some(dir) = path.parent() {
-                std::fs::create_dir_all(dir)?;
-            }
-            std::fs::write(&path, &png)?;
-            out.push(svipall_core::video::align::FrameRef {
-                t,
-                path: path.to_string_lossy().into_owned(),
-            });
-        }
-        Ok(out)
     }
 
     #[tool(annotations(read_only_hint = false, open_world_hint = true))]

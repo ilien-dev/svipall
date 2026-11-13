@@ -98,7 +98,7 @@ them). A binary download is written as served. The address is never looked up.
 | A file, not a page | `svipall fetch https://x/pkg.tar.bz2 --out pkg.tar.bz2` — see Files below |
 | Something to click | `svipall snapshot URL` — roles, names and refs, a fraction of the prose |
 | The site's real API | `svipall capture URL` — the JSON the page itself fetched while loading |
-| What a video says | `svipall video URL --lang es` — captions and chapters as one `[m:ss]` timeline; `--frames 8` adds keyframes |
+| What a video says or shows | `svipall video URL --lang es` — captions and chapters as one `[m:ss]` timeline, plus contact sheets of the whole video; `--start 1:00 --end 2:00` frames of a part, `--at 1:30 --crop 0,0,0.5,0.5` to read small text, `--query "a chart"` to find a moment |
 | A lot of pages | `svipall crawl URL --out pages.csv` — writes a file, returns a path and a count |
 | A table, as rows | `svipall fetch URL --tables --out rows.csv` — typed rows with their columns |
 | A listing, as rows | `svipall fetch URL --schema auto` — returns the schema it worked out in `induced_schema`; pass that as `--schema '{…}'` next time |
@@ -121,6 +121,34 @@ downloads a larger `timeout`.
 
 **Cut answers** carry `cursor` and `continue`, the exact next call. A cursor keeps the query it was
 issued with and survives a cache hit; `json_path` is not in it, so pass it again.
+
+## Watching a video
+
+`svipall video URL` (`web_video`) answers in text and names picture files. Read only the
+pictures you need: each one is listed with what it costs in tokens.
+
+1. **Start with a plain call.** You get the `[m:ss]` timeline and, when the player publishes
+   seek-bar thumbnails, contact sheets of the whole video: sixteen moments a sheet, the time
+   in the corner of every cell, read left to right and top to bottom. A sheet is for finding
+   a moment. Text in a cell is too small to read.
+2. **Look closer at a part**: `--start 12:30 --end 14:00` captures frames spread over it and
+   returns that part of the timeline. `--frames N` sets how many (up to 120); left out, the
+   number follows the length. For motion, ask for a short part: two seconds give eight frames.
+3. **Read something small**: `--at 13:10` captures that moment, and `--crop 0,0,0.5,0.5`
+   (x,y,w,h as fractions of the frame) returns just that part at the video's own resolution.
+   With the text reader installed, the text on each frame is already in the timeline as
+   `on screen:`, which is cheaper than opening the frame.
+4. **Find a moment you cannot place**: `--query "the pricing table"` returns moments marked
+   `said` (captions), `shown` (text read off frames captured so far) or `seen` (the pictures
+   themselves). Write the query in English for `seen`; it matches scenes better than details.
+   Then look closer at the moment it returns.
+
+`seen` in the answer says how many moments were shown, how far apart, and how many were left
+out as blank, repeated or not reached. A wide gap means something short may have been stepped
+over: ask for that part. `frames=0` turns pictures off when only the words matter.
+Nothing is captured twice, so asking again for a part is cheap. No thumbnails and no pictures
+came back: pass `--frames N` or a part, which plays the video itself. `svipall doctor` says
+under `video` whether the text reader and the picture search are installed.
 
 ## GitHub
 
@@ -200,7 +228,7 @@ Twelve tools; a mode of a tool is an argument, not another tool.
 | A site's own search box | `web_search` with `site` |
 | The API behind a listing | `web_capture` — `page=2` beats following links |
 | Something to click, type or scroll | `web_view` for refs, then `browser` with `url` + `actions` (one shot), or `open=true` → `session_id` … → `close=true` when cookies must stay alive |
-| What a video says | `web_video`; `frames=8` for keyframes |
+| What a video says or shows | `web_video` — the timeline and timed contact sheets (files: read the ones you need); then `start`/`end`, `at`, `crop`, or `query` to look closer |
 | A picture of a page | `web_view` with `image=true` (`mobile` for a phone) |
 | A login or a gate passed by hand, once | `web_setup do=login` — the cookies are kept |
 | A domain through a proxy | `web_setup do=route` |

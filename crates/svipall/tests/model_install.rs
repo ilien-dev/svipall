@@ -119,6 +119,40 @@ fn an_archive_missing_a_sidecar_is_refused() {
     assert!(!dir.join("detect.onnx").exists(), "nothing is left behind");
 }
 
+/// The image-text pair is five files and none of them is a network with a sidecar of its own
+/// name: it installs as one model, and half of it is refused.
+#[test]
+fn the_image_text_pair_installs_whole_or_not_at_all() {
+    let dir = scratch("see");
+    let group: Vec<(&str, &[u8])> = vec![
+        ("clip_image.onnx", b"img"),
+        ("clip_text.onnx", b"txt"),
+        ("clip.json", b"{}"),
+        ("vocab.json", b"{}"),
+        ("merges.txt", b"#version: 0.2"),
+    ];
+    let mut written = model_install::unpack(&archive(&group), &dir).expect("unpack");
+    written.sort();
+    assert_eq!(
+        written,
+        vec![
+            "clip.json",
+            "clip_image.onnx",
+            "clip_text.onnx",
+            "merges.txt",
+            "vocab.json"
+        ]
+    );
+    let other = scratch("see-half");
+    let err = model_install::unpack(&archive(&group[..4]), &other)
+        .expect_err("a pair without its merge table must be refused");
+    assert!(err.to_string().contains("merges.txt"), "{err}");
+    assert!(
+        !other.join("clip_image.onnx").exists(),
+        "nothing is left behind"
+    );
+}
+
 /// A model of several files (the speech recogniser: two networks, a sidecar and a vocabulary)
 /// installs as one model, and is refused whole when any of its files is missing.
 #[test]

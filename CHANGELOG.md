@@ -1,5 +1,77 @@
 # Changelog
 
+## 2.1.0 — 2026-11-13
+
+`web_video` shows a video as well as reading it. Until now it returned at most 24 frames, whatever
+the length, and chose them by how much the colours changed.
+
+Both choices were wrong for the same reason. A 29-minute screen recording has few colour changes
+and a lot to look at, and 24 frames of an hour is one every two and a half minutes. Published
+comparisons put colour-histogram selection below plain even sampling (45.9 against 47.5 on
+Video-MME at 8 frames), and the agents that do well on hour-long video look at the whole of it
+small, then at a part of it closer. That is what the tool does now.
+
+- **A plain call shows the whole video.** When the player or the stream publishes seek-bar
+  thumbnails, they are drawn onto contact sheets: sixteen moments a sheet, the time written in
+  the corner of every cell. No browser is opened and nothing is played. On a 28:41 video this
+  was 64 moments on 4 sheets, about 1,200 tokens a sheet, in 12 s. `frames=0` turns it off.
+- **Four places thumbnails come from.** A known player's storyboard, as before, and three new
+  ones: a WebVTT `metadata` track of `#xywh` sprites, the tiled pictures a DASH manifest
+  describes (`thumbnail_tile`), and the image playlist an HLS master lists
+  (`EXT-X-IMAGE-STREAM-INF`). An HLS I-frame playlist is video and is left alone.
+- **`start` and `end` look at a part.** Frames are captured from the player, spread evenly over
+  the part, and the timeline that comes back is that part too. The number follows the length:
+  16 for half a minute, 32 up to ten minutes, 64 up to an hour, 100 past that, twice as many
+  when nothing is said, never more than four a second or 120 a call. `frames=N` sets it by hand.
+  One minute of that video at six frames took 10 s.
+- **A slide shown between two moments is not stepped over.** Evenly spread moments miss a
+  picture that lasts less than the gap between them. Where the thumbnails show one held there,
+  two or more alike in a row with no chosen moment among them, its last thumbnail is added, to
+  the sheets and to a capture. Footage of the world has no such runs and gets nothing added.
+  Nine frames over 5:20 of that video became ten.
+- **`at` captures exact moments**, and returns the passages they fall in instead of the whole
+  transcript.
+- **`crop` reads small text.** `crop=x,y,w,h`, in fractions of the frame, returns that part cut
+  from a capture as large as the video is (up to 3840 px wide).
+- **The text on a frame is read** when the text reader is installed, and lands in the timeline
+  under its frame as `on screen:`. A slide held for ten frames is said once. Without the
+  reader the answer says how to get it.
+- **`query` finds a moment**: where the words are said (captions), written (text read off the
+  frames captured so far), or shown. The last one compares the words with the thumbnails
+  through an image-text pair, and returns the pictures it found on a sheet of their own. Asked
+  for "a table of benchmark results", the four best pictures of that video were its four
+  benchmark tables; the search took 20 s in a debug build, 240 thumbnails compared. The pair
+  reads English.
+- **The image-text pair ships.** `svipall models install` now also fetches CLIP ViT-B/32
+  (MIT, int8, about 155 MB), which the models archive carries from this release on, and the
+  default build reads it. `tools/models/export_clip.py` fetches the same five files at a
+  pinned revision and checks their hashes. `svipall doctor` reports under `video` whether the
+  text reader and the picture search are there, each with its fix.
+- **Nothing is captured twice.** Frames, the text read on them and their vectors are kept beside
+  the frames in `~/.svipall/out/video/<id>/index.json`. The same look again opened no browser:
+  139 ms against 1.9 s.
+- **The answer says what it did not show.** `seen` counts the moments shown, how far apart they
+  are, and the captures left out for being blank, for repeating the one before, or because the
+  time ran out. Captures run from the middle of the part outwards, so a call that runs out of
+  time has still seen all of it thinly. Every sheet and frame carries `tokens`, an estimate at
+  one token a 28 px patch.
+
+Whether a model can use a sheet of sixteen was checked once, which is a check and no benchmark. Two fresh readers
+were each given one sheet of that video and nothing else: one of thumbnails (320 px cells), one
+of captured frames (384 px cells). Both read all 16 time labels and put all 16 cells in the right
+one of three kinds of screen, and both said the text inside a cell was at or past the limit of
+what they could read. That is the division of labour the tool assumes: a sheet to find the
+moment, a frame or a crop to read it.
+
+What changed for a caller that already used `frames`: the frames are spread evenly, not placed on
+colour changes, a frame that differs strongly from the one before is marked `cut`, file names
+carry milliseconds (`00-11-05-000.png`), and a video without an id gets a directory of its own
+per address. A call that looks at the video itself has 180 s where it had 90. The models archive
+grows by about 155 MB.
+
+The timings above are single runs on one machine. Reading the text on sixteen 1280 px frames
+took about a minute in a debug build, most of the 64 s that call ran.
+
 ## 2.0.0 — 2026-11-12
 
 The MCP server lists twelve tools where 1.4.0 listed thirty-one. An operation that had its own

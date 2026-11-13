@@ -271,6 +271,34 @@ pub fn pick_tiles(tiles: &[Vec<u8>], subject: &str) -> Result<Option<Vec<usize>>
     imp::pick_tiles(tiles, subject)
 }
 
+/// Words as a vector in the space the pictures are in. `Err` when there is no model.
+#[cfg(not(feature = "onnx-zeroshot"))]
+pub fn embed_text(_text: &str) -> Result<Vec<f32>> {
+    Err(anyhow!("zero-shot model not compiled in"))
+}
+
+#[cfg(feature = "onnx-zeroshot")]
+pub fn embed_text(text: &str) -> Result<Vec<f32>> {
+    if !available() {
+        return Err(anyhow!("zero-shot models are not installed"));
+    }
+    imp::embed_text(&load_config()?, text)
+}
+
+/// A picture as a vector in the space the words are in. `Err` when there is no model.
+#[cfg(not(feature = "onnx-zeroshot"))]
+pub fn embed_picture(_img: &image::DynamicImage) -> Result<Vec<f32>> {
+    Err(anyhow!("zero-shot model not compiled in"))
+}
+
+#[cfg(feature = "onnx-zeroshot")]
+pub fn embed_picture(img: &image::DynamicImage) -> Result<Vec<f32>> {
+    if !available() {
+        return Err(anyhow!("zero-shot models are not installed"));
+    }
+    imp::embed_picture(&load_config()?, img)
+}
+
 #[cfg(feature = "onnx-zeroshot")]
 mod imp {
     use super::*;
@@ -290,7 +318,7 @@ mod imp {
             .ok_or_else(|| anyhow!("no zero-shot model at {}", path.display()))
     }
 
-    fn embed_text(cfg: &ZeroShotConfig, prompt: &str) -> Result<Vec<f32>> {
+    pub fn embed_text(cfg: &ZeroShotConfig, prompt: &str) -> Result<Vec<f32>> {
         let tok = TOKENIZER.get_or_try_init(|| {
             let dir = crate::ocr::models_dir();
             Tokenizer::load(&dir.join(&cfg.vocab), &dir.join(&cfg.merges))
@@ -307,7 +335,10 @@ mod imp {
     }
 
     fn embed_image(cfg: &ZeroShotConfig, png: &[u8]) -> Result<Vec<f32>> {
-        let img = image::load_from_memory(png)?;
+        embed_picture(cfg, &image::load_from_memory(png)?)
+    }
+
+    pub fn embed_picture(cfg: &ZeroShotConfig, img: &image::DynamicImage) -> Result<Vec<f32>> {
         let resized = img.resize_exact(cfg.width, cfg.height, FilterType::Triangle);
         let plane = cfg.height as usize * cfg.width as usize;
         let mut data = vec![0f32; 3 * plane];

@@ -1,19 +1,13 @@
-//! Keyframes: which moments of a video to look at, and the script that shows each one.
+//! Frames: the scripts that show a moment of a video, and what tells one picture from another.
 //!
-//! A frame is worth returning where the picture changes. Changes are found by comparing colour
-//! histograms of consecutive candidates: a storyboard's cells when the player publishes one (a few
-//! small images for the whole video, no playback), otherwise frames captured at even intervals and
-//! compared after the fact. The chosen moments are then captured from the page's own `<video>`,
-//! seeked in place, so what comes back is what a person watching would have seen.
+//! Which moments to look at is decided elsewhere (`svipall_core::video::look`): spread evenly
+//! over the part asked for, because choosing by how much the picture changes was measured to do
+//! worse than that. What is here is the capture itself, from the page's own `<video>`, seeked in
+//! place, so what comes back is what a person watching would have seen, and the colour
+//! histogram that says whether two captures are the same picture, or a cut.
 
 use image::{DynamicImage, GenericImageView, RgbImage};
 use std::path::{Path, PathBuf};
-
-/// Frames asked for, at most. Each is a seek and a capture on a live page.
-pub const MAX_FRAMES: u32 = 24;
-
-/// Candidates per frame wanted when there is no storyboard to choose from.
-pub const CANDIDATES_PER_FRAME: usize = 3;
 
 const BINS: usize = 16;
 
@@ -45,41 +39,55 @@ pub fn crop(sheet: &DynamicImage, x: f32, y: f32, w: f32, h: f32) -> RgbImage {
     sheet.crop_imm(x0, y0, cw, ch).to_rgb8()
 }
 
-/// The moments to capture: the first one, then wherever the picture changed most, no two closer
-/// than `min_gap` seconds. Returned in time order, as indices into `times`.
-pub fn pick(times: &[f64], hists: &[Vec<f32>], n: usize, min_gap: f64) -> Vec<usize> {
-    if times.is_empty() || n == 0 {
-        return Vec::new();
-    }
-    let mut change: Vec<(usize, f32)> = (1..times.len().min(hists.len()))
-        .map(|i| (i, distance(&hists[i - 1], &hists[i])))
-        .collect();
-    change.sort_by(|a, b| b.1.total_cmp(&a.1));
-    let mut chosen = vec![0usize];
-    for (i, _) in change {
-        if chosen.len() >= n {
-            break;
+/// How alike two thumbnails in a row must be to be the same picture held: a slide, a screen
+/// nobody is typing on. Compression alone moves a still picture by less than this.
+pub const SAME: f32 = 0.03;
+
+/// The pictures a spread of moments stepped over.
+///
+/// Evenly spread moments see everything that lasts longer than the gap between them, and miss a
+/// slide shown for less. `hists` are the thumbnails of the stretch in time order and `picked`
+/// the ones already chosen: this returns, for each run of at least two alike thumbnails with no
+/// chosen one in it, the last of the run, which is the slide once everything on it has appeared.
+/// The longest runs first when there are more than `max`; in time order.
+///
+/// Footage of the world has no such runs (every thumbnail differs from the one before), so it
+/// gets nothing added, which is the point: this fills gaps, it does not choose the moments.
+pub fn held(hists: &[Vec<f32>], picked: &[usize], max: usize) -> Vec<usize> {
+    let mut runs: Vec<(usize, usize)> = Vec::new();
+    let mut start = 0usize;
+    for i in 1..=hists.len() {
+        if i == hists.len() || distance(&hists[i - 1], &hists[i]) >= SAME {
+            if i - start >= 2 {
+                runs.push((start, i - 1));
+            }
+            start = i;
         }
-        if chosen
-            .iter()
-            .all(|&c| (times[c] - times[i]).abs() >= min_gap)
-        {
-            chosen.push(i);
-        }
     }
-    chosen.sort_by(|a, b| times[*a].total_cmp(&times[*b]));
-    chosen
+    runs.retain(|(a, b)| !picked.iter().any(|p| (*a..=*b).contains(p)));
+    runs.sort_by_key(|(a, b)| std::cmp::Reverse(b - a));
+    runs.truncate(max);
+    let mut out: Vec<usize> = runs.into_iter().map(|(_, b)| b).collect();
+    out.sort_unstable();
+    out
 }
 
-/// `count` moments spread evenly over `duration`, each in the middle of its share.
-pub fn uniform(duration: f64, count: usize) -> Vec<f64> {
-    (0..count)
-        .map(|i| duration * (i as f64 + 0.5) / count as f64)
-        .collect()
+/// A frame's file name: its moment to the millisecond, so a listing sorts in time order and two
+/// frames of one second do not share a name.
+pub fn frame_name(t: f64) -> String {
+    let ms = (t.max(0.0) * 1000.0).round() as u64;
+    let s = ms / 1000;
+    format!(
+        "{:02}-{:02}-{:02}-{:03}.png",
+        s / 3600,
+        (s / 60) % 60,
+        s % 60,
+        ms % 1000
+    )
 }
 
-/// Where a frame is written: one directory per video, one file per moment, named so a listing
-/// sorts in time order.
+/// Where a frame is written: one directory per video, one file per moment. An empty `video` is
+/// `root` itself.
 pub fn frame_path(root: &Path, video: &str, t: f64) -> PathBuf {
     let safe: String = video
         .chars()
@@ -92,13 +100,7 @@ pub fn frame_path(root: &Path, video: &str, t: f64) -> PathBuf {
         })
         .take(64)
         .collect();
-    let s = t.max(0.0).round() as u64;
-    root.join(safe).join(format!(
-        "{:02}-{:02}-{:02}.png",
-        s / 3600,
-        (s / 60) % 60,
-        s % 60
-    ))
+    root.join(safe).join(frame_name(t))
 }
 
 /// Whether a `<video>` is where a person sees it: laid out, not hidden, and nearly all of it inside
@@ -295,27 +297,6 @@ pub fn blank(img: &RgbImage) -> bool {
     (s2 / n - mean * mean).max(0.0).sqrt() < 3.0
 }
 
-/// Which captures are worth returning: not blank, and not the same picture as one already kept.
-/// Returns the indices kept, then how many were blank and how many repeated.
-pub fn informative(thumbs: &[RgbImage]) -> (Vec<usize>, usize, usize) {
-    let (mut keep, mut blanks, mut repeats) = (Vec::new(), 0, 0);
-    let mut seen: Vec<Vec<f32>> = Vec::new();
-    for (i, t) in thumbs.iter().enumerate() {
-        if blank(t) {
-            blanks += 1;
-            continue;
-        }
-        let h = histogram(t);
-        if seen.iter().any(|s| distance(s, &h) < 0.002) {
-            repeats += 1;
-            continue;
-        }
-        seen.push(h);
-        keep.push(i);
-    }
-    (keep, blanks, repeats)
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -334,27 +315,33 @@ mod tests {
     }
 
     #[test]
-    fn frames_land_on_the_cuts_and_not_on_each_other() {
-        // Three scenes: dark 0-20 s, red 20-40 s, white 40-60 s, a candidate every 4 s.
-        let times: Vec<f64> = (0..15).map(|i| i as f64 * 4.0).collect();
-        let hists: Vec<Vec<f32>> = times
+    fn a_slide_shown_between_two_moments_is_seen_and_footage_adds_nothing() {
+        // Thumbnails every 2 s: slide A for five, slide B for three, slide C for six.
+        let shades = [
+            10u8, 10, 10, 10, 10, 120, 120, 120, 240, 240, 240, 240, 240, 240,
+        ];
+        let hists: Vec<Vec<f32>> = shades
             .iter()
-            .map(|t| {
-                histogram(&match *t as u32 {
-                    0..=19 => solid(5, 5, 5),
-                    20..=39 => solid(200, 20, 20),
-                    _ => solid(250, 250, 250),
-                })
-            })
+            .map(|v| histogram(&solid(*v, *v, *v)))
             .collect();
-        let got: Vec<f64> = pick(&times, &hists, 3, 8.0)
-            .into_iter()
-            .map(|i| times[i])
+        // Two moments spread over the stretch land on A and C.
+        assert_eq!(
+            held(&hists, &[3, 10], 4),
+            vec![7],
+            "B, at its last thumbnail"
+        );
+        assert_eq!(held(&hists, &[3, 6, 10], 4), Vec::<usize>::new());
+        assert_eq!(
+            held(&hists, &[], 2),
+            vec![4, 13],
+            "the two longest, in time order"
+        );
+        // Every thumbnail its own picture: nothing is held, nothing is added.
+        let footage: Vec<Vec<f32>> = (0..10u8)
+            .map(|i| histogram(&solid(i * 25, 255 - i * 25, i * 10)))
             .collect();
-        assert_eq!(got, vec![0.0, 20.0, 40.0]);
-        // Asked for more than there are scenes: the rest are spaced, never duplicates.
-        let more = pick(&times, &hists, 6, 8.0);
-        assert!(more.windows(2).all(|w| times[w[1]] - times[w[0]] >= 8.0));
+        assert!(held(&footage, &[5], 4).is_empty());
+        assert!(held(&[], &[], 4).is_empty());
     }
 
     #[test]
@@ -372,16 +359,17 @@ mod tests {
     }
 
     #[test]
-    fn even_moments_sit_in_the_middle_of_their_share() {
-        assert_eq!(uniform(60.0, 3), vec![10.0, 30.0, 50.0]);
-    }
-
-    #[test]
     fn frame_files_sort_in_time_order_and_stay_in_their_directory() {
         let root = Path::new("/out/video");
         let p = frame_path(root, "../../etc", 3725.4);
         assert!(p.starts_with(root.join("______etc")), "{p:?}");
-        assert!(p.ends_with("01-02-05.png"));
+        assert!(p.ends_with("01-02-05-400.png"));
+        assert_ne!(
+            frame_name(5.0),
+            frame_name(5.25),
+            "four a second, four files"
+        );
+        assert_eq!(frame_path(root, "", 1.0), root.join("00-00-01-000.png"));
     }
 
     #[test]
@@ -485,17 +473,5 @@ mod tests {
         assert!(blank(&solid(255, 255, 255)));
         assert!(blank(&solid(0, 0, 0)));
         assert!(!blank(&textured(0)));
-    }
-
-    #[test]
-    fn blank_and_repeated_captures_are_not_returned_and_are_counted() {
-        let shots = vec![
-            solid(255, 255, 255),
-            textured(0),
-            textured(0),
-            solid(255, 255, 255),
-            textured(99),
-        ];
-        assert_eq!(informative(&shots), (vec![1, 4], 2, 1));
     }
 }

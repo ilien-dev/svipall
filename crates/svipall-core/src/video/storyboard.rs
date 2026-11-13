@@ -71,9 +71,109 @@ pub fn pipe_spec(spec: &str, duration: Option<f64>) -> Vec<Frame> {
         .collect()
 }
 
+/// A thumbnail as a WebVTT metadata track gives it: a picture, and the box of it to show, in the
+/// picture's own pixels. The box is the track's wording, not ours: [`Thumb::on`] turns it into a
+/// fraction as soon as the picture's size is known.
+#[derive(Debug, Clone, PartialEq)]
+pub struct Thumb {
+    pub t: f64,
+    pub sheet: String,
+    /// `x, y, w, h`; `None` when the cue names a whole picture.
+    pub px: Option<[u32; 4]>,
+}
+
+impl Thumb {
+    /// The cell of a sheet `width` by `height` pixels this thumbnail is.
+    pub fn on(&self, width: u32, height: u32) -> Frame {
+        let (w, h) = (width.max(1) as f32, height.max(1) as f32);
+        let [x, y, cw, ch] = self.px.unwrap_or([0, 0, width, height]);
+        Frame {
+            t: self.t,
+            sheet: self.sheet.clone(),
+            x: (x as f32 / w).min(1.0),
+            y: (y as f32 / h).min(1.0),
+            w: (cw as f32 / w).min(1.0),
+            h: (ch as f32 / h).min(1.0),
+        }
+    }
+}
+
+/// The thumbnails of a WebVTT metadata track: every cue whose text is the address of a picture,
+/// with or without a `#xywh=` box. A metadata track that carries something else has no such cue
+/// and gives nothing. Addresses are resolved against the track's own.
+pub fn vtt_thumbs(cues: &[super::Cue], track_url: &str) -> Vec<Thumb> {
+    let base = url::Url::parse(track_url).ok();
+    cues.iter()
+        .filter_map(|c| {
+            let text = c.text.trim();
+            if text.contains(char::is_whitespace) {
+                return None;
+            }
+            let (addr, frag) = text.split_once('#').unwrap_or((text, ""));
+            let px = match frag.strip_prefix("xywh=") {
+                Some(b) => {
+                    let n: Vec<u32> = b
+                        .trim_start_matches("pixel:")
+                        .split(',')
+                        .filter_map(|v| v.trim().parse().ok())
+                        .collect();
+                    Some(
+                        <[u32; 4]>::try_from(n)
+                            .ok()
+                            .filter(|b| b[2] > 0 && b[3] > 0)?,
+                    )
+                }
+                None => None,
+            };
+            let path = addr.split('?').next().unwrap_or(addr).to_ascii_lowercase();
+            let picture = [".jpg", ".jpeg", ".png", ".webp"]
+                .iter()
+                .any(|e| path.ends_with(e));
+            if !picture && px.is_none() {
+                return None;
+            }
+            let sheet = match &base {
+                Some(b) => b.join(addr).ok()?.to_string(),
+                None => addr.to_string(),
+            };
+            Some(Thumb {
+                t: c.start,
+                sheet,
+                px,
+            })
+        })
+        .collect()
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn a_metadata_track_of_sprites_is_a_storyboard() {
+        let cue = |start: f64, text: &str| crate::video::Cue {
+            start,
+            end: start + 5.0,
+            text: text.into(),
+        };
+        let cues = vec![
+            cue(0.0, "sprite.jpg#xywh=0,0,160,90"),
+            cue(5.0, "sprite.jpg#xywh=160,0,160,90"),
+            cue(10.0, "/abs/one.png"),
+            cue(15.0, "{\"some\": \"other metadata\"}"),
+            cue(20.0, "a sentence, not an address"),
+            cue(25.0, "sprite.jpg#xywh=0,0,0,90"),
+        ];
+        let t = vtt_thumbs(&cues, "https://v.example/media/thumbs.vtt");
+        assert_eq!(t.len(), 3, "{t:?}");
+        assert_eq!(t[1].sheet, "https://v.example/media/sprite.jpg");
+        assert_eq!(t[1].px, Some([160, 0, 160, 90]));
+        assert_eq!(t[2].sheet, "https://v.example/abs/one.png");
+        let f = t[1].on(320, 180);
+        assert_eq!((f.t, f.x, f.y, f.w, f.h), (5.0, 0.5, 0.0, 0.5, 0.5));
+        let whole = t[2].on(640, 360);
+        assert_eq!((whole.x, whole.y, whole.w, whole.h), (0.0, 0.0, 1.0, 1.0));
+    }
 
     const SPEC: &str = "https://i.example/sb/ID/storyboard3_L$L/$N.jpg?sqp=abc|48#27#100#10#10#0#default#rs$A|80#45#108#10#10#2000#M$M#rs$X|160#90#108#5#5#2000#M$M#rs$B|320#180#108#3#3#2000#M$M#rs$C";
 

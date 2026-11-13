@@ -230,6 +230,7 @@ pub fn report_from(f: &Facts) -> Value {
     let found = problems(f);
     let asr = f.installed_models.iter().any(|m| m == "asr");
     let read = f.installed_models.iter().any(|m| m == "read");
+    let see = f.installed_models.iter().any(|m| m == "see");
     json!({
         "ok": found.is_empty(),
         "version": f.version,
@@ -264,6 +265,19 @@ pub fn report_from(f: &Facts) -> Value {
                 "compiled": cfg!(feature = "onnx-asr"),
                 "installed": asr,
                 "fix": (!asr).then_some("svipall models install"),
+            },
+            // The text on a frame is read only with the text reader on disk, and a search looks
+            // at the pictures themselves only with the image-text pair there. Without either the
+            // video is still shown, and searched by what is said.
+            "text": {
+                "compiled": cfg!(feature = "onnx-read"),
+                "installed": read,
+                "fix": (!read).then_some("svipall models install"),
+            },
+            "search": {
+                "compiled": cfg!(feature = "onnx-zeroshot"),
+                "installed": see,
+                "fix": (!see).then_some("svipall models install"),
             },
         },
         // An image, or a PDF of scanned pages, is read only with the text reader on disk.
@@ -401,6 +415,21 @@ fn installed_models() -> Vec<String> {
     .all(|p| p.is_file())
     {
         out.push("read".into());
+    }
+    // The image-text pair is two networks sharing one sidecar and a tokenizer; it counts once.
+    out.retain(|m| m != "clip");
+    let dir = crate::model_source::models_dir();
+    if [
+        crate::zeroshot::image_model_path(),
+        crate::zeroshot::text_model_path(),
+        crate::zeroshot::config_path(),
+        dir.join("vocab.json"),
+        dir.join("merges.txt"),
+    ]
+    .iter()
+    .all(|p| p.is_file())
+    {
+        out.push("see".into());
     }
     out.sort();
     out.dedup();

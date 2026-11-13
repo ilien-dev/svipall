@@ -33,7 +33,7 @@ fn releases_base() -> String {
 ///
 /// Most models are a network and its sidecar. The speech recogniser is two networks sharing one
 /// sidecar, plus the vocabulary its output is read with; the text reader is two networks sharing
-/// the recogniser's sidecar.
+/// the recogniser's sidecar; the image-text pair is two networks, a sidecar and a tokenizer.
 const MODELS: &[(&str, &[&str])] = &[
     ("detect", &["detect.onnx", "detect.json"]),
     ("segment", &["segment.onnx", "segment.json"]),
@@ -50,6 +50,17 @@ const MODELS: &[(&str, &[&str])] = &[
         ],
     ),
     ("read", &["ocr_det.onnx", "ocr_rec.onnx", "ocr_rec.json"]),
+    // The image-text pair: two networks, one sidecar, and the tokenizer's two files.
+    (
+        "see",
+        &[
+            "clip_image.onnx",
+            "clip_text.onnx",
+            "clip.json",
+            "vocab.json",
+            "merges.txt",
+        ],
+    ),
 ];
 
 fn is_model_file(name: &str) -> bool {
