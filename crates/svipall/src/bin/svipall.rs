@@ -40,9 +40,12 @@ COMMANDS:
     snapshot <url>          The page as roles, names and refs — a fraction of the tokens.
     capture <url> [--pattern P] [--bodies]
                             The JSON the page itself fetched: usually the site's real API.
-    video <url> [--lang L] [--frames N] [--out FILE] [--wait SECS]
-                            A video's captions and chapters as one timeline, from its player,
-                            an embed, <video> tracks, JSON-LD or the stream manifest.
+    video <url> [--lang L] [--frames N] [--start T] [--end T] [--at T,T] [--crop X,Y,W,H]
+          [--query WORDS] [--out FILE] [--wait SECS]
+                            A video's captions and chapters as one timeline, and contact
+                            sheets of the whole of it. --start/--end capture frames of a part,
+                            --at exact moments, --crop a part of the frame (x,y,w,h in 0..1),
+                            --query finds where something is said, written or shown.
     search <query> [--engine E] [--lang L] [--region CC] [--limit N]
                             Search without an API key. --engine all merges every engine,
                             --engine news searches recent articles.
@@ -349,6 +352,14 @@ async fn run(args: &[String]) -> anyhow::Result<Value> {
             }
             if let Some(n) = flags.value("frames").and_then(|v| v.parse::<u32>().ok()) {
                 p["frames"] = json!(n);
+            }
+            for k in ["start", "end", "crop", "query"] {
+                if let Some(v) = flags.value(k) {
+                    p[k] = json!(v);
+                }
+            }
+            if let Some(v) = flags.value("at") {
+                p["at"] = json!([v]);
             }
             if let Some(out) = flags.value("out") {
                 p["out_file"] = json!(out);
@@ -661,7 +672,9 @@ const SPECS: &[Spec] = &[
     Spec {
         name: "video",
         switches: &[],
-        values: &["lang", "frames", "out", "wait"],
+        values: &[
+            "lang", "frames", "start", "end", "at", "crop", "query", "out", "wait",
+        ],
     },
     Spec {
         name: "search",

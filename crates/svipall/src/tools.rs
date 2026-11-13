@@ -368,9 +368,25 @@ pub struct WebVideoParams {
     /// Caption language to prefer, e.g. "es".
     #[serde(default)]
     pub lang: Option<String>,
-    /// Keyframes to capture where the picture changes, up to 24; paths land in the timeline.
+    /// Moments to capture from the video itself, spread over the part asked for, up to 120.
+    /// Left out, the number follows the length; 0 turns the picture off.
     #[serde(default)]
     pub frames: Option<u32>,
+    /// Where the part to look at starts: seconds, or m:ss.
+    #[serde(default)]
+    pub start: Option<String>,
+    /// Where it ends.
+    #[serde(default)]
+    pub end: Option<String>,
+    /// Exact moments to capture.
+    #[serde(default)]
+    pub at: Vec<String>,
+    /// The part of each frame to return, as fractions of it: x,y,w,h.
+    #[serde(default)]
+    pub crop: Option<String>,
+    /// Find where this is said, written on screen, or shown.
+    #[serde(default)]
+    pub query: Option<String>,
     /// Cap on the timeline returned. Default 25000.
     #[serde(default)]
     pub max_tokens: Option<usize>,

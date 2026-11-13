@@ -98,7 +98,7 @@ them). A binary download is written as served. The address is never looked up.
 | A file, not a page | `svipall fetch https://x/pkg.tar.bz2 --out pkg.tar.bz2` — see Files below |
 | Something to click | `svipall snapshot URL` — roles, names and refs, a fraction of the prose |
 | The site's real API | `svipall capture URL` — the JSON the page itself fetched while loading |
-| What a video says | `svipall video URL --lang es` — captions and chapters as one `[m:ss]` timeline; `--frames 8` adds keyframes |
+| What a video says or shows | `svipall video URL --lang es` — captions and chapters as one `[m:ss]` timeline, plus contact sheets of the whole video; `--start 1:00 --end 2:00` frames of a part, `--at 1:30 --crop 0,0,0.5,0.5` to read small text, `--query "a chart"` to find a moment |
 | A lot of pages | `svipall crawl URL --out pages.csv` — writes a file, returns a path and a count |
 | A table, as rows | `svipall fetch URL --tables --out rows.csv` — typed rows with their columns |
 | A listing, as rows | `svipall fetch URL --schema auto` — returns the schema it worked out in `induced_schema`; pass that as `--schema '{…}'` next time |
@@ -200,7 +200,7 @@ Twelve tools; a mode of a tool is an argument, not another tool.
 | A site's own search box | `web_search` with `site` |
 | The API behind a listing | `web_capture` — `page=2` beats following links |
 | Something to click, type or scroll | `web_view` for refs, then `browser` with `url` + `actions` (one shot), or `open=true` → `session_id` … → `close=true` when cookies must stay alive |
-| What a video says | `web_video`; `frames=8` for keyframes |
+| What a video says or shows | `web_video` — the timeline and timed contact sheets (files: read the ones you need); then `start`/`end`, `at`, `crop`, or `query` to look closer |
 | A picture of a page | `web_view` with `image=true` (`mobile` for a phone) |
 | A login or a gate passed by hand, once | `web_setup do=login` — the cookies are kept |
 | A domain through a proxy | `web_setup do=route` |

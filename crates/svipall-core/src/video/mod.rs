@@ -13,6 +13,7 @@
 pub mod align;
 pub mod chapters;
 pub mod cues;
+pub mod look;
 pub mod manifest;
 pub mod sources;
 pub mod storyboard;
@@ -85,6 +86,9 @@ pub struct VideoInfo {
     /// WebVTT chapter tracks: cue text is the chapter title.
     #[serde(skip_serializing_if = "Vec::is_empty")]
     pub chapter_tracks: Vec<String>,
+    /// WebVTT metadata tracks, which is where a player keeps the thumbnails of its seek bar.
+    #[serde(skip)]
+    pub thumb_tracks: Vec<String>,
     pub chapters: Vec<Chapter>,
     #[serde(skip)]
     pub storyboard: Vec<storyboard::Frame>,
@@ -128,6 +132,7 @@ impl VideoInfo {
             }
         }
         self.chapter_tracks.extend(low.chapter_tracks);
+        self.thumb_tracks.extend(low.thumb_tracks);
         if self.chapters.is_empty() {
             self.chapters = low.chapters;
         }
@@ -267,6 +272,7 @@ fn from_html5(media: &PageMedia) -> Option<VideoInfo> {
                     kind: CaptionKind::Manual,
                 }),
                 "chapters" => info.chapter_tracks.push(t.src.clone()),
+                "metadata" => info.thumb_tracks.push(t.src.clone()),
                 _ => {}
             }
         }
@@ -403,6 +409,7 @@ pub fn discover(
         info.tracks.iter_mut().for_each(|t| abs(&mut t.url));
         info.streams.iter_mut().for_each(|s| abs(&mut s.url));
         info.chapter_tracks.iter_mut().for_each(abs);
+        info.thumb_tracks.iter_mut().for_each(abs);
     }
     (!info.is_empty()).then_some(info)
 }

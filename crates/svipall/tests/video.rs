@@ -218,6 +218,288 @@ async fn a_real_watch_page_has_its_captions_borrowed() {
     );
 }
 
+/// A sprite of eight thumbnails, four across, each its own colour, as a player's seek bar uses.
+fn sprite() -> Vec<u8> {
+    let img = image::RgbImage::from_fn(640, 180, |x, y| {
+        let cell = (x / 160) + 4 * (y / 90);
+        image::Rgb([
+            (cell * 30) as u8,
+            200 - (cell * 20) as u8,
+            ((x % 160) + (y % 90)) as u8,
+        ])
+    });
+    let mut out = Vec::new();
+    image::DynamicImage::ImageRgb8(img)
+        .write_to(&mut std::io::Cursor::new(&mut out), image::ImageFormat::Png)
+        .expect("png");
+    out
+}
+
+/// A page whose player publishes its seek-bar thumbnails as a WebVTT metadata track, and captions.
+async fn site_with_thumbnails() -> Site {
+    let mut thumbs = String::from("WEBVTT\n\n");
+    for i in 0..8 {
+        thumbs.push_str(&format!(
+            "00:{:02}:{:02}.000 --> 00:{:02}:{:02}.000\nsprite.png#xywh={},{},160,90\n\n",
+            (i * 10) / 60,
+            (i * 10) % 60,
+            ((i + 1) * 10) / 60,
+            ((i + 1) * 10) % 60,
+            (i % 4) * 160,
+            (i / 4) * 90
+        ));
+    }
+    Site::start(vec![
+        (
+            "/talk",
+            Reply::html(
+                "<html><head><title>Seen talk</title><script type=\"application/ld+json\">\
+                 {\"@type\":\"VideoObject\",\"name\":\"Seen talk\",\"duration\":\"PT80S\"}</script>\
+                 </head><body><h1>Seen talk</h1><video controls>\
+                 <source src=\"/talk.mp4\" type=\"video/mp4\">\
+                 <track kind=\"subtitles\" srclang=\"en\" src=\"/talk-en.vtt\">\
+                 <track kind=\"metadata\" src=\"/media/thumbs.vtt\"></video></body></html>",
+            ),
+        ),
+        ("/talk-en.vtt", typed(VTT_EN, "text/vtt")),
+        ("/media/thumbs.vtt", typed(&thumbs, "text/vtt")),
+        ("/media/sprite.png", Reply::bytes(&sprite(), "image/png")),
+    ])
+    .await
+}
+
+#[tokio::test]
+async fn a_plain_call_shows_the_whole_video_on_a_sheet_of_its_own_thumbnails() {
+    let site = site_with_thumbnails().await;
+    let v = video(site.url("/talk")).await;
+    assert_eq!(v["seen"]["source"], "thumbnails", "{v}");
+    assert_eq!(
+        v["seen"]["moments"], 8,
+        "every thumbnail there is, each once: {v}"
+    );
+    assert_eq!(
+        (v["seen"]["from"].as_f64(), v["seen"]["to"].as_f64()),
+        (Some(0.0), Some(80.0))
+    );
+    let sheets = v["sheets"].as_array().cloned().unwrap_or_default();
+    assert_eq!(sheets.len(), 1, "{v}");
+    let s = &sheets[0];
+    assert_eq!(
+        (s["cells"].as_u64(), s["grid"].as_str()),
+        (Some(8), Some("3x3"))
+    );
+    let path = s["path"].as_str().unwrap();
+    let img = image::open(path).expect("sheet written").to_rgb8();
+    assert_eq!(img.dimensions(), (768, 432));
+    assert_eq!(s["tokens"], 448, "what the sheet costs is said");
+    // The second cell is the second thumbnail, with its time written over its corner.
+    let p = img.get_pixel(256 + 200, 100).0;
+    assert!(p[0] < 60 && p[1] > 150, "cell 1 is thumbnail 1: {p:?}");
+    let corner = img.get_pixel(256 + 1, 1).0;
+    assert!(
+        corner.iter().all(|c| *c < 40),
+        "the label's box: {corner:?}"
+    );
+    let content = v["content"].as_str().unwrap_or_default();
+    assert!(
+        content.contains("Pictures: 8 moments from 0:00 to 1:20"),
+        "{content}"
+    );
+    assert!(
+        content.contains(path),
+        "the sheet is named where the model reads: {content}"
+    );
+    assert!(
+        content.contains("[0:05] Hello and welcome."),
+        "and the words are still there"
+    );
+    assert!(v.get("frames").is_none(), "nothing was captured: {v}");
+}
+
+#[tokio::test]
+async fn frames_zero_turns_the_picture_off() {
+    let site = site_with_thumbnails().await;
+    let v = server()
+        .video_json(WebVideoParams {
+            url: site.url("/talk"),
+            frames: Some(0),
+            ..Default::default()
+        })
+        .await
+        .expect("web_video");
+    assert!(v.get("sheets").is_none() && v.get("seen").is_none(), "{v}");
+    let content = v["content"].as_str().unwrap_or_default();
+    assert!(
+        !content.contains("Pictures:") && content.contains("[0:05]"),
+        "{content}"
+    );
+}
+
+#[tokio::test]
+async fn a_search_finds_the_moment_something_is_said_and_returns_it_instead_of_the_timeline() {
+    let site = site_with_thumbnails().await;
+    let v = server()
+        .video_json(WebVideoParams {
+            url: site.url("/talk"),
+            query: Some("the RESULTS".into()),
+            ..Default::default()
+        })
+        .await
+        .expect("web_video");
+    let hits = v["matches"].as_array().cloned().unwrap_or_default();
+    assert_eq!(hits.len(), 1, "{v}");
+    assert_eq!(
+        (hits[0]["by"].as_str(), hits[0]["t"].as_f64()),
+        (Some("said"), Some(40.0))
+    );
+    let content = v["content"].as_str().unwrap_or_default();
+    assert!(
+        content.contains("[0:40] said: Now the results."),
+        "{content}"
+    );
+    assert!(!content.contains("Hello and welcome"), "{content}");
+    // Without the image-text model the answer says which searches it ran.
+    if !svipall::zeroshot::available() {
+        assert!(v["notes"].to_string().contains("image-text model"), "{v}");
+    }
+}
+
+#[tokio::test]
+async fn an_argument_that_cannot_be_read_stops_the_call_before_any_request() {
+    // No site at all: nothing may be fetched for a call that cannot be understood.
+    for (start, crop, want) in [
+        (Some("later"), None, "start=\"later\""),
+        (None, Some("10,10,200,200"), "fractions"),
+    ] {
+        let v = server()
+            .video_json(WebVideoParams {
+                url: "http://127.0.0.1:9/never".into(),
+                start: start.map(str::to_string),
+                crop: crop.map(str::to_string),
+                ..Default::default()
+            })
+            .await
+            .expect("web_video");
+        assert!(
+            v["error"].as_str().unwrap_or_default().contains(want),
+            "{v}"
+        );
+    }
+}
+
+/// Looking closer at a part of a video, from the player itself: frames spread over the part and
+/// on a sheet, an exact moment, a part of the frame, and the second call reusing the first's
+/// frames. Needs a browser. Run by hand.
+#[tokio::test]
+#[ignore = "browser"]
+async fn a_part_of_the_video_is_captured_spread_and_not_captured_twice() {
+    let site = Site::start(vec![
+        (
+            "/talk",
+            Reply::html(
+                r#"<!doctype html><html><head><title>Local talk</title>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"VideoObject",
+"name":"Local talk","duration":"PT20S","contentUrl":"/main.webm"}</script></head>
+<body style="margin:0"><video src="/main.webm" muted autoplay playsinline
+ style="width:640px;height:360px"></video>
+<p>A talk about things, long enough to be a page and not a stub.</p></body></html>"#,
+            ),
+        ),
+        (
+            "/main.webm",
+            Reply::bytes(include_bytes!("fixtures/video/main.webm"), "video/webm"),
+        ),
+    ])
+    .await;
+    let s = server();
+    let ask = |p: WebVideoParams| {
+        let s = &s;
+        async move { s.video_json(p).await.expect("web_video") }
+    };
+    let started = std::time::Instant::now();
+    let v = ask(WebVideoParams {
+        url: site.url("/talk"),
+        start: Some("4".into()),
+        end: Some("0:16".into()),
+        frames: Some(6),
+        ..Default::default()
+    })
+    .await;
+    eprintln!("first look: {:?}\n{}", started.elapsed(), v["content"]);
+    assert_eq!(v["seen"]["source"], "player", "{v}");
+    let frames = v["frames"].as_array().cloned().unwrap_or_default();
+    assert!(frames.len() >= 4, "{v}");
+    for f in &frames {
+        let t = f["t"].as_f64().unwrap();
+        assert!((4.0..16.0).contains(&t), "inside the part asked for: {t}");
+        assert!(f["tokens"].as_u64().unwrap_or(0) > 0, "{v}");
+        assert!(std::path::Path::new(f["path"].as_str().unwrap()).is_file());
+    }
+    assert!(
+        v.get("sheets").is_none(),
+        "frames this small cost less than a sheet of them would: {v}"
+    );
+    assert!(v["content"]
+        .as_str()
+        .unwrap()
+        .contains("captured from the video"));
+
+    // The same look again opens no browser: the frames are the first call's.
+    let again = std::time::Instant::now();
+    let v2 = ask(WebVideoParams {
+        url: site.url("/talk"),
+        start: Some("4".into()),
+        end: Some("0:16".into()),
+        frames: Some(6),
+        ..Default::default()
+    })
+    .await;
+    eprintln!("second look: {:?}", again.elapsed());
+    assert_eq!(
+        v2["seen"]["reused"].as_u64(),
+        Some(frames.len() as u64),
+        "{v2}"
+    );
+    assert_eq!(
+        v2["frames"],
+        v["frames"]
+            .clone()
+            .as_array()
+            .map(|a| {
+                serde_json::Value::Array(
+                    a.iter()
+                        .map(|f| {
+                            let mut f = f.clone();
+                            f.as_object_mut().unwrap().remove("cut");
+                            f
+                        })
+                        .collect(),
+                )
+            })
+            .unwrap(),
+        "{v2}"
+    );
+
+    // One exact moment, and a quarter of its frame.
+    let v3 = ask(WebVideoParams {
+        url: site.url("/talk"),
+        at: vec!["0:10".into()],
+        crop: Some("0.5,0.5,0.5,0.5".into()),
+        ..Default::default()
+    })
+    .await;
+    let one = v3["frames"].as_array().cloned().unwrap_or_default();
+    assert_eq!(one.len(), 1, "{v3}");
+    assert!((one[0]["t"].as_f64().unwrap() - 10.0).abs() < 0.5, "{v3}");
+    let part = image::open(one[0]["path"].as_str().unwrap()).unwrap();
+    assert_eq!(
+        (part.width(), part.height()),
+        (80, 45),
+        "a quarter of 160x90"
+    );
+    assert!(v3.get("sheets").is_none(), "one frame needs no sheet: {v3}");
+}
+
 /// A media file read directly: no page, no captions, frames captured from the browser's own
 /// player where the picture changes. Run by hand.
 #[tokio::test]

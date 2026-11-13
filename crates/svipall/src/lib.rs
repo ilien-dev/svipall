@@ -59,6 +59,8 @@ pub mod tunnels;
 pub mod update;
 pub mod video;
 pub mod video_frames;
+pub mod video_index;
+pub mod video_sheet;
 /// Slider and rotation captchas: geometry, no model.
 pub mod vision;
 pub mod wire;

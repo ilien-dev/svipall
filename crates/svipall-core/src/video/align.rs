@@ -9,10 +9,19 @@
 use super::{chapters, Chapter, Cue};
 use serde::Serialize;
 
-#[derive(Debug, Clone, PartialEq, Serialize)]
+#[derive(Debug, Clone, Default, PartialEq, Serialize)]
 pub struct FrameRef {
     pub t: f64,
     pub path: String,
+    /// What reading the picture costs a model, in patch tokens ([`super::look::patch_cost`]).
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub tokens: Option<u32>,
+    /// The text on screen at that moment, when it was read.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub shown: Option<String>,
+    /// The picture differs strongly from the one before it: a cut, a new slide.
+    #[serde(skip_serializing_if = "std::ops::Not::not")]
+    pub cut: bool,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize)]
@@ -24,6 +33,9 @@ pub struct Segment {
     pub text: String,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub frame: Option<String>,
+    /// The text on screen in that frame, when it was read.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub shown: Option<String>,
 }
 
 /// Seconds to `m:ss`, or `h:mm:ss` past the hour.
@@ -81,6 +93,7 @@ pub fn timeline(
                     chapter: None,
                     text,
                     frame: None,
+                    shown: None,
                 })
             }
         }
@@ -92,13 +105,17 @@ pub fn timeline(
             .iter_mut()
             .find(|s| s.frame.is_none() && f.t >= s.start - 1e-6 && f.t < s.end)
         {
-            Some(s) => s.frame = Some(f.path.clone()),
+            Some(s) => {
+                s.frame = Some(f.path.clone());
+                s.shown = f.shown.clone();
+            }
             None => out.push(Segment {
                 start: f.t,
                 end: f.t,
                 chapter: None,
                 text: String::new(),
                 frame: Some(f.path.clone()),
+                shown: f.shown.clone(),
             }),
         }
     }
@@ -132,6 +149,10 @@ pub fn render(segments: &[Segment]) -> String {
             out.push_str(&format!(" (frame: {f})"));
         }
         out.push('\n');
+        if let Some(shown) = s.shown.as_deref().filter(|t| !t.trim().is_empty()) {
+            let line = shown.split_whitespace().collect::<Vec<_>>().join(" ");
+            out.push_str(&format!("    on screen: {line}\n"));
+        }
     }
     out
 }
@@ -186,6 +207,7 @@ mod tests {
         let f = vec![FrameRef {
             t: 42.0,
             path: "/f/42.png".into(),
+            ..Default::default()
         }];
         let s = timeline(&cues(), &[], &f, 1000.0, (None, None));
         assert_eq!(s.len(), 2);
@@ -202,6 +224,7 @@ mod tests {
         let f = vec![FrameRef {
             t: 5.0,
             path: "/f/5.png".into(),
+            ..Default::default()
         }];
         let s = timeline(&[], &[], &f, 30.0, (None, None));
         assert_eq!(s.len(), 1);
@@ -226,6 +249,7 @@ mod tests {
                 chapter: Some("Intro".into()),
                 text: "hello".into(),
                 frame: None,
+                shown: None,
             },
             Segment {
                 start: 3725.0,
@@ -233,11 +257,12 @@ mod tests {
                 chapter: Some("Q&A".into()),
                 text: String::new(),
                 frame: Some("/f.png".into()),
+                shown: Some("fn main() {\n    run();\n}".into()),
             },
         ];
         assert_eq!(
             render(&s),
-            "## Intro\n\n[0:00] hello\n\n## Q&A\n\n[1:02:05] (frame: /f.png)\n"
+            "## Intro\n\n[0:00] hello\n\n## Q&A\n\n[1:02:05] (frame: /f.png)\n    on screen: fn main() { run(); }\n"
         );
     }
 }

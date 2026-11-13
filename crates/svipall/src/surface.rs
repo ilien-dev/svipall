@@ -322,17 +322,19 @@ const SPECS: &[Spec] = &[
     },
     Spec {
         name: "web_video",
-        description: "What a video says: captions and chapters as one [m:ss] timeline, from a \
-            watch page, an embedded player or the stream; speech is transcribed when there are \
-            no captions. web_fetch on a video page returns only its description. An encrypted \
-            stream is reported as `drm`, never read.",
+        description: "What a video says and shows: captions and chapters as one [m:ss] timeline \n            (speech transcribed when there are none), and timed contact sheets of the whole \n            video, as files. Look closer with start/end, at, crop; find a moment with query. \n            web_fetch on a video page returns only its description. An encrypted stream is \n            reported as `drm`, never read.",
         required: &["url"],
         read_only: true,
         open_world: true,
         params: &[
             ("url", "s", ""),
             ("lang", "s", "Caption language to prefer, e.g. es"),
-            ("frames", "i", "Keyframes to save where the picture changes, max 24"),
+            ("frames", "i", "Moments to capture, max 120; 0 = no pictures"),
+            ("start", "s", "Part to look at: seconds or m:ss"),
+            ("end", "s", "Its end"),
+            ("at", "[s]", "Exact moments"),
+            ("crop", "s", "Part of the frame: x,y,w,h in 0..1"),
+            ("query", "s", "Find where this is said or shown"),
             ("max_tokens", "i", "Default 25000"),
             ("cursor", "s", "Continue a cut result"),
             ("out_file", "s", "Write the timeline here, return the path"),
@@ -460,7 +462,7 @@ pub fn listed_schema(name: &str) -> Option<Map<String, Value>> {
 pub const INSTRUCTIONS: &str = "svipall does all web access, locally. \
 Read URL(s): web_fetch (page, PDF/office, JSON, file; github.com via its API; tier automatic, learned per domain). \
 Fewer tokens: query=, css_selector, json_path, max_tokens + cursor, out_file (a binary needs it). Rows: tables=true or schema=auto. \
-Several URLs: urls=[..]; existence only: + probe=true. What a video says: web_video. The API behind a listing: web_capture. \
+Several URLs: urls=[..]; existence only: + probe=true. What a video says or shows: web_video. The API behind a listing: web_capture. \
 Click or type: web_view for refs, then browser. A picture: web_view image=true. \
 A site's pages: web_crawl map=true, then web_crawl. Find URLs: web_search; inside one site, site=. \
 Changes: web_watch. Memory across sessions: web_notes. \
