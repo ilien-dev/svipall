@@ -41,17 +41,14 @@ pub fn needs_http_url(tool: &str, url: &str) -> String {
 /// A `taskId` nobody handed out, or one from before the server restarted.
 pub fn unknown_task(task_id: &str) -> String {
     format!(
-        "no task {task_id:?}. A taskId comes from solve_turnstile, solve_recaptcha_v2, \
-         solve_hcaptcha or solve_image_captcha in this server's lifetime; to read a blocked page \
-         use solve_and_continue instead."
+        "no task {task_id:?}. A task_id comes from a captcha token or image call in this server's lifetime; to read a blocked page use captcha with url instead."
     )
 }
 
 /// A `session_id` that is not open.
 pub fn unknown_session(session_id: &str) -> String {
     format!(
-        "no open session {session_id:?}. browser_open returns one, and it ends with browser_close \
-         or when the server restarts; web_status lists the sessions open now."
+        "no open session {session_id:?}. browser open=true returns one, and it ends with close=true or when the server restarts; web_status lists the sessions open now."
     )
 }
 
@@ -61,7 +58,7 @@ pub fn widget_request_error(sitekey: &str, page_url: &str) -> Option<String> {
     if sitekey.is_empty() {
         return Some(
             "sitekey is empty. It is the widget's data-sitekey attribute on the page; with only \
-             the page URL, use solve_and_continue, which reads it there."
+             the page URL, use captcha with url, which reads it there."
                 .into(),
         );
     }
@@ -90,8 +87,8 @@ pub fn widget_request_error(sitekey: &str, page_url: &str) -> Option<String> {
 /// it — twice. Only the sitekey, which the caller does not otherwise have, is spelled out.
 pub fn captcha_next_step(widget: &str, token_tool: &str, sitekey: &str) -> String {
     format!(
-        "The page exposes a {widget} widget: solve_and_continue(url) answers it in place and \
-         returns the page behind it. {token_tool}(sitekey={sitekey:?}, pageUrl=url) returns a \
+        "The page exposes a {widget} widget: captcha(url) answers it in place and \
+         returns the page behind it. captcha({token_tool}, sitekey={sitekey:?}, page_url=url) returns a \
          bare token instead, and is right only for a form you post yourself."
     )
 }
@@ -99,7 +96,7 @@ pub fn captcha_next_step(widget: &str, token_tool: &str, sitekey: &str) -> Strin
 /// The same step when this installation has a solver but no widget could be read off the page.
 pub fn captcha_solver_available(dashboard: &str) -> String {
     format!(
-        "solve_and_continue(url) answers a challenge in place and returns the page behind it; a \
+        "captcha(url) answers a challenge in place and returns the page behind it; a \
          person can also answer one at {dashboard}."
     )
 }
@@ -144,7 +141,7 @@ pub fn solve_did_not_clear(kind: &WallKind, domain: &str, solver: bool, dashboar
         "the challenge did not clear. {}",
         wall_next_step(kind, domain, "warm", false, dashboard, None)
     );
-    s.push_str(" Calling solve_and_continue again meets the same check");
+    s.push_str(" Calling captcha with url again meets the same check");
     if solver {
         s.push_str(&format!("; a person can answer it at {dashboard}"));
     }
@@ -156,36 +153,36 @@ fn wall_advice(kind: &WallKind, tier: &str, solver: bool, dashboard: &str) -> St
     // The domain used to be spelled out here. It is the host of the `url` in the same response,
     // so it said nothing the reader did not have, and on a `raw:` page it rendered as "the
     // profile" with a hole in the middle of it.
-    let login_hint = "web_login(url) opens a visible window: pass the check once by hand and the \
+    let login_hint =
+        "web_setup(do=login, url) opens a visible window: pass the check once by hand and the \
                       profile keeps the cookies for later real/warm fetches.";
     match kind {
         // A page nobody recognised is not known to be a check a person can pass, so it gets no
         // login advice; a widget on it is named by the captcha step appended to this one.
         WallKind::Generic => format!(
             "Blocked at tier {tier} by a page svipall does not recognise; what it says is in \
-             `content`. Read it, or route the domain through another exit with web_route."
+             `content`. Read it, or route the domain through another exit with web_setup do=route."
         ),
         WallKind::Hold | WallKind::Cloudflare => {
-            let mut s = format!("Challenge still present at tier {}. {} Or route the domain through a proxy with web_route.", tier, login_hint);
+            let mut s = format!("Challenge still present at tier {}. {} Or route the domain through a proxy with web_setup do=route.", tier, login_hint);
             if solver {
                 s.push(' ');
                 s.push_str(&captcha_solver_available(dashboard));
             }
             s
         }
-        WallKind::Vendor => format!("Browser-fingerprinting wall (DataDome / PerimeterX / Incapsula) at tier {}. {} A residential proxy via web_route usually helps too.", tier, login_hint),
-        WallKind::Login => "Login wall. Use web_login(url, profile=NAME) to sign in once, then pass profile=NAME to web_fetch / web_act.".to_string(),
-        WallKind::Gate => "Geo or consent gate instead of the page. Use web_act to dismiss it (click the accept/continue button) or web_route to change the exit country.".to_string(),
-        WallKind::Empty => format!("Page did not render text at tier {}. Try web_act with a wait action, or a css_selector for the region you need.", tier),
+        WallKind::Vendor => format!("Browser-fingerprinting wall (DataDome / PerimeterX / Incapsula) at tier {}. {} A residential proxy via web_setup do=route usually helps too.", tier, login_hint),
+        WallKind::Login => "Login wall. Use web_setup(do=login, url, profile=NAME) to sign in once, then pass profile=NAME to web_fetch / browser.".to_string(),
+        WallKind::Gate => "Geo or consent gate instead of the page. Use browser (url + actions) to dismiss it (click the accept/continue button) or web_setup do=route to change the exit country.".to_string(),
+        WallKind::Empty => format!("Page did not render text at tier {}. Try browser with a wait action, or a css_selector for the region you need.", tier),
         WallKind::NotFound => "The URL does not exist (404/410). Check the address; escalating tiers cannot help.".to_string(),
         WallKind::SoftNotFound => "The page answered 200 but says it does not exist. Check the address; escalating tiers cannot help, and the stub is not the page you asked for.".to_string(),
         WallKind::Paywall => format!("The article exists and is being withheld behind a subscription. {login_hint} Only a profile that is signed in changes the answer; a proxy does not."),
-        WallKind::Status => format!("Hard HTTP block at tier {tier}. Use web_route with a proxy."),
+        WallKind::Status => format!("Hard HTTP block at tier {tier}. Use web_setup do=route with a proxy."),
         WallKind::Origin => format!(
             "The challenge was passed at tier {tier}, and the site's own server then refused: \
              it will not serve this client or this address. That is not a challenge to solve, \
-             so no higher tier and no solver changes it. Route the domain through another exit \
-             with web_route, or sign in once with web_login(url) if the site serves members only."
+             so no higher tier and no solver changes it. Route the domain through another exit with web_setup do=route, or sign in once with web_setup(do=login, url) if the site serves members only."
         ),
         WallKind::None => String::new(),
     }
@@ -314,23 +311,22 @@ mod tests {
         let path = not_a_url("/wiki/Web_crawler");
         assert!(path.contains("join"), "{path}");
         assert!(path.contains("`url`"), "{path}");
-        assert!(unknown_task("t").contains("solve_and_continue"));
+        assert!(unknown_task("t").contains("captcha with url"));
         // The note on a blocked page offers the tool that ends the problem before the one that
         // returns a token, and never the token tool without the condition that makes it right.
-        let note = captcha_next_step("Turnstile", "solve_turnstile", "0x4AAA");
+        let note = captcha_next_step("Turnstile", "kind=turnstile", "0x4AAA");
         assert!(
             !note.contains("x.test"),
             "the note repeats the page it is about: {note}"
         );
         let (ends, token) = (
-            note.find("solve_and_continue")
-                .expect("names the page tool"),
-            note.find("solve_turnstile").expect("names the token tool"),
+            note.find("captcha(url)").expect("names the page tool"),
+            note.find("kind=turnstile").expect("names the token call"),
         );
         assert!(ends < token, "{note}");
         assert!(note.contains("post yourself"), "{note}");
-        assert!(captcha_solver_available("http://d").contains("solve_and_continue"));
-        assert!(unknown_session("s").contains("browser_open"));
+        assert!(captcha_solver_available("http://d").contains("captcha(url)"));
+        assert!(unknown_session("s").contains("open=true"));
         assert!(unknown_session("s").contains("web_status"));
         assert!(NO_SUCH_WATCH.contains("web_watch list"));
     }
@@ -345,16 +341,15 @@ mod tests {
         assert!(set.contains("clear_cooldown=\"x.test\""), "{set}");
         // An unrecognised page is not known to be a check a person can pass.
         let generic = wall_next_step(&WallKind::Generic, "x.test", "warm", true, d, None);
-        assert!(!generic.contains("web_login"), "{generic}");
+        assert!(!generic.contains("do=login"), "{generic}");
         assert!(
-            wall_next_step(&WallKind::Cloudflare, "x", "warm", false, d, None)
-                .contains("web_login")
+            wall_next_step(&WallKind::Cloudflare, "x", "warm", false, d, None).contains("do=login")
         );
         // A refusal behind a passed challenge leaves nothing to solve, and the note says so
         // instead of sending the caller back into a check that is no longer there.
         let origin = solve_did_not_clear(&WallKind::Origin, "x.test", true, d);
         assert!(
-            origin.contains("challenge was passed") && origin.contains("web_route"),
+            origin.contains("challenge was passed") && origin.contains("do=route"),
             "{origin}"
         );
         assert!(
@@ -379,16 +374,16 @@ mod tests {
     #[test]
     fn a_solve_that_did_not_clear_does_not_send_the_caller_back_to_it() {
         let note = solve_did_not_clear(&WallKind::Cloudflare, "x.test", true, "http://d/human");
-        assert!(!note.contains("solve_and_continue(url) answers"), "{note}");
+        assert!(!note.contains("captcha(url) answers"), "{note}");
         assert!(note.contains("again meets the same check"), "{note}");
         assert!(note.contains("http://d/human"), "{note}");
-        assert!(note.contains("web_login"), "{note}");
+        assert!(note.contains("do=login"), "{note}");
     }
 
     #[test]
     fn a_widget_solve_is_refused_before_it_is_queued() {
         assert!(widget_request_error("", "https://x.example")
-            .is_some_and(|m| m.contains("solve_and_continue")));
+            .is_some_and(|m| m.contains("captcha with url")));
         assert!(widget_request_error("a b", "https://x.example").is_some());
         assert!(widget_request_error("0x4AAA", "x.example").is_some_and(|m| m.contains("http")));
         assert!(widget_request_error("0x4AAA", "https://x.example").is_none());

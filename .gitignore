@@ -28,3 +28,4 @@ crates/svipall-models/models/*.json
 # The demo GIF is committed; the frames it is built from are not.
 docs/demo/.frames/
 docs/demo/.stills/
+.muninn/

@@ -1097,7 +1097,7 @@ async fn a_subscription_stub_is_reported_as_a_paywall_and_not_as_the_article() {
 
     assert_eq!(out.value["wall_kind"], "paywall", "{:?}", out.value);
     let note = out.value["note"].as_str().unwrap_or_default();
-    assert!(note.contains("web_login"), "{note:?}");
+    assert!(note.contains("do=login"), "{note:?}");
 }
 
 /// A delivered page says how much of itself arrived, and says nothing when there is nothing to say.

@@ -973,6 +973,6 @@ async fn a_solve_that_did_not_clear_does_not_send_the_caller_back_to_it() {
     println!("{out}");
     assert_eq!(out["still_blocked"], true, "{out}");
     let note = out["note"].as_str().unwrap_or_default();
-    assert!(!note.contains("solve_and_continue(url) answers"), "{note}");
+    assert!(!note.contains("captcha(url) answers"), "{note}");
     assert!(note.contains("again meets the same check"), "{note}");
 }

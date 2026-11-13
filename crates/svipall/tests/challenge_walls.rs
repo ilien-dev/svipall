@@ -791,11 +791,11 @@ fn assert_the_origin_refused(out: &Value) {
     assert!(reason.contains("403"), "{out}");
     let note = out["note"].as_str().unwrap_or("");
     assert!(
-        note.contains("web_route") && note.contains("web_login"),
+        note.contains("do=route") && note.contains("do=login"),
         "{out}"
     );
     assert!(
-        !note.contains("solve_and_continue(url) answers"),
+        !note.contains("captcha(url) answers"),
         "there is no challenge left to answer: {out}"
     );
     // Nothing is withheld: what the server said is still handed over.

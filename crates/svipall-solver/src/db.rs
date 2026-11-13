@@ -161,11 +161,53 @@ fn migrate(conn: &Connection) -> anyhow::Result<()> {
     Ok(())
 }
 
+/// Whether an error anywhere in the chain is SQLite saying another connection holds the database.
+fn locked(e: &anyhow::Error) -> bool {
+    e.chain().any(|cause| {
+        matches!(
+            cause.downcast_ref::<rusqlite::Error>(),
+            Some(rusqlite::Error::SqliteFailure(f, _))
+                if matches!(
+                    f.code,
+                    rusqlite::ErrorCode::DatabaseBusy | rusqlite::ErrorCode::DatabaseLocked
+                )
+        )
+    })
+}
+
 impl Db {
     pub fn open() -> anyhow::Result<Self> {
         let path = db_path();
         std::fs::create_dir_all(path.parent().unwrap())?;
-        let conn = Connection::open(&path)?;
+        Self::open_at(&path)
+    }
+
+    /// Open the database at `path`, waiting out another opener rather than giving up on it.
+    ///
+    /// Every session of an assistant starts a server, and each opens this file. It had no
+    /// `busy_timeout` at all, so of eight openers of a new file one was regularly answered
+    /// "database is locked" at once, and that server ran its whole life with no solver: a captcha
+    /// it met was answered "solver not available". The same absence made a write refuse whenever
+    /// another server was writing. A locked database is somebody else finishing the same work, so
+    /// it is tried again for up to ten seconds; any other failure is returned as it is.
+    pub fn open_at(path: &std::path::Path) -> anyhow::Result<Self> {
+        let deadline = std::time::Instant::now() + std::time::Duration::from_secs(10);
+        let mut pause = std::time::Duration::from_millis(5);
+        loop {
+            match Self::open_once(path) {
+                Err(e) if locked(&e) && std::time::Instant::now() < deadline => {
+                    std::thread::sleep(pause);
+                    pause = (pause * 2).min(std::time::Duration::from_millis(200));
+                }
+                other => return other,
+            }
+        }
+    }
+
+    fn open_once(path: &std::path::Path) -> anyhow::Result<Self> {
+        let conn = Connection::open(path)?;
+        // First, so everything after it waits for a lock instead of failing on one.
+        conn.busy_timeout(std::time::Duration::from_secs(5))?;
         conn.execute_batch(
             "PRAGMA journal_mode=WAL;
              PRAGMA synchronous=NORMAL;
@@ -189,19 +231,23 @@ impl Db {
     }
 
     fn init(conn: Connection) -> anyhow::Result<Self> {
-        conn.execute_batch(SCHEMA)?;
-        migrate(&conn)?;
-        let count: i64 = conn.query_row(
-            "SELECT COUNT(*) FROM balances WHERE key='balance'",
-            [],
-            |r| r.get(0),
-        )?;
-        if count == 0 {
+        // One opener at a time, from reading the version to writing the new one: outside a
+        // transaction two openers both read the old version and both ran the same migration.
+        conn.execute_batch("BEGIN IMMEDIATE;")?;
+        let made = (|| {
+            conn.execute_batch(SCHEMA)?;
+            migrate(&conn)?;
             conn.execute(
-                "INSERT INTO balances (key, value) VALUES ('balance', 100.0)",
+                "INSERT OR IGNORE INTO balances (key, value) VALUES ('balance', 100.0)",
                 [],
             )?;
+            anyhow::Ok(())
+        })();
+        if let Err(e) = made {
+            let _ = conn.execute_batch("ROLLBACK;");
+            return Err(e);
         }
+        conn.execute_batch("COMMIT;")?;
         Ok(Self {
             conn: Arc::new(Mutex::new(conn)),
         })

@@ -53,7 +53,7 @@ human assistance. Neither path guarantees acceptance.
 
 Yes, two ways. Completed `svipall` data commands print one JSON object, so `| jq` works;
 help is written to stderr and `serve` is a long-running server.
-The `svipall serve` command puts nineteen of the twenty-nine MCP tools behind a local REST API that any language can
+The `svipall serve` command puts twenty-one of the thirty-one operations behind a local REST API that any language can
 drive. MCP is one front end of three, not the product.
 </details>
 
@@ -89,8 +89,8 @@ Turnstile cleared on the `real` tier at nowsecure-cf in 2.7, 1.7 and 1.7 seconds
 at canadianinsider, which stayed gated on `http` in all three runs.
 Other outcomes varied across visits. The recorded DataDome browser visits returned a blocked-visitor
 interstitial, while bare HTTP on the same address received a different challenge: those observations
-do not isolate the cause to the IP address. `web_route` can try an exit you supply, without guaranteeing
-acceptance. The [2026-09-06 automatic-policy snapshot](../bench/experiments/automatic-public-20260906/README.md)
+do not isolate the cause to the IP address. `web_setup` with `do=route` can try an exit you supply, without guaranteeing
+acceptance. The [2026-09-06 automatic-policy snapshot](https://github.com/ilien-dev/svipall/blob/a4d76a31cf692e38dc356073df5d038310f1fa4b/bench/experiments/automatic-public-20260906/README.md)
 reports delivery-check rates and content limitations on `dd8a304` and predates the browser
 directory/shutdown fix in `e60e10b`.
 </details>
@@ -114,7 +114,7 @@ Svipall gives the agent the content itself, with labels attached: a `blocked_rea
 answered instead of the page, quality and duplicate observations when it did not
 ([details](features.md#judging-what-came-back)). Around it sit the jobs a single-page fetch does not
 cover: a tier ladder with per-domain memory, local captcha attempts, a login that persists across
-pages, `web_map` and `web_crawl`, tables as rows, `out_file` for a result too big to put in a
+pages, `web_crawl` and its `map=true` listing of a site's URLs, tables as rows, `out_file` for a result too big to put in a
 conversation, and three search engines queried from this machine and merged. Trimming is still
 there when you want it, as `query=`, `css_selector` or `max_tokens`, but it is not the only mode.
 

@@ -36,7 +36,7 @@ notice.
 
 **TDD: a test before every behaviour change**, and it must fail without the change. `cargo test
 --workspace` must be green. The
-[2026-09-07 validation](../bench/experiments/native-auto-candidate2-20260907/narrow-validation/qc-execution.json)
+[2026-09-07 validation](https://github.com/ilien-dev/svipall/blob/a4d76a31cf692e38dc356073df5d038310f1fa4b/bench/experiments/native-auto-candidate2-20260907/narrow-validation/qc-execution.json)
 passed **1,216 workspace tests**, with zero failures and 22 ignored by default. Separately, ten
 automatic/learning/timeout tests and four local browser tests passed with their ignored fixtures
 enabled. HTTP/3 passed three tests with one network test ignored, and all four ONNX model tests
@@ -44,9 +44,9 @@ passed. Full QC also passed format, the Clippy feature matrix, CPU/structural bu
 probes, identity coherence and the available SIGIR-23 corpus floors. Source, model and corpus
 hashes were stable. This validation contains the retained narrow heading change. Two broader
 isolated prototypes were rejected after corpus regressions and were not integrated.
-The [2026-09-06 validation](../bench/experiments/automatic-public-20260906/latest-code-validation.md)
+The [2026-09-06 validation](https://github.com/ilien-dev/svipall/blob/a4d76a31cf692e38dc356073df5d038310f1fa4b/bench/experiments/automatic-public-20260906/latest-code-validation.md)
 covers `e60e10b` plus a test-isolation correction and retains the initial shared-directory assertion
-failure. The [earlier revalidation](../bench/experiments/revalidation-20260906/README.md) records the
+failure. The [earlier revalidation](https://github.com/ilien-dev/svipall/blob/a4d76a31cf692e38dc356073df5d038310f1fa4b/bench/experiments/revalidation-20260906/README.md) records the
 1,170-test `dd8a304` run, installation/MCP checks and its initial cache-path/browser failures.
 
 ```powershell

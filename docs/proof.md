@@ -30,14 +30,14 @@ address has already spent past the line.
 > because running `public31` spends the same addresses they score, and taking all three back to back
 > is the exact thing that produced a round this project already published as a warning.
 
-The `browser_identity=auto` policy has [controlled local verification](../bench/experiments/auto-20260905/README.md)
-and a [2026-09-06 revalidation](../bench/experiments/revalidation-20260906/README.md),
+The `browser_identity=auto` policy has [controlled local verification](https://github.com/ilien-dev/svipall/blob/a4d76a31cf692e38dc356073df5d038310f1fa4b/bench/experiments/auto-20260905/README.md)
+and a [2026-09-06 revalidation](https://github.com/ilien-dev/svipall/blob/a4d76a31cf692e38dc356073df5d038310f1fa4b/bench/experiments/revalidation-20260906/README.md),
 including native-last order, opt-out, learning and timeout handling. Running the commands above now measures the current code and effective configuration.
 It does not recreate the historical policy. Use the recorded revisions and configurations for those comparisons.
 
 ### Automatic-policy snapshot: first-response delivery, 2026-09-06
 
-The [complete public measurement](../bench/experiments/automatic-public-20260906/README.md) recorded
+The [complete public measurement](https://github.com/ilien-dev/svipall/blob/a4d76a31cf692e38dc356073df5d038310f1fa4b/bench/experiments/automatic-public-20260906/README.md) recorded
 **459 calls across 48 URLs: three rounds, three consecutive calls per target slot**, with persistent
 learning, profiles, cooldowns and reputation, a 60-second timeout, cache bypass and unattended
 operation. **348/459 (75.82%) passed the existing delivery check.** The executable was frozen at
@@ -50,7 +50,7 @@ measurements of that newer build.
 | hard12 | 72/108 (66.67%) | 25/36 (19..28) | 1.31 s | 13.61 s |
 | vendors8 | 39/72 (54.17%) | 13/24 (12..14) | 3.50 s | 11.98 s |
 
-Each round above includes all three visits. [Tables by visit position](../bench/experiments/automatic-public-20260906/results.md)
+Each round above includes all three visits. [Tables by visit position](https://github.com/ilien-dev/svipall/blob/a4d76a31cf692e38dc356073df5d038310f1fa4b/bench/experiments/automatic-public-20260906/results.md)
 separate their medians and ranges. The last column includes time spent on failures, divided by
 delivery-check passes. The run took **63.95 minutes including pauses** and retained **66 local
 deferrals and nine timeouts**. Native fallback was recorded on **28 calls**, all with a privacy
@@ -60,7 +60,7 @@ controlled estimate of its gain over disabling native.
 **A passing delivery check is not proof of complete extraction.** It requires status 200..399,
 no reported block, nonempty content and at least one expected string where supplied. `public31`
 has no expected strings. **156 of the 348 passes were explicitly paginated**, and the harness did
-not follow their cursors. The [content audit](../bench/experiments/automatic-public-20260906/content-audit.md)
+not follow their cursors. The [content audit](https://github.com/ilien-dev/svipall/blob/a4d76a31cf692e38dc356073df5d038310f1fa4b/bench/experiments/automatic-public-20260906/content-audit.md)
 also identifies title-only catalogue responses, empty-result and login pages. Fetching a detector
 page does not prove passing its active tests. The lists contain mixed page types and basic controls.
 Their overlapping targets and persistent state are not independent samples of the web.
@@ -68,12 +68,12 @@ Their overlapping targets and persistent state are not independent samples of th
 This is an observed snapshot on one host and exit. The report retains browser-launch errors,
 documents the repeated shuffle order in rounds 2 and 3, and separates background/source changes
 from the frozen executable. It establishes neither a causal speedup nor superiority to another
-tool or future reliability. [Raw records, hashes and offline verification](../bench/experiments/automatic-public-20260906/README.md#files-and-offline-verification)
+tool or future reliability. [Raw records, hashes and offline verification](https://github.com/ilien-dev/svipall/blob/a4d76a31cf692e38dc356073df5d038310f1fa4b/bench/experiments/automatic-public-20260906/README.md#files-and-offline-verification)
 allow the reported calculations to be checked without contacting the sites again.
 
 ### Native versus automatic: paired baseline, 2026-09-06
 
-The [paired baseline](../bench/experiments/native-auto-20260906/README.md) saved **918 calls** and
+The [paired baseline](https://github.com/ilien-dev/svipall/blob/a4d76a31cf692e38dc356073df5d038310f1fa4b/bench/experiments/native-auto-20260906/README.md) saved **918 calls** and
 reviewed all **334 distinct content fingerprints**. The control requests pages directly through
 Svipall's native `warm` mode. It is not a separate stock-browser implementation. Both arms use
 the same frozen executable, deadlines and shared traffic/reputation accounting.
@@ -93,7 +93,7 @@ deferred. The report retains those calls and publishes a sensitivity analysis. F
 must not be mistaken for faster extraction. Review used arm-hidden content excerpts and recorded
 reasons, not independent double-blind review or exhaustive completeness checks.
 
-A [classification-aware routing candidate](../bench/experiments/native-auto-candidate1-20260907/README.md)
+A [classification-aware routing candidate](https://github.com/ilien-dev/svipall/blob/a4d76a31cf692e38dc356073df5d038310f1fa4b/bench/experiments/native-auto-candidate1-20260907/README.md)
 passed its local regressions and full QC, then completed 918 calls with all 376 content fingerprints
 audited. It returned **164/161 useful deliveries** (auto/native), or **165/171** when including useful
 content inside blocked responses, in **2,891/3,545 total fetch seconds**. Its pause before round 3
@@ -102,7 +102,7 @@ that interruption. Both arms improved their counts and both spent more time than
 That interrupted run does not establish a causal routing benefit. The older automatic-only
 snapshot above uses a different executable and protocol.
 
-The [completed current comparison](../bench/experiments/native-auto-candidate2-20260907/final-findings.md)
+The [completed current comparison](https://github.com/ilien-dev/svipall/blob/a4d76a31cf692e38dc356073df5d038310f1fa4b/bench/experiments/native-auto-candidate2-20260907/final-findings.md)
 measures remembered fingerprint walls, managed-challenge routing and narrow listing-heading
 preservation: **918 calls**, all **287 content fingerprints audited**, and independently verified
 published records. Results across the three measured versions are:
@@ -145,7 +145,7 @@ ROUGE-LSum F1, median over the 3,975 gradable pages of the **SIGIR-23 gold stand
 `svipall-bench extract` against the study's own published extractions:
 
 The SIGIR-23 values below were rechecked in the
-[2026-09-07 validation](../bench/experiments/native-auto-candidate2-20260907/narrow-validation/qc-execution.json).
+[2026-09-07 validation](https://github.com/ilien-dev/svipall/blob/a4d76a31cf692e38dc356073df5d038310f1fa4b/bench/experiments/native-auto-candidate2-20260907/narrow-validation/qc-execution.json).
 The later isolated extractor prototype is not included in these figures.
 
 | | median | mean | IQR |
@@ -235,9 +235,9 @@ and the script says so rather than letting the benchmark score an empty corpus.
 targets, 651 verdicts), scored with **that benchmark's own four-way rule** (`ok | gated | blocked |
 error`) implemented in `bench/src/targets.rs`. The historical figures below retain their original
 rule. Current scoring rejects missing or invalid HTTP statuses. The new comparison records both
-rules and content delivery separately in [the local experiment](../bench/experiments/local-20260905/README.md).
+rules and content delivery separately in [the local experiment](https://github.com/ilien-dev/svipall/blob/a4d76a31cf692e38dc356073df5d038310f1fa4b/bench/experiments/local-20260905/README.md).
 
-The completed [local before/after comparison](../bench/experiments/local-20260905/findings.md) contains
+The completed [local before/after comparison](https://github.com/ilien-dev/svipall/blob/a4d76a31cf692e38dc356073df5d038310f1fa4b/bench/experiments/local-20260905/findings.md) contains
 918 samples across three configurations. Native mode raises `hard12` delivery from 9/12 first and
 8/12 returning visits to 11/12 on both. That experiment's emulated default has mixed results, including a Zillow
 delivery regression and longer difficult-set waits. Content limitations, ranges and null results
@@ -366,7 +366,7 @@ Beyond the score:
 ### Failures investigated in earlier runs
 
 These historical failures were investigated on one connection. They are not permanent site
-verdicts: the [2026-09-06 automatic snapshot](../bench/experiments/automatic-public-20260906/README.md)
+verdicts: the [2026-09-06 automatic snapshot](https://github.com/ilien-dev/svipall/blob/a4d76a31cf692e38dc356073df5d038310f1fa4b/bench/experiments/automatic-public-20260906/README.md)
 also records G2 and Idealista deliveries. Remote history may contribute, but local experiments
 cannot isolate all server-side signals or prove that an address change is necessary.
 
@@ -376,7 +376,7 @@ cannot isolate all server-side signals or prove that an address change is necess
 | **crunchbase.com** | Passed at six seconds early in the day; refuses the same code, on a fresh profile wearing a different machine, after fifteen visits within the hour | The outcome changed with time and accumulated visits. That suggests history matters, but the run did not isolate its cause from other server or browser conditions |
 | **indeed.com** | Not a fixed answer at all: 0 of 3 on `hard12` (2026-09-04), 2 of 3 on `public31` the next day, and 1 of 3 in an earlier round | Same shape as crunchbase. `indeed`, `crunchbase` and `zillow` have swapped places across four measurement rounds: this is the noise band of a list run from one address, not a code change, which is why it is listed here rather than counted as a pass |
 
-> `web_route` can test an alternate exit supplied by the operator, without guaranteeing acceptance.
+> `web_setup` with `do=route` can test an alternate exit supplied by the operator, without guaranteeing acceptance.
 > Svipall does not bundle proxies or remote solving services. The local comparison uses neither.
 >
 > `evasion --exit URL` runs the same targets through an exit you supply and can help assess exit

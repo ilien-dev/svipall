@@ -22,7 +22,7 @@ Lifted out of the README so that file stays readable. Everything here is the sam
   Browsing can contact page resources, redirects, challenge endpoints and other origins a page uses, and optional
   DNS-over-HTTPS contacts the configured resolver. Results go to your connected client, and what
   happens to them there depends on that client. Startup can download Chrome for Testing when no browser
-  is installed and browser tiers are enabled; explicit `browser install` / `browser_setup` also
+  is installed and browser tiers are enabled; explicit `browser install` / `web_setup do=browser` also
   contacts the release metadata and download servers. Set `browser_auto_install=false` to turn off
   automatic provisioning. Svipall fetches and caches the configured blocklists
   (StevenBlack/hosts and EasyPrivacy by default) when `block_ads=true`. A launched browser may also make its own

@@ -658,3 +658,110 @@ async fn a_crawl_with_a_schema_returns_rows_from_every_page_and_writes_them_flat
         "each row names its page and carries the fields: {text}"
     );
 }
+
+/// A site reached by name through the fixture acting as its exit, so its sitemap can name its
+/// own pages: a sitemap's `<loc>` is absolute, and a loopback port is not known until it starts.
+async fn named_site(domain: &str, routes: Vec<(String, Reply)>) -> (Site, SvipallServer, Db) {
+    let routes: Vec<(&str, Reply)> = routes
+        .iter()
+        .map(|(u, r)| (u.as_str(), r.clone()))
+        .collect();
+    let site = Site::start(routes).await;
+    svipall_core::exits::set_pool(domain, &[site.url("").trim_end_matches('/').to_string()]);
+    let db = Db::new();
+    let store = svipall_core::cache::Store::open_at(&db.0).expect("open db");
+    let server = SvipallServer::with_store(
+        None,
+        svipall_core::Config {
+            request_min_interval_ms: 1,
+            max_tier: "http".into(),
+            ..Default::default()
+        },
+        None,
+        Some(Arc::new(store)),
+    );
+    (site, server, db)
+}
+
+#[tokio::test]
+async fn an_incremental_crawl_reads_the_sitemap_robots_txt_names() {
+    // robots.txt is read before every crawl, and its `Sitemap:` lines say where the sitemap is.
+    // The incremental seed ignored them and tried five conventional spellings instead: on a site
+    // whose sitemap lives anywhere else it spent five of the host's twelve visits and found
+    // nothing, so the crawl saw only what the start page links to.
+    let d = "crawl-named.test";
+    let (_site, server, _db) = named_site(
+        d,
+        vec![
+            (format!("http://{d}/"), Reply::page("Index", &[])),
+            (
+                format!("http://{d}/robots.txt"),
+                Reply::plain(&format!(
+                    "User-agent: *\nAllow: /\nSitemap: http://{d}/maps/pages.xml\n"
+                )),
+            ),
+            (
+                format!("http://{d}/maps/pages.xml"),
+                Reply::plain(&format!(
+                    "<?xml version=\"1.0\"?><urlset>\
+                     <url><loc>http://{d}/deep1</loc></url>\
+                     <url><loc>http://{d}/deep2</loc></url></urlset>"
+                )),
+            ),
+            (format!("http://{d}/deep1"), Reply::page("Deep one", &[])),
+            (format!("http://{d}/deep2"), Reply::page("Deep two", &[])),
+        ],
+    )
+    .await;
+    let out = server
+        .crawl_json(WebCrawlParams {
+            since_last_crawl: Some(true),
+            // The crawl's own default; the helper turns robots.txt off.
+            robots: Some("obey".into()),
+            ..crawl(&format!("http://{d}/"), 10)
+        })
+        .await;
+    assert_eq!(
+        out["count"], 3,
+        "the two pages only the sitemap knows are crawled: {out}"
+    );
+}
+
+#[tokio::test]
+async fn an_incremental_crawl_follows_a_sitemap_index() {
+    // A site of any size publishes an index of sitemaps, not one sitemap. The seed read the index,
+    // found no page in it and gave up.
+    let d = "crawl-index.test";
+    let (_site, server, _db) = named_site(
+        d,
+        vec![
+            (format!("http://{d}/"), Reply::page("Index", &[])),
+            (
+                format!("http://{d}/sitemap.xml"),
+                Reply::plain(&format!(
+                    "<?xml version=\"1.0\"?><sitemapindex>\
+                     <sitemap><loc>http://{d}/maps/a.xml</loc></sitemap></sitemapindex>"
+                )),
+            ),
+            (
+                format!("http://{d}/maps/a.xml"),
+                Reply::plain(&format!(
+                    "<?xml version=\"1.0\"?><urlset>\
+                     <url><loc>http://{d}/deep1</loc></url></urlset>"
+                )),
+            ),
+            (format!("http://{d}/deep1"), Reply::page("Deep one", &[])),
+        ],
+    )
+    .await;
+    let out = server
+        .crawl_json(WebCrawlParams {
+            since_last_crawl: Some(true),
+            ..crawl(&format!("http://{d}/"), 10)
+        })
+        .await;
+    assert_eq!(
+        out["count"], 2,
+        "the page listed by the index's child sitemap is crawled: {out}"
+    );
+}

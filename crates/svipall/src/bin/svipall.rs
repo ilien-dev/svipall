@@ -101,8 +101,31 @@ COMMANDS:
 Everything prints one JSON object to stdout. Errors go to stderr.
 ";
 
-#[tokio::main]
-async fn main() {
+/// The command runs on a thread with a stack of its own size, not on the main thread.
+///
+/// `#[tokio::main]` polls the top future on the main thread, whose stack is 1 MB on Windows, and a
+/// fetch walking the ladder is one very deep future: an unoptimised build overflowed it on
+/// `svipall fetch https://example.com/` before printing anything. The server never met this,
+/// because its calls run on worker threads.
+fn main() {
+    let thread = std::thread::Builder::new()
+        .name("svipall".into())
+        .stack_size(16 * 1024 * 1024)
+        .spawn(|| {
+            tokio::runtime::Builder::new_multi_thread()
+                .enable_all()
+                .thread_stack_size(8 * 1024 * 1024)
+                .build()
+                .expect("tokio runtime")
+                .block_on(command())
+        })
+        .expect("command thread");
+    if thread.join().is_err() {
+        std::process::exit(101);
+    }
+}
+
+async fn command() {
     let args: Vec<String> = std::env::args().skip(1).collect();
     if args.is_empty() || args[0] == "-h" || args[0] == "--help" {
         eprint!("{USAGE}");

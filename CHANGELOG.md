@@ -1,5 +1,134 @@
 # Changelog
 
+## 2.0.0 — 2026-11-12
+
+The MCP server lists twelve tools where 1.4.0 listed thirty-one. An operation that had its own
+tool is now a mode of one of the twelve, chosen by an argument. The operations themselves are the
+ones 1.4.0 ran.
+
+The reason is a month of real calls. Of 4,406, 96% went to `web_fetch` (2,821), `web_search` (832)
+and `web_fetch_many` (571), and 13 of the 31 tools were never called. A client that loads every
+definition paid for all of them on every turn.
+
+The twelve tools, and where each 1.x tool went:
+
+| 2.0 tool | replaces (1.x tool → how it is called now) |
+|---|---|
+| `web_fetch` | `web_fetch`; `web_fetch_many` → `web_fetch` with `urls`; `web_probe` → `web_fetch` with `urls` (or `url`) and `probe=true` |
+| `web_search` | `web_search`; `web_site_search` → `web_search` with `site` (was `url`) |
+| `web_crawl` | `web_crawl`; `web_map` → `web_crawl` with `map=true` |
+| `web_view` | `web_snapshot` → `web_view`; `web_screenshot` → `web_view` with `image=true` |
+| `browser` | `web_act` → `browser` with `url` + `actions`; `browser_open` → `open=true`; `browser_do` → `session_id` (+ `url`/`actions`); `browser_close` → `session_id` + `close=true` |
+| `web_watch` | `web_watch`; `web_diff` → `web_watch` with `action=diff` |
+| `web_status` | `web_status`; `web_log` → `web_status` with `log=summary` or `log=recent` (was `view`) |
+| `web_setup` | `web_login` → `do=login`; `web_route` → `do=route`; `web_profile` → `do=profile`; `browser_setup` → `do=browser` |
+| `captcha` | `solve_and_continue` → `captcha` with `url`; `solve_turnstile`/`solve_recaptcha_v2`/`solve_hcaptcha` → `kind` + `sitekey` + `page_url` (was `pageUrl`); `solve_image_captcha` → `image`; `captcha_status` → `task_id` (was `taskId`); `report_captcha` → `task_id` + `good` |
+| unchanged | `web_capture`, `web_video`, `web_notes` |
+
+Compatibility:
+
+- **The 1.x names still answer.** `tools/list` no longer returns them, but a call to one by name,
+  with its 1.x arguments, runs as it did.
+- **The CLI and the REST API are unchanged.** The commands (`svipall fetch`, `svipall map`, …) and
+  the routes (`/v1/fetch_many`, `/v1/snapshot`, …) stay one per operation.
+
+New behaviour:
+
+- **`web_fetch` with `urls` takes every per-page argument.** `css_selector`, `profile`, `headers`,
+  `include_links` and the rest of a single fetch's arguments apply to each page. `web_fetch_many`
+  took only nine of them.
+- **`browser` with `open=true` may do the first step.** It accepts the first `url` and `actions`
+  in the same call and returns the `session_id` together with that step's result.
+- **An argument a mode has no use for refuses the call.** `find` with `image=true` on `web_view`
+  is one such call: the refusal names what that mode takes, and nothing is run.
+- **Notes and errors name the 2.0 calls**: `captcha(url)`, `web_setup(do=login, url)`,
+  `web_setup do=route`, `web_view`.
+
+Measured:
+
+- **The tool list is half the size.** The definitions `tools/list` sends were 41,670 characters in
+  1.4.0 (31 tools) and are 20,649 in 2.0 (12 tools), 50.4% less. By the repository's own budget
+  sum (name, description and input schema) that is 38,547 against 19,441. The server instructions
+  went from 1,775 characters to 1,400.
+- **A client with deferred loading pays per tool used.** Claude Code is one, and there a session
+  that fetched one page, fetched several and searched loaded three definitions (9,088 characters)
+  and now loads two (5,166).
+- **Routing was checked blind: 79 of 80 on the 2.0 list.** Two models (Haiku and Sonnet) were
+  each given only the tool list and 40 tasks covering every operation, once with the 1.4.0 list
+  and once with the 2.0 list. With the 1.4.0 list both scored 40/40, and with the 2.0 list Haiku
+  scored 40/40 and Sonnet 39/40. The miss was `browser` called with `open=true` and a `url`,
+  which was refused at the time of the run and is the second item under "New behaviour" now.
+- **An MCP result is shorter on a page that simply arrived.** It drops the fields that repeat
+  their neighbours: `attempts` when it holds a single entry (`status` and `tier_used` say the
+  same), `identity_used` when it is `emulated` (the default), `chars` when `content` is beside it,
+  and `blocks_returned` and `total_blocks` on a cut page, where the `continue` sentence states
+  them. A search that found results on the first engine asked drops its single `attempts` entry
+  and a `locale` of `{"from": "none"}`. Each page inside `results` (several URLs) and `pages` (a
+  crawl) is treated the same.
+- **Nothing is dropped from a page that needs explaining.** A page that was blocked, errored, took
+  more than one attempt or was read with a native identity keeps every field. The labels
+  (`quality`, `optimization`, `wall_vendor`) and `tokens_estimated` always stay. The CLI and the
+  REST API return the whole envelope as before.
+- **The envelope, before → after.** Counted as the result's characters minus the page text or
+  search results it carries: a read cut at 300 tokens 661 → 548; a whole small page 270 → 195;
+  three URLs in one call 1,390 → 1,221; a five-result search 177 → 69.
+
+Fixed:
+
+- **A site map no longer spends a host's whole visit window on guesses.** On a site with no
+  robots.txt, sitemap, `llms.txt` or feed (found on rust-lang.org), `web_map` tried all twelve
+  conventional locations, which is the 12-visit window of a host. The thirteenth visit was the
+  home page, the one source with anything, and it was refused. The answer was zero URLs with no
+  explanation, and nothing could be read from that host for a minute. 1.3.1 and 1.4.0 behave the
+  same. Now, unless `sources` is named, the guesses share half the window (six by default), most
+  likely location first (`/sitemap.xml` before `/sitemap.xml.gz`), and the first sitemap spelling
+  that exists ends the sitemap guesses. Locations left untried are counted in `note`; naming
+  `sources` tries every location of those sources. A home page the limiter or a wall kept back is
+  also said in `note`. On rust-lang.org the map now returns the home page's links and a page can
+  be read straight after.
+
+- **An incremental crawl now reads the sitemaps robots.txt names and follows a sitemap index.**
+  `web_crawl` with `since_last_crawl` seeds itself from the site's sitemap. It ignored the
+  `Sitemap:` lines of the robots.txt it had just read and tried five conventional spellings
+  instead. On a site whose sitemap lives anywhere else it spent five of the host's twelve visits
+  and found nothing, and the crawl then saw only what the start page links to. It also stopped
+  at a sitemap index: it read the index, found no page in it and gave up, and a site of any size
+  publishes an index. 1.4.0 behaves the same. Now it reads the sitemaps robots.txt names. Only a
+  site that names none is guessed at, by the two commonest spellings (`/sitemap.xml`,
+  `/sitemap_index.xml`), and an index is followed (up to five children, six documents in all).
+  With `robots=ignore` robots.txt is not read, so the two guesses are what is tried.
+
+- **The CLI no longer overflows its stack in an unoptimised build.** `svipall` ran its command on
+  the main thread, whose stack is 1 MB on Windows, and an unoptimised build overflowed it on
+  `svipall fetch https://example.com/`. The command now runs on a thread with its own stack.
+  Release builds were not seen to overflow.
+
+- **Several processes opening the page cache at once no longer leave one of them without it.**
+  Every assistant session starts its own server, and a CLI command starts beside them. There were
+  two causes. Creating the file, switching it to WAL and writing the schema each need the
+  database briefly to themselves, and `busy_timeout` does not cover all of that: of eight
+  simultaneous openers of a new file, one was regularly answered `database is locked` at once.
+  The schema version was also read and the migration applied outside a transaction, so two
+  openers could both add the same column and the second failed with `duplicate column name`; that
+  is the upgrade-day case. The server that lost only logged a warning and ran without a cache for
+  as long as it lived: every read was a download, a cursor continuation fetched the page again,
+  and a diff had nothing to compare with. Now a locked database is tried again for up to ten
+  seconds, and the schema and its migrations run in one exclusive transaction. It showed up as a
+  test that failed about one run in ten, locally and in CI (`tests/map.rs`, a page expected from
+  the cache that was downloaded again). 1.4.0 has the same fault.
+
+- **Several processes opening the solver's database at once no longer leave one of them without
+  a solver.** The solver's database (`jobs.db`) had the same fault, and worse: it set no
+  `busy_timeout` at all. Of eight simultaneous openers of a new file, one was regularly answered
+  `database is locked` at once. The server that lost ran its whole life with no solver, so a
+  captcha it met was answered "solver not available". The missing timeout also meant a write
+  could be refused whenever another server was writing. Now it waits up to five seconds on a
+  lock, a locked open is tried again for up to ten seconds, and the schema, its migrations and
+  the opening balance are written in one exclusive transaction. The visit ledger
+  (`traffic.sqlite3`) was checked the same way, eight openers at once over 25 rounds, repeated,
+  and never failed: it already set a timeout and migrated inside a transaction. 1.4.0 has the
+  same fault.
+
 ## 1.4.0 — 2026-11-11
 
 Most of this release comes from reading 2,361 real tool calls made on 1.3.1 between 10 October and

@@ -10,10 +10,10 @@ itself.
 
 ## Declaring a pool
 
-`web_route` takes a domain, one or more proxy URLs and, optionally, the country each one is in:
+`web_setup` with `do=route` takes a domain, one or more proxy URLs and, optionally, the country each one is in:
 
 ```
-web_route domain=example.com proxies=["socks5h://127.0.0.1:9050"] countries=["de"]
+web_setup do=route domain=example.com proxies=["socks5h://127.0.0.1:9050"] countries=["de"]
 ```
 
 Pools live in `~/.svipall/pools.json` and are inherited by subdomains: a pool on `example.com`
@@ -89,7 +89,7 @@ socks_port = 9050
 Each one is the exit `socks5h://127.0.0.1:<socks_port>`, and a pool names it like any other proxy:
 
 ```
-web_route domain=example.com proxies=["socks5h://127.0.0.1:1081","socks5h://127.0.0.1:9050"]
+web_setup do=route domain=example.com proxies=["socks5h://127.0.0.1:1081","socks5h://127.0.0.1:9050"]
 ```
 
 `svipall-mcp` and `svipall serve` start every tunnel when they come up. The command runs without a
@@ -163,7 +163,7 @@ What it does:
 it stands: a burnt pool still hands back its healthiest exit. A spent budget is a different claim
 ("we have asked enough for now", not "this address is refused"), and it is the one thing a
 local-only tool can do about the scarcest resource it has. It stays a labelled answer with an
-escape hatch, never a silence: `web_status(clear_budget="DOMAIN")` empties it, `web_route` moves to
+escape hatch, never a silence: `web_status(clear_budget="DOMAIN")` empties it, `web_setup do=route` moves to
 another address, and `reputation_budget = 0` turns the whole mechanism off.
 
 An exit that has spent its budget is passed over by the pool exactly as a retired one is, so a
@@ -179,7 +179,7 @@ recording it as one would lose the page for that crawl id forever.
 
 * **DNS.** `socks5://` resolves names on *this* machine and sends the answer through the proxy,
   which puts every hostname you visit in your resolver's log and your ISP's. `socks5h://` resolves
-  at the far end. `web_route check` flags the difference rather than silently fixing it, because
+  at the far end. `web_setup do=route check=true` flags the difference rather than silently fixing it, because
   the two are different requests and only the operator knows which was meant. With no proxy at all,
   `dns_over_https` closes the same hole at the browser (`--dns-over-https-mode=secure`, never
   `automatic`: a mode that falls back to plaintext is not a mode).

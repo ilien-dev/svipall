@@ -427,6 +427,20 @@ pub struct Store {
     path: PathBuf,
 }
 
+/// Whether an error anywhere in the chain is SQLite saying another connection holds the database.
+fn locked(e: &anyhow::Error) -> bool {
+    e.chain().any(|cause| {
+        matches!(
+            cause.downcast_ref::<rusqlite::Error>(),
+            Some(rusqlite::Error::SqliteFailure(f, _))
+                if matches!(
+                    f.code,
+                    rusqlite::ErrorCode::DatabaseBusy | rusqlite::ErrorCode::DatabaseLocked
+                )
+        )
+    })
+}
+
 fn tune(conn: &Connection) -> Result<()> {
     // `busy_timeout` comes first on purpose: switching to WAL needs a brief exclusive lock, so two
     // instances starting at the same moment would otherwise get an immediate "database is locked"
@@ -452,12 +466,46 @@ impl Store {
         Self::open_at(&path)
     }
 
+    /// Open the cache at `path`, waiting out another opener rather than giving up on it.
+    ///
+    /// Creating the file, switching it to WAL and writing the schema each need the database to
+    /// themselves for a moment, and `busy_timeout` does not cover all of them: of eight openers
+    /// of a new file, one was regularly answered "database is locked" at once. Every session of
+    /// an assistant starts a server, so that is a server which then ran without a cache for as
+    /// long as it lived. A locked database is somebody else finishing the same work; it is tried
+    /// again, for up to ten seconds, and any other failure is returned as it is.
     pub fn open_at(path: &std::path::Path) -> Result<Self> {
+        let deadline = std::time::Instant::now() + std::time::Duration::from_secs(10);
+        let mut pause = std::time::Duration::from_millis(5);
+        loop {
+            match Self::open_once(path) {
+                Err(e) if locked(&e) && std::time::Instant::now() < deadline => {
+                    std::thread::sleep(pause);
+                    pause = (pause * 2).min(std::time::Duration::from_millis(200));
+                }
+                other => return other,
+            }
+        }
+    }
+
+    fn open_once(path: &std::path::Path) -> Result<Self> {
         let write =
             Connection::open(path).with_context(|| format!("opening {}", path.display()))?;
         tune(&write)?;
-        write.execute_batch(SCHEMA)?;
-        migrate(&write)?;
+        // One opener at a time, from reading the version to writing the new one. Outside a
+        // transaction two openers both read the old version and both added the same column, and
+        // the second was answered "duplicate column name": on the day of an upgrade, with two
+        // sessions open, one of them lost its cache.
+        write.execute_batch("BEGIN IMMEDIATE;")?;
+        let made = write
+            .execute_batch(SCHEMA)
+            .map_err(anyhow::Error::from)
+            .and_then(|()| migrate(&write));
+        if let Err(e) = made {
+            let _ = write.execute_batch("ROLLBACK;");
+            return Err(e);
+        }
+        write.execute_batch("COMMIT;")?;
 
         let mut readers = Vec::new();
         for _ in 0..3 {

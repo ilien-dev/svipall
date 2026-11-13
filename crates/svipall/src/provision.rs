@@ -504,7 +504,7 @@ impl Provisioner {
         if total > 0 && body.len() as u64 != total {
             let _ = std::fs::write(path, &body);
             bail!(
-                "download is {} bytes but the server said {total}; run browser_setup again to resume",
+                "download is {} bytes but the server said {total}; run web_setup do=browser action=install again to resume",
                 body.len()
             );
         }

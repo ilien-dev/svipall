@@ -39,7 +39,8 @@ hardware capabilities, screen, language and timezone. Sites can correlate these 
 cookie profiles. Emulation reduces some exposure but guarantees neither anonymity nor IP hiding.
 The browser uses tool-managed profiles and its sandbox stays enabled. Launch flags no longer
 request disabling site isolation, client phishing detection or IPC flooding protection. Browser
-updates and host configuration still matter. Results always report `identity_used`, and `native_fallback`
+updates and host configuration still matter. Results report `identity_used`; over MCP a page that
+simply arrived under the `emulated` identity leaves it out. `native_fallback`
 and a `privacy_notice` appear whenever a native fallback was attempted, even if it failed. To prevent all automatic native
 fallback, run `svipall config set auto_native_fallback=false`. `browser_identity=emulated` also
 keeps browser requests emulated. Explicit `browser_identity=native` is a separate manual override.
@@ -98,7 +99,7 @@ partial file is fine. The default state directory contains:
 | `models/` | Models you installed, which win over the embedded ones |
 | `browser/` | Chrome for Testing, provisioned automatically when absent or installed explicitly |
 | `in/`, `out/` | Where `file://` reads from and a relative `out_file` lands |
-| `screenshots/` | What `web_screenshot` wrote |
+| `screenshots/` | What `web_view` with `image=true` wrote |
 
 <details>
 <summary><b>Common <code>config.toml</code> settings</b></summary>
@@ -141,7 +142,7 @@ reputation_half_life_hours = 6   # how long until half of what was spent stops c
 dns_over_https = ""          # e.g. https://dns.example/dns-query; empty = off; not a network-wide DNS policy
 
 # Crawling and output
-parallelism = 4              # web_fetch_many / web_crawl; tightened further by machine load
+parallelism = 4              # web_fetch with urls / web_crawl; tightened further by machine load
 max_tokens_per_fetch = 25000
 max_tokens_total = 60000     # cap across a whole crawl
 overlap_blocks = 1           # blocks of the previous page a `cursor` continuation repeats; 0 = none

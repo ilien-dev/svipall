@@ -1,6 +1,6 @@
 # The REST API
 
-The same server over HTTP, so any language can drive it. Nineteen routes, one per tool, plus the
+The same server over HTTP, so any language can drive it. Twenty-one routes, one per operation, plus the
 job routes that let you follow a long crawl without holding a connection open for it.
 
 Everything here runs on your machine. The API calls nothing external, binds loopback by default and
@@ -28,7 +28,7 @@ a wall as a `5xx` would sit in a retry loop against something that is never goin
 |---|---|
 | **200** | the call ran, including every unhappy page: `blocked_reason`, `quality: "thin"`, `count: 0` |
 | **202** | an asynchronous job was queued; `Location` names it |
-| 400 | the body is not this endpoint's shape, or names a parameter the tool does not have |
+| 400 | the body is not this endpoint's shape, or names a parameter the operation does not have |
 | 401 | missing or wrong bearer key |
 | 403 | the request carried a browser `Origin`, or a `Host` that is not loopback on a loopback bind |
 | 404 | unknown path, or a job id that does not exist |
@@ -74,11 +74,14 @@ this machine's profiles.
 
 ## Routes
 
+The MCP server lists twelve tools since 2.0, and several of them have modes. The routes did not
+follow: each one is still a single operation and takes the body that operation took in 1.x.
+
 | Route | Body |
 |---|---|
 | `POST /v1/fetch` | `web_fetch`'s params |
-| `POST /v1/fetch_many` | `web_fetch_many`'s |
-| `POST /v1/probe` | `web_probe`'s: whether each URL exists |
+| `POST /v1/fetch_many` | several URLs in parallel (over MCP, `web_fetch` with `urls`) |
+| `POST /v1/probe` | whether each URL exists (over MCP, `web_fetch` with `urls` and `probe=true`) |
 | `POST /v1/video` | `web_video`'s |
 | `POST /v1/crawl` | `web_crawl`'s, plus `"async": true` |
 | `POST /v1/search` · `/v1/site_search` · `/v1/map` | finding things |
@@ -89,23 +92,26 @@ this machine's profiles.
 | `GET` / `POST /v1/status` | `GET` is read-only by construction: `WebStatusParams` carries four *clearing* fields, and a `GET` takes only `?sections=` and cannot reach them |
 | `GET /v1/health` | the one route with no key, so a container healthcheck does not need one |
 
-`/v1/screenshot` returns the JSON `web_screenshot` returns (including `path`, since the PNG is
+`/v1/screenshot` returns the JSON `web_view` with `image=true` returns (including `path`, since the PNG is
 written to disk either way) plus `image_base64` when the picture is small enough to be worth
 carrying. That threshold is decided once, in the seam, so MCP and REST cannot disagree about it.
 
 ### Not routes, and why
 
-`rest::NOT_IN_REST` records the reason beside each name, and a conformance test fails the build if a
-new tool is neither a route nor listed there.
+`rest::NOT_IN_REST` records the reason beside each operation, and a conformance test fails the
+build if a new one is neither a route nor listed there. Sessions, login and token solving have no
+route. They are named below by their 2.0 MCP call.
 
-- **`browser_open` / `browser_do` / `browser_close`**: a session is a resource HTTP cannot bound.
+- **`browser` with `open=true`, `session_id` or `close=true`**: a session is a resource HTTP cannot
+  bound.
   It would work: the browser pool is shared, so a session opened by one request is visible to the
   next. That is the problem. A client that dies between `open` and `close` leaks a real browser
-  process with no TTL and no cap. `web_act` covers the single-shot case, which is what a REST caller
-  almost always wants.
-- **`web_login`**: opens a visible window on your desktop and waits up to an hour for a person. An
+  process with no TTL and no cap. `/v1/act` (over MCP, `browser` with `url` and `actions`) covers
+  the single-shot case, which is what a REST caller almost always wants.
+- **`web_setup` with `do=login`**: opens a visible window on your desktop and waits up to an hour for a person. An
   HTTP request must not be able to do that.
-- **the `solve_*` token family**: already answers on `dashboard_port` in the 2captcha wire shape.
+- **`captcha` with `kind`, `image` or `task_id`**: the token family already answers on
+  `dashboard_port` in the 2captcha wire shape.
   Two contracts for one queue, with two auth schemes and two error conventions, is how a caller ends
   up unsure which one it is talking to.
 
@@ -172,7 +178,7 @@ flips the one the crawl reads. The crawl checks it at two points, both places it
 things: the top of a batch, and the end of a page *after that page's links have been queued*. It
 then leaves through its ordinary exit, so the frontier is written and the id can be picked up again.
 
-It never aborts the task. `web_act` and `web_capture` close their browser page on the normal path
+It never aborts the task. A one-shot `browser` call and `web_capture` close their browser page on the normal path
 only, so killing a fetch mid-flight would leak a CDP page into the pool.
 
 `DELETE` answers **200** with the state the job was in, including for a job that had already
@@ -251,5 +257,5 @@ profiles lives in `svipall-mcp`'s `main`, and has not been moved yet. Under `svi
 runner keeps its own house (orphan adoption, job expiry), but browsers are not reaped and the log
 is not trimmed. Run the REST API from `svipall-mcp` with `rest_port` set if that matters to you.
 
-`solve_and_continue` under `svipall serve` also has no human dashboard behind it: the CLI opens no
+`/v1/solve_and_continue` under `svipall serve` also has no human dashboard behind it: the CLI opens no
 solver database. Local models still answer, but a challenge none of them can answer has nowhere to go.

@@ -54,7 +54,7 @@ pub fn claude_web(event: &Value, strict: bool) -> Value {
                  a tier ladder past anti-bot walls, answers captchas locally, and reports a block \
                  as a block instead of summarising the challenge page as the article. Call the \
                  svipall MCP server's `web_fetch` with url {url} instead (mode defaults to auto \
-                 — do not set a tier by hand). For several urls use `web_fetch_many`, for a whole \
+                 — do not set a tier by hand). For several pass `urls`, for a whole \
                  site `web_crawl`."
             )
         }

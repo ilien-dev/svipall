@@ -467,7 +467,7 @@ async fn a_snapshot_reference_clicks_the_right_element_and_leaves_no_trace() {
         actions[3]["error"]
             .as_str()
             .unwrap_or_default()
-            .contains("web_snapshot"),
+            .contains("web_view"),
         "{out}"
     );
     s.pool().shutdown().await;
