@@ -39,6 +39,39 @@ pub fn crop(sheet: &DynamicImage, x: f32, y: f32, w: f32, h: f32) -> RgbImage {
     sheet.crop_imm(x0, y0, cw, ch).to_rgb8()
 }
 
+/// How alike two thumbnails in a row must be to be the same picture held: a slide, a screen
+/// nobody is typing on. Compression alone moves a still picture by less than this.
+pub const SAME: f32 = 0.03;
+
+/// The pictures a spread of moments stepped over.
+///
+/// Evenly spread moments see everything that lasts longer than the gap between them, and miss a
+/// slide shown for less. `hists` are the thumbnails of the stretch in time order and `picked`
+/// the ones already chosen: this returns, for each run of at least two alike thumbnails with no
+/// chosen one in it, the last of the run, which is the slide once everything on it has appeared.
+/// The longest runs first when there are more than `max`; in time order.
+///
+/// Footage of the world has no such runs (every thumbnail differs from the one before), so it
+/// gets nothing added, which is the point: this fills gaps, it does not choose the moments.
+pub fn held(hists: &[Vec<f32>], picked: &[usize], max: usize) -> Vec<usize> {
+    let mut runs: Vec<(usize, usize)> = Vec::new();
+    let mut start = 0usize;
+    for i in 1..=hists.len() {
+        if i == hists.len() || distance(&hists[i - 1], &hists[i]) >= SAME {
+            if i - start >= 2 {
+                runs.push((start, i - 1));
+            }
+            start = i;
+        }
+    }
+    runs.retain(|(a, b)| !picked.iter().any(|p| (*a..=*b).contains(p)));
+    runs.sort_by_key(|(a, b)| std::cmp::Reverse(b - a));
+    runs.truncate(max);
+    let mut out: Vec<usize> = runs.into_iter().map(|(_, b)| b).collect();
+    out.sort_unstable();
+    out
+}
+
 /// A frame's file name: its moment to the millisecond, so a listing sorts in time order and two
 /// frames of one second do not share a name.
 pub fn frame_name(t: f64) -> String {
@@ -279,6 +312,36 @@ mod tests {
         assert_eq!(distance(&a, &a), 0.0);
         let b = histogram(&solid(250, 250, 250));
         assert!((distance(&a, &b) - 1.0).abs() < 1e-6);
+    }
+
+    #[test]
+    fn a_slide_shown_between_two_moments_is_seen_and_footage_adds_nothing() {
+        // Thumbnails every 2 s: slide A for five, slide B for three, slide C for six.
+        let shades = [
+            10u8, 10, 10, 10, 10, 120, 120, 120, 240, 240, 240, 240, 240, 240,
+        ];
+        let hists: Vec<Vec<f32>> = shades
+            .iter()
+            .map(|v| histogram(&solid(*v, *v, *v)))
+            .collect();
+        // Two moments spread over the stretch land on A and C.
+        assert_eq!(
+            held(&hists, &[3, 10], 4),
+            vec![7],
+            "B, at its last thumbnail"
+        );
+        assert_eq!(held(&hists, &[3, 6, 10], 4), Vec::<usize>::new());
+        assert_eq!(
+            held(&hists, &[], 2),
+            vec![4, 13],
+            "the two longest, in time order"
+        );
+        // Every thumbnail its own picture: nothing is held, nothing is added.
+        let footage: Vec<Vec<f32>> = (0..10u8)
+            .map(|i| histogram(&solid(i * 25, 255 - i * 25, i * 10)))
+            .collect();
+        assert!(held(&footage, &[5], 4).is_empty());
+        assert!(held(&[], &[], 4).is_empty());
     }
 
     #[test]

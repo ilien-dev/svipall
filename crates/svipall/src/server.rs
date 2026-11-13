@@ -6853,7 +6853,7 @@ impl SvipallServer {
         let index = crate::video_index::Index::load(&dir);
         // The player's own thumbnails are pictures it publishes, not the stream: they are read
         // whether or not the stream is encrypted.
-        let board = if look.off() || (look.live() && !frames_refused && look.query.is_none()) {
+        let mut board = if look.off() {
             video_look::Board::default()
         } else {
             self.video_board(&info, p.wait).await
@@ -6863,6 +6863,18 @@ impl SvipallServer {
         let nothing_to_search =
             look.query.is_some() && !look.off() && board.is_empty() && index.frames.is_empty();
         let capture = (look.live() || nothing_to_search) && drm.is_none();
+        // Evenly spread moments step over a slide shown for less than the gap between them. The
+        // thumbnails say where one was held, and the capture stops there too.
+        let with_held;
+        let look = match (capture, info.duration) {
+            (true, Some(d)) => {
+                let mut l = look.clone();
+                l.also = self.video_held(&mut board, look, d, spoken).await;
+                with_held = l;
+                &with_held
+            }
+            _ => look,
+        };
         let reused = if capture {
             match Self::video_cached(&index, look, info.duration, spoken) {
                 Ok(r) => r,

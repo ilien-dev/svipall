@@ -110,6 +110,9 @@ pub struct Look {
     /// The part of each frame to return, as fractions of it.
     pub crop: Option<[f32; 4]>,
     pub query: Option<String>,
+    /// Moments added by the server, never by the caller: where the player's thumbnails show a
+    /// picture held between two spread moments.
+    pub also: Vec<f64>,
 }
 
 impl Look {
@@ -167,6 +170,7 @@ impl Look {
                 .map(str::trim)
                 .filter(|q| !q.is_empty())
                 .map(str::to_string),
+            also: Vec::new(),
         })
     }
 
@@ -202,6 +206,8 @@ pub struct Moments {
     pub at: Vec<f64>,
     /// The ones spread over the window, in time order.
     pub spread: Vec<f64>,
+    /// Pictures held between two spread moments, which the spread alone would have stepped over.
+    pub held: Vec<f64>,
 }
 
 impl Moments {
@@ -216,11 +222,12 @@ impl Moments {
                     .into_iter()
                     .map(|i| self.spread[i]),
             )
+            .chain(self.held.iter().copied())
             .collect()
     }
 
     pub fn len(&self) -> usize {
-        self.at.len() + self.spread.len()
+        self.at.len() + self.spread.len() + self.held.len()
     }
 
     pub fn is_empty(&self) -> bool {
@@ -258,6 +265,7 @@ pub fn moments(want: &Look, duration: f64, spoken: bool) -> Result<Moments, Stri
             to: at.last().copied().unwrap_or(to),
             at,
             spread: Vec::new(),
+            held: Vec::new(),
         });
     }
     let n = {
@@ -271,6 +279,12 @@ pub fn moments(want: &Look, duration: f64, spoken: bool) -> Result<Moments, Stri
         to,
         at,
         spread: look::spread(from, to, n),
+        held: want
+            .also
+            .iter()
+            .copied()
+            .filter(|t| *t >= from && *t < to)
+            .collect(),
     })
 }
 
@@ -312,6 +326,10 @@ pub struct Seen {
     /// Frames already captured by an earlier call, and not captured again.
     #[serde(skip_serializing_if = "is_zero")]
     pub reused: usize,
+    /// Moments added because the thumbnails showed a picture held between two spread moments:
+    /// a slide the spread alone would have stepped over.
+    #[serde(skip_serializing_if = "is_zero")]
+    pub held: usize,
 }
 
 fn is_zero(n: &usize) -> bool {
@@ -340,6 +358,12 @@ pub fn pictures(seen: &Seen, sheets: &[SheetRef], frames: &[FrameRef]) -> String
         _ => ", captured from the video",
     });
     out.push('.');
+    if seen.held > 0 {
+        out.push_str(&format!(
+            " {} of them added where a picture was held between two of the others.",
+            seen.held
+        ));
+    }
     for (n, why) in [
         (seen.unreached, "not reached before the time ran out"),
         (seen.repeated, "left out for repeating the picture before"),
@@ -447,6 +471,15 @@ pub fn content(info: &VideoInfo, reading: &Reading) -> String {
     }
     if let Some((query, hits)) = &reading.found {
         out.push_str(&found_lines(query, hits));
+        // A search that captured nothing still has the pictures it found, on a sheet of their own.
+        if reading.seen.is_none() {
+            for s in &reading.sheets {
+                out.push_str(&format!(
+                    "The pictures found, each with its time: {}  ~{} tokens\n",
+                    s.path, s.tokens
+                ));
+            }
+        }
         return out;
     }
     if reading.cues.is_empty() {
@@ -735,6 +768,16 @@ mod tests {
             order[1], 25.0,
             "then the middle of the part, then its halves"
         );
+        let mut held = look(Some("0"), Some("40"), &[], Some(4));
+        held.also = vec![12.0, 90.0];
+        let m = moments(&held, 100.0, true).unwrap();
+        assert_eq!(m.held, vec![12.0], "only the held pictures inside the part");
+        assert_eq!(
+            m.order().last(),
+            Some(&12.0),
+            "after everything that was asked for"
+        );
+        assert_eq!(m.len(), 5);
         assert!(moments(&look(Some("5:00"), None, &[], None), 100.0, true)
             .unwrap_err()
             .contains("1:40 long"));
@@ -788,6 +831,12 @@ mod tests {
             "{text}"
         );
         assert!(text.contains("2 not reached before the time ran out."));
+        let with_held = Seen {
+            held: 3,
+            ..live.clone()
+        };
+        assert!(pictures(&with_held, &[], &[])
+            .contains("3 of them added where a picture was held between two of the others."));
         assert!(text.contains("1 left out for repeating"));
         assert!(text.contains("up to ~1196 tokens each"));
         assert!(!text.contains("Sheets"));
@@ -828,6 +877,16 @@ mod tests {
         assert!(c.contains("[5:00] seen (likeness 0.250)\n"));
         assert!(!c.contains("the whole transcript"));
         assert_eq!(summary(&info, &r)["matches"][2]["by"], "seen");
+        r.sheets = vec![SheetRef {
+            path: "/v/sheet-found.jpg".into(),
+            from: 65.0,
+            to: 300.0,
+            cells: 2,
+            grid: "2x1".into(),
+            tokens: 300,
+        }];
+        assert!(content(&info, &r)
+            .contains("The pictures found, each with its time: /v/sheet-found.jpg  ~300 tokens"));
         r.found = Some(("chart".into(), vec![]));
         assert!(content(&info, &r).contains("Nothing found for \"chart\"."));
     }

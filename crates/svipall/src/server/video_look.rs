@@ -41,6 +41,13 @@ impl Board {
         self.frames.is_empty()
     }
 
+    /// The cells from `from` up to `to`.
+    fn within(&self, from: f64, to: f64) -> Vec<usize> {
+        (0..self.frames.len())
+            .filter(|i| self.frames[*i].t >= from && self.frames[*i].t < to)
+            .collect()
+    }
+
     fn span(&self) -> f64 {
         self.frames.last().map_or(0.0, |f| f.t)
     }
@@ -200,7 +207,97 @@ impl SvipallServer {
                 break;
             }
         }
+        if !board.is_empty() {
+            return board;
+        }
+        // A stream's manifest can publish them too: tiled pictures in a DASH manifest, an image
+        // playlist beside the renditions of an HLS one.
+        use svipall_core::video::{manifest, StreamKind};
+        for stream in info
+            .streams
+            .iter()
+            .filter(|s| s.kind != StreamKind::Progressive)
+            .take(2)
+        {
+            let Ok(body) = self.video_text(&stream.url, wait).await else {
+                continue;
+            };
+            board.frames = match stream.kind {
+                StreamKind::Hls => {
+                    let master = manifest::hls(&body, &stream.url);
+                    match master.image_playlists.first() {
+                        Some(u) => match self.video_text(u, wait).await {
+                            Ok(list) => manifest::hls_tiles(&list, u),
+                            Err(_) => Vec::new(),
+                        },
+                        None => Vec::new(),
+                    }
+                }
+                _ => manifest::dash(&body, &stream.url).thumbs,
+            };
+            if !board.is_empty() {
+                break;
+            }
+        }
         board
+    }
+
+    /// The thumbnails of `from..to` that show a picture held between two of the `picked`
+    /// moments, as indices into the board. Nothing when the stretch is more sheets than a call
+    /// fetches: half a look at it would add moments to its start and none to its end.
+    async fn board_held(
+        &self,
+        board: &mut Board,
+        from: f64,
+        to: f64,
+        picked: &[f64],
+    ) -> Vec<usize> {
+        let all = board.within(from, to);
+        let mut sheets: Vec<&str> = all
+            .iter()
+            .map(|i| board.frames[*i].sheet.as_str())
+            .collect();
+        sheets.sort_unstable();
+        sheets.dedup();
+        if all.len() < 3 || sheets.len() > MAX_BOARD_SHEETS {
+            return Vec::new();
+        }
+        let cells = self.board_cells(board, &all).await;
+        if cells.len() != all.len() {
+            return Vec::new();
+        }
+        let hists: Vec<Vec<f32>> = cells.iter().map(|c| vf::histogram(&c.img)).collect();
+        let chosen: Vec<usize> = board
+            .nearest(picked)
+            .into_iter()
+            .filter_map(|i| all.iter().position(|a| *a == i))
+            .collect();
+        vf::held(&hists, &chosen, (picked.len() / 2).max(4))
+            .into_iter()
+            .map(|i| all[i])
+            .collect()
+    }
+
+    /// The moments, in seconds, where the thumbnails show a picture held between two of the
+    /// moments a look would spread: what a capture of the video itself should also stop at.
+    pub(super) async fn video_held(
+        &self,
+        board: &mut Board,
+        want: &Look,
+        duration: f64,
+        spoken: bool,
+    ) -> Vec<f64> {
+        if board.is_empty() || want.only_exact() {
+            return Vec::new();
+        }
+        let Ok(m) = vid::moments(want, duration, spoken) else {
+            return Vec::new();
+        };
+        self.board_held(board, m.from, m.to, &m.spread)
+            .await
+            .into_iter()
+            .map(|i| board.frames[i].t)
+            .collect()
     }
 
     async fn board_fetch(&self, board: &mut Board, urls: Vec<String>) {
@@ -443,6 +540,7 @@ impl SvipallServer {
                 every: c.moments.every(),
                 source: "player",
                 unreached: c.unreached,
+                held: c.moments.held.len(),
                 ..Seen::default()
             };
             let mut shots = c.shots;
@@ -532,6 +630,13 @@ impl SvipallServer {
             }
         }
 
+        if !crate::read_text::available() && !pictures.is_empty() {
+            notes.push(
+                "the text on the frames was not read: `svipall models install` adds the text \
+                 reader, and the same call then returns it"
+                    .into(),
+            );
+        }
         // The text on each frame, read once and kept. A frame an earlier call read is not read
         // again; one the clock did not allow is left for the next call.
         let read_until = started + limit.mul_f32(0.8);
@@ -625,7 +730,12 @@ impl SvipallServer {
             };
             match vid::moments(&over, duration.max(0.1), spoken) {
                 Ok(m) => {
-                    let idx = board.nearest(&m.spread);
+                    let mut idx = board.nearest(&m.spread);
+                    let held = self.board_held(&mut board, m.from, m.to, &m.spread).await;
+                    let added = held.iter().filter(|i| !idx.contains(i)).count();
+                    idx.extend(held);
+                    idx.sort_unstable();
+                    idx.dedup();
                     let cells = self.board_cells(&mut board, &idx).await;
                     if cells.len() < idx.len() {
                         notes.push(format!(
@@ -645,6 +755,7 @@ impl SvipallServer {
                             moments: cells.len(),
                             every: (cells.len() > 1).then(|| (m.to - m.from) / cells.len() as f64),
                             source: "thumbnails",
+                            held: added,
                             ..Seen::default()
                         });
                     }
@@ -660,11 +771,12 @@ impl SvipallServer {
         }
 
         if let Some(query) = &want.query {
-            let hits = self
+            let (hits, found) = self
                 .video_search(
                     info, want, query, dir, &mut index, &mut board, cues, started, limit, notes,
                 )
                 .await;
+            out.sheets.extend(found);
             out.found = Some((query.clone(), hits));
         }
         if let Err(e) = index.save(dir) {
@@ -688,7 +800,7 @@ impl SvipallServer {
         started: Instant,
         limit: Duration,
         notes: &mut Vec<String>,
-    ) -> Vec<vix::Hit> {
+    ) -> (Vec<vix::Hit>, Vec<SheetRef>) {
         let range = (want.window.start, want.window.end);
         let inside = |t: f64| t >= range.0.unwrap_or(0.0) && t < range.1.unwrap_or(f64::INFINITY);
         let passages =
@@ -714,10 +826,11 @@ impl SvipallServer {
         if !crate::zeroshot::available() {
             notes.push(
                 "searched what was said and the text on the frames captured so far; searching \
-                 the pictures themselves needs the image-text model pair (docs/models.md)"
+                 the pictures themselves needs the image-text model, which `svipall models \
+                 install` adds"
                     .into(),
             );
-            return hits;
+            return (hits, Vec::new());
         }
         // The thumbnails the record has no vector for yet, spread over the video.
         let duration = info.duration.unwrap_or_else(|| board.span()).max(0.1);
@@ -768,11 +881,11 @@ impl SvipallServer {
             Ok(Ok(v)) => v,
             Ok(Err(e)) => {
                 notes.push(format!("the pictures could not be searched: {e:#}"));
-                return hits;
+                return (hits, Vec::new());
             }
             Err(e) => {
                 notes.push(format!("the pictures could not be searched: {e}"));
-                return hits;
+                return (hits, Vec::new());
             }
         };
         let left = (todo_cells - of_cells.len()) + (todo_frames - of_frames.len());
@@ -809,7 +922,7 @@ impl SvipallServer {
             notes.push(
                 "there is no picture of this video to search yet: frames=N captures some".into(),
             );
-            return hits;
+            return (hits, Vec::new());
         }
         let span = range.1.unwrap_or(duration) - range.0.unwrap_or(0.0);
         let (seen, clear) = vix::visual_hits(&query_vec, &pool, HITS, (span / 40.0).max(2.0));
@@ -823,19 +936,14 @@ impl SvipallServer {
         // The found pictures on one sheet, so they can be judged at a glance.
         let found_idx = board.nearest(&seen.iter().map(|h| h.t).collect::<Vec<_>>());
         let found_cells = self.board_cells(board, &found_idx).await;
+        let mut found = Vec::new();
         if found_cells.len() >= 2 {
             match sheet_refs(dir, &found_cells, "found") {
-                Ok(s) => notes.push(format!(
-                    "the pictures found are on {}",
-                    s.iter()
-                        .map(|s| s.path.as_str())
-                        .collect::<Vec<_>>()
-                        .join(", ")
-                )),
+                Ok(s) => found = s,
                 Err(e) => notes.push(format!("no sheet could be written: {e}")),
             }
         }
         hits.extend(seen);
-        hits
+        (hits, found)
     }
 }

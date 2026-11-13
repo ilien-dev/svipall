@@ -334,7 +334,7 @@ const SPECS: &[Spec] = &[
             ("end", "s", "Its end"),
             ("at", "[s]", "Exact moments"),
             ("crop", "s", "Part of the frame: x,y,w,h in 0..1"),
-            ("query", "s", "Find where this is said or shown"),
+            ("query", "s", "Find where this is said or shown; English for pictures"),
             ("max_tokens", "i", "Default 25000"),
             ("cursor", "s", "Continue a cut result"),
             ("out_file", "s", "Write the timeline here, return the path"),

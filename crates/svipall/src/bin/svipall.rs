@@ -72,8 +72,9 @@ COMMANDS:
                             Which browser runs, or download Chrome for Testing (~190 MB).
     models [status|install|remove] [--from-file FILE]
                             Which captcha models this build has, and install the ones it does not
-                            carry into ~/.svipall/models/ from the matching release (~58 MB, and
-                            about 100 MB more for the speech model web_video uses). A
+                            carry into ~/.svipall/models/ from the matching release (~58 MB,
+                            about 100 MB more for the speech model web_video uses, and about
+                            155 MB for the image-text model it searches pictures with). A
                             build with no `onnx-*` feature cannot read them: `status` says so.
     update [--check]        Update both binaries to the latest stable release through the channel
                             that installed them, and refresh the skills copied by hand. --check

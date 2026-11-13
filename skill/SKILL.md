@@ -122,6 +122,34 @@ downloads a larger `timeout`.
 **Cut answers** carry `cursor` and `continue`, the exact next call. A cursor keeps the query it was
 issued with and survives a cache hit; `json_path` is not in it, so pass it again.
 
+## Watching a video
+
+`svipall video URL` (`web_video`) answers in text and names picture files. Read only the
+pictures you need: each one is listed with what it costs in tokens.
+
+1. **Start with a plain call.** You get the `[m:ss]` timeline and, when the player publishes
+   seek-bar thumbnails, contact sheets of the whole video: sixteen moments a sheet, the time
+   in the corner of every cell, read left to right and top to bottom. A sheet is for finding
+   a moment. Text in a cell is too small to read.
+2. **Look closer at a part**: `--start 12:30 --end 14:00` captures frames spread over it and
+   returns that part of the timeline. `--frames N` sets how many (up to 120); left out, the
+   number follows the length. For motion, ask for a short part: two seconds give eight frames.
+3. **Read something small**: `--at 13:10` captures that moment, and `--crop 0,0,0.5,0.5`
+   (x,y,w,h as fractions of the frame) returns just that part at the video's own resolution.
+   With the text reader installed, the text on each frame is already in the timeline as
+   `on screen:`, which is cheaper than opening the frame.
+4. **Find a moment you cannot place**: `--query "the pricing table"` returns moments marked
+   `said` (captions), `shown` (text read off frames captured so far) or `seen` (the pictures
+   themselves). Write the query in English for `seen`; it matches scenes better than details.
+   Then look closer at the moment it returns.
+
+`seen` in the answer says how many moments were shown, how far apart, and how many were left
+out as blank, repeated or not reached. A wide gap means something short may have been stepped
+over: ask for that part. `frames=0` turns pictures off when only the words matter.
+Nothing is captured twice, so asking again for a part is cheap. No thumbnails and no pictures
+came back: pass `--frames N` or a part, which plays the video itself. `svipall doctor` says
+under `video` whether the text reader and the picture search are installed.
+
 ## GitHub
 
 `fetch` reads github.com URLs from the API or the raw host: a repo root (facts, tree, README),

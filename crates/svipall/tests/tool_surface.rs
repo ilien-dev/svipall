@@ -96,8 +96,8 @@ fn the_whole_tool_list_fits_a_budget() {
     // every sentence was cut to what changes the tool picked or the argument sent. The cap is the
     // measured result plus room for one small parameter, so growth is a decision, not a drift.
     //
-    // 2.1 measures 19 905: `web_video` learned to show a video, which is five arguments
-    // (`start`, `end`, `at`, `crop`, `query`) and one sentence saying they exist, 464 characters.
+    // 2.1 measures 19 927: `web_video` learned to show a video, which is five arguments
+    // (`start`, `end`, `at`, `crop`, `query`) and one sentence saying they exist, 486 characters.
     let total: usize = tools()
         .iter()
         .map(|t| t.name.len() + description(t).len() + schema_len(t))

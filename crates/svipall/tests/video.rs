@@ -387,6 +387,142 @@ async fn an_argument_that_cannot_be_read_stops_the_call_before_any_request() {
     }
 }
 
+fn png(img: image::RgbImage) -> Vec<u8> {
+    let mut out = Vec::new();
+    image::DynamicImage::ImageRgb8(img)
+        .write_to(&mut std::io::Cursor::new(&mut out), image::ImageFormat::Png)
+        .expect("png");
+    out
+}
+
+/// A slide shown for one second of a thirty-second talk falls between two evenly spread moments.
+/// The thumbnails show it was held there, so it is on the sheet all the same.
+#[tokio::test]
+async fn a_slide_shown_between_two_spread_moments_is_on_the_sheet_too() {
+    // Sixty thumbnails, one every half second, ten across: slide A, then B for one second, then C.
+    let shade = |cell: u32| match cell {
+        0..=17 => 20u8,
+        18..=19 => 130,
+        _ => 240,
+    };
+    let sprite = image::RgbImage::from_fn(640, 216, |x, y| {
+        let v = shade((x / 64) + 10 * (y / 36));
+        image::Rgb([v, v, v])
+    });
+    let mut thumbs = String::from("WEBVTT\n\n");
+    for i in 0..60u32 {
+        let (a, b) = (i * 500, (i + 1) * 500);
+        thumbs.push_str(&format!(
+            "00:00:{:02}.{:03} --> 00:00:{:02}.{:03}\nsprite.png#xywh={},{},64,36\n\n",
+            a / 1000,
+            a % 1000,
+            b / 1000,
+            b % 1000,
+            (i % 10) * 64,
+            (i / 10) * 36
+        ));
+    }
+    let site = Site::start(vec![
+        (
+            "/deck",
+            Reply::html(
+                "<html><head><title>Deck</title><script type=\"application/ld+json\">\
+                 {\"@type\":\"VideoObject\",\"name\":\"Deck\",\"duration\":\"PT30S\"}</script>\
+                 </head><body><h1>Deck</h1><video controls>\
+                 <source src=\"/deck.mp4\" type=\"video/mp4\">\
+                 <track kind=\"subtitles\" srclang=\"en\" src=\"/deck-en.vtt\">\
+                 <track kind=\"metadata\" src=\"/thumbs.vtt\"></video></body></html>",
+            ),
+        ),
+        ("/deck-en.vtt", typed(VTT_EN, "text/vtt")),
+        ("/thumbs.vtt", typed(&thumbs, "text/vtt")),
+        ("/sprite.png", Reply::bytes(&png(sprite), "image/png")),
+    ])
+    .await;
+    let v = video(site.url("/deck")).await;
+    assert_eq!(v["seen"]["held"], 1, "{v}");
+    assert_eq!(
+        v["seen"]["moments"], 17,
+        "sixteen spread, and the slide between two of them"
+    );
+    let content = v["content"].as_str().unwrap_or_default();
+    assert!(
+        content.contains("1 of them added where a picture was held between two of the others"),
+        "{content}"
+    );
+    // The slide is a cell of the second sheet: sixteen cells on the first, it is the ninth moment.
+    let sheets = v["sheets"].as_array().cloned().unwrap_or_default();
+    let img = image::open(sheets[0]["path"].as_str().unwrap())
+        .unwrap()
+        .to_rgb8();
+    let (cw, ch) = (img.width() / 4, img.height() / 4);
+    let grey = (0..16u32)
+        .filter(|i| {
+            let p = img
+                .get_pixel((i % 4) * cw + cw / 2, (i / 4) * ch + ch / 2)
+                .0;
+            (100..160).contains(&p[0])
+        })
+        .count();
+    assert_eq!(
+        grey, 1,
+        "the one-second slide is one cell of the sheet: {v}"
+    );
+}
+
+/// A stream whose DASH manifest publishes tiled thumbnails: the sheet is drawn from them, with no
+/// page markup and no player naming them.
+#[tokio::test]
+async fn thumbnails_a_dash_manifest_publishes_are_a_source_of_the_sheet() {
+    let tile = |seed: u8| {
+        png(image::RgbImage::from_fn(320, 180, |x, y| {
+            let cell = ((x / 160) + 2 * (y / 90)) as u8;
+            image::Rgb([seed, cell * 60, ((x + y) % 200) as u8])
+        }))
+    };
+    let mpd = r#"<?xml version="1.0"?>
+<MPD xmlns="urn:mpeg:dash:schema:mpd:2011" mediaPresentationDuration="PT1M">
+ <Period>
+  <AdaptationSet contentType="video" mimeType="video/mp4">
+   <Representation id="v1"><BaseURL>video.mp4</BaseURL></Representation>
+  </AdaptationSet>
+  <AdaptationSet contentType="image" mimeType="image/png">
+   <SegmentTemplate media="tiles/$RepresentationID$_$Number$.png" duration="30" startNumber="1"/>
+   <Representation id="th" bandwidth="900" width="320" height="180">
+    <EssentialProperty schemeIdUri="http://dashif.org/guidelines/thumbnail_tile" value="2x2"/>
+   </Representation>
+  </AdaptationSet>
+ </Period>
+</MPD>"#;
+    let site = Site::start(vec![
+        (
+            "/v",
+            Reply::html(
+                "<html><head><title>Stream</title><script type=\"application/ld+json\">\
+                 {\"@type\":\"VideoObject\",\"name\":\"Stream\",\"duration\":\"PT1M\",\
+                 \"contentUrl\":\"/dash/manifest.mpd\"}</script></head>\
+                 <body><p>A stream, and enough words to be a page.</p></body></html>",
+            ),
+        ),
+        ("/dash/manifest.mpd", typed(mpd, "application/dash+xml")),
+        ("/dash/tiles/th_1.png", Reply::bytes(&tile(10), "image/png")),
+        (
+            "/dash/tiles/th_2.png",
+            Reply::bytes(&tile(200), "image/png"),
+        ),
+    ])
+    .await;
+    let v = video(site.url("/v")).await;
+    assert_eq!(v["seen"]["source"], "thumbnails", "{v}");
+    assert_eq!(v["seen"]["moments"], 8, "two pictures of four cells: {v}");
+    let s = &v["sheets"][0];
+    assert_eq!(
+        (s["cells"].as_u64(), s["grid"].as_str()),
+        (Some(8), Some("3x3"))
+    );
+    assert!(std::path::Path::new(s["path"].as_str().unwrap()).is_file());
+}
+
 /// Looking closer at a part of a video, from the player itself: frames spread over the part and
 /// on a sheet, an exact moment, a part of the frame, and the second call reusing the first's
 /// frames. Needs a browser. Run by hand.
