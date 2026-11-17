@@ -1,17 +1,16 @@
 <p align="center">
   <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="assets/brand/svipall-hero-dark.gif">
-    <img src="assets/brand/svipall-hero-light.gif" alt="Svipall, a local-first web scraping and browsing MCP server for AI agents" width="800">
+    <source media="(prefers-color-scheme: dark)" srcset="assets/hero-dark.svg">
+    <img src="assets/hero-light.svg" alt="Svipall. An assistant asks a website for a page. Without Svipall the page stops at a wall and a 'Checking your browser' waiting screen comes back instead; with Svipall the real pages pass through to the assistant, and a page it could not open is marked as such." width="100%">
   </picture>
 </p>
 
-<h3 align="center">A different face at every gate.</h3>
+<h1 align="center">Svipall: web reading for your AI assistant, on your own machine</h1>
 
 <p align="center">
-  <b>Web reading for your AI agent, running on your own machine.</b><br>
-  An MCP server and CLI, in Rust, that extracts web pages into Markdown,<br>
-  crawls sites within configured limits, searches without an API key,<br>
-  and attempts supported challenges, then says plainly which ones it could not.
+  <b>An MCP server and command-line tool that runs on your own computer and reads web pages for your AI assistant.<br>
+  It turns pages into clean Markdown, searches without an API key, crawls sites within the limits you set,<br>
+  and attempts the challenges it supports, then says plainly which ones it could not pass.</b>
 </p>
 
 <p align="center">
