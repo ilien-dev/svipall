@@ -1,7 +1,7 @@
 <p align="center">
   <picture>
     <source media="(prefers-color-scheme: dark)" srcset="assets/hero-dark.svg">
-    <img src="assets/hero-light.svg" alt="Svipall. An assistant asks a website for a page. Without Svipall the page stops at a wall and a 'Checking your browser' waiting screen comes back instead; with Svipall the real pages pass through to the assistant, and a page it could not open is marked as such." width="100%">
+    <img src="assets/hero-light.svg" alt="Svipall, web reading for your AI agent: the agent asks for a page, the request climbs a ladder of tiers beside a wall, is refused with 403 at plain http, gets through with a browser, and the page goes back to the agent as clean Markdown." width="100%">
   </picture>
 </p>
 
