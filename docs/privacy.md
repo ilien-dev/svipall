@@ -26,7 +26,7 @@ Lifted out of the README so that file stays readable. Everything here is the sam
   contacts the release metadata and download servers. Set `browser_auto_install=false` to turn off
   automatic provisioning. Svipall fetches and caches the configured blocklists
   (StevenBlack/hosts and EasyPrivacy by default) when `block_ads=true`. A launched browser may also make its own
-  requests, and Svipall is not a network firewall. See [native exposure](#automatic-routing-privacy-and-practical-limits).
+  requests, and Svipall is not a network firewall. See [native exposure](configuration.md#automatic-routing-privacy-and-practical-limits).
 - **No breaking of access controls.** Svipall evades bot detection on public pages and does not crack
   passwords, bypass paywalls or forge authentication. A login wall is passed by *you*, once, in a
   visible window, and the cookies are kept.

@@ -32,7 +32,7 @@ The current release workflow includes those export assets in Windows x86-64 and 
 builds and the full container on both architectures. Linux and Intel-Mac binary jobs omit them
 because of the configured ONNX Runtime distribution constraints. This describes the build matrix,
 not an installation test on every platform. Inspect the installed build with `svipall doctor`.
-The [FAQ](#faq) lists the targets.
+The [FAQ](faq.md) lists the targets.
 
 The live image-grid, point, polygon and audio strategies depend on suitable models. Standalone
 OCR is a separate model-dependent path. Token widgets can clear during a browser visit, but may

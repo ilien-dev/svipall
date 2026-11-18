@@ -8,14 +8,14 @@ Lifted out of the README so that file stays readable. Everything here is the sam
 No third-party account, API key or subscription is required by Svipall itself. The destination
 site may require authorization. Browser provisioning can occur automatically when enabled;
 blocklists, a configured DNS resolver, page resources and browser background traffic can also
-contact remote servers. See [Privacy and safety](#privacy-and-safety).
+contact remote servers. See [Privacy and safety](privacy.md).
 </details>
 
 <details>
 <summary><b>Which platforms does it run on?</b></summary>
 
 Windows, macOS and Linux. CI runs the shared checks on all three, with the platform-specific steps
-listed in [Development](#the-gate), and tagged releases
+listed in [Development](development.md#the-gate), and tagged releases
 attach binaries for **Windows x86-64, macOS Intel, macOS Apple silicon, Linux x86-64 and Linux
 arm64**, with a `sha256sums.txt` and a build attestation. Install them with a one-line script, with
 Homebrew or Scoop, from a `.deb` or `.rpm` where available, through npm, or as a container image on
@@ -38,7 +38,7 @@ display for headful tiers. A package's existence does not establish full functio
 The workflow omits ONNX models from Linux and Intel-Mac binaries to accommodate the runtime
 distributions it uses. The full Linux container supplies its own libraries and uses Debian's
 Chromium on arm64. It is an option for those omitted components, with the headful-runtime
-limitations described in [the container section](#or-run-it-in-a-container).
+limitations described in [the install guide](install.md#2-pick-a-channel).
 
 **A binary without models can still attempt non-model strategies.** Token widgets may clear in
 the browser, or may demand further challenges. Proof-of-work, slider, rotation, drag and hold
@@ -67,7 +67,7 @@ a hard block puts the domain on a 15-minute cooldown, and a reputation ledger tr
 has spent with each host and decays it with a six-hour half-life. Two crawls of the same site cannot
 run at once for exactly this reason. None of that makes you invisible. This project's own benchmark
 has watched a home address get worse at three targets over a day of runs, and
-[published it](#anti-bot-vendors8-four-vendors-named-two-targets-each).
+[published it](proof.md#anti-bot-vendors8-four-vendors-named-two-targets-each).
 </details>
 
 <details>
@@ -77,13 +77,13 @@ Svipall stores its cache, crawl state, cookies, profiles and captcha corpus loca
 `~/.svipall` (or `SVIPALL_HOME`). Web requests still reach remote sites, including credentials or
 form input you submit, and results go to your connected agent or client. Native fallback can expose
 real browser/device characteristics. There is no Svipall telemetry or cloud sync. See
-[Privacy and safety](#privacy-and-safety) for downloads, browser traffic and configuration.
+[Privacy and safety](privacy.md) for downloads, browser traffic and configuration.
 </details>
 
 <details>
 <summary><b>Will it get past Cloudflare / DataDome / Akamai / PerimeterX?</b></summary>
 
-Sometimes, and the [Proof](#proof-every-number-with-the-command-that-reproduces-it) section says
+Sometimes, and the [Proof](proof.md) section says
 which historical configurations passed and how often, with the raw logs committed. On `public31`,
 Turnstile cleared on the `real` tier at nowsecure-cf in 2.7, 1.7 and 1.7 seconds, and did not clear
 at canadianinsider, which stayed gated on `http` in all three runs.
@@ -151,7 +151,7 @@ reports detected limitations without proving how a site will classify them.
 <details>
 <summary><b>Why Rust?</b></summary>
 
-Native executables, low parsing cost in the [measured fixture](#cpu-budgets--measured-not-recalled),
+Native executables, low parsing cost in the [measured fixture](proof.md#cpu-budgets-measured-not-recalled),
 and BoringSSL linked directly for browser-like TLS handshakes. Windows packages carry the required
 Visual C++ runtime DLLs beside the executables; no Node or Python runtime is needed to run them.
 </details>
@@ -163,3 +163,19 @@ Visual C++ runtime DLLs beside the executables; no Node or Python runtime is nee
 </details>
 
 ---
+
+## How Svipall compares
+
+The following describes project scope from primary documentation checked on 2026-09-07.
+It is not a feature-exhaustive comparison or a head-to-head performance test.
+
+| Project | Documented focus |
+|---|---|
+| Svipall | Local Rust CLI, MCP and REST server; bounded automatic routing, content labels and local challenge attempts with human fallback |
+| [Firecrawl](https://github.com/firecrawl/firecrawl) | Web scraping/crawling API with hosted and self-hosted options; the open-source and cloud offerings differ |
+| [Crawl4AI](https://github.com/unclecode/crawl4ai) | Python crawler with browser extraction and a Docker server offering API and MCP access |
+| [Scrapling](https://github.com/D4Vinci/Scrapling) | Python adaptive parsing, fetchers and spiders, with session/proxy controls and MCP integration |
+| [Playwright MCP](https://github.com/microsoft/playwright-mcp) | Browser automation through MCP using structured accessibility snapshots |
+
+The historical benchmarks in [Proof](proof.md) do not establish current superiority over these
+projects. Choose based on your required integration and validate your own target pages.

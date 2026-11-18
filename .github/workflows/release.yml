@@ -944,7 +944,7 @@ jobs:
     runs-on: ubuntu-latest
     permissions: {}
     steps:
-      - name: Ask Cloudflare to rebuild svipall.dev
+      - name: Ask Cloudflare to rebuild svipall.ilien.dev
         env:
           # Read through env rather than interpolated into the script: a secret spliced into a
           # shell command is one quoting mistake away from being a shell command.
@@ -961,4 +961,4 @@ jobs:
             --max-time 30 \
             --retry 3 --retry-delay 5 --retry-all-errors
           echo
-          echo "Queued a rebuild of svipall.dev for v${{ needs.version.outputs.version }}."
+          echo "Queued a rebuild of svipall.ilien.dev for v${{ needs.version.outputs.version }}."
