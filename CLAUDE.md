@@ -4,7 +4,7 @@ Local-first web scraping + captcha MCP server in Rust. Defeat anti-bot walls **b
 never by breaking access controls.
 
 ## Layout
-`crates/svipall-*`, `bench/` (a workspace member), `site/` (the Astro website, a git submodule).
+`crates/svipall-*`, `bench/` (a workspace member), `site/` (website submodule).
 - `core` — classify, ladder, identity+`coherence`, `quality`, policy, `exits`, throttle, widgets,
   `answer`, `session`, SQLite stores, config. `extract` — extraction, MIT/Apache, re-exported.
 - `cdp` and `quic` (quiche+h3) are **vendored**: every deviation needs a `PATCHES.md` entry.
@@ -20,7 +20,7 @@ never by breaking access controls.
 - Schema selectors are fingerprinted per domain; a redesign relocates by similarity (`healed`).
 - Pointer, keyboard, wheel go through `behavior`. No bare click, `scrollBy` or forged event.
 - Nothing of ours is readable from the page: no named global, no shadowed host object, no realm
-  disagreeing with another. `bench tells` asserts it at every tier, offline, in `qc`.
+  disagreeing with another. `bench tells` asserts it offline in `qc`.
 - Hidden text never reaches the model (`extraction::sanitize`). Secrets are named from
   `~/.svipall/secrets.env`; the value never enters a call.
 - Exits are the operator's; a pool keeps one (`sticky`) until retired, then heals.
@@ -34,23 +34,22 @@ never by breaking access controls.
   attempt. Never a cascade of `if`s. Then the dashboard: parked page, answer replayed.
 - Answers are `core::answer::Answer`, checked against the modality. **Every coordinate is a fraction
   0..1 of its asset, never a pixel.**
-- Bump `SCHEMA_VERSION` (`solver/src/db.rs`) on any schema change: every statement is
-  `IF NOT EXISTS`, so older machines fail without it.
+- Bump `SCHEMA_VERSION` (`solver/src/db.rs`) on any schema change (statements are `IF NOT EXISTS`).
 
 ## Rules
-- **TDD.** A test before the behaviour, and it must fail without the change.
+- **TDD.** A test first, failing without the change.
 - **Quality gate** `scripts/qc.ps1` / `qc.sh` (`-Fix`/`--fix` = fmt+clippy). `#[ignore]` tests
   (network/browser) run by hand.
-- **Benchmarks are measured, not asserted.** Baselines in `bench/baseline/`, regenerated exactly
-  as its README says. **A change counts only when the median leaves the previous range.** Publish
+- **Benchmarks are measured, not asserted.** Baselines in `bench/baseline/`, regenerated as its
+  README says. **A change counts only when the median leaves the previous range.** Publish
   the runs that improved nothing.
 - **No third-party services, no remote deploy.** No API keys, no paid solvers, no geolocation.
   No vendor brand names in code; name protocols by endpoint.
 - **Reader-facing Markdown: run the `quiron` skill on every edit** (READMEs, `docs/`, root
-  guides, never agent files). Code, links, tables, headings, numbers stay.
-- **Docs move with the code.** A changed tool, argument, route, config key or behaviour updates
-  `docs/` (and `docs/README.md`, the site's index, for a new page) and `CHANGELOG.md` in the same
-  commit. `docs/reference/` is generated: `SVIPALL_BLESS_DOCS=1 cargo test -p svipall --test reference_docs`.
+  guides; not agent files).
+- **Docs move with the code**: a changed tool, argument, route, config key or behaviour updates
+  `docs/` (new page: `docs/README.md`) and `CHANGELOG.md` in that commit. `docs/reference/` is
+  generated: `SVIPALL_BLESS_DOCS=1 cargo test -p svipall --test reference_docs`.
 - **English only.** **Size-guarded file**; trim, don't expand.
 
 ## Build / run / ship
