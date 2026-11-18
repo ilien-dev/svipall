@@ -106,7 +106,7 @@ def source_hashes():
         ['git', 'ls-files', '-z', '--cached', '--others', '--exclude-standard'],
         cwd=REPO).decode().split('\0')
     return {n: digest(REPO / n) for n in sorted(set(names))
-            if n and not n.startswith('bench/experiments/')}
+            if n and not n.startswith('bench/experiments/') and not (REPO / n).is_dir()}
 
 
 def environment(home, browser):
