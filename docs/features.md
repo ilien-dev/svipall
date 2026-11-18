@@ -155,11 +155,11 @@ a spent session is retired rather than changing its face on every request.*
   promote an emulated route** for the same origin, path family, exit and browser environment.
   Fingerprint and hold walls can skip headless probes for an allowed headful session; a failed
   promoted headful route does not backtrack through weaker routes for those wall types.
-  One optional native fallback stays last; [eligibility, expiry and limits](#automatic-routing-privacy-and-practical-limits)
+  One optional native fallback stays last; [eligibility, expiry and limits](configuration.md#automatic-routing-privacy-and-practical-limits)
   constrain the plan.
 - **Browser-like network fingerprint**: selected JA4, HTTP/2 SETTINGS, header-order and GREASE checks on
   BoringSSL, post-quantum key share included. The eight checks are
-  [above](#identity-coherence--asserted-offline-in-ci). The emulation currently presents **Chrome
+  [above](proof.md#identity-coherence-asserted-offline-in-ci). The emulation currently presents **Chrome
   149**, which is the newest profile the TCP engine offers. The provisioned browser is 152, and that
   gap is named as open in [`CHANGELOG.md`](../CHANGELOG.md).
 - **Firefox, coherently, on the http tier**: `http_firefox = true` and the http tier presents Gecko
@@ -171,7 +171,7 @@ a spent session is retired rather than changing its face on every request.*
 - **Stealth that goes far beyond `navigator.webdriver`**: coherent machine identities (screen, GPU,
   fonts, languages, timezone, memory, DPR), deterministic canvas/audio/text-geometry noise, WebRTC
   mitigations behind proxies, and fixes for known DevTools automation traces. The tested surfaces passed
-  [160/160](#automation-tells--160-of-160-offline-and-it-fails-the-build).
+  [160/160](proof.md#automation-tells-160-of-160-offline-and-it-fails-the-build).
 - **Human-like behaviour**: Bézier pointer paths that land off-centre, typing cadence by digraph,
   wheel-notch scrolling with inertia, focus/visibility events, dwell time proportional to page
   length. Built-in pointer, keyboard and wheel actions use this layer; caller-supplied `eval`
@@ -247,6 +247,6 @@ a spent session is retired rather than changing its face on every request.*
   blocking with cached lists that degrade silently offline.
 - **A CLI with the same brain**: published as an [Agent Skill](../skill/SKILL.md) for agents that prefer
   a shell to a tool schema; a test keeps the skill in step with the CLI.
-- **A local REST API for every other language**: [details below](#the-rest-api).
+- **A local REST API for every other language**: [details below](rest.md).
 
 ---
