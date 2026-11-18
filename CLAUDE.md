@@ -4,7 +4,7 @@ Local-first web scraping + captcha MCP server in Rust. Defeat anti-bot walls **b
 never by breaking access controls.
 
 ## Layout
-`crates/svipall-*` plus `bench/` (a workspace member).
+`crates/svipall-*`, `bench/` (a workspace member), `site/` (the Astro website, a git submodule).
 - `core` — classify, ladder, identity+`coherence`, `quality`, policy, `exits`, throttle, widgets,
   `answer`, `session`, SQLite stores, config. `extract` — extraction, MIT/Apache, re-exported.
 - `cdp` and `quic` (quiche+h3) are **vendored**: every deviation needs a `PATCHES.md` entry.
@@ -39,8 +39,8 @@ never by breaking access controls.
 
 ## Rules
 - **TDD.** A test before the behaviour, and it must fail without the change.
-- **Quality gate** `scripts/qc.ps1` / `qc.sh` (`-Fix`/`--fix` = fmt+clippy). Integration tests
-  in `<crate>/tests/`; `#[ignore]` ones (network/browser) run by hand.
+- **Quality gate** `scripts/qc.ps1` / `qc.sh` (`-Fix`/`--fix` = fmt+clippy). `#[ignore]` tests
+  (network/browser) run by hand.
 - **Benchmarks are measured, not asserted.** Baselines in `bench/baseline/`, regenerated exactly
   as its README says. **A change counts only when the median leaves the previous range.** Publish
   the runs that improved nothing.

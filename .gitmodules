@@ -1,0 +1,4 @@
+[submodule "site"]
+	path = site
+	url = https://github.com/ilien-dev/svipall-site.git
+	branch = master
