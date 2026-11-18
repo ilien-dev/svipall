@@ -48,6 +48,9 @@ never by breaking access controls.
   No vendor brand names in code; name protocols by endpoint.
 - **Reader-facing Markdown: run the `quiron` skill on every edit** (READMEs, `docs/`, root
   guides, never agent files). Code, links, tables, headings, numbers stay.
+- **Docs move with the code.** A changed tool, argument, route, config key or behaviour updates
+  `docs/` (and `docs/README.md`, the site's index, for a new page) and `CHANGELOG.md` in the same
+  commit. `docs/reference/` is generated: `SVIPALL_BLESS_DOCS=1 cargo test -p svipall --test reference_docs`.
 - **English only.** **Size-guarded file**; trim, don't expand.
 
 ## Build / run / ship
