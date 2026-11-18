@@ -1,5 +1,21 @@
 # Changelog
 
+## Unreleased
+
+The docs are now a site, built from this repository. https://svipall.ilien.dev/docs/ is rendered
+from `docs/` at the latest release, and `docs/README.md` is its index: each `##` is a group, the
+links under it are the pages in order, and a page not linked there is not published.
+
+- **`docs/reference/` is generated from the code.** `tools.md` lists every MCP tool with each of its
+  parameters, as the server describes them, and `rest.md` every REST route with the body it
+  takes. `crates/svipall/tests/reference_docs.rs` renders both and fails when the committed pages
+  differ; `SVIPALL_BLESS_DOCS=1 cargo test -p svipall --test reference_docs` rewrites them.
+- **The README is for the person who will use it.** What Svipall is, what an AI can do with it and
+  how to set it up, in plain words. The technical sections moved to the docs; the comparison with
+  similar projects is now at the end of `docs/faq.md`.
+- Same-page links in `docs/faq.md`, `docs/features.md`, `docs/captcha.md` and `docs/privacy.md`
+  that pointed at headings no longer in those files now point at the page that holds them.
+
 ## 2.1.0 — 2026-11-13
 
 `web_video` shows a video as well as reading it. Until now it returned at most 24 frames, whatever

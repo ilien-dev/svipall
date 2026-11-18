@@ -1604,6 +1604,27 @@ impl SvipallServer {
         Some(schema)
     }
 
+    /// What an operation does: its `#[tool]` doc comment, else the doc comment of its parameter
+    /// struct. The generated REST reference (`docs/reference/rest.md`) is written from this, so a
+    /// route's docs move with its code. `None` when neither says anything.
+    pub fn operation_description(&self, name: &str) -> Option<String> {
+        let route = self.tool_router.map.get(name)?;
+        route
+            .attr
+            .description
+            .as_ref()
+            .map(|d| d.to_string())
+            .or_else(|| {
+                route
+                    .attr
+                    .input_schema
+                    .get("description")
+                    .and_then(Value::as_str)
+                    .map(str::to_string)
+            })
+            .filter(|d| !d.trim().is_empty())
+    }
+
     /// The config this server was built with, for a caller that has to bind a port or size a queue.
     pub fn config(&self) -> &Config {
         &self.cfg
