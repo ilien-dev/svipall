@@ -1,10 +1,10 @@
 # Svipall
 
-Local-first web scraping + captcha MCP server in Rust. Defeat anti-bot walls **by evading them**,
+Local web scraping + captcha MCP server in Rust. Defeat anti-bot walls **by evading them**,
 never by breaking access controls.
 
 ## Layout
-`crates/svipall-*`, `bench/` (a workspace member), `site/` (website submodule).
+`crates/svipall-*`, `bench/` (workspace member), `site/` (website submodule).
 - `core` — classify, ladder, identity+`coherence`, `quality`, policy, `exits`, throttle, widgets,
   `answer`, `session`, SQLite stores, config. `extract` — extraction, MIT/Apache, re-exported.
 - `cdp` and `quic` (quiche+h3) are **vendored**: every deviation needs a `PATCHES.md` entry.
@@ -26,8 +26,8 @@ never by breaking access controls.
 - Exits are the operator's; a pool keeps one (`sticky`) until retired, then heals.
   `throttle`/`exit_health`/`reputation` key by `(domain, exit)`, home included; browser proxy
   auth is CDP, not argv.
-- CLI, MCP and `serve` (REST, keyed, loopback) are one server; tests keep `skill/SKILL.md`, the
-  plugin's copy of it and `rest::ROUTES` in step with it.
+- CLI, MCP and `serve` (REST, keyed, loopback) are one server; tests keep `skill/SKILL.md` (and
+  the plugin's copy) and `rest::ROUTES` in step.
 - A challenge is a *modality* x a *widget*: a new one is a row in `WIDGETS` plus a fixture in
   `core/fixtures/widgets/`. `Modality::Text` is unreachable from the live loop, by test.
 - `solve_loop` orders strategies by what worked on this route (`outcomes`); a decline costs no
@@ -38,23 +38,22 @@ never by breaking access controls.
 
 ## Rules
 - **TDD.** A test first, failing without the change.
-- **Quality gate** `scripts/qc.ps1` / `qc.sh` (`-Fix`/`--fix` = fmt+clippy). `#[ignore]` tests
-  (network/browser) run by hand.
-- **Benchmarks are measured, not asserted.** Baselines in `bench/baseline/`, regenerated as its
-  README says. **A change counts only when the median leaves the previous range.** Publish
+- **Quality gate** `scripts/qc.ps1`/`qc.sh` (`--fix` = fmt+clippy); `#[ignore]` tests
+  (network/browser) by hand.
+- **Benchmarks are measured, not asserted.** Baselines: `bench/baseline/` (its README). **A change counts only when the median leaves the previous range.** Publish
   the runs that improved nothing.
 - **No third-party services, no remote deploy.** No API keys, no paid solvers, no geolocation.
   No vendor brand names in code; name protocols by endpoint.
 - **Reader-facing Markdown: run the `quiron` skill on every edit** (READMEs, `docs/`, root
   guides; not agent files).
 - **Docs move with the code**: a changed tool, argument, route, config key or behaviour updates
-  `docs/` (new page: `docs/README.md`) and `CHANGELOG.md` in that commit. `docs/reference/` is
-  generated: `SVIPALL_BLESS_DOCS=1 cargo test -p svipall --test reference_docs`.
+  `docs/` (new page: `docs/README.md`) and `CHANGELOG.md`. `docs/reference/` is generated:
+  `SVIPALL_BLESS_DOCS=1 cargo test -p svipall --test reference_docs`.
 - **English only.** **Size-guarded file**; trim, don't expand.
 
 ## Build / run / ship
 `cargo build --release` (cmake, nasm, perl, llvm; short `CARGO_TARGET_DIR` on Windows) is
 `target-cpu=native`: **never ship it**, artifacts are `--profile dist`. `svipall-mcp` over stdio +
-dashboard 8787; `svipall` is the CLI; `svipall doctor` reports an install. Config
-`~/.svipall/config.toml`; `SVIPALL_*` in the README. Release = a `main` merge bumping
+dashboard 8787; `svipall` is the CLI (`doctor` checks an install). Config
+`~/.svipall/config.toml`; `SVIPALL_*` in `docs/configuration.md`. Release = a `main` merge bumping
 `[workspace.package] version`.
