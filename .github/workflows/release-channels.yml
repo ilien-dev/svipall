@@ -1,0 +1,348 @@
+name: release-channels
+
+# Where a public release goes next: the Homebrew tap and the Scoop bucket, npm, crates.io, the image
+# tags, the MCP Registry and the site. `release.yml` calls this once the release is public, because
+# every one of them points at the release's files: landing first would ship a formula, a package or
+# a registry entry whose download is a 404. Each job skips what is already published, so a re-run
+# is safe. The artefacts it reads were uploaded by release-assets.yml in the same run.
+
+on:
+  workflow_call:
+    inputs:
+      tag:
+        description: The release tag, e.g. v2.2.0. Every checkout takes it.
+        type: string
+        required: true
+      version:
+        description: The version the tag carries, e.g. 2.2.0.
+        type: string
+        required: true
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  # The same three outputs release-assets.yml computes, so every job reads them the same way. The
+  # tag was checked there; this only names it.
+  version:
+    name: version
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.v.outputs.version }}
+      prerelease: ${{ steps.v.outputs.prerelease }}
+      publish: ${{ steps.v.outputs.publish }}
+    steps:
+      - id: v
+        shell: bash
+        env:
+          VERSION: ${{ inputs.version }}
+        run: |
+          case "$VERSION" in *-*) pre=true ;; *) pre=false ;; esac
+          {
+            echo "version=$VERSION"
+            echo "prerelease=$pre"
+            echo "publish=true"
+          } >> "$GITHUB_OUTPUT"
+
+  # The Homebrew tap and the Scoop bucket, pushed the moment the release exists. Each is its own
+  # repository, so this needs a credential this workflow does not have by default: one deploy key
+  # per repository, write access to that repository and nothing else. The private half is a secret
+  # here, the public half a deploy key there; packaging/README.md has the commands.
+  #
+  # Both manifests point at release assets, which is why this workflow runs only once the release
+  # is public. Re-running is safe; an unchanged manifest commits nothing.
+  tap-bucket:
+    name: ${{ matrix.repo }}
+    needs: version
+    if: needs.version.outputs.publish == 'true'
+    runs-on: ubuntu-latest
+    permissions: {}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - repo: ilien-dev/homebrew-svipall
+            from: homebrew/svipall.rb
+            to: Formula/svipall.rb
+            key: HOMEBREW_TAP_DEPLOY_KEY
+          - repo: ilien-dev/scoop-svipall
+            from: scoop/svipall.json
+            to: bucket/svipall.json
+            key: SCOOP_BUCKET_DEPLOY_KEY
+    steps:
+      # Without the key, checkout falls back to the workflow token, reads the public repository and
+      # fails on push with a 403 that names neither the secret nor the fix.
+      - name: The deploy key is set
+        env:
+          KEY: ${{ secrets[matrix.key] }}
+        run: |
+          [ -n "$KEY" ] || { echo "::error::secret ${{ matrix.key }} is not set; see packaging/README.md"; exit 1; }
+      - uses: actions/download-artifact@v4
+        with:
+          name: packages
+          path: packages
+      - uses: actions/checkout@v4
+        with:
+          repository: ${{ matrix.repo }}
+          ssh-key: ${{ secrets[matrix.key] }}
+          path: channel
+      - name: Commit and push
+        env:
+          VERSION: ${{ needs.version.outputs.version }}
+        run: |
+          mkdir -p manifests
+          tar -xzf packages/packaging-manifests.tar.gz -C manifests "${{ matrix.from }}"
+          mkdir -p "channel/$(dirname "${{ matrix.to }}")"
+          cp "manifests/${{ matrix.from }}" "channel/${{ matrix.to }}"
+          cd channel
+          git add "${{ matrix.to }}"
+          if git diff --cached --quiet; then
+            echo "${{ matrix.repo }} already carries svipall $VERSION; nothing to do"
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -m "svipall $VERSION"
+          git push
+
+  # npm, over OIDC and with no stored secret. `id-token: write` is the whole mechanism: npm trades
+  # the token GitHub mints for a short-lived publish credential, having been told on npmjs.com that
+  # this repository and `release.yml`, which calls this workflow, may do it. It also generates a provenance attestation by
+  # itself, which is the same guarantee the release assets carry.
+  #
+  # The package is five files and a postinstall that fetches the release archive, so publishing it
+  # before the release is public would ship a package that cannot install.
+  npm:
+    name: npm
+    needs: version
+    if: needs.version.outputs.publish == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.tag }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          registry-url: https://registry.npmjs.org
+      # OIDC publishing needs a recent npm; the one bundled with the Node LTS image is older than
+      # the feature.
+      - run: npm install -g npm@latest
+      - name: Publish
+        working-directory: packaging/npm
+        env:
+          VERSION: ${{ needs.version.outputs.version }}
+        run: |
+          # Re-running a tag must not fail the release. A version already on the registry is the
+          # normal outcome of a re-run, not a problem to report.
+          if npm view "svipall@$VERSION" version >/dev/null 2>&1; then
+            echo "svipall@$VERSION is already published; nothing to do"
+            exit 0
+          fi
+          # A pre-release goes under `next` and never touches `latest`; npm refuses a pre-release
+          # with no `--tag` at all.
+          tag=latest
+          if [ "${{ needs.version.outputs.prerelease }}" = "true" ]; then
+            tag=next
+          fi
+          npm publish --tag "$tag" --access public
+
+  # crates.io, with a stored token when the repository has one and over OIDC when it does not.
+  # `CARGO_REGISTRY_TOKEN` (scopes `publish-new` and `publish-update`, crates `svipall*`) publishes
+  # anything, a crate the registry has never seen included; OIDC cannot, because trusted publishing
+  # is configured on a crate that already exists. Without the secret, `crates-io-auth-action` trades
+  # the token GitHub mints for a short-lived one, and `scripts/crates-trusted-publishing.sh` is the
+  # one-time setup that makes crates.io accept it.
+  #
+  # Published in dependency order, one crate at a time, because publishing is permanent — there is
+  # no unpublish, only `yank` — and a run that dies halfway must be re-runnable. A crate already on
+  # the registry is skipped rather than reported: that is the normal outcome of a re-run.
+  #
+  # `svipall-cdp` and `svipall-quic` go up because they have to. They are vendored forks and
+  # nothing about that changes here, but crates.io resolves every dependency of a published crate,
+  # optional ones included, so `svipall` and `svipall-http` cannot exist on the registry while
+  # either fork is missing from it. `UPSTREAM.md` is their readme for exactly that reason.
+  #
+  # `bench` is the one member that stays off: it is a harness for this repository, it carries 45 MB
+  # of corpora, and `publish = false` in its manifest is what says so.
+  crates:
+    name: crates.io
+    needs: version
+    if: needs.version.outputs.publish == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.tag }}
+      - uses: dtolnay/rust-toolchain@1.99.0
+
+      # The verification build is a real build: `svipall-http` compiles BoringSSL like every other
+      # job here does.
+      - name: BoringSSL build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential cmake perl pkg-config libclang-dev nasm
+
+      # What is not on the registry yet, in dependency order. A re-run usually finds nothing, and
+      # then needs no token: rc.3's re-run died here asking for one it had no use for.
+      - name: Missing crates
+        id: missing
+        env:
+          VERSION: ${{ needs.version.outputs.version }}
+          # Only whether it is set leaves this step; `if:` cannot read `secrets`, and a job-level
+          # env would hand the token to every step in the job.
+          STORED: ${{ secrets.CARGO_REGISTRY_TOKEN }}
+        run: |
+          if [ -n "$STORED" ]; then echo "stored=true" >> "$GITHUB_OUTPUT"; fi
+          # Dependency order, written out rather than derived: `cargo publish --workspace` would
+          # order these itself, and would also stop at the first crate already on the registry.
+          crates="svipall-extract svipall-cdp svipall-quic svipall-models svipall-core"
+          crates="$crates svipall-solver svipall-dashboard svipall-http svipall"
+          # crates.io refuses a request with no User-Agent, and it refuses it with a 403 that
+          # reads exactly like "this crate is not published".
+          agent="svipall-release (github.com/${GITHUB_REPOSITORY})"
+          missing=""
+          for crate in $crates; do
+            if curl -sSf -A "$agent" "https://crates.io/api/v1/crates/$crate/$VERSION" >/dev/null 2>&1; then
+              echo "$crate@$VERSION is already published; nothing to do"
+            else
+              missing="$missing $crate"
+            fi
+          done
+          echo "crates=${missing# }" >> "$GITHUB_OUTPUT"
+
+      - uses: rust-lang/crates-io-auth-action@v1
+        id: auth
+        if: steps.missing.outputs.crates != '' && steps.missing.outputs.stored != 'true'
+
+      # `ubuntu-latest`, and default features, on purpose. The release artefacts for Linux are
+      # built on 22.04 without the model features so they start on Debian 12; this is not an
+      # artefact, it is cargo proving each crate compiles from the archive it is about to upload,
+      # so it runs where the ONNX Runtime binaries `ort` downloads actually link.
+      #
+      # What that means for a user: `cargo install svipall` builds from source and carries no
+      # embedded models — the weights are exported at release time and are not in the crate. Image
+      # captchas go to the human dashboard there, exactly as `svipall doctor` reports `no_models`
+      # for the Linux and x86_64 macOS artefacts. docs/install.md says so.
+      - name: Publish
+        if: steps.missing.outputs.crates != ''
+        env:
+          CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN || steps.auth.outputs.token }}
+          CRATES: ${{ steps.missing.outputs.crates }}
+        run: |
+          for crate in $CRATES; do
+            echo "publishing $crate"
+            cargo publish -p "$crate"
+          done
+
+  # The tags, made from whatever architectures that flavour produced.
+  image-manifest:
+    name: image manifest (${{ matrix.flavor }})
+    needs: version
+    if: needs.version.outputs.publish == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - flavor: full
+            suffix: ""
+            moving: latest
+          - flavor: slim
+            suffix: "-slim"
+            moving: slim
+    steps:
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: digest-${{ matrix.flavor }}-*
+          path: /tmp/digests
+          merge-multiple: true
+      # A moving tag is a promise that whoever pulls it gets the release. A pre-release is by
+      # definition not that, so it publishes its own version tag and leaves `latest` and `slim`
+      # pointing wherever they already pointed.
+      - name: Create the manifest
+        shell: bash
+        run: |
+          repo="ghcr.io/${{ github.repository }}"
+          tags="-t $repo:${{ needs.version.outputs.version }}${{ matrix.suffix }}"
+          if [ "${{ needs.version.outputs.prerelease }}" != "true" ]; then
+            tags="$tags -t $repo:${{ matrix.moving }}"
+          fi
+          refs=""
+          for f in /tmp/digests/*; do
+            refs="$refs $repo@$(cat "$f")"
+          done
+          [ -n "$refs" ] || { echo "no digests for ${{ matrix.flavor }}" >&2; exit 1; }
+          echo "creating$tags from$refs"
+          docker buildx imagetools create $tags $refs
+          docker buildx imagetools inspect "$repo:${{ needs.version.outputs.version }}${{ matrix.suffix }}"
+
+  # The MCP Registry, last, deliberately: a published version is immutable and the registry has no
+  # unpublish, so this runs after every artefact `server.json` points at exists. The steps live in
+  # `mcp-registry.yml`, which can also be dispatched by hand when this call fails.
+  mcp-registry:
+    name: mcp registry
+    needs: [version, npm, crates, image-manifest]
+    if: needs.version.outputs.publish == 'true'
+    permissions:
+      contents: read
+    uses: ./.github/workflows/mcp-registry.yml
+    with:
+      tag: ${{ inputs.tag }}
+    secrets:
+      MCP_PRIVATE_KEY: ${{ secrets.MCP_PRIVATE_KEY }}
+
+  # The website shows the current version, and the number is written into its HTML at build time.
+  # Nothing here is required for that to be correct — the page asks the GitHub API again in the
+  # visitor's browser and raises the number itself — so this job is not on the critical path of a
+  # release and never fails one. What it buys is the served HTML being right as well: the reader
+  # with JavaScript off, the crawler, and the first paint before the request comes back.
+  #
+  # The site is a Worker with Workers Builds attached, not a classic Pages project, so the hook is
+  # the one that project issues under Settings > Builds > Deploy Hooks. A POST to it is the whole
+  # protocol: the id in the URL is the credential, which is also why it is a secret here. Anyone
+  # holding it can queue a build of that branch and nothing else. With the secret unset the step
+  # says so and succeeds, which is what makes this safe to merge before the hook exists.
+  #
+  # Stable releases only, matching what the site will show: a pre-release would spend a Pages build
+  # baking the same number the site already has.
+  site:
+    name: site
+    needs: version
+    if: needs.version.outputs.publish == 'true' && needs.version.outputs.prerelease != 'true'
+    runs-on: ubuntu-latest
+    permissions: {}
+    steps:
+      - name: Ask Cloudflare to rebuild svipall.ilien.dev
+        env:
+          # Read through env rather than interpolated into the script: a secret spliced into a
+          # shell command is one quoting mistake away from being a shell command.
+          HOOK: ${{ secrets.SITE_DEPLOY_HOOK }}
+        run: |
+          if [ -z "$HOOK" ]; then
+            echo "SITE_DEPLOY_HOOK is not set; the site will pick up v${{ needs.version.outputs.version }} in the browser."
+            exit 0
+          fi
+          # --fail so a 4xx is a failure and not a silent success, and the body is printed either
+          # way: the answer carries the build_uuid of the build that was queued.
+          curl --fail --silent --show-error --location \
+            --request POST "$HOOK" \
+            --max-time 30 \
+            --retry 3 --retry-delay 5 --retry-all-errors
+          echo
+          echo "Queued a rebuild of svipall.ilien.dev for v${{ needs.version.outputs.version }}."

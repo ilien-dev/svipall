@@ -149,10 +149,21 @@ fn every_artifact_download_names_what_it_takes() {
     );
 }
 
+/// The project's release pipeline: what `release.yml` (managed by Nabu) runs while the release is
+/// a draft, then what it runs once the release is public. Searched as one text, in that order.
 fn release_yml() -> String {
-    fs::read_to_string(workspace_root().join(".github/workflows/release.yml"))
-        .expect("release.yml")
-        .replace("\r\n", "\n")
+    [
+        ".github/workflows/release-assets.yml",
+        ".github/workflows/release-channels.yml",
+    ]
+    .iter()
+    .map(|p| {
+        fs::read_to_string(workspace_root().join(p))
+            .expect(p)
+            .replace("\r\n", "\n")
+    })
+    .collect::<Vec<_>>()
+    .join("\n")
 }
 
 /// `latest` on npm and `latest`/`slim` on the image move for a stable release only. Every
@@ -380,16 +391,19 @@ fn every_release_pushes_the_tap_and_the_bucket() {
             .expect(p)
             .replace("\r\n", "\n")
     };
-    let workflow = read(".github/workflows/release.yml");
+    let workflow = read(".github/workflows/release-channels.yml");
     let render = read("scripts/render-packaging.sh");
-    let job = job(&workflow, "tap-bucket").expect("release.yml has a `tap-bucket` job");
+    let release = read(".github/workflows/release.yml");
 
-    // The manifests point at release assets, so they must not land before the release exists.
-    let needs = job.lines().find(|l| l.trim_start().starts_with("needs:"));
+    // The manifests point at release assets, so they must not land before the release is public:
+    // `release.yml` calls the channels only after its `publish` job.
+    let after = job(&release, "after-publish").expect("release.yml has an `after-publish` job");
     assert!(
-        needs.is_some_and(|l| l.contains("publish")),
-        "tap-bucket must wait on `publish`"
+        after.contains("needs: [release, publish]")
+            && after.contains("uses: ./.github/workflows/release-channels.yml"),
+        "the channels must run after the release is public:\n{after}"
     );
+    let job = job(&workflow, "tap-bucket").expect("release-channels.yml has a `tap-bucket` job");
     for (repo, from, to) in [
         (
             "ilien-dev/homebrew-svipall",
@@ -586,7 +600,7 @@ fn the_models_archive_is_published_under_the_name_the_installer_asks_for() {
     // Both checksum steps glob `svipall-*`, so a job that runs before this one writes a
     // `sha256sums.txt` without the archive in it — and then the installer downloads something it
     // cannot verify, which it reports as a warning and nobody reads.
-    for consumer in ["packages", "publish"] {
+    for consumer in ["packages", "attach"] {
         let body = job(&workflow, consumer).expect("a job");
         let needs = body
             .lines()
@@ -667,7 +681,8 @@ fn both_container_images_assert_the_models_they_carry() {
 fn nothing_offers_an_intel_macos_build() {
     let root = workspace_root();
     for file in [
-        ".github/workflows/release.yml",
+        ".github/workflows/release-assets.yml",
+        ".github/workflows/release-channels.yml",
         ".github/workflows/cache-warm.yml",
         ".github/workflows/build-check.yml",
         "scripts/render-packaging.sh",

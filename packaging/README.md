@@ -50,7 +50,7 @@ other route, and the one CI would need.
 The first publish was manual for a reason that cannot be worked around: **trusted publishing is
 configured in a package's settings, and there is no package until something has been published**.
 
-From the second release on it is the route, and `release.yml` already carries the `npm` job for it:
+From the second release on it is the route, and `release-channels.yml`, which `release.yml` calls, carries the `npm` job for it:
 `id-token: write`, no stored secret, and npm generates a provenance attestation by itself. What has
 to match exactly, because npm validates none of it when you save the form and only fails at publish
 time:
@@ -83,7 +83,7 @@ missing from the registry:
 ## The MCP Registry
 
 `server.json` in the repository root is the submission, and `.github/workflows/mcp-registry.yml`
-sends it: `release.yml` calls it last, and when that call fails, dispatching it from `main`
+sends it: `release-channels.yml` calls it last, and when that call fails, dispatching it from `main`
 (`gh workflow run mcp-registry.yml`) sends the entry for the version `main` carries. The registry stores **metadata only**: it does not host a byte of this project. It
 checks, for every package `server.json` names, that the artefact on that package's own
 registry carries the server's name. That is how it knows the submission is ours and not somebody
@@ -147,7 +147,7 @@ README, and neither is on the critical path.
 
 ## Publishing a release into the tap and the bucket
 
-The `tap-bucket` job in `release.yml` does it, right after the release publishes: it commits the
+The `tap-bucket` job in `release-channels.yml` does it, right after the release goes public: it commits the
 rendered `Formula/svipall.rb` and `bucket/svipall.json` and pushes. Its credential is one deploy
 key per repository, so the worst a leaked key can do is write to that one repository. Once each:
 

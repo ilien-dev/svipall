@@ -1,0 +1,662 @@
+name: release-assets
+
+# What a release builds and attaches while it is still a draft. `release.yml`, which Nabu manages,
+# merges release-please's pull request, creates the tag and the draft, calls this workflow with the
+# tag and the version, and makes the release public only once it succeeds. A failed job leaves the
+# draft: "Re-run failed jobs" on that run finishes it. Called, never run on its own, so everything
+# here publishes under `release.yml`'s name.
+#
+# The images are built here, by digest and untagged, because they need nothing public; their tags
+# are made in release-channels.yml, after the release is public.
+
+on:
+  workflow_call:
+    inputs:
+      tag:
+        description: The release tag, e.g. v2.2.0. Every checkout takes it.
+        type: string
+        required: true
+      version:
+        description: The version the tag carries, e.g. 2.2.0.
+        type: string
+        required: true
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  # A release ships only once `ci` passed on the commit its tag points at. v1.3.0 shipped while its
+  # `ci` was red, because the release ran beside `ci` instead of after it. The tag's commit is the
+  # one release-please merged, pushed with RELEASE_TOKEN, so `ci` runs on it like on any push.
+  ci-green:
+    name: ci green
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    permissions:
+      actions: read
+      contents: read
+    steps:
+      - name: Wait for ci on the release commit
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ inputs.tag }}
+        run: |
+          sha=$(gh api "repos/$GITHUB_REPOSITORY/commits/$TAG" --jq .sha)
+          while :; do
+            run=$(gh run list -R "$GITHUB_REPOSITORY" --workflow ci.yml --commit "$sha" \
+              --event push --limit 1 --json status,conclusion,url \
+              -q '.[0] | "\(.status) \(.conclusion) \(.url)"')
+            case "$run" in
+              "completed success "*) echo "ci passed: ${run##* }"; exit 0 ;;
+              completed*) echo "ci did not pass, nothing ships: $run" >&2; exit 1 ;;
+            esac
+            echo "waiting for ci: ${run:-not started}"
+            sleep 60
+          done
+
+  # The version, read from the tag the same way `scripts/sync-version` writes it, and held to the
+  # one release-please released. release-please writes `[workspace.package] version`; the sync
+  # step of release.yml copies it into the plugin manifest, the npm wrapper, server.json, every
+  # internal dependency line and Cargo.lock, on the release branch, before it is merged.
+  # `--check` fails if any of them is behind, so a tag that disagrees with itself ships nothing.
+  version:
+    name: version
+    needs: ci-green
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.v.outputs.version }}
+      prerelease: ${{ steps.v.outputs.prerelease }}
+      publish: ${{ steps.v.outputs.publish }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.tag }}
+      - id: v
+        shell: bash
+        env:
+          WANTED: ${{ inputs.version }}
+        run: |
+          crate=$(python3 scripts/sync_version.py . --check)
+          if [ "$crate" != "$WANTED" ]; then
+            echo "the tag carries $crate, the release is $WANTED" >&2
+            exit 1
+          fi
+          # A semver pre-release is anything with a hyphen. The moving tags (`latest` on npm,
+          # `latest` and `slim` on the image) move for a stable release only.
+          case "$crate" in *-*) pre=true ;; *) pre=false ;; esac
+          {
+            echo "version=$crate"
+            echo "prerelease=$pre"
+            echo "publish=true"
+          } >> "$GITHUB_OUTPUT"
+          echo "version $crate, prerelease $pre"
+
+  build:
+    name: ${{ matrix.target }}
+    needs: version
+    if: needs.version.outputs.publish == 'true'
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # Every target carries the captcha models. Two of them link the ONNX Runtime `ort`
+          # downloads; the two Linux ones build it from source, because upstream publishes nothing
+          # that works for them — see `ort_source` below and tools/onnxruntime/build.sh.
+          #
+          # Intel macOS is not here. It was, and it was the one target that could be built and
+          # never run: `macos-latest` is arm64, so the artefact was cross-compiled, and GitHub has
+          # retired the Intel image — a `macos-13` job sits queued with no runner rather than
+          # failing. Apple's last Intel Mac was discontinued in 2023 and macOS 26 is the last
+          # release that supports one. Shipping an artefact nobody can start, from a build nobody
+          # can test, is worse than sending those machines to the container image, which runs
+          # `linux/amd64` natively on them. `install.sh` says so by name.
+          - os: windows-latest
+            target: x86_64-pc-windows-msvc
+            ext: .exe
+            ort_source: false
+          - os: macos-latest
+            target: aarch64-apple-darwin
+            ext: ""
+            ort_source: false
+          # Linux builds on 22.04 so the artefact starts on Debian 12, Ubuntu 22.04 and RHEL 9:
+          # a binary links the glibc of the machine that built it, and `ubuntu-latest` produced
+          # one needing GLIBC_2.39. The prebuilt ONNX Runtime cannot come along for that ride —
+          # it references glibc 2.38 and GCC 13's libstdc++ — so this target builds its own,
+          # which links this runner's glibc like everything else in the artefact.
+          # `Runs on an older distribution` below is the gate, and it now asserts the models too.
+          - os: ubuntu-22.04
+            target: x86_64-unknown-linux-gnu
+            ext: ""
+            ort_source: true
+          # Native arm runner: BoringSSL cross-compiles badly and does not need to.
+          - os: ubuntu-22.04-arm
+            target: aarch64-unknown-linux-gnu
+            ext: ""
+            ort_source: true
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.tag }}
+
+      - uses: dtolnay/rust-toolchain@1.99.0
+        with:
+          targets: ${{ matrix.target }}
+
+      # Restore only, never save. A cache written under a tag is unreadable from every other tag,
+      # so saving here would spend the 10 GB budget on entries nothing can ever read.
+      # `cache-warm.yml` writes them on `main`, which is the one scope a tag run can read.
+      # Warm against cold, with a source change in between: Windows 22.4 -> 14.9 min, macOS arm
+      # 20.1 -> 13.0. Only these two, because Linux at ~11 min cold already finishes under what
+      # Windows becomes warm, and the two entries that matter are 980 MB and 626 MB.
+      #
+      # Windows cannot use the plain form: the build writes to the short CARGO_TARGET_DIR that
+      # BoringSSL needs under MAX_PATH, and rust-cache only knows how to prune a target dir inside
+      # the workspace — pointed at the default it silently caches the registry and no compiled
+      # artefact at all. `cache-directories` names the real one.
+      - uses: Swatinem/rust-cache@v2
+        if: matrix.target == 'x86_64-pc-windows-msvc'
+        with:
+          key: rel-win
+          save-if: "false"
+          cache-targets: "false"
+          cache-all-crates: "true"
+          cache-directories: 'C:\t'
+
+      - uses: Swatinem/rust-cache@v2
+        if: matrix.target == 'aarch64-apple-darwin'
+        with:
+          key: rel-macarm
+          save-if: "false"
+          cache-all-crates: "true"
+
+      - name: BoringSSL build dependencies (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential cmake perl pkg-config libclang-dev nasm
+
+      # windows-latest already ships all four, so this asserts rather than installs. Measured over
+      # three repetitions each: with the `choco install` the job's median was 26.8 min
+      # (25.5-27.1), without it 22.4 (21.9-22.5). Half of that is the two and a half minutes choco
+      # spends, and the other half is the build itself getting faster — Chocolatey's LLVM and Perl
+      # shadow the ones the image already carries, and the build is slower with them.
+      #
+      # It throws rather than falling back, because the day the runner image drops one of these
+      # the failure must be this line and not a mystery half an hour later.
+      - name: BoringSSL build dependencies (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          foreach ($t in 'cmake','perl','clang','nasm') {
+            $c = Get-Command $t -ErrorAction SilentlyContinue
+            if (-not $c) { throw "windows-latest no longer ships $t; restore the choco install step" }
+            Write-Host "$t -> $($c.Source)"
+          }
+
+      - name: BoringSSL build dependencies (macOS)
+        if: runner.os == 'macOS'
+        run: brew install cmake pkg-config llvm
+
+      # ONNX Runtime for the three targets pyke publishes nothing usable for. Restored from a
+      # cache `cache-warm.yml` writes on `main`, because a cache written under a tag is unreadable
+      # from the next one — the same rule the dependency cache above lives by. A miss is slow
+      # rather than fatal: the build script runs and the release takes an hour longer.
+      - uses: actions/cache/restore@v4
+        if: matrix.ort_source
+        id: ort-cache
+        with:
+          path: .ort/build/Release
+          key: ort-${{ hashFiles('tools/onnxruntime/VERSION') }}-${{ matrix.target }}
+      - name: ONNX Runtime from source
+        if: matrix.ort_source
+        shell: bash
+        run: |
+          if [ "${{ steps.ort-cache.outputs.cache-hit }}" != "true" ]; then
+            # The architecture comes from the target, not from the runner: `macos-latest` is arm64
+            # and the Intel artefact is cross-compiled on it.
+            case "${{ matrix.target }}" in
+              x86_64-*) arch=x86_64 ;;
+              aarch64-apple-*) arch=arm64 ;;
+              aarch64-*) arch=aarch64 ;;
+            esac
+            tools/onnxruntime/build.sh "$PWD/.ort" "$arch"
+          fi
+          # ort-sys reads this before its download path, so nothing in Cargo.toml changes. It has
+          # to be the directory holding the libonnxruntime_*.a files and their `_deps`, which is
+          # one level below what ONNX Runtime calls its build directory.
+          echo "ORT_LIB_LOCATION=$PWD/.ort/build/Release" >> "$GITHUB_ENV"
+
+      # The models the binary carries. torchvision's published weights (BSD-3), exported once
+      # here and compiled in by svipall-models; nothing is fetched at run time. The CPU wheel is
+      # enough: exporting is not training.
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Export embedded models
+        shell: bash
+        run: |
+          # The CPU index carries no aarch64 Linux wheel past torch 2.0.1 and none at all for
+          # 3.12, which is why this step was believed impossible there. PyPI has one
+          # (`manylinux_2_28_aarch64`). It is the CUDA-tagged build — `2.14.0+cu130`, measured, not
+          # assumed — because that is the only aarch64 wheel published, and it is a much larger
+          # download than the x86 CPU one. The export itself runs on the CPU either way and produces
+          # the same two files, byte size for byte size. macOS arm64 keeps the CPU index, where its
+          # wheel has always been.
+          case "${{ matrix.target }}" in
+            aarch64-unknown-linux-gnu)
+              python -m pip install --quiet torch torchvision ;;
+            *)
+              python -m pip install --quiet torch torchvision --index-url https://download.pytorch.org/whl/cpu ;;
+          esac
+          python -m pip install --quiet onnx
+          python tools/models/export.py
+          ls -la crates/svipall-models/models
+
+      # A portable baseline, replacing the target-cpu=native in .cargo/config.toml. RUSTFLAGS as an
+      # environment variable replaces that section outright, which is what we want here. The
+      # baseline is an x86 one, so every aarch64 target drops it.
+      - name: Build
+        shell: bash
+        env:
+          RUSTFLAGS: -C target-cpu=x86-64-v2
+          # Keep BoringSSL's nested build paths under Windows MAX_PATH.
+          CARGO_TARGET_DIR: ${{ runner.os == 'Windows' && 'C:\t' || (matrix.target == 'aarch64-apple-darwin' && './target' || './t') }}
+        run: |
+          # Empty, not unset: unsetting it hands the build back to .cargo/config.toml and
+          # its `target-cpu=native`, which `ring` rejects on aarch64 apple targets.
+          case "${{ matrix.target }}" in aarch64-*) RUSTFLAGS= ;; esac
+          RUSTFLAGS="$RUSTFLAGS ${ORT_EXTRA_RUSTFLAGS:-}"
+          cargo build --no-default-features --profile dist --target ${{ matrix.target }} --bin svipall-mcp --bin svipall \
+            --features impersonate,onnx-ocr,onnx-grid,onnx-audio,onnx-detect,onnx-segment,onnx-zeroshot
+
+      - name: Stage Windows runtime
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          ./scripts/stage-windows-runtime.ps1 -Directory 'C:/t/${{ matrix.target }}/dist'
+          ./scripts/test-windows-runtime.ps1 -Directory 'C:/t/${{ matrix.target }}/dist'
+
+      # Ad-hoc, because notarisation needs an Apple Developer ID this project does not have. It
+      # stops the "damaged and can't be opened" dialog for a binary copied between machines; a
+      # download through a browser still carries the quarantine flag, which docs/install.md says
+      # how to clear. Claiming more than that would be a lie a user finds out about alone.
+      - name: Ad-hoc codesign (macOS)
+        if: runner.os == 'macOS'
+        shell: bash
+        env:
+          CARGO_TARGET_DIR: ${{ matrix.target == 'aarch64-apple-darwin' && './target' || './t' }}
+        run: |
+          codesign --force --sign - "$CARGO_TARGET_DIR/${{ matrix.target }}/dist/svipall"
+          codesign --force --sign - "$CARGO_TARGET_DIR/${{ matrix.target }}/dist/svipall-mcp"
+
+      # The binary that is about to be published, asked what it is. A cross-built artefact cannot
+      # run here, so this is the four native targets telling us the build is not, for instance,
+      # missing its models — which is exactly the failure the container image used to ship.
+      - name: Smoke test
+        shell: bash
+        env:
+          CARGO_TARGET_DIR: ${{ runner.os == 'Windows' && 'C:\t' || (matrix.target == 'aarch64-apple-darwin' && './target' || './t') }}
+        run: |
+          bin="$CARGO_TARGET_DIR/${{ matrix.target }}/dist/svipall${{ matrix.ext }}"
+          "$bin" --version
+          "$bin" --version | grep -q '"target": "${{ matrix.target }}"'
+          # No browser on a CI runner, so `doctor` reports problems and that is correct. What must
+          # hold is that the models made it in.
+          "$bin" doctor | tee doctor.json
+          # Every artefact carries them now, so there is one right answer and `no_models` from any
+          # target is the regression this catches.
+          grep -q '"detect"' doctor.json
+          grep -q '"segment"' doctor.json
+          ! grep -q '"no_models"' doctor.json
+
+      # The binary that is about to be published, started on a distribution older than the one
+      # that built it. A glibc that is too new is invisible here otherwise: the runner has it, so
+      # everything passes, and the first person on Debian gets `GLIBC_2.39 not found`.
+      - name: Runs on an older distribution, with its models
+        if: contains(matrix.target, 'linux')
+        shell: bash
+        env:
+          CARGO_TARGET_DIR: ${{ matrix.target == 'aarch64-apple-darwin' && './target' || './t' }}
+        run: |
+          run() { docker run --rm -v "$PWD/t/${{ matrix.target }}/dist:/x" debian:bookworm-slim "$@"; }
+          run /x/svipall --version
+          # Not only that it starts: that the ONNX Runtime built beside it answers there too. On
+          # the runner that built the artefact a glibc that is too new is invisible, which is how
+          # the first person on Debian used to find out instead of CI.
+          run /x/svipall doctor | tee doctor-bookworm.json
+          grep -q '"detect"' doctor-bookworm.json
+          grep -q '"segment"' doctor-bookworm.json
+
+      # Both binaries: the MCP server and the CLI the skill documents. Shipping only the server
+      # left `svipall fetch` a build-from-source feature.
+      #
+      # `.zip` on Windows and `.tar.gz` everywhere else. Not cosmetic: winget will not take a
+      # `.tar.gz`, Scoop will not either, and Windows Explorer opens one only with help.
+      - name: Package
+        shell: bash
+        env:
+          CARGO_TARGET_DIR: ${{ runner.os == 'Windows' && 'C:\t' || (matrix.target == 'aarch64-apple-darwin' && './target' || './t') }}
+          VERSION: ${{ needs.version.outputs.version }}
+        run: |
+          mkdir -p out
+          cp "$CARGO_TARGET_DIR/${{ matrix.target }}/dist/svipall-mcp${{ matrix.ext }}" out/
+          cp "$CARGO_TARGET_DIR/${{ matrix.target }}/dist/svipall${{ matrix.ext }}" out/
+          cp README.md LICENSE skill/SKILL.md out/
+          cp -R skills/svipall-update out/
+          cp -R integrations out/
+          if [ "${{ runner.os }}" = "Windows" ]; then
+            cp "$CARGO_TARGET_DIR/${{ matrix.target }}/dist/"*.dll out/
+            cp "$CARGO_TARGET_DIR/${{ matrix.target }}/dist/windows-runtime.json" out/
+          fi
+          cd out
+          name="svipall-$VERSION-${{ matrix.target }}"
+          files="svipall-mcp${{ matrix.ext }} svipall${{ matrix.ext }} README.md LICENSE SKILL.md svipall-update integrations"
+          if [ "${{ runner.os }}" = "Windows" ]; then
+            7z a -tzip "$name.zip" $files *.dll windows-runtime.json
+          else
+            tar -czf "$name.tar.gz" $files
+          fi
+          ls -la
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: svipall-${{ matrix.target }}
+          path: |
+            out/*.tar.gz
+            out/*.zip
+          if-no-files-found: error
+
+  # The models, once, for every platform. A weights file has no target — it is the ONNX Runtime
+  # that does — so this is one asset rather than a copy inside each archive, and it is what
+  # `svipall models install` downloads for a build that carries none: `cargo install svipall`
+  # compiles the ONNX path in through its default features and crates.io is no place for 54 MB of
+  # weights. Named `svipall-models-<version>.zip` so the checksum steps below, which glob
+  # `svipall-*`, list it without being told about it.
+  models:
+    name: models archive
+    needs: version
+    if: needs.version.outputs.publish == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.tag }}
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Export the models
+        run: |
+          python -m pip install --quiet torch torchvision --index-url https://download.pytorch.org/whl/cpu
+          python -m pip install --quiet onnx
+          python tools/models/export.py
+          # The speech recogniser `web_video` falls back on when a video has no captions. Disk-only,
+          # never embedded: at about 100 MB it would double every binary for one fallback.
+          python -m pip install --quiet optimum-onnx onnxruntime transformers
+          python tools/models/export_asr.py --out crates/svipall-models/models
+          # The text reader for images and scanned PDF pages. Disk-only, like the speech model.
+          python tools/models/export_ocr.py --out crates/svipall-models/models
+          # The image-text pair `web_video` searches pictures with. Disk-only, at about 155 MB.
+          python tools/models/export_clip.py --out crates/svipall-models/models
+          ls -la crates/svipall-models/models
+      - name: Package
+        env:
+          VERSION: ${{ needs.version.outputs.version }}
+        run: |
+          cd crates/svipall-models/models
+          zip -9 "$GITHUB_WORKSPACE/svipall-models-$VERSION.zip" \
+            detect.onnx detect.json segment.onnx segment.json \
+            asr_encoder.onnx asr_decoder.onnx asr.json asr_vocab.json \
+            ocr_det.onnx ocr_rec.onnx ocr_rec.json \
+            clip_image.onnx clip_text.onnx clip.json vocab.json merges.txt
+          ls -la "$GITHUB_WORKSPACE/svipall-models-$VERSION.zip"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: svipall-models-archive
+          path: svipall-models-*.zip
+          if-no-files-found: error
+
+  # The manifests and the native Linux packages, from the artefacts the build job just produced.
+  # Nothing is recompiled: a package manager that ships a different build from the tarball is a
+  # second product to support.
+  packages:
+    name: packages
+    needs: [version, build, models]
+    if: needs.version.outputs.publish == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.tag }}
+      - uses: dtolnay/rust-toolchain@1.99.0
+      # The archives, by pattern. The image jobs finish first and leave `.dockerbuild` records in
+      # the run that this action cannot extract; taking everything is how rc.3's first run died.
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: svipall-*
+          path: artifacts
+          merge-multiple: true
+      - name: Checksums
+        working-directory: artifacts
+        run: sha256sum svipall-*.tar.gz svipall-*.zip > sha256sums.txt
+
+      - name: Render package manifests
+        env:
+          VERSION: ${{ needs.version.outputs.version }}
+        run: bash scripts/render-packaging.sh "$VERSION" artifacts/sha256sums.txt packaging/dist
+
+      # Both tools used to be compiled from source here, on the critical path, on every release.
+      # cargo-deb publishes binaries, so it is a download. cargo-generate-rpm publishes none, so it
+      # stays a compile — but one whose result is worth keeping between releases.
+      #
+      # This job cannot start before the *whole* build matrix finishes, because `needs` waits on
+      # every leg of a matrix and there is no way to depend on one target. Pulling the Linux leg
+      # out into its own job would let the packages build during the Windows compile, and it would
+      # cost sixty duplicated lines of build steps to save about two minutes. Not taken.
+      - uses: taiki-e/install-action@v2
+        with:
+          tool: cargo-deb
+      - uses: actions/cache@v4
+        with:
+          path: ~/.cargo/bin/cargo-generate-rpm
+          key: cargo-generate-rpm-v0.21.0
+
+      # amd64 only, and said out loud rather than left to be discovered: arm64 users get the
+      # tarball and install.sh, which is what they were going to use anyway.
+      - name: Build .deb and .rpm (amd64)
+        env:
+          VERSION: ${{ needs.version.outputs.version }}
+        run: |
+          command -v cargo-generate-rpm >/dev/null || cargo install cargo-generate-rpm --locked
+          mkdir -p packaging/staging
+          tar -xzf "artifacts/svipall-$VERSION-x86_64-unknown-linux-gnu.tar.gz" -C packaging/staging
+          # Neither format takes a semver pre-release as it is written. RPM rejects the hyphen
+          # outright; dpkg accepts it and then sorts 1.0.0-rc *above* 1.0.0, so a user on the
+          # candidate would never be offered the release. `~` is the character both use for
+          # "sorts before", which is what a pre-release is.
+          PKGVER="${VERSION//-/\~}"
+          cargo deb -p svipall --no-build --no-strip --deb-version "$PKGVER" --output packaging/dist/
+          cargo generate-rpm -p crates/svipall --output packaging/dist/ -s "version = \"$PKGVER\""
+
+      # Only the manifests. They live beside the .deb and the .rpm, and the first release bundled
+      # all of it into a 282 MB "manifests" tarball that duplicated both packages.
+      - name: Bundle the manifests
+        run: |
+          cd packaging/dist
+          tar -czf ../../packaging-manifests.tar.gz homebrew scoop aur winget
+          ls -la ../../packaging-manifests.tar.gz
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: packages
+          path: |
+            packaging-manifests.tar.gz
+            packaging/dist/*.deb
+            packaging/dist/*.rpm
+          if-no-files-found: error
+
+  attach:
+    name: attach
+    needs: [version, build, models, packages]
+    if: needs.version.outputs.publish == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      id-token: write
+      attestations: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: svipall-*
+          path: artifacts
+          merge-multiple: true
+      - name: Checksums
+        run: cd artifacts && sha256sum svipall-*.tar.gz svipall-*.zip > sha256sums.txt && cat sha256sums.txt
+      - uses: actions/download-artifact@v4
+        with:
+          name: packages
+          path: packages
+      # Nothing here is notarised or Authenticode-signed, so this is what a careful user actually
+      # has: a signed statement, verifiable with `gh attestation verify`, that GitHub built these
+      # files from this commit of this repository.
+      - uses: actions/attest-build-provenance@v2
+        with:
+          subject-path: "artifacts/svipall-*"
+      # The release is a draft until release.yml publishes it, after this workflow succeeds: nobody
+      # downloads a release whose files are not all there. Its notes are release-please's changelog.
+      - name: Attach to the draft release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ inputs.tag }}
+        run: |
+          # The models archive also matches `svipall-*.zip`; it is named so that nobody drops the
+          # glob that carries it, and `sort -u` uploads it once.
+          files=$(ls artifacts/svipall-*.tar.gz artifacts/svipall-*.zip artifacts/svipall-models-*.zip \
+            artifacts/sha256sums.txt packages/packaging-manifests.tar.gz \
+            packages/packaging/dist/*.deb packages/packaging/dist/*.rpm | sort -u)
+          gh release upload "$TAG" --repo "$GITHUB_REPOSITORY" --clobber $files
+
+  # One architecture per runner, each on its own hardware. The previous shape asked one amd64
+  # runner to build arm64 through QEMU, and a Rust build with BoringSSL and fat LTO under emulation
+  # ran past thirty minutes without finishing while the native amd64 half took eight. Each job here
+  # pushes an untagged image by digest; `image-manifest` in release-channels.yml turns them into tags.
+  # It does not wait on `build`, because it never used one artefact from it: this job checks out
+  # the source and compiles its own. The edge cost 11 minutes of wall clock for a dependency that
+  # did not exist. `image-manifest` still gates the tags, so a build that fails publishes
+  # untagged digests and nothing a user can pull.
+  image:
+    name: image ${{ matrix.flavor }} ${{ matrix.arch }}
+    needs: [version]
+    if: needs.version.outputs.publish == 'true'
+    runs-on: ${{ matrix.os }}
+    permissions:
+      contents: read
+      packages: write
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # Both flavours, both architectures. The arm64 `full` image is the only way to run
+          # everything on arm64 Linux at all: that binary can carry neither the models (glibc) nor
+          # a managed browser (Chrome for Testing publishes no linux-arm64 build), so the image
+          # uses the distribution's Chromium instead and says so.
+          - flavor: full
+            arch: amd64
+            os: ubuntu-22.04
+          - flavor: full
+            arch: arm64
+            os: ubuntu-22.04-arm
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.tag }}
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - id: build
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          platforms: linux/${{ matrix.arch }}
+          build-args: FLAVOR=${{ matrix.flavor }}
+          outputs: type=image,name=ghcr.io/${{ github.repository }},push-by-digest=true,name-canonical=true,push=true
+      - name: Export digest
+        shell: bash
+        run: |
+          mkdir -p /tmp/digests
+          echo "${{ steps.build.outputs.digest }}" > "/tmp/digests/${{ matrix.arch }}"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: digest-${{ matrix.flavor }}-${{ matrix.arch }}
+          path: /tmp/digests/*
+          if-no-files-found: error
+
+  # `slim` is the http tier and nothing else, which is exactly what the portable Linux artefact
+  # already is. This job puts that binary in a container instead of compiling the same program a
+  # second time: 9.9 min becomes 0.5, and the image and the tarball can no longer disagree about
+  # what `svipall` is. The artefact links glibc 2.35 and this image carries a newer one, so it is
+  # more portable than what the Dockerfile built here, not less — and `Runs on an older
+  # distribution` in the build job already proves that binary starts on bookworm.
+  #
+  # Unlike `image` it does wait on `build`, because it genuinely consumes an artefact from it.
+  image-slim:
+    name: image slim ${{ matrix.arch }}
+    needs: [version, build]
+    if: needs.version.outputs.publish == 'true'
+    runs-on: ${{ matrix.os }}
+    permissions:
+      contents: read
+      packages: write
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: amd64
+            os: ubuntu-22.04
+            target: x86_64-unknown-linux-gnu
+          - arch: arm64
+            os: ubuntu-22.04-arm
+            target: aarch64-unknown-linux-gnu
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.tag }}
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - uses: actions/download-artifact@v4
+        with:
+          name: svipall-${{ matrix.target }}
+          path: a
+      - name: Unpack the published binaries
+        shell: bash
+        env:
+          VERSION: ${{ needs.version.outputs.version }}
+        run: |
+          mkdir -p bin
+          tar -xzf "a/svipall-$VERSION-${{ matrix.target }}.tar.gz" -C bin svipall svipall-mcp
+          ls -la bin
+      - id: build
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: Dockerfile.slim
+          platforms: linux/${{ matrix.arch }}
+          outputs: type=image,name=ghcr.io/${{ github.repository }},push-by-digest=true,name-canonical=true,push=true
+      - name: Export digest
+        shell: bash
+        run: |
+          mkdir -p /tmp/digests
+          echo "${{ steps.build.outputs.digest }}" > "/tmp/digests/${{ matrix.arch }}"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: digest-slim-${{ matrix.arch }}
+          path: /tmp/digests/*
+          if-no-files-found: error

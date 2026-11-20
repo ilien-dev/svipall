@@ -11,12 +11,17 @@ name: mcp-registry
 # a subdomain of the domain it verifies. `MCP_PRIVATE_KEY` is the Ed25519 key whose public half is
 # the `v=MCPv1` TXT record on ilien.dev.
 #
-# Its own workflow so it can be sent again. `release.yml` calls it last, after every artefact it
-# points at exists. When that call fails, re-running the release reuses the release's own copy of
-# this file, and `main` will not release a tagged version twice; dispatching this one from `main`
-# submits the `server.json` there, once its checks pass.
+# Its own workflow so it can be sent again. `release-channels.yml` calls it last, with the tag,
+# after every artefact it points at exists. When that call fails, re-running the release reuses the
+# release's own copy of this file, and a released version is never released twice; dispatching
+# this one from `main` submits the `server.json` there, once its checks pass.
 on:
   workflow_call:
+    inputs:
+      tag:
+        description: The release tag to submit from; release-channels.yml passes it.
+        type: string
+        required: false
     secrets:
       MCP_PRIVATE_KEY:
         required: true
@@ -30,7 +35,10 @@ jobs:
     name: mcp registry
     runs-on: ubuntu-latest
     steps:
+      # The tag when release-channels.yml calls this, `main` when it is dispatched by hand.
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.tag }}
 
       # The version `server.json` names, which `sync_version.py --check` holds to the workspace.
       - id: v

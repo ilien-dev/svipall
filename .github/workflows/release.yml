@@ -1,964 +1,147 @@
-name: release
+name: Release
 
-# A release is a merge to main that carries a new version, and nothing else. Pushing the tag by
-# hand still works — it is the recovery path when a release has to be re-run — but nobody has to
-# remember it: the `version` job below decides, and everything downstream waits on that decision.
+# Nobody writes a version number and nobody cuts a release by hand. On every push to
+# main, release-please reads the commits since the last release (each one the title of
+# a squash-merged pull request) and opens or updates "chore(main): release X.Y.Z" with the
+# next version in every file of release-please-config.json and the new section of
+# CHANGELOG.md. This workflow merges that pull request at once and runs release-please again,
+# which creates the tag and the GitHub Release as a draft. The jobs that attach files or
+# publish elsewhere run from that tag, and only when all of them succeed does "publish" make
+# the Release public and latest: nobody sees, downloads or updates to a release that is not
+# complete. A failed job leaves the draft: "Re-run failed jobs" on that same run finishes it.
+# A new run releases nothing for that version; to drop it, delete the draft and its tag.
+# feat: raises the minor number, fix:, perf: and revert: the patch one, and a ! after the type the major one; docs, test, ci, chore, refactor, build and style release nothing.
+#
+# Everything runs with RELEASE_TOKEN, a fine-grained token of a repository admin (Contents
+# and Pull requests: read and write). With the default token the release pull request is
+# opened by a bot whose checks wait for approval and which cannot merge past the ruleset; the
+# admin token opens it like a person does and merges it with --admin, which the ruleset lets
+# admins do. token-check.yml warns before it expires.
+# Managed by Nabu (https://github.com/ilien-dev/nabu); do not edit by hand.
+
 on:
   push:
     branches: [main]
-    tags: ["v*"]
   workflow_dispatch:
 
-env:
-  CARGO_TERM_COLOR: always
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+  pull-requests: write
 
 jobs:
-  # A merge to `main` releases only once `ci` passed on that same commit. v1.3.0 shipped while its
-  # `ci` was red, because this workflow ran beside `ci` instead of after it. Waiting here rather
-  # than being called by `ci.yml` keeps this file the one that publishes: npm trusts `release.yml`
-  # by name, and a called workflow publishes under its caller's name. A tag pushed by hand or a
-  # manual run is the recovery path and does not wait.
-  ci-green:
-    name: ci green
-    runs-on: ubuntu-latest
-    timeout-minutes: 120
-    permissions:
-      actions: read
-    steps:
-      - name: Wait for ci on this commit
-        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-        shell: bash
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          while :; do
-            run=$(gh run list -R "$GITHUB_REPOSITORY" --workflow ci.yml --commit "$GITHUB_SHA" \
-              --event push --limit 1 --json status,conclusion,url \
-              -q '.[0] | "\(.status) \(.conclusion) \(.url)"')
-            case "$run" in
-              "completed success "*) echo "ci passed: ${run##* }"; exit 0 ;;
-              completed*) echo "ci did not pass, nothing ships: $run" >&2; exit 1 ;;
-            esac
-            echo "waiting for ci: ${run:-not started}"
-            sleep 60
-          done
-
-  # One version, decided in one place. `[workspace.package] version` in the root manifest is the
-  # only place the number is written by hand; `scripts/sync-version` copies it into the plugin
-  # manifest, the npm wrapper and every internal dependency line, and `release_version.rs` fails
-  # the build when any of them drifts. This job is the last check, and the trigger.
-  #
-  # Each of those files is a different way to be wrong: Claude Code silently keeps a cached plugin
-  # when `plugin.json` repeats a version it has already seen, and the npm postinstall builds its
-  # download URL from its own version, so a package one behind fetches an archive that does not
-  # exist.
-  #
-  # The tag is not pushed here. `action-gh-release` creates it from this commit when the release
-  # is published, so a build that fails leaves no tag behind — and this job, run again, still sees
-  # a version that has not shipped.
-  version:
-    name: version
-    needs: ci-green
+  release:
+    name: Release
     runs-on: ubuntu-latest
     outputs:
-      version: ${{ steps.v.outputs.version }}
-      prerelease: ${{ steps.v.outputs.prerelease }}
-      publish: ${{ steps.v.outputs.publish }}
+      created: ${{ steps.publish.outputs.release_created }}
+      tag: ${{ steps.publish.outputs.tag_name }}
+      version: ${{ steps.publish.outputs.version }}
     steps:
-      - uses: actions/checkout@v4
-        # The whole tag list: whether this version has already shipped is the question this job
-        # exists to answer, and a shallow clone cannot answer it.
+      - uses: actions/checkout@v5
         with:
-          fetch-depth: 0
-      - id: v
-        shell: bash
-        run: |
-          # `--check` prints the version and fails when any file that repeats it is behind. The
-          # sync script is what writes them, so this is the same implementation, not a second one.
-          crate=$(python3 scripts/sync_version.py . --check)
-          # A semver pre-release is anything with a hyphen: -rc, -beta, -alpha. It decides two
-          # things: GitHub marks the release as a pre-release, and the moving tags — `latest` on
-          # npm, `latest` and `slim` on the image — stay where they are. Only a stable release
-          # moves them, even while every release before it was a pre-release.
-          case "$crate" in *-*) pre=true ;; *) pre=false ;; esac
+          token: ${{ secrets.RELEASE_TOKEN }}
 
-          if [ "${GITHUB_REF_TYPE}" = "tag" ]; then
-            # The manual path. A tag that disagrees with the tree would publish artefacts named
-            # after one version out of a checkout of another.
-            if [ "${GITHUB_REF_NAME#v}" != "$crate" ]; then
-              echo "tag ${GITHUB_REF_NAME} does not match version $crate" >&2
-              exit 1
-            fi
-            publish=true
-          elif git rev-parse -q --verify "refs/tags/v$crate" >/dev/null; then
-            # Every other push to main. Most of them do not change the version, and a release that
-            # already shipped must not be built a second time: the artefacts would be new files
-            # under a tag whose checksums are already published in five package manifests.
-            publish=false
-          else
-            publish=true
+      - name: Open or update the release pull request
+        id: rp
+        uses: googleapis/release-please-action@v5
+        with:
+          token: ${{ secrets.RELEASE_TOKEN }}
+          config-file: release-please-config.json
+          manifest-file: .release-please-manifest.json
+
+      - name: Merge the release pull request
+        id: merge
+        env:
+          GH_TOKEN: ${{ secrets.RELEASE_TOKEN }}
+          REPO: ${{ github.repository }}
+          RP_PR: ${{ steps.rp.outputs.pr }}
+        run: |
+          # The PR release-please just opened or updated. Its label can take a few seconds to
+          # be searchable, so the label lookup is only a fallback, retried.
+          pr=$(printf '%s' "$RP_PR" | jq -r '.number // empty' 2>/dev/null || true)
+          for attempt in 1 2 3 4 5 6; do
+            [ -n "$pr" ] && break
+            pr=$(gh pr list --repo "$REPO" --state open --label "autorelease: pending" --json number --jq '.[0].number')
+            [ -n "$pr" ] || sleep 5
+          done
+          if [ -z "$pr" ]; then
+            echo "Nothing to release."
+            exit 0
           fi
-
-          {
-            echo "version=$crate"
-            echo "prerelease=$pre"
-            echo "publish=$publish"
-          } >> "$GITHUB_OUTPUT"
-          echo "version $crate, prerelease $pre, publish $publish"
-
-  build:
-    name: ${{ matrix.target }}
-    needs: version
-    if: needs.version.outputs.publish == 'true'
-    runs-on: ${{ matrix.os }}
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          # Every target carries the captcha models. Two of them link the ONNX Runtime `ort`
-          # downloads; the two Linux ones build it from source, because upstream publishes nothing
-          # that works for them — see `ort_source` below and tools/onnxruntime/build.sh.
-          #
-          # Intel macOS is not here. It was, and it was the one target that could be built and
-          # never run: `macos-latest` is arm64, so the artefact was cross-compiled, and GitHub has
-          # retired the Intel image — a `macos-13` job sits queued with no runner rather than
-          # failing. Apple's last Intel Mac was discontinued in 2023 and macOS 26 is the last
-          # release that supports one. Shipping an artefact nobody can start, from a build nobody
-          # can test, is worse than sending those machines to the container image, which runs
-          # `linux/amd64` natively on them. `install.sh` says so by name.
-          - os: windows-latest
-            target: x86_64-pc-windows-msvc
-            ext: .exe
-            ort_source: false
-          - os: macos-latest
-            target: aarch64-apple-darwin
-            ext: ""
-            ort_source: false
-          # Linux builds on 22.04 so the artefact starts on Debian 12, Ubuntu 22.04 and RHEL 9:
-          # a binary links the glibc of the machine that built it, and `ubuntu-latest` produced
-          # one needing GLIBC_2.39. The prebuilt ONNX Runtime cannot come along for that ride —
-          # it references glibc 2.38 and GCC 13's libstdc++ — so this target builds its own,
-          # which links this runner's glibc like everything else in the artefact.
-          # `Runs on an older distribution` below is the gate, and it now asserts the models too.
-          - os: ubuntu-22.04
-            target: x86_64-unknown-linux-gnu
-            ext: ""
-            ort_source: true
-          # Native arm runner: BoringSSL cross-compiles badly and does not need to.
-          - os: ubuntu-22.04-arm
-            target: aarch64-unknown-linux-gnu
-            ext: ""
-            ort_source: true
-    steps:
-      - uses: actions/checkout@v4
-
-      - uses: dtolnay/rust-toolchain@1.99.0
-        with:
-          targets: ${{ matrix.target }}
-
-      # Restore only, never save. A cache written under a tag is unreadable from every other tag,
-      # so saving here would spend the 10 GB budget on entries nothing can ever read.
-      # `cache-warm.yml` writes them on `main`, which is the one scope a tag run can read.
-      # Warm against cold, with a source change in between: Windows 22.4 -> 14.9 min, macOS arm
-      # 20.1 -> 13.0. Only these two, because Linux at ~11 min cold already finishes under what
-      # Windows becomes warm, and the two entries that matter are 980 MB and 626 MB.
-      #
-      # Windows cannot use the plain form: the build writes to the short CARGO_TARGET_DIR that
-      # BoringSSL needs under MAX_PATH, and rust-cache only knows how to prune a target dir inside
-      # the workspace — pointed at the default it silently caches the registry and no compiled
-      # artefact at all. `cache-directories` names the real one.
-      - uses: Swatinem/rust-cache@v2
-        if: matrix.target == 'x86_64-pc-windows-msvc'
-        with:
-          key: rel-win
-          save-if: "false"
-          cache-targets: "false"
-          cache-all-crates: "true"
-          cache-directories: 'C:\t'
-
-      - uses: Swatinem/rust-cache@v2
-        if: matrix.target == 'aarch64-apple-darwin'
-        with:
-          key: rel-macarm
-          save-if: "false"
-          cache-all-crates: "true"
-
-      - name: BoringSSL build dependencies (Linux)
-        if: runner.os == 'Linux'
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y build-essential cmake perl pkg-config libclang-dev nasm
-
-      # windows-latest already ships all four, so this asserts rather than installs. Measured over
-      # three repetitions each: with the `choco install` the job's median was 26.8 min
-      # (25.5-27.1), without it 22.4 (21.9-22.5). Half of that is the two and a half minutes choco
-      # spends, and the other half is the build itself getting faster — Chocolatey's LLVM and Perl
-      # shadow the ones the image already carries, and the build is slower with them.
-      #
-      # It throws rather than falling back, because the day the runner image drops one of these
-      # the failure must be this line and not a mystery half an hour later.
-      - name: BoringSSL build dependencies (Windows)
-        if: runner.os == 'Windows'
-        shell: pwsh
-        run: |
-          foreach ($t in 'cmake','perl','clang','nasm') {
-            $c = Get-Command $t -ErrorAction SilentlyContinue
-            if (-not $c) { throw "windows-latest no longer ships $t; restore the choco install step" }
-            Write-Host "$t -> $($c.Source)"
-          }
-
-      - name: BoringSSL build dependencies (macOS)
-        if: runner.os == 'macOS'
-        run: brew install cmake pkg-config llvm
-
-      # ONNX Runtime for the three targets pyke publishes nothing usable for. Restored from a
-      # cache `cache-warm.yml` writes on `main`, because a cache written under a tag is unreadable
-      # from the next one — the same rule the dependency cache above lives by. A miss is slow
-      # rather than fatal: the build script runs and the release takes an hour longer.
-      - uses: actions/cache/restore@v4
-        if: matrix.ort_source
-        id: ort-cache
-        with:
-          path: .ort/build/Release
-          key: ort-${{ hashFiles('tools/onnxruntime/VERSION') }}-${{ matrix.target }}
-      - name: ONNX Runtime from source
-        if: matrix.ort_source
-        shell: bash
-        run: |
-          if [ "${{ steps.ort-cache.outputs.cache-hit }}" != "true" ]; then
-            # The architecture comes from the target, not from the runner: `macos-latest` is arm64
-            # and the Intel artefact is cross-compiled on it.
-            case "${{ matrix.target }}" in
-              x86_64-*) arch=x86_64 ;;
-              aarch64-apple-*) arch=arm64 ;;
-              aarch64-*) arch=aarch64 ;;
-            esac
-            tools/onnxruntime/build.sh "$PWD/.ort" "$arch"
+          match=""
+          # release-please writes the version only where release-please-config.json says; the
+          # project's sync commands write it everywhere else, on the release branch itself.
+          branch=$(gh pr view "$pr" --repo "$REPO" --json headRefName --jq .headRefName)
+          git fetch origin "$branch"
+          git checkout -B "$branch" FETCH_HEAD
+          python3 scripts/sync_version.py .
+          cargo update --workspace
+          git add -A
+          if ! git diff --cached --quiet; then
+            git -c user.name="github-actions[bot]" -c user.email="41898282+github-actions[bot]@users.noreply.github.com" commit -qm "chore: write the version into every file that repeats it"
+            git push origin "HEAD:$branch"
           fi
-          # ort-sys reads this before its download path, so nothing in Cargo.toml changes. It has
-          # to be the directory holding the libonnxruntime_*.a files and their `_deps`, which is
-          # one level below what ONNX Runtime calls its build directory.
-          echo "ORT_LIB_LOCATION=$PWD/.ort/build/Release" >> "$GITHUB_ENV"
+          match="--match-head-commit $(git rev-parse HEAD)"
+          gh pr merge "$pr" --repo "$REPO" --squash --admin --delete-branch $match
+          echo "merged=true" >> "$GITHUB_OUTPUT"
 
-      # The models the binary carries. torchvision's published weights (BSD-3), exported once
-      # here and compiled in by svipall-models; nothing is fetched at run time. The CPU wheel is
-      # enough: exporting is not training.
-      - uses: actions/setup-python@v5
+      - name: Publish the tag and the GitHub Release
+        id: publish
+        if: steps.merge.outputs.merged == 'true'
+        uses: googleapis/release-please-action@v5
         with:
-          python-version: "3.12"
-      - name: Export embedded models
-        shell: bash
-        run: |
-          # The CPU index carries no aarch64 Linux wheel past torch 2.0.1 and none at all for
-          # 3.12, which is why this step was believed impossible there. PyPI has one
-          # (`manylinux_2_28_aarch64`). It is the CUDA-tagged build — `2.14.0+cu130`, measured, not
-          # assumed — because that is the only aarch64 wheel published, and it is a much larger
-          # download than the x86 CPU one. The export itself runs on the CPU either way and produces
-          # the same two files, byte size for byte size. macOS arm64 keeps the CPU index, where its
-          # wheel has always been.
-          case "${{ matrix.target }}" in
-            aarch64-unknown-linux-gnu)
-              python -m pip install --quiet torch torchvision ;;
-            *)
-              python -m pip install --quiet torch torchvision --index-url https://download.pytorch.org/whl/cpu ;;
-          esac
-          python -m pip install --quiet onnx
-          python tools/models/export.py
-          ls -la crates/svipall-models/models
+          token: ${{ secrets.RELEASE_TOKEN }}
+          config-file: release-please-config.json
+          manifest-file: .release-please-manifest.json
+          skip-github-pull-request: true
 
-      # A portable baseline, replacing the target-cpu=native in .cargo/config.toml. RUSTFLAGS as an
-      # environment variable replaces that section outright, which is what we want here. The
-      # baseline is an x86 one, so every aarch64 target drops it.
-      - name: Build
-        shell: bash
-        env:
-          RUSTFLAGS: -C target-cpu=x86-64-v2
-          # Keep BoringSSL's nested build paths under Windows MAX_PATH.
-          CARGO_TARGET_DIR: ${{ runner.os == 'Windows' && 'C:\t' || (matrix.target == 'aarch64-apple-darwin' && './target' || './t') }}
-        run: |
-          # Empty, not unset: unsetting it hands the build back to .cargo/config.toml and
-          # its `target-cpu=native`, which `ring` rejects on aarch64 apple targets.
-          case "${{ matrix.target }}" in aarch64-*) RUSTFLAGS= ;; esac
-          RUSTFLAGS="$RUSTFLAGS ${ORT_EXTRA_RUSTFLAGS:-}"
-          cargo build --no-default-features --profile dist --target ${{ matrix.target }} --bin svipall-mcp --bin svipall \
-            --features impersonate,onnx-ocr,onnx-grid,onnx-audio,onnx-detect,onnx-segment,onnx-zeroshot
-
-      - name: Stage Windows runtime
-        if: runner.os == 'Windows'
-        shell: pwsh
-        run: |
-          ./scripts/stage-windows-runtime.ps1 -Directory 'C:/t/${{ matrix.target }}/dist'
-          ./scripts/test-windows-runtime.ps1 -Directory 'C:/t/${{ matrix.target }}/dist'
-
-      # Ad-hoc, because notarisation needs an Apple Developer ID this project does not have. It
-      # stops the "damaged and can't be opened" dialog for a binary copied between machines; a
-      # download through a browser still carries the quarantine flag, which docs/install.md says
-      # how to clear. Claiming more than that would be a lie a user finds out about alone.
-      - name: Ad-hoc codesign (macOS)
-        if: runner.os == 'macOS'
-        shell: bash
-        env:
-          CARGO_TARGET_DIR: ${{ matrix.target == 'aarch64-apple-darwin' && './target' || './t' }}
-        run: |
-          codesign --force --sign - "$CARGO_TARGET_DIR/${{ matrix.target }}/dist/svipall"
-          codesign --force --sign - "$CARGO_TARGET_DIR/${{ matrix.target }}/dist/svipall-mcp"
-
-      # The binary that is about to be published, asked what it is. A cross-built artefact cannot
-      # run here, so this is the four native targets telling us the build is not, for instance,
-      # missing its models — which is exactly the failure the container image used to ship.
-      - name: Smoke test
-        shell: bash
-        env:
-          CARGO_TARGET_DIR: ${{ runner.os == 'Windows' && 'C:\t' || (matrix.target == 'aarch64-apple-darwin' && './target' || './t') }}
-        run: |
-          bin="$CARGO_TARGET_DIR/${{ matrix.target }}/dist/svipall${{ matrix.ext }}"
-          "$bin" --version
-          "$bin" --version | grep -q '"target": "${{ matrix.target }}"'
-          # No browser on a CI runner, so `doctor` reports problems and that is correct. What must
-          # hold is that the models made it in.
-          "$bin" doctor | tee doctor.json
-          # Every artefact carries them now, so there is one right answer and `no_models` from any
-          # target is the regression this catches.
-          grep -q '"detect"' doctor.json
-          grep -q '"segment"' doctor.json
-          ! grep -q '"no_models"' doctor.json
-
-      # The binary that is about to be published, started on a distribution older than the one
-      # that built it. A glibc that is too new is invisible here otherwise: the runner has it, so
-      # everything passes, and the first person on Debian gets `GLIBC_2.39 not found`.
-      - name: Runs on an older distribution, with its models
-        if: contains(matrix.target, 'linux')
-        shell: bash
-        env:
-          CARGO_TARGET_DIR: ${{ matrix.target == 'aarch64-apple-darwin' && './target' || './t' }}
-        run: |
-          run() { docker run --rm -v "$PWD/t/${{ matrix.target }}/dist:/x" debian:bookworm-slim "$@"; }
-          run /x/svipall --version
-          # Not only that it starts: that the ONNX Runtime built beside it answers there too. On
-          # the runner that built the artefact a glibc that is too new is invisible, which is how
-          # the first person on Debian used to find out instead of CI.
-          run /x/svipall doctor | tee doctor-bookworm.json
-          grep -q '"detect"' doctor-bookworm.json
-          grep -q '"segment"' doctor-bookworm.json
-
-      # Both binaries: the MCP server and the CLI the skill documents. Shipping only the server
-      # left `svipall fetch` a build-from-source feature.
-      #
-      # `.zip` on Windows and `.tar.gz` everywhere else. Not cosmetic: winget will not take a
-      # `.tar.gz`, Scoop will not either, and Windows Explorer opens one only with help.
-      - name: Package
-        shell: bash
-        env:
-          CARGO_TARGET_DIR: ${{ runner.os == 'Windows' && 'C:\t' || (matrix.target == 'aarch64-apple-darwin' && './target' || './t') }}
-          VERSION: ${{ needs.version.outputs.version }}
-        run: |
-          mkdir -p out
-          cp "$CARGO_TARGET_DIR/${{ matrix.target }}/dist/svipall-mcp${{ matrix.ext }}" out/
-          cp "$CARGO_TARGET_DIR/${{ matrix.target }}/dist/svipall${{ matrix.ext }}" out/
-          cp README.md LICENSE skill/SKILL.md out/
-          cp -R skills/svipall-update out/
-          cp -R integrations out/
-          if [ "${{ runner.os }}" = "Windows" ]; then
-            cp "$CARGO_TARGET_DIR/${{ matrix.target }}/dist/"*.dll out/
-            cp "$CARGO_TARGET_DIR/${{ matrix.target }}/dist/windows-runtime.json" out/
-          fi
-          cd out
-          name="svipall-$VERSION-${{ matrix.target }}"
-          files="svipall-mcp${{ matrix.ext }} svipall${{ matrix.ext }} README.md LICENSE SKILL.md svipall-update integrations"
-          if [ "${{ runner.os }}" = "Windows" ]; then
-            7z a -tzip "$name.zip" $files *.dll windows-runtime.json
-          else
-            tar -czf "$name.tar.gz" $files
-          fi
-          ls -la
-
-      - uses: actions/upload-artifact@v4
-        with:
-          name: svipall-${{ matrix.target }}
-          path: |
-            out/*.tar.gz
-            out/*.zip
-          if-no-files-found: error
-
-  # The models, once, for every platform. A weights file has no target — it is the ONNX Runtime
-  # that does — so this is one asset rather than a copy inside each archive, and it is what
-  # `svipall models install` downloads for a build that carries none: `cargo install svipall`
-  # compiles the ONNX path in through its default features and crates.io is no place for 54 MB of
-  # weights. Named `svipall-models-<version>.zip` so the checksum steps below, which glob
-  # `svipall-*`, list it without being told about it.
-  models:
-    name: models archive
-    needs: version
-    if: needs.version.outputs.publish == 'true'
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
-        with:
-          python-version: "3.12"
-      - name: Export the models
-        run: |
-          python -m pip install --quiet torch torchvision --index-url https://download.pytorch.org/whl/cpu
-          python -m pip install --quiet onnx
-          python tools/models/export.py
-          # The speech recogniser `web_video` falls back on when a video has no captions. Disk-only,
-          # never embedded: at about 100 MB it would double every binary for one fallback.
-          python -m pip install --quiet optimum-onnx onnxruntime transformers
-          python tools/models/export_asr.py --out crates/svipall-models/models
-          # The text reader for images and scanned PDF pages. Disk-only, like the speech model.
-          python tools/models/export_ocr.py --out crates/svipall-models/models
-          # The image-text pair `web_video` searches pictures with. Disk-only, at about 155 MB.
-          python tools/models/export_clip.py --out crates/svipall-models/models
-          ls -la crates/svipall-models/models
-      - name: Package
-        env:
-          VERSION: ${{ needs.version.outputs.version }}
-        run: |
-          cd crates/svipall-models/models
-          zip -9 "$GITHUB_WORKSPACE/svipall-models-$VERSION.zip" \
-            detect.onnx detect.json segment.onnx segment.json \
-            asr_encoder.onnx asr_decoder.onnx asr.json asr_vocab.json \
-            ocr_det.onnx ocr_rec.onnx ocr_rec.json \
-            clip_image.onnx clip_text.onnx clip.json vocab.json merges.txt
-          ls -la "$GITHUB_WORKSPACE/svipall-models-$VERSION.zip"
-      - uses: actions/upload-artifact@v4
-        with:
-          name: svipall-models-archive
-          path: svipall-models-*.zip
-          if-no-files-found: error
-
-  # The manifests and the native Linux packages, from the artefacts the build job just produced.
-  # Nothing is recompiled: a package manager that ships a different build from the tarball is a
-  # second product to support.
-  packages:
-    name: packages
-    needs: [version, build, models]
-    if: needs.version.outputs.publish == 'true'
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: dtolnay/rust-toolchain@1.99.0
-      # The archives, by pattern. The image jobs finish first and leave `.dockerbuild` records in
-      # the run that this action cannot extract; taking everything is how rc.3's first run died.
-      - uses: actions/download-artifact@v4
-        with:
-          pattern: svipall-*
-          path: artifacts
-          merge-multiple: true
-      - name: Checksums
-        working-directory: artifacts
-        run: sha256sum svipall-*.tar.gz svipall-*.zip > sha256sums.txt
-
-      - name: Render package manifests
-        env:
-          VERSION: ${{ needs.version.outputs.version }}
-        run: bash scripts/render-packaging.sh "$VERSION" artifacts/sha256sums.txt packaging/dist
-
-      # Both tools used to be compiled from source here, on the critical path, on every release.
-      # cargo-deb publishes binaries, so it is a download. cargo-generate-rpm publishes none, so it
-      # stays a compile — but one whose result is worth keeping between releases.
-      #
-      # This job cannot start before the *whole* build matrix finishes, because `needs` waits on
-      # every leg of a matrix and there is no way to depend on one target. Pulling the Linux leg
-      # out into its own job would let the packages build during the Windows compile, and it would
-      # cost sixty duplicated lines of build steps to save about two minutes. Not taken.
-      - uses: taiki-e/install-action@v2
-        with:
-          tool: cargo-deb
-      - uses: actions/cache@v4
-        with:
-          path: ~/.cargo/bin/cargo-generate-rpm
-          key: cargo-generate-rpm-v0.21.0
-
-      # amd64 only, and said out loud rather than left to be discovered: arm64 users get the
-      # tarball and install.sh, which is what they were going to use anyway.
-      - name: Build .deb and .rpm (amd64)
-        env:
-          VERSION: ${{ needs.version.outputs.version }}
-        run: |
-          command -v cargo-generate-rpm >/dev/null || cargo install cargo-generate-rpm --locked
-          mkdir -p packaging/staging
-          tar -xzf "artifacts/svipall-$VERSION-x86_64-unknown-linux-gnu.tar.gz" -C packaging/staging
-          # Neither format takes a semver pre-release as it is written. RPM rejects the hyphen
-          # outright; dpkg accepts it and then sorts 1.0.0-rc *above* 1.0.0, so a user on the
-          # candidate would never be offered the release. `~` is the character both use for
-          # "sorts before", which is what a pre-release is.
-          PKGVER="${VERSION//-/\~}"
-          cargo deb -p svipall --no-build --no-strip --deb-version "$PKGVER" --output packaging/dist/
-          cargo generate-rpm -p crates/svipall --output packaging/dist/ -s "version = \"$PKGVER\""
-
-      # Only the manifests. They live beside the .deb and the .rpm, and the first release bundled
-      # all of it into a 282 MB "manifests" tarball that duplicated both packages.
-      - name: Bundle the manifests
-        run: |
-          cd packaging/dist
-          tar -czf ../../packaging-manifests.tar.gz homebrew scoop aur winget
-          ls -la ../../packaging-manifests.tar.gz
-
-      - uses: actions/upload-artifact@v4
-        with:
-          name: packages
-          path: |
-            packaging-manifests.tar.gz
-            packaging/dist/*.deb
-            packaging/dist/*.rpm
-          if-no-files-found: error
-
-  publish:
-    name: publish
-    needs: [version, build, models, packages]
-    if: needs.version.outputs.publish == 'true'
-    runs-on: ubuntu-latest
+  # The project's own workflow, run from the tag while the Release is still a draft: what it
+  # attaches is there before anyone can see the Release. It receives the tag and the version.
+  before-publish:
+    name: Before publishing
+    needs: release
+    if: needs.release.outputs.created == 'true'
     permissions:
+      actions: read
       contents: write
       id-token: write
       attestations: write
-    steps:
-      - uses: actions/download-artifact@v4
-        with:
-          pattern: svipall-*
-          path: artifacts
-          merge-multiple: true
-      - name: Checksums
-        run: cd artifacts && sha256sum svipall-*.tar.gz svipall-*.zip > sha256sums.txt && cat sha256sums.txt
-      - uses: actions/download-artifact@v4
-        with:
-          name: packages
-          path: packages
-      # Nothing here is notarised or Authenticode-signed, so this is what a careful user actually
-      # has: a signed statement, verifiable with `gh attestation verify`, that GitHub built these
-      # files from this commit of this repository.
-      - uses: actions/attest-build-provenance@v2
-        with:
-          subject-path: "artifacts/svipall-*"
-      - uses: softprops/action-gh-release@v2
-        with:
-          tag_name: v${{ needs.version.outputs.version }}
-          files: |
-            artifacts/svipall-*.tar.gz
-            artifacts/svipall-*.zip
-            artifacts/svipall-models-*.zip
-            artifacts/sha256sums.txt
-            packages/packaging-manifests.tar.gz
-            packages/packaging/dist/*.deb
-            packages/packaging/dist/*.rpm
-          generate_release_notes: true
-          prerelease: ${{ needs.version.outputs.prerelease == 'true' }}
+      packages: write
+    uses: ./.github/workflows/release-assets.yml
+    with:
+      tag: ${{ needs.release.outputs.tag }}
+      version: ${{ needs.release.outputs.version }}
+    secrets: inherit
 
-  # The Homebrew tap and the Scoop bucket, pushed the moment the release exists. Each is its own
-  # repository, so this needs a credential this workflow does not have by default: one deploy key
-  # per repository, write access to that repository and nothing else. The private half is a secret
-  # here, the public half a deploy key there; packaging/README.md has the commands.
-  #
-  # `needs: publish`, because both manifests point at release assets: landing first would ship a
-  # formula whose download is a 404. Re-running is safe; an unchanged manifest commits nothing.
-  tap-bucket:
-    name: ${{ matrix.repo }}
-    needs: [version, packages, publish]
-    if: needs.version.outputs.publish == 'true'
+  # Makes the draft public and latest once every job above has succeeded.
+  publish:
+    name: Publish the Release
+    needs: [release, before-publish]
+    if: needs.release.outputs.created == 'true'
     runs-on: ubuntu-latest
-    permissions: {}
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - repo: ilien-dev/homebrew-svipall
-            from: homebrew/svipall.rb
-            to: Formula/svipall.rb
-            key: HOMEBREW_TAP_DEPLOY_KEY
-          - repo: ilien-dev/scoop-svipall
-            from: scoop/svipall.json
-            to: bucket/svipall.json
-            key: SCOOP_BUCKET_DEPLOY_KEY
+    env:
+      TAG: ${{ needs.release.outputs.tag }}
+      VERSION: ${{ needs.release.outputs.version }}
+      GH_TOKEN: ${{ github.token }}
     steps:
-      # Without the key, checkout falls back to the workflow token, reads the public repository and
-      # fails on push with a 403 that names neither the secret nor the fix.
-      - name: The deploy key is set
-        env:
-          KEY: ${{ secrets[matrix.key] }}
-        run: |
-          [ -n "$KEY" ] || { echo "::error::secret ${{ matrix.key }} is not set; see packaging/README.md"; exit 1; }
-      - uses: actions/download-artifact@v4
-        with:
-          name: packages
-          path: packages
-      - uses: actions/checkout@v4
-        with:
-          repository: ${{ matrix.repo }}
-          ssh-key: ${{ secrets[matrix.key] }}
-          path: channel
-      - name: Commit and push
-        env:
-          VERSION: ${{ needs.version.outputs.version }}
-        run: |
-          mkdir -p manifests
-          tar -xzf packages/packaging-manifests.tar.gz -C manifests "${{ matrix.from }}"
-          mkdir -p "channel/$(dirname "${{ matrix.to }}")"
-          cp "manifests/${{ matrix.from }}" "channel/${{ matrix.to }}"
-          cd channel
-          git add "${{ matrix.to }}"
-          if git diff --cached --quiet; then
-            echo "${{ matrix.repo }} already carries svipall $VERSION; nothing to do"
-            exit 0
-          fi
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git commit -m "svipall $VERSION"
-          git push
+      - run: gh release edit "$TAG" --repo "$GITHUB_REPOSITORY" --draft=false --latest
 
-  # npm, over OIDC and with no stored secret. `id-token: write` is the whole mechanism: npm trades
-  # the token GitHub mints for a short-lived publish credential, having been told on npmjs.com that
-  # this repository and this workflow file may do it. It also generates a provenance attestation by
-  # itself, which is the same guarantee the release assets carry.
-  #
-  # `needs: publish` and not just `build`: the package is five files and a postinstall that fetches
-  # the release archive, so publishing it before the release exists would ship a package that
-  # cannot install.
-  npm:
-    name: npm
-    needs: [version, publish]
-    if: needs.version.outputs.publish == 'true'
-    runs-on: ubuntu-latest
+  # The project's own workflow for what needs the Release public first: package managers and
+  # registries that download its files. A failure here leaves the Release public; re-run it.
+  after-publish:
+    name: After publishing
+    needs: [release, publish]
+    if: needs.release.outputs.created == 'true'
     permissions:
       contents: read
       id-token: write
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: "22"
-          registry-url: https://registry.npmjs.org
-      # OIDC publishing needs a recent npm; the one bundled with the Node LTS image is older than
-      # the feature.
-      - run: npm install -g npm@latest
-      - name: Publish
-        working-directory: packaging/npm
-        env:
-          VERSION: ${{ needs.version.outputs.version }}
-        run: |
-          # Re-running a tag must not fail the release. A version already on the registry is the
-          # normal outcome of a re-run, not a problem to report.
-          if npm view "svipall@$VERSION" version >/dev/null 2>&1; then
-            echo "svipall@$VERSION is already published; nothing to do"
-            exit 0
-          fi
-          # A pre-release goes under `next` and never touches `latest`; npm refuses a pre-release
-          # with no `--tag` at all.
-          tag=latest
-          if [ "${{ needs.version.outputs.prerelease }}" = "true" ]; then
-            tag=next
-          fi
-          npm publish --tag "$tag" --access public
-
-  # crates.io, with a stored token when the repository has one and over OIDC when it does not.
-  # `CARGO_REGISTRY_TOKEN` (scopes `publish-new` and `publish-update`, crates `svipall*`) publishes
-  # anything, a crate the registry has never seen included; OIDC cannot, because trusted publishing
-  # is configured on a crate that already exists. Without the secret, `crates-io-auth-action` trades
-  # the token GitHub mints for a short-lived one, and `scripts/crates-trusted-publishing.sh` is the
-  # one-time setup that makes crates.io accept it.
-  #
-  # Published in dependency order, one crate at a time, because publishing is permanent — there is
-  # no unpublish, only `yank` — and a run that dies halfway must be re-runnable. A crate already on
-  # the registry is skipped rather than reported: that is the normal outcome of a re-run.
-  #
-  # `svipall-cdp` and `svipall-quic` go up because they have to. They are vendored forks and
-  # nothing about that changes here, but crates.io resolves every dependency of a published crate,
-  # optional ones included, so `svipall` and `svipall-http` cannot exist on the registry while
-  # either fork is missing from it. `UPSTREAM.md` is their readme for exactly that reason.
-  #
-  # `bench` is the one member that stays off: it is a harness for this repository, it carries 45 MB
-  # of corpora, and `publish = false` in its manifest is what says so.
-  crates:
-    name: crates.io
-    needs: [version, publish]
-    if: needs.version.outputs.publish == 'true'
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      id-token: write
-    steps:
-      - uses: actions/checkout@v4
-      - uses: dtolnay/rust-toolchain@1.99.0
-
-      # The verification build is a real build: `svipall-http` compiles BoringSSL like every other
-      # job here does.
-      - name: BoringSSL build dependencies
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y build-essential cmake perl pkg-config libclang-dev nasm
-
-      # What is not on the registry yet, in dependency order. A re-run usually finds nothing, and
-      # then needs no token: rc.3's re-run died here asking for one it had no use for.
-      - name: Missing crates
-        id: missing
-        env:
-          VERSION: ${{ needs.version.outputs.version }}
-          # Only whether it is set leaves this step; `if:` cannot read `secrets`, and a job-level
-          # env would hand the token to every step in the job.
-          STORED: ${{ secrets.CARGO_REGISTRY_TOKEN }}
-        run: |
-          if [ -n "$STORED" ]; then echo "stored=true" >> "$GITHUB_OUTPUT"; fi
-          # Dependency order, written out rather than derived: `cargo publish --workspace` would
-          # order these itself, and would also stop at the first crate already on the registry.
-          crates="svipall-extract svipall-cdp svipall-quic svipall-models svipall-core"
-          crates="$crates svipall-solver svipall-dashboard svipall-http svipall"
-          # crates.io refuses a request with no User-Agent, and it refuses it with a 403 that
-          # reads exactly like "this crate is not published".
-          agent="svipall-release (github.com/${GITHUB_REPOSITORY})"
-          missing=""
-          for crate in $crates; do
-            if curl -sSf -A "$agent" "https://crates.io/api/v1/crates/$crate/$VERSION" >/dev/null 2>&1; then
-              echo "$crate@$VERSION is already published; nothing to do"
-            else
-              missing="$missing $crate"
-            fi
-          done
-          echo "crates=${missing# }" >> "$GITHUB_OUTPUT"
-
-      - uses: rust-lang/crates-io-auth-action@v1
-        id: auth
-        if: steps.missing.outputs.crates != '' && steps.missing.outputs.stored != 'true'
-
-      # `ubuntu-latest`, and default features, on purpose. The release artefacts for Linux are
-      # built on 22.04 without the model features so they start on Debian 12; this is not an
-      # artefact, it is cargo proving each crate compiles from the archive it is about to upload,
-      # so it runs where the ONNX Runtime binaries `ort` downloads actually link.
-      #
-      # What that means for a user: `cargo install svipall` builds from source and carries no
-      # embedded models — the weights are exported at release time and are not in the crate. Image
-      # captchas go to the human dashboard there, exactly as `svipall doctor` reports `no_models`
-      # for the Linux and x86_64 macOS artefacts. docs/install.md says so.
-      - name: Publish
-        if: steps.missing.outputs.crates != ''
-        env:
-          CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN || steps.auth.outputs.token }}
-          CRATES: ${{ steps.missing.outputs.crates }}
-        run: |
-          for crate in $CRATES; do
-            echo "publishing $crate"
-            cargo publish -p "$crate"
-          done
-
-  # One architecture per runner, each on its own hardware. The previous shape asked one amd64
-  # runner to build arm64 through QEMU, and a Rust build with BoringSSL and fat LTO under emulation
-  # ran past thirty minutes without finishing while the native amd64 half took eight. Each job here
-  # pushes an untagged image by digest; `image-manifest` below is what turns the digests into a tag.
-  # It does not wait on `build`, because it never used one artefact from it: this job checks out
-  # the source and compiles its own. The edge cost 11 minutes of wall clock for a dependency that
-  # did not exist. `image-manifest` below still gates the tags, so a build that fails publishes
-  # untagged digests and nothing a user can pull.
-  image:
-    name: image ${{ matrix.flavor }} ${{ matrix.arch }}
-    needs: [version]
-    if: needs.version.outputs.publish == 'true'
-    runs-on: ${{ matrix.os }}
-    permissions:
-      contents: read
       packages: write
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          # Both flavours, both architectures. The arm64 `full` image is the only way to run
-          # everything on arm64 Linux at all: that binary can carry neither the models (glibc) nor
-          # a managed browser (Chrome for Testing publishes no linux-arm64 build), so the image
-          # uses the distribution's Chromium instead and says so.
-          - flavor: full
-            arch: amd64
-            os: ubuntu-22.04
-          - flavor: full
-            arch: arm64
-            os: ubuntu-22.04-arm
-    steps:
-      - uses: actions/checkout@v4
-      - uses: docker/setup-buildx-action@v3
-      - uses: docker/login-action@v3
-        with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-      - id: build
-        uses: docker/build-push-action@v6
-        with:
-          context: .
-          platforms: linux/${{ matrix.arch }}
-          build-args: FLAVOR=${{ matrix.flavor }}
-          outputs: type=image,name=ghcr.io/${{ github.repository }},push-by-digest=true,name-canonical=true,push=true
-      - name: Export digest
-        shell: bash
-        run: |
-          mkdir -p /tmp/digests
-          echo "${{ steps.build.outputs.digest }}" > "/tmp/digests/${{ matrix.arch }}"
-      - uses: actions/upload-artifact@v4
-        with:
-          name: digest-${{ matrix.flavor }}-${{ matrix.arch }}
-          path: /tmp/digests/*
-          if-no-files-found: error
-
-  # `slim` is the http tier and nothing else, which is exactly what the portable Linux artefact
-  # already is. This job puts that binary in a container instead of compiling the same program a
-  # second time: 9.9 min becomes 0.5, and the image and the tarball can no longer disagree about
-  # what `svipall` is. The artefact links glibc 2.35 and this image carries a newer one, so it is
-  # more portable than what the Dockerfile built here, not less — and `Runs on an older
-  # distribution` in the build job already proves that binary starts on bookworm.
-  #
-  # Unlike `image` it does wait on `build`, because it genuinely consumes an artefact from it.
-  image-slim:
-    name: image slim ${{ matrix.arch }}
-    needs: [version, build]
-    if: needs.version.outputs.publish == 'true'
-    runs-on: ${{ matrix.os }}
-    permissions:
-      contents: read
-      packages: write
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - arch: amd64
-            os: ubuntu-22.04
-            target: x86_64-unknown-linux-gnu
-          - arch: arm64
-            os: ubuntu-22.04-arm
-            target: aarch64-unknown-linux-gnu
-    steps:
-      - uses: actions/checkout@v4
-      - uses: docker/setup-buildx-action@v3
-      - uses: docker/login-action@v3
-        with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-      - uses: actions/download-artifact@v4
-        with:
-          name: svipall-${{ matrix.target }}
-          path: a
-      - name: Unpack the published binaries
-        shell: bash
-        env:
-          VERSION: ${{ needs.version.outputs.version }}
-        run: |
-          mkdir -p bin
-          tar -xzf "a/svipall-$VERSION-${{ matrix.target }}.tar.gz" -C bin svipall svipall-mcp
-          ls -la bin
-      - id: build
-        uses: docker/build-push-action@v6
-        with:
-          context: .
-          file: Dockerfile.slim
-          platforms: linux/${{ matrix.arch }}
-          outputs: type=image,name=ghcr.io/${{ github.repository }},push-by-digest=true,name-canonical=true,push=true
-      - name: Export digest
-        shell: bash
-        run: |
-          mkdir -p /tmp/digests
-          echo "${{ steps.build.outputs.digest }}" > "/tmp/digests/${{ matrix.arch }}"
-      - uses: actions/upload-artifact@v4
-        with:
-          name: digest-slim-${{ matrix.arch }}
-          path: /tmp/digests/*
-          if-no-files-found: error
-
-  # The tags, made from whatever architectures that flavour produced.
-  image-manifest:
-    name: image manifest (${{ matrix.flavor }})
-    needs: [version, image, image-slim]
-    if: needs.version.outputs.publish == 'true'
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      packages: write
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - flavor: full
-            suffix: ""
-            moving: latest
-          - flavor: slim
-            suffix: "-slim"
-            moving: slim
-    steps:
-      - uses: docker/setup-buildx-action@v3
-      - uses: docker/login-action@v3
-        with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-      - uses: actions/download-artifact@v4
-        with:
-          pattern: digest-${{ matrix.flavor }}-*
-          path: /tmp/digests
-          merge-multiple: true
-      # A moving tag is a promise that whoever pulls it gets the release. A pre-release is by
-      # definition not that, so it publishes its own version tag and leaves `latest` and `slim`
-      # pointing wherever they already pointed.
-      - name: Create the manifest
-        shell: bash
-        run: |
-          repo="ghcr.io/${{ github.repository }}"
-          tags="-t $repo:${{ needs.version.outputs.version }}${{ matrix.suffix }}"
-          if [ "${{ needs.version.outputs.prerelease }}" != "true" ]; then
-            tags="$tags -t $repo:${{ matrix.moving }}"
-          fi
-          refs=""
-          for f in /tmp/digests/*; do
-            refs="$refs $repo@$(cat "$f")"
-          done
-          [ -n "$refs" ] || { echo "no digests for ${{ matrix.flavor }}" >&2; exit 1; }
-          echo "creating$tags from$refs"
-          docker buildx imagetools create $tags $refs
-          docker buildx imagetools inspect "$repo:${{ needs.version.outputs.version }}${{ matrix.suffix }}"
-
-  # The MCP Registry, last, deliberately: a published version is immutable and the registry has no
-  # unpublish, so this runs after every artefact `server.json` points at exists. The steps live in
-  # `mcp-registry.yml`, which can also be dispatched by hand when this call fails.
-  mcp-registry:
-    name: mcp registry
-    needs: [version, npm, crates, image-manifest]
-    if: needs.version.outputs.publish == 'true'
-    permissions:
-      contents: read
-    uses: ./.github/workflows/mcp-registry.yml
-    secrets:
-      MCP_PRIVATE_KEY: ${{ secrets.MCP_PRIVATE_KEY }}
-
-  # The website shows the current version, and the number is written into its HTML at build time.
-  # Nothing here is required for that to be correct — the page asks the GitHub API again in the
-  # visitor's browser and raises the number itself — so this job is not on the critical path of a
-  # release and never fails one. What it buys is the served HTML being right as well: the reader
-  # with JavaScript off, the crawler, and the first paint before the request comes back.
-  #
-  # The site is a Worker with Workers Builds attached, not a classic Pages project, so the hook is
-  # the one that project issues under Settings > Builds > Deploy Hooks. A POST to it is the whole
-  # protocol: the id in the URL is the credential, which is also why it is a secret here. Anyone
-  # holding it can queue a build of that branch and nothing else. With the secret unset the step
-  # says so and succeeds, which is what makes this safe to merge before the hook exists.
-  #
-  # Stable releases only, matching what the site will show: a pre-release would spend a Pages build
-  # baking the same number the site already has.
-  site:
-    name: site
-    needs: [version, publish]
-    if: needs.version.outputs.publish == 'true' && needs.version.outputs.prerelease != 'true'
-    runs-on: ubuntu-latest
-    permissions: {}
-    steps:
-      - name: Ask Cloudflare to rebuild svipall.ilien.dev
-        env:
-          # Read through env rather than interpolated into the script: a secret spliced into a
-          # shell command is one quoting mistake away from being a shell command.
-          HOOK: ${{ secrets.SITE_DEPLOY_HOOK }}
-        run: |
-          if [ -z "$HOOK" ]; then
-            echo "SITE_DEPLOY_HOOK is not set; the site will pick up v${{ needs.version.outputs.version }} in the browser."
-            exit 0
-          fi
-          # --fail so a 4xx is a failure and not a silent success, and the body is printed either
-          # way: the answer carries the build_uuid of the build that was queued.
-          curl --fail --silent --show-error --location \
-            --request POST "$HOOK" \
-            --max-time 30 \
-            --retry 3 --retry-delay 5 --retry-all-errors
-          echo
-          echo "Queued a rebuild of svipall.ilien.dev for v${{ needs.version.outputs.version }}."
+    uses: ./.github/workflows/release-channels.yml
+    with:
+      tag: ${{ needs.release.outputs.tag }}
+      version: ${{ needs.release.outputs.version }}
+    secrets: inherit

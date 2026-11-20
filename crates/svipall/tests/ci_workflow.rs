@@ -116,41 +116,50 @@ fn every_workflow_installs_the_pinned_toolchain() {
 }
 
 /// v1.3.0 shipped from a `main` whose `ci` was red: `release.yml` ran on the same push, beside
-/// `ci` rather than after it. Every job now waits on `ci-green`, which waits for `ci` on the same
-/// commit. `release.yml` keeps its own trigger: npm trusts it by name, and a workflow `ci.yml`
-/// called would publish under `ci.yml`'s.
+/// `ci` rather than after it. Every job of the pipeline now waits on `ci-green`, which waits for
+/// `ci` on the commit the release tag points at. `release.yml` (managed by Nabu) calls the
+/// pipeline, so everything still publishes under its name: npm and crates.io trust it by name.
 #[test]
 fn a_release_waits_for_a_green_ci() {
     let root = Path::new(env!("CARGO_MANIFEST_DIR"))
         .parent()
         .and_then(Path::parent)
         .expect("crates/svipall sits two levels under the workspace root");
-    let release = fs::read_to_string(root.join(".github/workflows/release.yml"))
-        .expect("release.yml")
-        .replace("\r\n", "\n");
+    let read = |p: &str| {
+        fs::read_to_string(root.join(p))
+            .expect(p)
+            .replace("\r\n", "\n")
+    };
+    let release = read(".github/workflows/release.yml");
     assert!(
-        !release.contains("workflow_call"),
-        "release.yml must publish under its own name"
+        !release.contains("workflow_call")
+            && release.contains("uses: ./.github/workflows/release-assets.yml"),
+        "release.yml must call the pipeline and publish under its own name"
     );
-    let gate = release
+    let assets = read(".github/workflows/release-assets.yml");
+    assert!(
+        assets.contains("workflow_call"),
+        "release-assets.yml must be callable"
+    );
+    let gate = assets
         .split_once("\n  ci-green:\n")
         .map(|(_, rest)| rest.split_once("\n\n").map_or(rest, |(job, _)| job))
-        .expect("release.yml has a `ci-green` job");
+        .expect("release-assets.yml has a `ci-green` job");
     for needle in [
         "--workflow ci.yml",
-        "--commit \"$GITHUB_SHA\"",
+        "commits/$TAG",
+        "--commit \"$sha\"",
         "\"completed success \"*) ",
-        "refs/heads/main",
     ] {
         assert!(gate.contains(needle), "ci-green lacks {needle}: {gate}");
     }
-    let version = release
+    let version = assets
         .split_once("\n  version:\n")
         .map(|(_, rest)| {
             rest.split_once("\n    steps:")
                 .map_or(rest, |(head, _)| head)
         })
-        .expect("release.yml has a `version` job");
+        .expect("release-assets.yml has a `version` job");
     assert!(
         version.contains("needs: ci-green"),
         "`version`, which every other job needs, does not wait for ci: {version}"

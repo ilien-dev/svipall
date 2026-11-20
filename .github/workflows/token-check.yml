@@ -1,0 +1,56 @@
+name: Release token
+
+# RELEASE_TOKEN is a fine-grained token, and those expire. Every Monday this asks GitHub when
+# it expires (the github-authentication-token-expiration header of any API answer) and opens
+# an issue 30 days before, or at once when the token is missing or no longer works. Without
+# it the release workflow stops publishing versions.
+# Managed by Nabu (https://github.com/ilien-dev/nabu); do not edit by hand.
+
+on:
+  schedule:
+    - cron: '0 9 * * 1'
+  workflow_dispatch:
+
+permissions:
+  issues: write
+
+jobs:
+  check:
+    name: Release token
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check RELEASE_TOKEN
+        env:
+          RELEASE_TOKEN: ${{ secrets.RELEASE_TOKEN }}
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+        run: |
+          problem=""
+          if [ -z "$RELEASE_TOKEN" ]; then
+            problem="The RELEASE_TOKEN secret is missing, so no version can be published."
+          else
+            headers=$(curl -s -o /dev/null -D - -H "Authorization: Bearer $RELEASE_TOKEN" "https://api.github.com/repos/$REPO")
+            status=$(printf '%s' "$headers" | head -1 | awk '{print $2}')
+            expires=$(printf '%s' "$headers" | grep -i '^github-authentication-token-expiration:' | cut -d' ' -f2- | tr -d '\r')
+            if [ "$status" != "200" ]; then
+              problem="RELEASE_TOKEN no longer works (GitHub answered $status), so no version can be published."
+            elif [ -n "$expires" ]; then
+              left=$(( ( $(date -d "$expires" +%s) - $(date +%s) ) / 86400 ))
+              echo "RELEASE_TOKEN expires on $expires ($left days)."
+              if [ "$left" -le 30 ]; then
+                problem="RELEASE_TOKEN expires on $expires, in $left days."
+              fi
+            else
+              echo "RELEASE_TOKEN has no expiration date."
+            fi
+          fi
+          [ -z "$problem" ] && exit 0
+          title="Renew RELEASE_TOKEN"
+          body="$problem Create a new fine-grained token of a repository admin with Contents and Pull requests: read and write on this repository, and save it as the RELEASE_TOKEN secret (Settings > Secrets and variables > Actions)."
+          open=$(gh issue list --repo "$REPO" --state open --search "in:title \"$title\"" --json number --jq '.[0].number')
+          if [ -n "$open" ]; then
+            gh issue comment "$open" --repo "$REPO" --body "$problem"
+          else
+            gh issue create --repo "$REPO" --title "$title" --body "$body"
+          fi
+          exit 1
