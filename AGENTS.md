@@ -55,5 +55,8 @@ never by breaking access controls.
 `cargo build --release` (cmake, nasm, perl, llvm; short `CARGO_TARGET_DIR` on Windows) is
 `target-cpu=native`: **never ship it**, artifacts are `--profile dist`. `svipall-mcp` over stdio +
 dashboard 8787; `svipall` is the CLI (`doctor` checks an install). Config
-`~/.svipall/config.toml`; `SVIPALL_*` in `docs/configuration.md`. Release = a `main` merge bumping
-`[workspace.package] version`.
+`~/.svipall/config.toml`; `SVIPALL_*` in `docs/configuration.md`. Release: release-please (Nabu's
+`release.yml`) versions from squash-merged PR titles; never edit a version or `CHANGELOG.md`. The
+pipeline is `release-assets.yml` (draft) then `release-channels.yml` (public).
+- `CONTRIBUTING.md` - branches, PR format and limits; load the `uncontributing` skill before a
+  branch, commit, issue or PR.

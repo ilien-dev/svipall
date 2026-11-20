@@ -83,43 +83,46 @@ cargo run -p svipall-bench --release -- \
 
 ### Releasing
 
-**A release is a merge to `main` that carries a new version.** Nothing else starts one, and no tag
-has to be pushed by hand.
+Nobody writes a version number and nobody pushes a tag. Pull requests are squash-merged, so each
+title becomes one commit on `main`, and [release-please](https://github.com/googleapis/release-please)
+reads those titles: `feat` raises the minor version, `fix`, `perf` and `revert` the patch, and a
+`!` after the type the major. `.github/workflows/release.yml` is managed by
+[Nabu](https://github.com/ilien-dev/nabu), the same file in every repository that follows its
+standard, and on each push to `main` it does the rest:
 
-```bash
-scripts/sync-version.sh 1.0.0-rc.4   # or scripts/sync-version.ps1
-scripts/qc.sh                        # the version tests are part of it
-git commit -am "release: v1.0.0-rc.4"
-```
+1. release-please opens the release pull request with the new `[workspace.package] version` in
+   the root `Cargo.toml` and the new section of `CHANGELOG.md`.
+2. On that branch, `scripts/sync_version.py` copies the number into every member manifest, every
+   internal dependency line, the plugin manifest, the npm wrapper and `server.json`, and
+   `cargo update --workspace` updates `Cargo.lock`. Then the pull request is merged, and the tag
+   and a draft GitHub release are created.
+3. `release-assets.yml` runs from the tag while the release is still a draft. It waits for `ci`
+   on the tagged commit, checks with `sync_version.py --check` that the tag agrees with itself,
+   builds and smoke-tests the targets, exports the models, renders the `.deb`, `.rpm` and package
+   manifests, attaches everything with its checksums and provenance, and builds both container
+   images by digest.
+4. `release.yml` makes the release public. Nobody can download one that is missing a file.
+5. `release-channels.yml` takes it everywhere else: the Homebrew tap and the Scoop bucket, npm,
+   crates.io, the image tags, the MCP Registry and the site.
 
-`[workspace.package] version` in the root `Cargo.toml` is the only place the number is written by
-hand. `sync-version` copies it into every member manifest, every internal dependency line, the
-plugin manifest and the npm wrapper; `crates/svipall/tests/release_version.rs` fails the build
-when any of them drifts. Each of those files is a different way to be wrong: Claude Code silently
-keeps a cached plugin when `plugin.json` names a version it has already seen, the npm postinstall
-builds its download URL from its own version, and crates.io rejects a `path` dependency carrying no
-`version`.
+`crates/svipall/tests/release_version.rs` fails the build when any copy of the version drifts.
+Each of those files is a different way to be wrong: Claude Code silently keeps a cached plugin when
+`plugin.json` names a version it has already seen, the npm postinstall builds its download URL
+from its own version, and crates.io rejects a `path` dependency carrying no `version`.
 
-On a push to `main` the `version` job reads that number and asks one question: does a tag `v<it>`
-already exist? If it does (every ordinary push), the whole workflow stops there and costs
-nothing. If it does not, the release runs: five targets built and smoke-tested, the `.deb`, `.rpm`
-and package manifests rendered, the GitHub release published (which is what creates the tag, so a
-build that fails leaves none behind for the next run to trip over), then npm, crates.io and the two
-container images.
+A failed job leaves the draft. "Re-run failed jobs" on that same run finishes the release; a new
+run releases nothing for that version.
 
 npm and crates.io both publish over OIDC, with no stored secret: each registry was told on its own
-site that this repository and this workflow file may publish, and trades the token GitHub mints for
-a short-lived one. Both steps skip a version already on the registry, so re-running a release is
-safe. Publishing to crates.io is not reversible (there is no unpublish, only `yank`), which is why
-the crates go up one at a time, in dependency order, after the release itself exists.
+site that this repository and `release.yml` may publish, and a workflow that `release.yml` calls
+publishes under its name. Both steps skip a version already on the registry, so re-running is
+safe. Publishing to crates.io cannot be undone (there is no unpublish, only `yank`), which is why
+the crates go up one at a time, in dependency order, after the release is public.
 
 Every member is published except `bench`. That includes the two vendored forks, `svipall-cdp` and
 `svipall-quic`: crates.io resolves every dependency of a published crate, optional ones included,
 so `svipall` and `svipall-http` cannot exist there while either fork is missing. Their
 `UPSTREAM.md` is their readme for that reason.
-
-Pushing a tag still works and is the recovery path when a release has to be re-run from a commit
-that is no longer the head of `main`.
 
 ---
 

@@ -1,0 +1,48 @@
+name: Bug report
+description: Something in Svipall does not work as it should.
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        One problem per issue. Search the [existing issues](https://github.com/ilien-dev/svipall/issues?q=is%3Aissue) first.
+        Never paste tokens, keys, passwords or private data.
+  - type: textarea
+    id: steps
+    attributes:
+      label: What you did
+      description: The steps, command or prompt that lead to the problem.
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: What you expected
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: What happened
+      description: The message or output word for word, and a screenshot if it helps.
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Version
+      description: The Svipall version you use.
+    validations:
+      required: true
+  - type: input
+    id: environment
+    attributes:
+      label: Environment
+      description: Operating system, and anything else that matters here (runtime, agent, device).
+  - type: checkboxes
+    id: searched
+    attributes:
+      label: Before opening
+      options:
+        - label: I searched the existing issues and this one is not reported yet.
+          required: true

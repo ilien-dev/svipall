@@ -1,0 +1,77 @@
+name: PR rules
+
+# Branch name, title and description, as CONTRIBUTING.md asks, with the rules of
+# .github/repo-rules.json. It runs on pull_request_target so it also works for forks without
+# an approval, and it checks out the base branch only: the rules and the script are the ones
+# already on the default branch, and no code from the pull request ever runs here.
+# Managed by Nabu (https://github.com/ilien-dev/nabu); do not edit by hand.
+
+on:
+  pull_request_target:
+    types: [opened, edited, synchronize, reopened]
+
+permissions:
+  contents: read
+  pull-requests: write
+  issues: read
+
+jobs:
+  rules:
+    # This name is a required status check of the ruleset of the default branch.
+    name: PR rules
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: ${{ github.event.pull_request.base.ref }}
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+
+      - name: Changed files
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          PR: ${{ github.event.pull_request.number }}
+        run: |
+          gh api "repos/$REPO/pulls/$PR/files" --paginate --jq '.[].filename' > "$RUNNER_TEMP/files.txt"
+          {
+            echo 'PR_FILES<<__FILES__'
+            cat "$RUNNER_TEMP/files.txt"
+            echo '__FILES__'
+          } >> "$GITHUB_ENV"
+
+      # Repositories with "issueFirst": a pull request must point to an open issue of this
+      # repository. One that does not is closed with a comment that says why.
+      - name: Linked issue
+        if: ${{ !startsWith(github.event.pull_request.head.ref, 'release-please--') && github.event.pull_request.user.type != 'Bot' }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          PR: ${{ github.event.pull_request.number }}
+          PR_BODY: ${{ github.event.pull_request.body }}
+        run: |
+          if [ "$(jq -r '.issueFirst // false' .github/repo-rules.json)" != "true" ]; then
+            echo "This repository does not ask for an issue first."
+            exit 0
+          fi
+          issue=$(printf '%s' "$PR_BODY" | grep -oiE '(close[sd]?|fix(e[sd])?|resolve[sd]?) +#[0-9]+' | grep -oE '[0-9]+' | head -1 || true)
+          state=""
+          if [ -n "$issue" ]; then
+            state=$(gh api "repos/$REPO/issues/$issue" --jq 'if .pull_request then "pr" else .state end' 2>/dev/null || echo missing)
+          fi
+          if [ "$state" = "open" ]; then
+            echo "Linked to open issue #$issue."
+            exit 0
+          fi
+          gh pr close "$PR" --repo "$REPO" --comment "Every change to this repository starts with an issue (see CONTRIBUTING.md). Open one, wait until it is accepted, then reopen this pull request with \"Closes #<issue>\" in the description."
+          exit 1
+
+      - name: Check
+        env:
+          PR_BRANCH: ${{ github.event.pull_request.head.ref }}
+          PR_TITLE: ${{ github.event.pull_request.title }}
+          PR_BODY: ${{ github.event.pull_request.body }}
+          PR_AUTHOR: ${{ github.event.pull_request.user.login }}
+        run: node .github/scripts/check-pr.cjs

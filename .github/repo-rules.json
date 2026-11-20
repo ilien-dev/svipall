@@ -1,0 +1,114 @@
+{
+  "name": "Svipall",
+  "repo": "ilien-dev/svipall",
+  "defaultBranch": "main",
+  "purpose": "lets an AI agent read the web from the operator's own machine: it fetches, crawls and searches pages, gets past anti-bot walls by evading them, never by breaking access controls, and answers captchas locally.",
+  "shipped": [
+    "crates/*/src/**",
+    "crates/*/Cargo.toml",
+    "crates/*/build.rs",
+    "crates/*/models/**",
+    "crates/*/assets/**",
+    "Cargo.toml",
+    "Cargo.lock",
+    "plugins/**",
+    "skill/**",
+    "skills/**",
+    "integrations/**",
+    "packaging/npm/**",
+    "packaging/templates/**",
+    "tools/**",
+    "server.json",
+    "Dockerfile",
+    "Dockerfile.slim",
+    "docker-entrypoint.sh",
+    "install.sh",
+    "install.ps1"
+  ],
+  "issueFirst": false,
+  "measured": {
+    "enabled": true,
+    "types": [
+      "feat",
+      "fix",
+      "perf"
+    ],
+    "methods": [
+      "A fix: the test that fails on `main` and passes on your branch, and the command that runs just it (`cargo test -p <crate> --test <file>`).",
+      "A change to what a page returns, how often a wall stops it, or how fast it answers: `bench` on `main` and on your branch, run exactly as `bench/baseline/README.md` says. It counts only when the median leaves the previous range; publish the runs that improved nothing too."
+    ]
+  },
+  "commands": [
+    "cargo test --workspace",
+    "scripts/qc.sh"
+  ],
+  "ci": {
+    "requiredChecks": [
+      "qc (ubuntu-latest)",
+      "qc (windows-latest)",
+      "qc (macos-latest)"
+    ]
+  },
+  "release": {
+    "kind": "library",
+    "currentVersion": "2.1.0",
+    "versionFiles": [
+      {
+        "path": "Cargo.toml",
+        "jsonpath": "$.workspace.package.version"
+      }
+    ],
+    "sync": [
+      "python3 scripts/sync_version.py .",
+      "cargo update --workspace"
+    ],
+    "beforePublish": {
+      "workflow": ".github/workflows/release-assets.yml",
+      "permissions": {
+        "actions": "read",
+        "contents": "write",
+        "id-token": "write",
+        "attestations": "write",
+        "packages": "write"
+      }
+    },
+    "afterPublish": {
+      "workflow": ".github/workflows/release-channels.yml",
+      "permissions": {
+        "contents": "read",
+        "id-token": "write",
+        "packages": "write"
+      }
+    },
+    "build": [],
+    "buildSecrets": [],
+    "npmPrepare": [],
+    "finish": []
+  },
+  "standard": 1,
+  "branch": {
+    "types": [
+      "feat",
+      "fix",
+      "perf",
+      "refactor",
+      "docs",
+      "test",
+      "build",
+      "ci",
+      "chore",
+      "style",
+      "revert"
+    ],
+    "maxWords": 5
+  },
+  "title": {
+    "max": 72
+  },
+  "releaseTypes": [
+    "feat",
+    "fix",
+    "perf",
+    "revert"
+  ]
+}
