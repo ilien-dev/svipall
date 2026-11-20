@@ -47,7 +47,7 @@ never by breaking access controls.
 - **Reader-facing Markdown: run the `quiron` skill on every edit** (READMEs, `docs/`, root
   guides; not agent files).
 - **Docs move with the code**: a changed tool, argument, route, config key or behaviour updates
-  `docs/` (new page: `docs/README.md`) and `CHANGELOG.md`. `docs/reference/` is generated:
+  `docs/` (new page: `docs/README.md`). `docs/reference/` is generated:
   `SVIPALL_BLESS_DOCS=1 cargo test -p svipall --test reference_docs`.
 - **English only.** **Size-guarded file**; trim, don't expand.
 
@@ -55,8 +55,5 @@ never by breaking access controls.
 `cargo build --release` (cmake, nasm, perl, llvm; short `CARGO_TARGET_DIR` on Windows) is
 `target-cpu=native`: **never ship it**, artifacts are `--profile dist`. `svipall-mcp` over stdio +
 dashboard 8787; `svipall` is the CLI (`doctor` checks an install). Config
-`~/.svipall/config.toml`; `SVIPALL_*` in `docs/configuration.md`. Release: release-please (Nabu's
-`release.yml`) versions from squash-merged PR titles; never edit a version or `CHANGELOG.md`. The
-pipeline is `release-assets.yml` (draft) then `release-channels.yml` (public).
-- `CONTRIBUTING.md` - branches, PR format and limits; load the `uncontributing` skill before a
-  branch, commit, issue or PR.
+`~/.svipall/config.toml`; `SVIPALL_*` in `docs/configuration.md`. Versions and `CHANGELOG.md`:
+release-please. Before a PR: `uncontributing` skill.
