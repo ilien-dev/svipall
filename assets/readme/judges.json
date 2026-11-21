@@ -1,0 +1,232 @@
+{
+ "picture:features.src.svg": {
+  "sha": "928761a1ae2e3f91",
+  "pass": true,
+  "why": "Scene 1 named the same five abilities (video, search without a subscription/key, keep watch, pages into spreadsheets, open pages that block bots)."
+ },
+ "section:What your AI can do with it": {
+  "sha": "e0bf809fd146f769",
+  "pass": true,
+  "why": "Reader listed the five abilities: bot walls, video, search without a key, watching a page, table into a spreadsheet."
+ },
+ "picture:how.src.svg": {
+  "sha": "ef21111f370243c5",
+  "pass": true,
+  "why": "Scene 2 saw the climb from a plain request to stronger levels until the page was read, and the stop at a sign-in with the app told."
+ },
+ "section:How it gets past a wall": {
+  "sha": "e4d58cffea7fbb20",
+  "pass": true,
+  "why": "Reader described five ways of visiting tried lightest first, a sign-in wall stopping the climb, and the AI being told."
+ },
+ "picture:install.src.svg": {
+  "sha": "51e8c3ee92feecc3",
+  "pass": true,
+  "why": "Scene 3 saw three commands in Claude Code ticking off installed, checked that it works, and says when updates come."
+ },
+ "section:Install": {
+  "sha": "b17f5062c0e01bea",
+  "pass": true,
+  "why": "Reader got three pasted commands that install it, check it answers, and report when an update is out."
+ },
+ "picture:privacy.src.svg": {
+  "sha": "cab32405189abe1d",
+  "pass": true,
+  "why": "Scene 4 saw everything on 'Your computer', pages going straight from the site to the AI app, with no sign-up, key or server in between."
+ },
+ "section:Where your data goes": {
+  "sha": "df257b7f108eec51",
+  "pass": true,
+  "why": "Reader said it runs on your computer and pages go from the site to you to the AI app with no server in between."
+ },
+ "icon:hero.src.svg#1": {
+  "sha": "5fa5986f3d696ea9",
+  "pass": true,
+  "why": "Key, sure."
+ },
+ "icon:hero.src.svg#2": {
+  "sha": "a8589d717e08b726",
+  "pass": true,
+  "why": "Laptop / your computer, sure."
+ },
+ "icon:hero.src.svg#3": {
+  "sha": "e8dc66adbe68e361",
+  "pass": false,
+  "why": "The judge was not sure (brick wall or gate) and read it as a wall or block, not an open door."
+ },
+ "icon:hero.src.svg#4": {
+  "sha": "4433be4c05b78c86",
+  "pass": true,
+  "why": "No-entry: blocked, not allowed, sure."
+ },
+ "icon:hero.src.svg#5": {
+  "sha": "959b39f3f75bb105",
+  "pass": true,
+  "why": "Hourglass: waiting, sure."
+ },
+ "icon:hero.src.svg#6": {
+  "sha": "e6a2f875d3c886cd",
+  "pass": true,
+  "why": "Check mark: success/confirmed, sure."
+ },
+ "icon:features.src.svg#1": {
+  "sha": "a1b80b4aea518843",
+  "pass": true,
+  "why": "Video camera: watch video, sure."
+ },
+ "icon:features.src.svg#2": {
+  "sha": "53dfddcc83141e07",
+  "pass": true,
+  "why": "Video camera: watch video, sure."
+ },
+ "icon:features.src.svg#3": {
+  "sha": "2fd8fe9d50259251",
+  "pass": true,
+  "why": "Magnifier: search, sure."
+ },
+ "icon:features.src.svg#4": {
+  "sha": "3178173d6b7d5e20",
+  "pass": true,
+  "why": "Magnifier: search, sure."
+ },
+ "icon:features.src.svg#5": {
+  "sha": "67f36881e82e6de7",
+  "pass": true,
+  "why": "Bell: watch for changes, sure."
+ },
+ "icon:features.src.svg#6": {
+  "sha": "241bc7bd6fbf568c",
+  "pass": true,
+  "why": "Bell: watch for changes, sure."
+ },
+ "icon:features.src.svg#7": {
+  "sha": "e54c0d9b42608160",
+  "pass": true,
+  "why": "Grid: spreadsheet/data rows, sure."
+ },
+ "icon:features.src.svg#8": {
+  "sha": "6b22c6a7816e3730",
+  "pass": true,
+  "why": "Grid: spreadsheet/data rows, sure."
+ },
+ "icon:features.src.svg#9": {
+  "sha": "4383936dc6b42d3d",
+  "pass": false,
+  "why": "The judge was not sure and read a wall or blocked site, not an open door."
+ },
+ "icon:features.src.svg#10": {
+  "sha": "88ca9db6bdd258e9",
+  "pass": false,
+  "why": "The judge was not sure and read a wall or blocked site, not an open door."
+ },
+ "icon:features.src.svg#11": {
+  "sha": "9b57c2cae72223d9",
+  "pass": false,
+  "why": "The judge guessed captions/subtitles but was not sure (caption box or ID card)."
+ },
+ "icon:features.src.svg#12": {
+  "sha": "442e363e2efbaae6",
+  "pass": true,
+  "why": "Eye: view/see, sure."
+ },
+ "icon:features.src.svg#13": {
+  "sha": "2be04760c37940d1",
+  "pass": true,
+  "why": "Check mark: confirmed, sure; close enough to 'they agree'."
+ },
+ "icon:features.src.svg#14": {
+  "sha": "8e9adf2242157838",
+  "pass": true,
+  "why": "Bell: notification/alert, sure, which matches 'your AI is told'."
+ },
+ "icon:features.src.svg#15": {
+  "sha": "46a1663c5383e35b",
+  "pass": true,
+  "why": "Download arrow: download/export, sure."
+ },
+ "icon:features.src.svg#16": {
+  "sha": "24c8426975cf1aee",
+  "pass": true,
+  "why": "Hourglass: waiting, sure."
+ },
+ "icon:how.src.svg#1": {
+  "sha": "51b045efb90a01db",
+  "pass": true,
+  "why": "No-entry: blocked/not allowed, sure."
+ },
+ "icon:how.src.svg#2": {
+  "sha": "230047796b35b945",
+  "pass": true,
+  "why": "Globe: website, sure."
+ },
+ "icon:how.src.svg#3": {
+  "sha": "4ab34c7a5c41ba6f",
+  "pass": true,
+  "why": "Globe: website, sure."
+ },
+ "icon:how.src.svg#4": {
+  "sha": "a990cf1fc42d76fc",
+  "pass": true,
+  "why": "Hourglass: waiting, sure."
+ },
+ "icon:how.src.svg#5": {
+  "sha": "292a0e622874ea2f",
+  "pass": true,
+  "why": "Padlock: sign-in required, sure."
+ },
+ "icon:how.src.svg#6": {
+  "sha": "9d466f55d063fded",
+  "pass": true,
+  "why": "Document: read page, sure."
+ },
+ "icon:how.src.svg#7": {
+  "sha": "cdd50dfb313b673d",
+  "pass": true,
+  "why": "Padlock: locked, sign-in required, sure."
+ },
+ "icon:install.src.svg#1": {
+  "sha": "9fc2ef681d759321",
+  "pass": true,
+  "why": "Check in a circle: completed, sure."
+ },
+ "icon:install.src.svg#2": {
+  "sha": "d8dcba0da939b79a",
+  "pass": true,
+  "why": "Check in a circle: completed, sure."
+ },
+ "icon:install.src.svg#3": {
+  "sha": "e237ea21d0b558b8",
+  "pass": true,
+  "why": "Check in a circle: completed, sure."
+ },
+ "icon:install.src.svg#4": {
+  "sha": "f627d526e31d9da7",
+  "pass": true,
+  "why": "Check in a circle: completed, sure."
+ },
+ "icon:privacy.src.svg#1": {
+  "sha": "e1a2e4de25ae486d",
+  "pass": true,
+  "why": "Person with X: no account/no sign-up, sure."
+ },
+ "icon:privacy.src.svg#2": {
+  "sha": "bc7d7dd5dfab247b",
+  "pass": true,
+  "why": "Key: API key/credentials, sure."
+ },
+ "icon:privacy.src.svg#3": {
+  "sha": "017ac2d7a442f6aa",
+  "pass": true,
+  "why": "Crossed-out server: no server, sure."
+ },
+ "icon:privacy.src.svg#4": {
+  "sha": "6c32b6db4a9ffcd9",
+  "pass": true,
+  "why": "Globe: website, sure."
+ },
+ "readme": {
+  "sha": "ed92802573be3078",
+  "pass": true,
+  "why": "Reader: a free local add-on that lets AI apps read pages, searches and videos their built-in web tools cannot open, and tells the AI honestly when a site still refuses; starting means pasting the three lines in Claude Code."
+ }
+}

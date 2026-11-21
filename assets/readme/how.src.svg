@@ -1,0 +1,68 @@
+<!--palette
+bg          #050506 #F3F1EF
+panel       #141417 #FFFFFF
+panel2      #1F1F24 #ECE8E4
+line        #2A2A2E #DAD4CE
+ink         #EDEBE8 #0D0D0F
+body        #DEDBD7 #3E3B38
+muted       #B4B0AC #5E5A56
+accent      #E5303A #D3202F
+accent_text #FFA3A8 #B51A28
+read        #F3F1EF #0D0D0F
+refused     #6A6A70 #9A958F
+heat1       #3A0F2C #ECC6C9
+heat2       #8A1D3A #E58A91
+-->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 448" width="1280" height="448" role="img" aria-label="A column of the five ways of visiting, lightest at the bottom: a plain request, a hidden browser, a disguised browser, a real browser, a patient visit. Svipall's hat climbs it: fares.example.net says Just a moment, Svipall climbs to a disguised browser and the page is read; members.example.com asks for a sign-in, Svipall stops at the first level and your AI is told a sign-in is needed.">
+<style>@keyframes bd{to{transform:translate(40px,40px)}}.bd{animation:bd 9.43s linear infinite}
+/* 16 s   fares.example.net (A) 0-56%: wall, climb two levels, page read | members.example.com (B) 56-100%: sign-in wall, stops, says so
+   hat    L0====|up|L1==|up|L2==============|down|L0==================================
+   wall A   |in|=================|x|
+   page A                           |x|=========|x|
+   lock B                                              |in|========================
+   told B                                                   |in|===================  */
+@keyframes climb{0%,16%{transform:translateY(0)}18.5%,26%{transform:translateY(-48px)}28.5%,52%{transform:translateY(-96px)}55.5%,100%{transform:translateY(0)}}
+@keyframes lv1{0%,17.5%{opacity:0}19%,53%{opacity:1}55%,100%{opacity:0}}
+@keyframes lv2{0%,27.5%{opacity:0}29%,53%{opacity:1}55%,100%{opacity:0}}
+@keyframes aA{0%{opacity:0}1.5%,54%{opacity:1}56%,100%{opacity:0}}
+@keyframes aB{0%{opacity:1}1.5%,54%{opacity:0}56%,100%{opacity:1}}
+@keyframes wA{0%,6%{opacity:0;transform:translateY(8px)}8%,32%{opacity:1;transform:translateY(0)}34%,100%{opacity:0;transform:translateY(8px)}}
+@keyframes pA{0%{opacity:1;transform:translateY(0)}2%,33%{opacity:0;transform:translateY(8px)}35%,100%{opacity:1;transform:translateY(0)}}
+@keyframes lB{0%,54%{opacity:1;transform:translateY(0)}56%,60%{opacity:0;transform:translateY(8px)}62%,100%{opacity:1;transform:translateY(0)}}
+@keyframes ared{0%{opacity:0}1.5%,62%{opacity:1}64%,100%{opacity:0}}
+@keyframes agrey{0%{opacity:1}1.5%,62%{opacity:0}64%,100%{opacity:1}}
+@keyframes stop{0%{opacity:1}1.5%,63%{opacity:0}65%,100%{opacity:1}}
+@keyframes rA{0%,2%{opacity:1;transform:translateY(0)}4%,35%{opacity:0;transform:translateY(8px)}37%,100%{opacity:1;transform:translateY(0)}}
+@keyframes rB{0%,55%{opacity:1;transform:translateY(0)}57%,66%{opacity:0;transform:translateY(8px)}68%,100%{opacity:1;transform:translateY(0)}}
+@keyframes flow{to{stroke-dashoffset:-24}}
+.climb{animation:climb 16s cubic-bezier(.4,0,.2,1) infinite}
+.lv1{animation:lv1 16s ease-in-out infinite}
+.lv2{animation:lv2 16s ease-in-out infinite}
+.aA{animation:aA 16s ease-in-out infinite}
+.aB{animation:aB 16s ease-in-out infinite}
+.wA{animation:wA 16s ease-in-out infinite}
+.pA{animation:pA 16s ease-in-out infinite}
+.lB{animation:lB 16s ease-in-out infinite}
+.ared{animation:ared 16s ease-in-out infinite}
+.agrey{animation:agrey 16s ease-in-out infinite}
+.stop{animation:stop 16s ease-in-out infinite}
+.rA{animation:rA 16s ease-in-out infinite}
+.rB{animation:rB 16s ease-in-out infinite}
+.flow{animation:flow 1.2s linear infinite}</style>
+<defs></defs>
+<rect width="1280" height="448" fill="$bg"/>
+<g id="backdrop" data-backdrop="grid drift"><defs><pattern id="bd-grid" width="40" height="40" patternUnits="userSpaceOnUse"><path d="M0 0H40M0 0V40" fill="none" stroke="$line" stroke-width="1"/></pattern></defs><rect x="-40" y="-40" width="1360" height="528" fill="url(#bd-grid)" class="bd"/></g>
+<text id="eyebrow" x="56" y="56" class="m" font-size="14" fill="$accent_text" letter-spacing="2">HOW IT GETS PAST A WALL</text><text id="title" x="56" y="108" class="b" font-size="40" fill="$ink">It climbs until it gets in</text><text id="sub" x="56" y="146" class="s" font-size="18" fill="$body">Lightest way first. A sign-in wall stops it, and your AI is told.</text>
+<g id="stage">
+<!-- the five ways of visiting, lightest at the bottom -->
+<polygon points="700,378 766,411 700,444 634,411" fill="$panel2" stroke="$line" stroke-width="1"/><polygon points="656,366 700,388 700,432 656,410" fill="$line"/><polygon points="744,366 700,388 700,432 744,410" fill="$panel"/><polygon points="700,344 744,366 700,388 656,366" fill="$panel2" stroke="$line" stroke-width="1"/><polygon points="656,366 700,388 700,432 656,410" fill="$heat2"/><polygon points="744,366 700,388 700,432 744,410" fill="$heat1"/><polygon points="700,344 744,366 700,388 656,366" fill="$accent" stroke="$line" stroke-width="1"/><polygon points="656,318 700,340 700,384 656,362" fill="$line"/><polygon points="744,318 700,340 700,384 744,362" fill="$panel"/><polygon points="700,296 744,318 700,340 656,318" fill="$panel2" stroke="$line" stroke-width="1"/><g class="lv1" opacity="0"><polygon points="656,318 700,340 700,384 656,362" fill="$heat2"/><polygon points="744,318 700,340 700,384 744,362" fill="$heat1"/><polygon points="700,296 744,318 700,340 656,318" fill="$accent" stroke="$line" stroke-width="1"/></g><polygon points="656,270 700,292 700,336 656,314" fill="$line"/><polygon points="744,270 700,292 700,336 744,314" fill="$panel"/><polygon points="700,248 744,270 700,292 656,270" fill="$panel2" stroke="$line" stroke-width="1"/><g class="lv2" opacity="0"><polygon points="656,270 700,292 700,336 656,314" fill="$heat2"/><polygon points="744,270 700,292 700,336 744,314" fill="$heat1"/><polygon points="700,248 744,270 700,292 656,270" fill="$accent" stroke="$line" stroke-width="1"/></g><polygon points="656,222 700,244 700,288 656,266" fill="$line"/><polygon points="744,222 700,244 700,288 744,266" fill="$panel"/><polygon points="700,200 744,222 700,244 656,222" fill="$panel2" stroke="$line" stroke-width="1"/><polygon points="656,174 700,196 700,240 656,218" fill="$line"/><polygon points="744,174 700,196 700,240 744,218" fill="$panel"/><polygon points="700,152 744,174 700,196 656,174" fill="$panel2" stroke="$line" stroke-width="1"/>
+<text x="642" y="405" class="s" font-size="16" fill="$body" text-anchor="end">A plain request</text><text x="642" y="357" class="s" font-size="16" fill="$body" text-anchor="end">A hidden browser</text><text x="642" y="309" class="s" font-size="16" fill="$body" text-anchor="end">A disguised browser</text><text x="642" y="261" class="s" font-size="16" fill="$body" text-anchor="end">A real browser</text><text x="642" y="213" class="s" font-size="16" fill="$body" text-anchor="end">A patient visit</text>
+<!-- Svipall climbs only as far as it must -->
+<g transform="translate(736 369.4)"><g class="climb"><g transform="translate(0 0) scale(0.2)"><path fill="$ink" d="M88 112L94 70Q96 58 108 58Q134 54 158 60Q170 63 172 76L178 108Z"/><path fill="$ink" d="M8 168Q30 122 126 104Q212 92 248 116Q252 132 234 132Q168 124 124 136Q66 150 34 184Q14 192 8 168Z"/><path fill-rule="evenodd" fill="$accent" d="M130 176Q162 148 200 168Q164 202 130 176ZM154 172A10 10 0 1 0 174 172A10 10 0 1 0 154 172Z"/></g><g class="ared"><path class="flow" d="M58 25H136" fill="none" stroke="$accent" stroke-width="3" stroke-dasharray="8 16"/><path d="M128 17l9 8-9 8" fill="none" stroke="$accent" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></g><g class="agrey"><path d="M58 25H136" fill="none" stroke="$refused" stroke-width="3" stroke-dasharray="8 16"/><path d="M128 17l9 8-9 8" fill="none" stroke="$refused" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></g></g></g>
+<g class="stop"><g data-asset="lucide:ban" data-icon="stops: no climbing past a sign-in" data-size="28" transform="translate(748 332) scale(1.167)" fill="$muted"><g fill="none" stroke="$muted" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M4.929 4.929L19.07 19.071"/></g></g></g>
+<!-- the site, as it answers -->
+<rect x="880" y="148" width="360" height="120" rx="14" fill="$panel" stroke="$line" stroke-width="1.5"/><path d="M880 186H1240" stroke="$line" stroke-width="1.5"/><g data-asset="lucide:globe" data-icon="a website" data-size="24" transform="translate(896 155) scale(1)" fill="$muted"><g fill="none" stroke="$muted" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 2a14.5 14.5 0 0 0 0 20a14.5 14.5 0 0 0 0-20M2 12h20"/></g></g><text x="930" y="173" class="m" font-size="16" fill="$ink">fares.example.net</text><rect class="aA" opacity="0" x="880" y="148" width="360" height="120" rx="14" fill="none" stroke="$accent" stroke-width="2"/><rect x="880" y="280" width="360" height="120" rx="14" fill="$panel" stroke="$line" stroke-width="1.5"/><path d="M880 318H1240" stroke="$line" stroke-width="1.5"/><g data-asset="lucide:globe" data-icon="a website" data-size="24" transform="translate(896 287) scale(1)" fill="$muted"><g fill="none" stroke="$muted" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 2a14.5 14.5 0 0 0 0 20a14.5 14.5 0 0 0 0-20M2 12h20"/></g></g><text x="930" y="305" class="m" font-size="16" fill="$ink">members.example.com</text><rect class="aB" x="880" y="280" width="360" height="120" rx="14" fill="none" stroke="$muted" stroke-width="2"/><g data-asset="lucide:hourglass" data-icon="the site makes you wait" data-size="24" transform="translate(1200 155) scale(1)" fill="$accent"><path fill="none" stroke="$accent" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 22h14M5 2h14m-2 20v-4.172a2 2 0 0 0-.586-1.414L12 12l-4.414 4.414A2 2 0 0 0 7 17.828V22M7 2v4.172a2 2 0 0 0 .586 1.414L12 12l4.414-4.414A2 2 0 0 0 17 6.172V2"/></g><g class="wA" opacity="0"><text x="900" y="218" class="s" font-size="18" fill="$accent_text">Just a moment…</text><rect x="900" y="236" width="220" height="7" rx="3.5" fill="$line"/><rect x="900" y="250" width="160" height="7" rx="3.5" fill="$line"/></g><g class="pA"><text x="900" y="218" class="b" font-size="18" fill="$read">Weekend fares</text><rect x="900" y="236" width="300" height="7" rx="3.5" fill="$muted"/><rect x="900" y="250" width="250" height="7" rx="3.5" fill="$muted"/></g><g class="lB"><g data-asset="lucide:lock" data-icon="a sign-in wall" data-size="28" transform="translate(900 330) scale(1.167)" fill="$muted"><g fill="none" stroke="$muted" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></g></g><text x="940" y="350" class="s" font-size="18" fill="$muted">Sign in to continue</text><rect x="940" y="364" width="200" height="22" rx="6" fill="$bg" stroke="$line" stroke-width="1.5"/></g>
+<!-- what your AI is told -->
+<g data-kit="window"><rect x="56" y="196" width="400" height="222" rx="12" fill="$panel" stroke="$line" stroke-width="1.5"/><path d="M56 230H456" stroke="$line" stroke-width="1.5"/><circle cx="76" cy="213" r="5" fill="$line"/><circle cx="92" cy="213" r="5" fill="$line"/><circle cx="108" cy="213" r="5" fill="$line"/><text x="256.0" y="218" class="m" font-size="14" fill="$muted" text-anchor="middle">Your AI app</text></g><g class="rA"><rect x="72" y="248" width="368" height="64" rx="10" fill="$bg" stroke="$line" stroke-width="1"/><rect x="72" y="258" width="4" height="44" rx="2" fill="$read"/><g data-asset="lucide:file-text" data-icon="the page, read" data-size="24" transform="translate(90 268) scale(1)" fill="$muted"><g fill="none" stroke="$muted" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"><path d="M6 22a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h8a2.4 2.4 0 0 1 1.704.706l3.588 3.588A2.4 2.4 0 0 1 20 8v12a2 2 0 0 1-2 2z"/><path d="M14 2v5a1 1 0 0 0 1 1h5M10 9H8m8 4H8m8 4H8"/></g></g><text x="128" y="275" class="m" font-size="14" fill="$muted">fares.example.net</text><text x="128" y="297" class="s" font-size="16" fill="$ink">page read</text></g><g class="rB"><rect x="72" y="328" width="368" height="64" rx="10" fill="$bg" stroke="$line" stroke-width="1"/><rect x="72" y="338" width="4" height="44" rx="2" fill="$refused"/><g data-asset="lucide:lock" data-icon="refused: sign-in needed" data-size="24" transform="translate(90 348) scale(1)" fill="$muted"><g fill="none" stroke="$muted" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></g></g><text x="128" y="355" class="m" font-size="14" fill="$muted">members.example.com</text><text x="128" y="377" class="s" font-size="16" fill="$ink">needs your sign-in</text></g>
+</g>
+</svg>

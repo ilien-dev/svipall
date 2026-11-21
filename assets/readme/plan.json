@@ -1,0 +1,119 @@
+{
+ "audience": "general",
+ "audience_confirmed": true,
+ "sentence": "People who already chat with an AI app get it to read the pages, searches and videos the app's own web search cannot open, from their own computer, and are told plainly when a site still says no.",
+ "language": "en",
+ "translations": [],
+ "backdrop": "grid drift",
+ "unfinished": [
+  {
+   "item": "a benchmark run log that mentions planned pauses",
+   "source": "docs/proof.md:128",
+   "match": "planned pauses",
+   "decision": "not-a-feature"
+  }
+ ],
+ "captures_agreed": false,
+ "hero": {
+  "file": "assets/hero.src.svg",
+  "shows": [
+   "an AI app chat with a question",
+   "Svipall on your computer",
+   "a website with a checking-your-browser wall",
+   "the page coming back as clean text",
+   "the answer in the chat"
+  ]
+ },
+ "sections": [
+  {
+   "heading": "What your AI can do with it",
+   "role": "features",
+   "docs": "docs/features.md",
+   "picture": {
+    "file": "assets/readme/features.src.svg",
+    "type": "drawn",
+    "claim": "One add-on gives your AI five abilities: open pages that block bots, watch a video, search without a key, keep watch on a page, turn a list into rows.",
+    "shows": [
+     "a video with a transcript line",
+     "three search engines agreeing",
+     "a price line with a change alert",
+     "loose blocks becoming a table",
+     "a shield over a blocked page"
+    ]
+   }
+  },
+  {
+   "heading": "How it gets past a wall",
+   "role": "how",
+   "docs": "docs/architecture.md",
+   "picture": {
+    "file": "assets/readme/how.src.svg",
+    "type": "drawn",
+    "claim": "When a site pushes back, Svipall climbs from the lightest way of visiting to stronger ones until it gets in, or stops and says so.",
+    "shows": [
+     "a ladder of five ways of visiting",
+     "a site that answers with a wall",
+     "the way that gets in",
+     "a sign-in wall that stops the climb"
+    ]
+   }
+  },
+  {
+   "heading": "Install",
+   "role": "install",
+   "docs": "docs/install.md",
+   "picture": {
+    "file": "assets/readme/install.src.svg",
+    "type": "drawn",
+    "claim": "Three lines pasted into Claude Code install it, check that it works, and leave it telling you when an update is out.",
+    "shows": [
+     "a Claude Code window typing three plugin lines",
+     "a checklist that fills: marketplace added, add-on installed, checked, says when updates come"
+    ]
+   }
+  },
+  {
+   "heading": "Ask for something",
+   "role": "use",
+   "docs": null
+  },
+  {
+   "heading": "Where your data goes",
+   "role": "privacy",
+   "docs": "docs/privacy.md",
+   "picture": {
+    "file": "assets/readme/privacy.src.svg",
+    "type": "drawn",
+    "claim": "Everything runs on your own computer: pages go from the site to you and on to your AI app, with no sign-up, key or server in between.",
+    "shows": [
+     "your computer as a fenced yard holding your AI app and Svipall",
+     "the sites you visit as blocks outside",
+     "a line to one site and its page coming back",
+     "tags: no sign-up, no key to paste, no server in between"
+    ]
+   }
+  },
+  {
+   "heading": "Questions",
+   "role": "faq",
+   "docs": "docs/faq.md"
+  },
+  {
+   "heading": "What it does not do",
+   "role": "limits",
+   "docs": "docs/limits.md"
+  },
+  {
+   "heading": "License",
+   "role": "license",
+   "docs": null
+  }
+ ],
+ "assets": {
+  "icons": {
+   "family": "lucide",
+   "variant": null,
+   "why": "thin even strokes and rounded joins, like the hat's soft contour"
+  }
+ }
+}
