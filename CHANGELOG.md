@@ -16,6 +16,13 @@ links under it are the pages in order, and a page not linked there is not publis
 - Same-page links in `docs/faq.md`, `docs/features.md`, `docs/captcha.md` and `docs/privacy.md`
   that pointed at headings no longer in those files now point at the page that holds them.
 
+## [2.2.0](https://github.com/ilien-dev/svipall/compare/v2.1.0...v2.2.0) (2026-11-26)
+
+
+### Features
+
+* read reddit from its public pages at the http tier ([#42](https://github.com/ilien-dev/svipall/issues/42)) ([d1a4fa3](https://github.com/ilien-dev/svipall/commit/d1a4fa398bfe6634914daf52852987cfa6001ad7))
+
 ## 2.1.0 — 2026-11-13
 
 `web_video` shows a video as well as reading it. Until now it returned at most 24 frames, whatever
