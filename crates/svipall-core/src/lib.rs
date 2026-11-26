@@ -44,9 +44,11 @@ pub mod pow;
 pub mod profiles;
 /// What came back, judged as content rather than as a wall.
 pub mod quality;
+pub mod reddit;
 pub mod reputation;
 pub mod robots;
 pub mod saturation;
+pub mod script_check;
 pub mod selectors;
 pub mod session;
 pub mod sitemap;

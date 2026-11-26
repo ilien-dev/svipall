@@ -287,6 +287,11 @@ pub fn not_a_proxy(proxy: &str) -> Option<String> {
     })
 }
 
+/// An address Reddit closed to signed-out visitors, answered from the public page instead.
+pub const REDDIT_PUBLIC_PAGE: &str =
+    "Reddit answers this address only to a signed-in account; the public page that holds the \
+     same posts and comments was read instead (`url`). To ask as an account, pass `profile`.";
+
 /// A `cursor` that no earlier result produced.
 pub const CURSOR_IGNORED: &str =
     "cursor was not one from an earlier result; starting from the top of the page";

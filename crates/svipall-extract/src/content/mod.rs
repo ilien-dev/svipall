@@ -8,6 +8,7 @@
 pub mod blocks;
 pub mod candidates;
 pub mod forum;
+pub mod post_elements;
 pub mod profile;
 pub mod stats;
 pub mod vote;

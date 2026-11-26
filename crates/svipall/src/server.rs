@@ -2179,7 +2179,108 @@ impl SvipallServer {
         tracing::debug!("h3: {domain} advertised it, going over QUIC ({plan:?})");
         svipall_http::with_http3(&cfg, base.clone()).unwrap_or(base)
     }
+    /// The http tier, and the one detour it takes by itself: a page that is only a form its own
+    /// script fills in and submits (`svipall_core::script_check`) is answered as that script
+    /// would, once, on the same client so the cookie the reply sets is kept. Anything the reply
+    /// turns out to be is what this tier got; a second such page is left for the ladder.
     async fn tier_http(
+        &self,
+        p: &WebFetchParams,
+        proxy: Option<&str>,
+        revalidate: Option<(Option<String>, Option<String>)>,
+    ) -> anyhow::Result<TierOutcome> {
+        let plain_get = p
+            .method
+            .as_deref()
+            .is_none_or(|m| m.eq_ignore_ascii_case("GET"))
+            && p.body.is_none();
+        if !plain_get {
+            return self.tier_http_once(p, proxy, revalidate).await;
+        }
+        let mut out = self.tier_http_checked(p, proxy, revalidate).await?;
+        // A search, a feed's "more posts" address and the like answer 403 to a visitor the site
+        // has not seen on one of its pages. That is a first visit: go where a reader would have
+        // come from, then ask again.
+        if out.status == 403 {
+            if let Some(page) = svipall_core::reddit::first_visit(&p.url) {
+                let visit = WebFetchParams {
+                    url: page,
+                    ..p.clone()
+                };
+                if let Ok(mut seen) = self.tier_http_checked(&visit, proxy, None).await {
+                    // The whole visit, what the page asks for by itself included.
+                    self.http_continued(&visit, proxy, &mut seen).await;
+                    out = self.tier_http_checked(p, proxy, None).await?;
+                }
+            }
+        }
+        self.http_continued(p, proxy, &mut out).await;
+        // A fragment never goes on the wire, so the address that answered has none. It is still
+        // part of what was asked for, and a reader of the page may be keyed on it.
+        if let (Ok(asked), Ok(mut got)) = (url::Url::parse(&p.url), url::Url::parse(&out.final_url))
+        {
+            if asked.fragment().is_some() && got.fragment().is_none() {
+                got.set_fragment(asked.fragment());
+                out.final_url = got.into();
+            }
+        }
+        Ok(out)
+    }
+
+    /// A feed's first answer is its opening, and the page asks for the rest by itself as soon as
+    /// it is on screen. What a reader sees is both, so both are read.
+    async fn http_continued(&self, p: &WebFetchParams, proxy: Option<&str>, out: &mut TierOutcome) {
+        if !(200..300).contains(&out.status) {
+            return;
+        }
+        let Some(next) = svipall_core::reddit::continuation(&out.html, &out.final_url) else {
+            return;
+        };
+        let more = WebFetchParams {
+            url: next,
+            ..p.clone()
+        };
+        if let Ok(more) = self.tier_http_once(&more, proxy, None).await {
+            if (200..300).contains(&more.status) {
+                out.html.push_str(&more.html);
+            }
+        }
+    }
+
+    /// One request, and the answer to a script check when that is all that came back.
+    async fn tier_http_checked(
+        &self,
+        p: &WebFetchParams,
+        proxy: Option<&str>,
+        revalidate: Option<(Option<String>, Option<String>)>,
+    ) -> anyhow::Result<TierOutcome> {
+        let first = self.tier_http_once(p, proxy, revalidate).await?;
+        let answer = (200..300)
+            .contains(&first.status)
+            .then(|| svipall_core::script_check::answer(&first.html, &first.final_url))
+            .flatten();
+        let Some(answer) = answer else {
+            return Ok(first);
+        };
+        tracing::debug!("http: {} answered a script check", domain_from_url(&p.url));
+        let asked = first.final_url.clone();
+        let again = WebFetchParams {
+            url: answer,
+            ..p.clone()
+        };
+        match self.tier_http_once(&again, proxy, None).await {
+            Ok(mut second) => {
+                // Filed under the address that was asked for, not under the detour to it.
+                if svipall_core::script_check::is_answer(&second.final_url) {
+                    second.final_url = asked;
+                }
+                Ok(second)
+            }
+            Err(_) => Ok(first),
+        }
+    }
+
+    async fn tier_http_once(
         &self,
         p: &WebFetchParams,
         proxy: Option<&str>,
@@ -3005,7 +3106,32 @@ impl SvipallServer {
         out
     }
 
-    async fn fetch_json_inner(&self, p: WebFetchParams, want_links: bool) -> FetchOutcome {
+    /// An address Reddit closed to signed-out visitors is read as the public page that holds the
+    /// same thing (`svipall_core::reddit`), and the answer says so. A caller who brought a
+    /// signed-in profile is asking as that account, and their address is left as written.
+    async fn fetch_json_inner(&self, mut p: WebFetchParams, want_links: bool) -> FetchOutcome {
+        let twin = p
+            .profile
+            .is_none()
+            .then(|| svipall_core::reddit::public_page(&p.url))
+            .flatten();
+        let Some(page) = twin else {
+            return self.fetch_json_routed(p, want_links).await;
+        };
+        let asked = std::mem::replace(&mut p.url, page);
+        let mut out = self.fetch_json_routed(p, want_links).await;
+        if let Some(obj) = out.value.as_object_mut() {
+            obj.insert("rewritten_from".into(), json!(asked));
+            let note = match obj.get("note").and_then(Value::as_str) {
+                Some(n) => format!("{} {n}", crate::steer::REDDIT_PUBLIC_PAGE),
+                None => crate::steer::REDDIT_PUBLIC_PAGE.to_string(),
+            };
+            obj.insert("note".into(), json!(note));
+        }
+        out
+    }
+
+    async fn fetch_json_routed(&self, p: WebFetchParams, want_links: bool) -> FetchOutcome {
         let timeout = p.timeout.unwrap_or(60_000);
         let url = p.url.clone();
 
@@ -3356,6 +3482,20 @@ impl SvipallServer {
                 svipall_core::automatic::now(),
                 native_allowed,
             );
+        }
+        // Reddit's pages are read by the first tier (`svipall_core::reddit`), so it is asked first
+        // whatever was learned: one community answering 403 says nothing about the next, and the
+        // memory above would send half an hour of reads through a browser for it.
+        if mode == "auto"
+            && !local
+            && scroll_rounds(p) == 0
+            && p.profile.is_none()
+            && max_tier != "http"
+            && svipall_core::reddit::is_public_site(&url)
+            && tiers.first().map(String::as_str) != Some("http")
+        {
+            tiers.retain(|t| t != "http");
+            tiers.insert(0, "http".to_string());
         }
         // A walk that failed all the way up minutes ago fails again: answered from that memory,
         // for the whole origin, without a request, unless the caller asks for a fresh walk or a
@@ -3786,6 +3926,7 @@ impl SvipallServer {
             let parts = extraction::parse_page(&o.html, &wants);
             let view = PageView::new(&o.html, &parts.text)
                 .typed(&o.content_type, &o.html)
+                .declared(parts.declared)
                 .on_the_wire(&o.headers, &o.cookies);
             let (mut reason, mut kind) = classify_view(o.status, &o.html, &view);
             // `Empty` means "needs JavaScript to render". Once a browser tier has executed the

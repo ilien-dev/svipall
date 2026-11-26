@@ -42,6 +42,15 @@ Lifted out of the README so that file stays readable. Everything here is the sam
   `GITHUB_TOKEN` in `secrets.env` raises it. A rate limit is reported with its reset time and starts
   no cooldown. Code search across GitHub is better served by a `searchGitHub` tool (grep.app) when
   the session has one. Without it Svipall does the whole job.
+- **Reddit from its public pages**: a community's feed, a thread, a search and a community's rules
+  are read from the page `www.reddit.com` serves a signed-out visitor, at the `http` tier. Posts
+  and comments come back with author, score, time and reply depth, and a feed or a search ends
+  with a `Next page:` address that is a plain `web_fetch`. Reddit closed its `.json` and `.rss`
+  addresses and `old.reddit.com` to signed-out visitors in 2026, so those are read as the matching
+  public page and the result says so in `rewritten_from`. `…/about/rules` becomes
+  `/r/<name>/#rules`. A thread gives the comments its first page carries, about 25 top-level
+  ones with their replies, and says how many of the total that is. Pass `profile` to ask as a
+  signed-in account, and the address is then used as written.
 - **Existence checks**: `web_fetch` with `urls` and `probe=true` returns status, final URL, type
   and length for a list of URLs, stopping at the headers, and says whether each name resolves. A 404 is an answer.
 - **Observe JSON responses**: `web_capture` records matching responses during a bounded browser
