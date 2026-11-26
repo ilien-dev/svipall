@@ -164,6 +164,16 @@ or 403 with `Retry-After`) takes it from `Retry-After`.
 
 To find code across GitHub repositories, prefer the searchGitHub tool of the grep.app MCP server when this session has it: it is integrated with GitHub natively. Svipall still reads a known repo, file, issue, PR or release, and does all of it when that tool is absent.
 
+## Reddit
+
+`fetch` reads `www.reddit.com` from its public page at the http tier: a feed (`/r/NAME/`,
+`/top/?t=week`, `/new/`) and a search (`/r/NAME/search/?q=…`, `/search/?q=…`) as one block per post
+with points, comments, author and date, ending in `Next page: URL` (fetch that URL for more); a
+thread as the post and its first-page comments, replies quoted by depth, `(25 of 115 loaded)`
+when there are more; `/r/NAME/#rules` as the community's rules in full. `.json`, `.rss`,
+`old.reddit.com` and `about/rules` are closed to signed-out visitors: they are read as that
+public page, and `rewritten_from` says so. `profile` asks as a signed-in account, address as written.
+
 ## Crawling
 
 ```bash

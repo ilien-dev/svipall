@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en-US">
+<head>
+<title>Reddit - The heart of the internet</title>
+<script>window.CLIENT_EXPERIMENTS = {"a":"enabled"};</script>
+</head>
+<body>
+<shreddit-app>
+<shreddit-title title="Borrowing across an await point : r/rustlearners"></shreddit-title>
+<nav><a href="/">Home</a><a href="/r/popular/">Popular</a></nav>
+<div id="subgrid-container"><main id="main-content">
+<shreddit-post permalink="/r/rustlearners/comments/1abc234/borrowing_across_an_await_point/" content-href="https://www.reddit.com/r/rustlearners/comments/1abc234/borrowing_across_an_await_point/" view-context="CommentsPage" comment-count="7" created-timestamp="2026-03-04T09:15:30.120000+0000" domain="self.rustlearners" id="t3_1abc234" post-title="Borrowing across an await point" post-type="text" score="42" upvote-ratio="0.91" subreddit-prefixed-name="r/rustlearners" author="first_poster" subreddit-name="rustlearners">
+<a slot="title" href="/r/rustlearners/comments/1abc234/borrowing_across_an_await_point/">Borrowing across an await point</a>
+<shreddit-post-text-body slot="text-body">
+<div slot="text-body"><div property="schema:articleBody">
+<p>Why does the compiler reject a reference held over an <code>.await</code>?</p>
+<p>I read <a href="https://example.test/async-book">the async book</a> twice.</p>
+</div></div>
+</shreddit-post-text-body>
+</shreddit-post>
+<section>
+<shreddit-comment-tree id="comment-tree">
+<div id="comment-tree-content-anchor-1abc234"><template>
+<shreddit-comment created="2026-03-04T09:20:00.000000+0000" author="helper_one" thingId="t1_c1" depth="0" permalink="/r/rustlearners/comments/1abc234/comment/c1/" score="30">
+<details open><summary><div slot="commentMeta"><a href="https://www.reddit.com/user/helper_one/">helper_one</a><time datetime="2026-03-04T09:20:00.000Z">4d ago</time></div></summary>
+<div id="t1_c1-comment-rtjson-content" slot="comment"><div><p>The future may move between threads, so the borrow has to be <strong>Send</strong>.</p></div></div>
+<shreddit-comment created="2026-03-04T09:31:00.000000+0000" author="first_poster" thingId="t1_c2" depth="1" parentId="t1_c1" permalink="/r/rustlearners/comments/1abc234/comment/c2/" score="5" slot="children-t1_c1-0">
+<details open><summary><div slot="commentMeta"><a href="https://www.reddit.com/user/first_poster/">first_poster</a></div></summary>
+<div id="t1_c2-comment-rtjson-content" slot="comment"><div><p>That explains the error about the mutex guard.</p></div></div>
+<shreddit-comment created="2026-03-04T09:40:00.000000+0000" author="helper_one" thingId="t1_c3" depth="2" parentId="t1_c2" permalink="/r/rustlearners/comments/1abc234/comment/c3/" score="2" slot="children-t1_c2-0">
+<details open><summary></summary>
+<div id="t1_c3-comment-rtjson-content" slot="comment"><div><p>Drop the guard before awaiting.</p></div></div>
+</details>
+</shreddit-comment>
+</details>
+</shreddit-comment>
+<faceplate-partial loading="action" src="/svc/shreddit/more-comments/rustlearners/t3_1abc234?sort=CONFIDENCE&amp;startingDepth=1&amp;commentParentPositions=0" method="post" slot="children"></faceplate-partial>
+</details>
+</shreddit-comment>
+<shreddit-comment created="2026-03-04T10:02:00.000000+0000" author="second_helper" thingId="t1_c4" depth="0" permalink="/r/rustlearners/comments/1abc234/comment/c4/" score="-3">
+<details open><summary></summary>
+<div id="t1_c4-comment-rtjson-content" slot="comment"><div><p>Just clone everything.</p></div></div>
+</details>
+</shreddit-comment>
+<faceplate-partial loading="lazy" src="/svc/shreddit/more-comments/rustlearners/t3_1abc234?top-level=1&amp;comments-remaining=3&amp;commentPositionOffset=2" method="post"></faceplate-partial>
+</template></div>
+</shreddit-comment-tree>
+</section>
+</main></div>
+<footer><a href="/policies/user-agreement">User Agreement</a></footer>
+</shreddit-app>
+</body>
+</html>

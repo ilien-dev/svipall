@@ -186,6 +186,9 @@ pub struct PageParts {
     /// `None` means the page has no record set, or that the best candidate was not clearly ahead
     /// of the next Ã¢ÂÂ an ambiguous answer is not an answer.
     pub induced: Option<induce::Induced>,
+    /// The page was read from the post and comment elements it is built of, so `text` is that
+    /// reading and its length against the markup says nothing about whether the page rendered.
+    pub declared: bool,
 }
 
 /// Every data table in the document, in document order, with plain-text cells. Layout tables are
@@ -209,10 +212,19 @@ pub fn parse_page(html: &str, wants: &ParseWants) -> PageParts {
     let doc = parse_dom(html);
     // The counts read the body text, and the rules that use them are about the page as a whole,
     // so it is extracted once here whether or not the caller asked for it.
-    let text = if wants.text || wants.signals {
-        text_from(&doc, html.len())
-    } else {
-        String::new()
+    // A page made of post and comment elements is read from them, once, for everything below:
+    // its comments sit in a template the ordinary walks skip (`content::post_elements`).
+    let page_url = wants
+        .markdown
+        .as_ref()
+        .and_then(|m| m.base_url.as_deref())
+        .or(wants.schema_base_url.as_deref())
+        .and_then(|b| Url::parse(b).ok());
+    let declared = content::post_elements::read(&doc, page_url.as_ref());
+    let text = match &declared {
+        Some(d) => d.text.clone(),
+        None if wants.text || wants.signals => text_from(&doc, html.len()),
+        None => String::new(),
     };
     // Only when nothing was written by hand: a schema the caller supplied is the one they meant,
     // and second-guessing it would be the tool overruling its user.
@@ -235,13 +247,22 @@ pub fn parse_page(html: &str, wants: &ParseWants) -> PageParts {
                 page_type: m.page_type,
             },
             html.len(),
+            declared.as_ref(),
         )
     });
     PageParts {
+        declared: declared.is_some(),
         induced: induced.clone(),
         signals: wants.signals.then(|| signals::signals_from(&doc, &text)),
         text: if wants.text { text } else { String::new() },
-        title: if wants.title { title_from(&doc) } else { None },
+        title: if wants.title {
+            declared
+                .as_ref()
+                .and_then(|_| content::post_elements::title(&doc))
+                .or_else(|| title_from(&doc))
+        } else {
+            None
+        },
         markdown: rendered.as_ref().map(|r| r.markdown.clone()),
         delivered: rendered.map(|r| r.text),
         links: wants
@@ -335,10 +356,41 @@ pub struct Rendered {
 }
 
 fn markdown_from(doc: &Html, opts: &ExtractOpts, size_hint: usize) -> String {
-    render_from(doc, opts, size_hint).markdown
+    let base = opts.base_url.and_then(|b| Url::parse(b).ok());
+    let declared = content::post_elements::read(doc, base.as_ref());
+    render_from(doc, opts, size_hint, declared.as_ref()).markdown
 }
 
-fn render_from(doc: &Html, opts: &ExtractOpts, size_hint: usize) -> Rendered {
+/// Markdown and text of what one element holds, nothing pruned: for a reader that has already
+/// decided the element is content. The same walker and the same rules about hidden text.
+fn render_inside(el: ElementRef, base: Option<&Url>) -> Rendered {
+    let mut md = Md {
+        out: String::new(),
+        base: base.cloned(),
+        skip_chrome: false,
+        pruned: prune::Pruned::default(),
+        lists: Vec::new(),
+        pre: 0,
+    };
+    let mut text = String::new();
+    for c in el.children() {
+        md.walk(c);
+        kept_text(c, &md, &mut text);
+    }
+    Rendered {
+        markdown: finish(&md.out),
+        text: finish(&text),
+    }
+}
+
+/// `declared` is the page as its own post and comment elements, when it has them. A selector the
+/// caller wrote is still asked first.
+fn render_from(
+    doc: &Html,
+    opts: &ExtractOpts,
+    size_hint: usize,
+    declared: Option<&Rendered>,
+) -> Rendered {
     let base = opts.base_url.and_then(|b| Url::parse(b).ok());
     let mut md = Md {
         out: String::with_capacity(size_hint / 3),
@@ -365,6 +417,9 @@ fn render_from(doc: &Html, opts: &ExtractOpts, size_hint: usize) -> Rendered {
                 };
             }
         }
+    }
+    if let Some(d) = declared {
+        return d.clone();
     }
 
     let body = sel("body").and_then(|s| doc.select(&s).next());
@@ -487,7 +542,7 @@ fn render_from(doc: &Html, opts: &ExtractOpts, size_hint: usize) -> Rendered {
         main_content_only: false,
         ..opts.clone()
     };
-    let full = render_from(doc, &plain, size_hint);
+    let full = render_from(doc, &plain, size_hint, None);
     let full_len = full.markdown.chars().count();
     if out_len == 0 {
         // Genuinely nothing to extract is a real answer the ladder needs: it is how a wall that

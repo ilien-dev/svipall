@@ -426,6 +426,9 @@ pub struct PageView<'a> {
     /// The body is a document a person reads in a browser. `false` for an API answer, a source
     /// file or plain text, which are answers whatever words they quote. See [`PageView::typed`].
     markup: bool,
+    /// The text was read from the elements the page declares its content in. See
+    /// [`PageView::declared`].
+    declared: bool,
 }
 
 /// Is this body a page, as opposed to data or a file?
@@ -471,7 +474,17 @@ impl<'a> PageView<'a> {
             low_head: String::new(),
             low_cookies: String::new(),
             markup: true,
+            declared: false,
         }
+    }
+
+    /// The text was read from elements the page declares its content in (`PageParts::declared`),
+    /// some of them in a `<template>` its script would have moved into place. Such a page is
+    /// megabytes of markup around a few sentences when a thread is short, and that ratio is how
+    /// an unrendered shell is recognised. It is not one: what was read is the content.
+    pub fn declared(mut self, yes: bool) -> Self {
+        self.declared = yes;
+        self
     }
 
     /// What the response declared itself to be. A view without it is read as a page, which is
@@ -1113,6 +1126,9 @@ fn classify_body(status: u16, html: &str, v: &PageView<'_>) -> (Option<String>, 
     }
 
     let body = body_text;
+    if v.declared && !body.is_empty() {
+        return (None, WallKind::None);
+    }
     if body.len() < 200 {
         // A short page is only suspicious when the HTML is large (an app shell that never
         // rendered) or shows SPA / noscript hints with almost no text. Small static pages
@@ -1863,5 +1879,21 @@ mod tests {
         assert!(tiny_after_refusal(None, 200, "Hello").is_none());
         // Enough text to be the page.
         assert!(tiny_after_refusal(Some(403), 200, &"word ".repeat(80)).is_none());
+    }
+
+    #[test]
+    fn a_short_page_read_from_its_declared_elements_is_not_an_unrendered_shell() {
+        let html = format!(
+            "<!DOCTYPE html><html><body>{}<shreddit-post post-title=\"Short\"></shreddit-post></body></html>",
+            "<script>var a = 1;</script>".repeat(4_000)
+        );
+        let text = "Short\nr/x, u/someone, 3 points, 0 comments";
+        let (reason, kind) = classify_view(200, &html, &PageView::new(&html, text));
+        assert_eq!(kind, WallKind::Empty, "{reason:?}");
+        let (reason, kind) = classify_view(200, &html, &PageView::new(&html, text).declared(true));
+        assert_eq!((reason, kind), (None, WallKind::None));
+        // Declared elements that held nothing are still nothing.
+        let (_, kind) = classify_view(200, &html, &PageView::new(&html, "").declared(true));
+        assert_eq!(kind, WallKind::Empty);
     }
 }
