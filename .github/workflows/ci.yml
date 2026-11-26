@@ -119,6 +119,25 @@ jobs:
       - name: tests (onnx models)
         run: cargo test -p svipall --features onnx-grid,onnx-segment,onnx-detect --test models
 
+      # The steps below build the workspace a second time, optimised, into the same disk the test
+      # build filled: `perf budgets` died there with os error 112 once the test files passed
+      # ninety. Nothing after this point compiles in the dev profile, and this target directory
+      # is not one the cache step saves, so the intermediates go. The two binaries the installer
+      # smoke test copies sit beside `deps`, not inside it, and stay. Free space is printed on
+      # both sides so the next full disk is read off the log.
+      - name: Free the test build (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $free = { Get-PSDrive -PSProvider FileSystem | ForEach-Object { "{0}: {1:N1} GB free" -f $_.Name, ($_.Free / 1GB) } }
+          & $free
+          foreach ($d in 'deps', 'build', '.fingerprint', 'incremental', 'examples') {
+            $p = Join-Path $env:CARGO_TARGET_DIR "debug\$d"
+            if (Test-Path $p) { Remove-Item -Recurse -Force $p }
+          }
+          & $free
+          if (-not (Test-Path "$env:CARGO_TARGET_DIR\debug\svipall.exe")) { throw "the installer smoke test needs debug\svipall.exe" }
+
       # CPU budgets and the exact structural counts: one DOM parse per page, no disk reads on a
       # cache lookup, pruning that removes the navigation and keeps the article. No network, and
       # until now it ran only on a developer's machine.
