@@ -16,6 +16,20 @@ links under it are the pages in order, and a page not linked there is not publis
 - Same-page links in `docs/faq.md`, `docs/features.md`, `docs/captcha.md` and `docs/privacy.md`
   that pointed at headings no longer in those files now point at the page that holds them.
 
+## [2.4.0](https://github.com/ilien-dev/svipall/compare/v2.3.0...v2.4.0) (2026-11-27)
+
+
+### Features
+
+* read an unreadable page from the alternate it declares ([#51](https://github.com/ilien-dev/svipall/issues/51)) ([76a302e](https://github.com/ilien-dev/svipall/commit/76a302eb04d1e286dbcb6de26d153ed4b104b5d7))
+
+
+### Bug Fixes
+
+* ask an api at the pace it declares and wait out its 429 ([#47](https://github.com/ilien-dev/svipall/issues/47)) ([bc41d16](https://github.com/ilien-dev/svipall/commit/bc41d1697634d1f9340d5bafd83d12993f3818cd))
+* file a verdict under the site that answered, not its redirector ([#52](https://github.com/ilien-dev/svipall/issues/52)) ([d7b78fc](https://github.com/ilien-dev/svipall/commit/d7b78fc648f3c5c313d658873ecc6facc1ae2b4b))
+* keep the log retention test inside one second of the clock ([#50](https://github.com/ilien-dev/svipall/issues/50)) ([b4c7ec9](https://github.com/ilien-dev/svipall/commit/b4c7ec992e60c18bf35ab7771dc018aeb346357f))
+
 ## [2.3.0](https://github.com/ilien-dev/svipall/compare/v2.2.0...v2.3.0) (2026-11-27)
 
 
