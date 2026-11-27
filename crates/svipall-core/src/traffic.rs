@@ -153,7 +153,32 @@ impl Ledger {
         cfg: &crate::Config,
         now: u64,
     ) -> anyhow::Result<Admission> {
+        self.reserve_in(domain, exit, crate::lane::Lane::Page, cfg, now)
+    }
+
+    /// The key a lane's visits are counted under. Pages keep the route's own, so a ledger written
+    /// by an older binary still counts; data has a window of its own beside it, so thirty reads
+    /// of an API do not use up the visits to the site's pages.
+    fn window(domain: &str, exit: Option<&str>, lane: crate::lane::Lane) -> String {
+        match lane {
+            crate::lane::Lane::Page => Self::key(domain, exit),
+            crate::lane::Lane::Data => Self::key(&format!("{domain}\u{1}data"), exit),
+        }
+    }
+
+    /// `reserve`, in the window of `lane` and against its limit. A hold is the server's word and
+    /// stops both lanes.
+    pub fn reserve_in(
+        &self,
+        domain: &str,
+        exit: Option<&str>,
+        lane: crate::lane::Lane,
+        cfg: &crate::Config,
+        now: u64,
+    ) -> anyhow::Result<Admission> {
         let route = Self::key(domain, exit);
+        let window = Self::window(domain, exit, lane);
+        let limit = lane.limit(cfg);
         let mut conn = self.0.lock().unwrap();
         let tx = conn.transaction_with_behavior(TransactionBehavior::Immediate)?;
         let until: u64 = tx.query_row(
@@ -171,10 +196,10 @@ impl Ledger {
         let since = now.saturating_sub(cfg.request_window_seconds);
         let (count, oldest): (u32, Option<u64>) = tx.query_row(
             "SELECT COUNT(*), MIN(at) FROM visits_v2 WHERE route=?1 AND at > ?2",
-            params![route, since],
+            params![window, since],
             |r| Ok((r.get(0)?, r.get(1)?)),
         )?;
-        let admission = if count >= cfg.request_limit {
+        let admission = if count >= limit {
             let frees_at = oldest
                 .unwrap_or(now)
                 .saturating_add(cfg.request_window_seconds);
@@ -184,10 +209,10 @@ impl Ledger {
         } else {
             tx.execute(
                 "INSERT INTO visits_v2(route, domain, at) VALUES (?1, ?2, ?3)",
-                params![route, digest(domain), now],
+                params![window, digest(domain), now],
             )?;
             Admission::Granted {
-                visits_left: cfg.request_limit - count - 1,
+                visits_left: limit - count - 1,
             }
         };
         tx.commit()?;

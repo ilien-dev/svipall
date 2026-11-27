@@ -41,7 +41,9 @@ of your own is never touched.
 ## The visit limit, and waiting
 
 Visits are limited **per host and exit, and shared by every session and subagent on this machine**:
-12 per 60 s by default. One fetch is one visit however many tiers it climbs.
+12 per 60 s by default. One fetch is one visit however many tiers it climbs. A route that has
+answered with data (an API, a registry, a raw file) is counted apart: 60 per 60 s, learned from
+what it served, and back to 12 the first time it refuses.
 
 - A full window is a wait, never a hold. A fetch waits by itself when that fits in half its
   timeout; `--wait 300` (MCP `wait`, up to 900 s, on top of `timeout`) waits longer, `wait=0`

@@ -35,6 +35,9 @@ pub struct Response<'a> {
     /// Round trip in milliseconds, and the rolling average for this domain.
     pub elapsed_ms: u64,
     pub typical_ms: u64,
+    /// The body is data rather than a document: a JSON value, plain text, source. Whole at any
+    /// length, so a short one is an answer and not a page with nothing in it.
+    pub data: bool,
 }
 
 impl Verdict {
@@ -56,7 +59,7 @@ impl Verdict {
             _ => {}
         }
         // A success with no content is the quietest block there is.
-        if (200..300).contains(&r.status) && r.text_len < 200 {
+        if !r.data && (200..300).contains(&r.status) && r.text_len < 200 {
             return Verdict::Blocked;
         }
         // Asked for something specific, landed on the front page.
@@ -136,6 +139,20 @@ impl Session {
 mod tests {
     use super::*;
 
+    #[test]
+    fn a_short_answer_from_an_api_is_an_answer() {
+        let page = resp(200, 20);
+        assert_eq!(Verdict::of(&page), Verdict::Blocked);
+        let data = Response { data: true, ..page };
+        assert_eq!(Verdict::of(&data), Verdict::Ok);
+        // What a status says outright is said of data too.
+        let refused = Response {
+            status: 403,
+            ..data.clone()
+        };
+        assert_eq!(Verdict::of(&refused), Verdict::Blocked);
+    }
+
     fn resp(status: u16, text_len: usize) -> Response<'static> {
         Response {
             status,
@@ -145,6 +162,7 @@ mod tests {
             wall: false,
             elapsed_ms: 100,
             typical_ms: 100,
+            data: false,
         }
     }
 
