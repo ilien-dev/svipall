@@ -18,7 +18,7 @@ resolver = "2"
 # wrapper and the internal dependency lines below, and `release_version.rs` fails the build if any
 # of them drifts. The release workflow turns this number into the tag.
 [workspace.package]
-version = "2.2.0"
+version = "2.3.0"
 repository = "https://github.com/ilien-dev/svipall"
 
 # Portable release artifacts. The local `release` profile inherits `target-cpu=native` from
