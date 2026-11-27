@@ -84,6 +84,11 @@ backoff, and strikes are forgotten after 30 quiet minutes. A 503 without `Retry-
 error, so it pauses 30 seconds and counts no strike. The **15-minute hard-block cooldown** is set
 only after a status or vendor wall at the real or warm tier, when the pool has no other exit.
 
+A pause, a cooldown or a remembered failure belongs to the site that answered. An address that
+redirects to another site, such as an identifier resolver or a link shortener, is not held for
+what that site said: the next address it resolves is still asked, and the site that refused is
+the one on hold.
+
 The visit ledger is transactional and persists across restarts. Changing identity or forcing a
 tier does not reset it. Successful cache hits do not consume visits. Returned pages are preserved
 when further attempts are refused, with `stopped_reason`, `cooldown_seconds_left` and
