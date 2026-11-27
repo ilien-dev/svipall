@@ -16,6 +16,18 @@ links under it are the pages in order, and a page not linked there is not publis
 - Same-page links in `docs/faq.md`, `docs/features.md`, `docs/captcha.md` and `docs/privacy.md`
   that pointed at headings no longer in those files now point at the page that holds them.
 
+## [2.3.0](https://github.com/ilien-dev/svipall/compare/v2.2.0...v2.3.0) (2026-11-27)
+
+
+### Features
+
+* read a script-only page from the schema.org data it declares ([#48](https://github.com/ilien-dev/svipall/issues/48)) ([9a5adb2](https://github.com/ilien-dev/svipall/commit/9a5adb2ded8dcf6828dca9f31205ddeaad97f6f8))
+
+
+### Bug Fixes
+
+* pace a route that serves data as data, not as a page ([#46](https://github.com/ilien-dev/svipall/issues/46)) ([bdfd9d2](https://github.com/ilien-dev/svipall/commit/bdfd9d2bf1eaddb7b90e3f4f077a2d7b97063fca))
+
 ## [2.2.0](https://github.com/ilien-dev/svipall/compare/v2.1.0...v2.2.0) (2026-11-26)
 
 
