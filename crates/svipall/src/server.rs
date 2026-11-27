@@ -3951,6 +3951,9 @@ impl SvipallServer {
                 o.status = s;
             }
             let o = o;
+            // Whose answer this is. Behind a redirect to another site, every verdict below is
+            // that site's: its limit, its wall, its pace.
+            let judged = svipall_core::domain::answered_by(&domain, &o.final_url);
             last_identity = if bt.is_none() {
                 "emulated"
             } else {
@@ -3997,7 +4000,7 @@ impl SvipallServer {
                 };
                 let held = self.traffic.as_ref().as_ref().map(|ledger| {
                     ledger.backoff(
-                        &domain,
+                        &judged,
                         proxy.as_deref(),
                         why,
                         &self.cfg,
@@ -4012,7 +4015,7 @@ impl SvipallServer {
                         if let Ok(Err(e)) = failed {
                             tracing::warn!("cannot persist server backoff: {e}");
                         }
-                        svipall_core::set_cooldown(&domain);
+                        svipall_core::set_cooldown(&judged);
                         throttle::COOLDOWN_SECONDS
                     }
                 };
@@ -4020,7 +4023,7 @@ impl SvipallServer {
                     o.status,
                     wait,
                     named.is_some(),
-                    &domain,
+                    &judged,
                 ));
                 stopped = Some(format!("cooldown: server requested backoff; wait {wait}s"));
                 stopped_wait = wait;
@@ -4038,7 +4041,7 @@ impl SvipallServer {
                         .unwrap_or(ms as u64),
                 );
                 throttle::observe(
-                    &domain,
+                    &judged,
                     proxy.as_deref(),
                     &tier,
                     match o.status {
@@ -4062,7 +4065,7 @@ impl SvipallServer {
                         _ => None,
                     };
                     if let Some(v) = v {
-                        svipall_core::exits::record(&domain, exit, v, ms as u32);
+                        svipall_core::exits::record(&judged, exit, v, ms as u32);
                     }
                 }
             }
@@ -4333,7 +4336,7 @@ impl SvipallServer {
                     });
                 if let Some(exit) = proxy.as_deref() {
                     if (200..400).contains(&o.status) {
-                        svipall_core::exits::record(&domain, exit, verdict, ms as u32);
+                        svipall_core::exits::record(&judged, exit, verdict, ms as u32);
                     }
                 }
                 // A held page gets the same verdict, on the same rule. `Verdict::of` knows three
@@ -4346,7 +4349,7 @@ impl SvipallServer {
                 if verdict != svipall_core::session::Verdict::Ok && (200..400).contains(&o.status) {
                     // Only the quiet cases: an explicit 4xx/5xx was already reported above.
                     throttle::observe(
-                        &domain,
+                        &judged,
                         proxy.as_deref(),
                         &tier,
                         match verdict {
@@ -4424,7 +4427,9 @@ impl SvipallServer {
                 {
                     let _ = ledger.forget_failure(origin, proxy.as_deref());
                 }
-                if mode == "auto" && !local && !automatic {
+                // A tier learned behind a redirect to another site is that site's, and the next
+                // address of the resolver may lead anywhere.
+                if mode == "auto" && !local && !automatic && judged == domain {
                     svipall_core::remember_tier(&domain, &tier);
                 }
                 if retire_profile {
@@ -4901,6 +4906,8 @@ impl SvipallServer {
                     | WallKind::Empty
             );
         let exhausted = matches!(tier.as_str(), "real" | "warm");
+        // The site this outcome is a verdict on: the one that answered, behind any redirect.
+        let judged = svipall_core::domain::answered_by(&domain, &o.final_url);
         if mode == "auto"
             && !local
             && exhausted
@@ -4916,10 +4923,10 @@ impl SvipallServer {
                     // The domain has hard-blocked us. Whatever page we were holding for it is
                     // the page it refused, and reusing it would be starting the next attempt from
                     // the worse of the two states.
-                    svipall_core::set_cooldown(&domain);
+                    svipall_core::set_cooldown(&judged);
                     hard_cooldown = Some(throttle::COOLDOWN_SECONDS);
                     self.pool
-                        .release_kept(|k| k.contains(&format!("|{domain}|")))
+                        .release_kept(|k| k.contains(&format!("|{judged}|")))
                         .await;
                 }
             }
@@ -5019,10 +5026,16 @@ impl SvipallServer {
         ) {
             let mut record = value.clone();
             strip_silent_fields(&mut record);
+            // Remembered where it failed. Behind a redirect to another site that is the site's
+            // origin, so the resolver's next address is still asked.
+            let elsewhere = (judged != domain)
+                .then(|| url::Url::parse(&o.final_url).ok())
+                .flatten()
+                .map(|u| u.origin().ascii_serialization());
             if let Err(e) = ledger.remember_failure(
-                origin,
+                elsewhere.as_deref().unwrap_or(origin),
                 proxy.as_deref(),
-                &domain,
+                &judged,
                 top,
                 &record.to_string(),
                 svipall_core::automatic::now(),

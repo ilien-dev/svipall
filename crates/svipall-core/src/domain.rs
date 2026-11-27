@@ -19,6 +19,21 @@ pub fn same_site(a: &str, b: &str) -> bool {
     a == b || a.ends_with(&format!(".{}", b)) || b.ends_with(&format!(".{}", a))
 }
 
+/// The site a verdict belongs to: the one that answered.
+///
+/// A resolver answers every request with a redirect to somebody else's site: an identifier
+/// service, a link shortener. What that site then says (a limit, a wall, a refusal) is its own
+/// word about itself, and filing it under the resolver refuses the next identifier for what a
+/// different site did. A redirect inside one site changes nothing: the site is still the site.
+pub fn answered_by(asked_domain: &str, final_url: &str) -> String {
+    let answered = domain_from_url(final_url);
+    if answered.is_empty() || same_site(&answered, asked_domain) {
+        asked_domain.to_string()
+    } else {
+        answered
+    }
+}
+
 /// Query parameters that identify a campaign or a click, never a document. Dropping them is what
 /// keeps `?utm_source=twitter` from being fetched as a second page.
 const TRACKING_PARAMS: &[&str] = &[
@@ -103,6 +118,25 @@ pub fn stable_hash(s: &str) -> u64 {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn a_verdict_behind_a_redirect_belongs_to_the_site_that_answered() {
+        assert_eq!(
+            answered_by("resolver.test", "https://press.test/article/1"),
+            "press.test"
+        );
+        // Inside one site, and when nothing says where the answer came from.
+        assert_eq!(
+            answered_by("example.com", "https://www.example.com/new"),
+            "example.com"
+        );
+        assert_eq!(
+            answered_by("docs.example.com", "https://example.com/"),
+            "docs.example.com"
+        );
+        assert_eq!(answered_by("example.com", ""), "example.com");
+        assert_eq!(answered_by("example.com", "raw:<p>x</p>"), "example.com");
+    }
 
     #[test]
     fn same_site_covers_subdomains_both_ways() {
