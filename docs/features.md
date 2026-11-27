@@ -243,6 +243,8 @@ a spent session is retired rather than changing its face on every request.*
   page cache. A URL with no `lastmod` is fetched, because silence is not "unchanged".
 - **Politeness that adapts**: the gap between requests is tuned per domain from the host's own
   latency and refusals, with a default one-second minimum. HTTP 429/503 stops escalation.
+  A route that has answered with data, such as an API, a registry or a raw file host, gets a
+  wider window and a shorter gap than a page, learned from what it served and not from a list.
   A `Retry-After` is kept as given. Without one, a 429 backs off from 30 seconds up to the
   configured maximum, and a 503 pauses 30 seconds. A crawl stopped by the visit limit says
   `stopped_by: "visit_limit"`.

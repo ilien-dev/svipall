@@ -229,11 +229,26 @@ pub async fn throttle(domain: &str, exit: Option<&str>, tier: &str) {
 }
 
 pub async fn throttle_at_least(domain: &str, exit: Option<&str>, tier: &str, minimum: Duration) {
+    throttle_in(domain, exit, tier, minimum, crate::lane::Lane::Page).await;
+}
+
+/// `throttle_at_least`, charging the address what a visit in `lane` costs.
+pub async fn throttle_in(
+    domain: &str,
+    exit: Option<&str>,
+    tier: &str,
+    minimum: Duration,
+    lane: crate::lane::Lane,
+) {
     let key = pace_key(domain, exit);
     // Charged here, before anything goes out, because this is the one call every rung of the
     // ladder passes through exactly once and it already holds all three of domain, exit and tier.
     // Anywhere else is somewhere a future rung could forget.
-    crate::reputation::spend(domain, exit, tier, false);
+    crate::reputation::add(
+        domain,
+        exit,
+        crate::reputation::tier_cost(tier) * lane.cost(),
+    );
     let gap = gap_for(domain, exit, tier).max(minimum);
     // An explicit Retry-After is about the site, not the exit, and outranks anything we would
     // have chosen ourselves.

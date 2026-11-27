@@ -223,6 +223,7 @@ async fn a_deep_request_that_lands_on_the_front_page_is_reported() {
         wall: false,
         elapsed_ms: 120,
         typical_ms: 120,
+        data: false,
     };
     assert_eq!(Verdict::of(&deep), Verdict::Blocked);
 }

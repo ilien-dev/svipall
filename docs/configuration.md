@@ -55,6 +55,17 @@ wait longer. `wait=0` never waits. Otherwise the call is refused with `blocked_r
 "visit_limit"` and the exact seconds until a slot frees. The other way out is another host that
 serves the same thing. The decaying address budget can stop work sooner, and no wait covers it.
 
+Those limits are sized for pages. A route that answers with data (JSON, plain text, source, a
+feed, a file) gets **five times the visits, a quarter of the minimum gap and a tenth of the charge
+against the address budget**: 60 visits per 60 seconds and 250 ms at the defaults. Its visits are
+counted in a window of their own, so thirty reads of an API leave the site's pages their twelve.
+Nothing lists such hosts. A route is paced this way after it has answered with data over the http
+tier, and it is paced as a page again the first time it refuses a request. An address never
+visited is a page, unless its host is known for three routes or more and all of them serve data.
+The record is `~/.svipall/lanes.json`, digests only, and `web_status(forget_tier=...)` clears a
+domain's. A server's backoff holds both kinds of route. A short JSON answer is also no longer
+counted as an empty page, which used to charge the address twice for it.
+
 A server's `Retry-After` is honoured as given, from 1 second to an hour. A 429 without one pauses
 the route for 30 seconds, then 120, 480 and 900: `request_cooldown_seconds` is that longest
 backoff, and strikes are forgotten after 30 quiet minutes. A 503 without `Retry-After` is a server

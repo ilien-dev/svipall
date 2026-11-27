@@ -33,6 +33,7 @@ pub mod identity;
 pub mod incremental;
 pub mod ladder;
 pub mod lan;
+pub mod lane;
 pub mod llms_txt;
 pub mod own_ip;
 pub mod pagination;

@@ -116,6 +116,13 @@ const STATUS_SECTIONS: &[&str] = &[
     "identity",
 ];
 
+/// The longest a visit waiting for a slot sleeps before asking again which lane it is in.
+const RELANE_SECS: u64 = 2;
+/// How long a visit that found a page's window full waits for a first answer to say what its
+/// route serves, and how often it looks.
+const LANE_GRACE: Duration = Duration::from_secs(8);
+const LANE_POLL: Duration = Duration::from_millis(250);
+
 /// What admitting one top-level visit cost before it went out.
 #[derive(Debug, Default, Clone, Copy)]
 struct Admitted {
@@ -125,6 +132,8 @@ struct Admitted {
     waited_for: &'static str,
     /// Visits still free in the window after this one.
     visits_left: Option<u32>,
+    /// The lane the visit was charged in, and so the window `visits_left` is counted in.
+    lane: svipall_core::lane::Lane,
 }
 
 /// What a browser tier is being asked for, beyond the URL.
@@ -1683,9 +1692,11 @@ impl SvipallServer {
         if is_local(&domain) {
             return Ok(());
         }
-        self.admit_waiting(&domain, proxy, Duration::from_secs(30))
+        // A browser opening an address is a visitor to a page, whatever the address serves.
+        let lane = svipall_core::lane::Lane::Page;
+        self.admit_waiting(&domain, proxy, Duration::from_secs(30), || Some(lane))
             .await?;
-        self.pace_visit(&domain, proxy, tier.as_str()).await?;
+        self.pace_visit(&domain, proxy, tier.as_str(), lane).await?;
         let left = self.pending_hold(&domain, proxy)?;
         anyhow::ensure!(left == 0, "cooldown: wait {left}s before retrying");
         Ok(())
@@ -1696,7 +1707,9 @@ impl SvipallServer {
         domain: &str,
         proxy: Option<&str>,
         tier: &str,
+        lane: svipall_core::lane::Lane,
     ) -> anyhow::Result<()> {
+        let minimum = lane.min_interval_ms(&self.cfg);
         let ledger = self
             .traffic
             .as_ref()
@@ -1705,15 +1718,9 @@ impl SvipallServer {
         let now_ms = std::time::SystemTime::now()
             .duration_since(std::time::UNIX_EPOCH)?
             .as_millis() as u64;
-        let delay = ledger.pace(domain, proxy, now_ms, self.cfg.request_min_interval_ms)?;
+        let delay = ledger.pace(domain, proxy, now_ms, minimum)?;
         tokio::time::sleep(Duration::from_millis(delay)).await;
-        throttle::throttle_at_least(
-            domain,
-            proxy,
-            tier,
-            Duration::from_millis(self.cfg.request_min_interval_ms),
-        )
-        .await;
+        throttle::throttle_in(domain, proxy, tier, Duration::from_millis(minimum), lane).await;
         Ok(())
     }
 
@@ -1735,16 +1742,23 @@ impl SvipallServer {
     /// The window is never turned into a hold: a full one is a wait for its oldest visit to leave.
     /// The loop asks again after each wait, because another session on this machine may have
     /// taken the slot in the meantime.
+    ///
+    /// `lane` is asked again on every turn as well. Thirty reads of an address nobody has visited
+    /// start together as thirty pages; the first answer says what the route serves, and the ones
+    /// still waiting for a page's slot are admitted as what they are.
     async fn admit_waiting(
         &self,
         domain: &str,
         proxy: Option<&str>,
         budget: Duration,
+        lane: impl Fn() -> Option<svipall_core::lane::Lane>,
     ) -> Result<Admitted, VisitRefusal> {
         use svipall_core::traffic::Admission;
         let started = Instant::now();
         let mut waited_for = "";
         loop {
+            let found = lane();
+            let lane = found.unwrap_or_default();
             let left = budget.saturating_sub(started.elapsed());
             let fits = |secs: u64| Duration::from_secs(secs) < left;
             let (kind, seconds) = if let Some(s) = svipall_core::check_cooldown(domain) {
@@ -1762,7 +1776,13 @@ impl SvipallServer {
                     .as_ref()
                     .map_err(|e| traffic_state(e))?;
                 match ledger
-                    .reserve(domain, proxy, &self.cfg, svipall_core::automatic::now())
+                    .reserve_in(
+                        domain,
+                        proxy,
+                        lane,
+                        &self.cfg,
+                        svipall_core::automatic::now(),
+                    )
                     .map_err(|e| traffic_state(&e))?
                 {
                     Admission::Granted { visits_left } => {
@@ -1770,12 +1790,22 @@ impl SvipallServer {
                             waited: started.elapsed(),
                             waited_for,
                             visits_left: Some(visits_left),
+                            lane,
                         })
                     }
                     Admission::Full { wait } => ("visit_limit", wait),
                     Admission::Held { wait } => ("cooldown", wait),
                 }
             };
+            // A page's window is full, but nothing says yet that this route serves pages: a
+            // first answer is on its way from a visit that started with this one.
+            if kind == "visit_limit"
+                && found.is_none()
+                && started.elapsed() + LANE_POLL < budget.min(LANE_GRACE)
+            {
+                tokio::time::sleep(LANE_POLL).await;
+                continue;
+            }
             if !fits(seconds) {
                 return Err(VisitRefusal {
                     kind,
@@ -1784,13 +1814,19 @@ impl SvipallServer {
                         kind,
                         seconds,
                         domain,
-                        self.cfg.request_limit,
+                        lane.limit(&self.cfg),
                         self.cfg.request_window_seconds,
                     ),
                 });
             }
             waited_for = kind;
-            tokio::time::sleep(Duration::from_secs(seconds)).await;
+            // A full window is looked at again within `RELANE_SECS`: the lane may have changed.
+            let nap = if kind == "visit_limit" {
+                seconds.min(RELANE_SECS)
+            } else {
+                seconds
+            };
+            tokio::time::sleep(Duration::from_secs(nap)).await;
         }
     }
 
@@ -3261,14 +3297,14 @@ impl SvipallServer {
                 );
             }
             if let Some(left) = adm.visits_left.filter(|l| *l <= 2) {
-                obj.insert("visit_budget".into(), self.visit_budget(left));
+                obj.insert("visit_budget".into(), self.visit_budget(left, adm.lane));
             }
         }
         out
     }
 
-    fn visit_budget(&self, left: u32) -> Value {
-        json!({"left": left, "limit": self.cfg.request_limit,
+    fn visit_budget(&self, left: u32, lane: svipall_core::lane::Lane) -> Value {
+        json!({"left": left, "limit": lane.limit(&self.cfg),
             "window_seconds": self.cfg.request_window_seconds, "scope": crate::steer::SHARED})
     }
 
@@ -3388,6 +3424,17 @@ impl SvipallServer {
 
         // A hard-block cooldown, the visit window and the server's backoff are all admission now,
         // at the first rung, where a short one can be waited out instead of refused.
+
+        // What this route has served before decides how it is paced: a route known for data has
+        // a wider window, a shorter gap and a smaller charge. Only the http tier is ever in that
+        // lane; a browser opening the same address is a visitor like any other.
+        let data_lane = || {
+            if local {
+                Some(svipall_core::lane::Lane::Page)
+            } else {
+                svipall_core::lane::known(&url, proxy.as_deref())
+            }
+        };
 
         // What this address has already spent with this host. Checked after the cooldown, because
         // if the site has said no its word outranks our own accounting; and not conditioned on the
@@ -3593,6 +3640,14 @@ impl SvipallServer {
                 skipped = true;
                 break;
             }
+            let lane_now = || {
+                if bt.is_none() {
+                    data_lane()
+                } else {
+                    Some(svipall_core::lane::Lane::Page)
+                }
+            };
+            let mut lane = lane_now().unwrap_or_default();
             if !local {
                 // One fetch is one visit, however many rungs it climbs: charged at the first,
                 // and every later rung is still paced and still checked against the budget.
@@ -3600,12 +3655,13 @@ impl SvipallServer {
                     self.reputation_ok(&domain, proxy.as_deref())
                         .map(|_| Admitted::default())
                 } else {
-                    self.admit_waiting(&domain, proxy.as_deref(), Self::wait_budget(p))
+                    self.admit_waiting(&domain, proxy.as_deref(), Self::wait_budget(p), lane_now)
                         .await
                 };
                 match admission {
                     Ok(a) if !admitted => {
                         admitted = true;
+                        lane = a.lane;
                         *adm = a;
                         if p.wait.is_some() {
                             fetch_started += a.waited;
@@ -3613,6 +3669,7 @@ impl SvipallServer {
                     }
                     Ok(_) => {}
                     Err(e) => {
+                        adm.lane = lane;
                         stopped_wait = e.seconds;
                         stopped_kind = e.kind;
                         stopped = Some(e.to_string());
@@ -3627,7 +3684,7 @@ impl SvipallServer {
                     .saturating_sub(Duration::from_millis(100));
                 match tokio::time::timeout(
                     pacing_budget,
-                    self.pace_visit(&domain, proxy.as_deref(), &tier),
+                    self.pace_visit(&domain, proxy.as_deref(), &tier, lane),
                 )
                 .await
                 {
@@ -3967,6 +4024,30 @@ impl SvipallServer {
                 reason = None;
                 kind = WallKind::None;
             }
+            // What the route showed of itself, for the next visit's pace. A rate limit says
+            // nothing either way, and neither does a page that is not there.
+            if !local && bt.is_none() && !matches!(o.status, 429 | 503) {
+                use svipall_core::lane::Served;
+                let served = if reason.is_some() {
+                    (!matches!(
+                        kind,
+                        WallKind::NotFound | WallKind::SoftNotFound | WallKind::Empty
+                    ))
+                    .then_some(Served::Refused)
+                } else if !(200..300).contains(&o.status) {
+                    None
+                } else if o.file.is_some()
+                    || svipall_core::quality::ContentKind::of(&o.content_type, &o.html)
+                        != svipall_core::quality::ContentKind::Prose
+                {
+                    Some(Served::Data)
+                } else {
+                    Some(Served::Page)
+                };
+                if let Some(served) = served {
+                    svipall_core::lane::observe(&url, proxy.as_deref(), served);
+                }
+            }
 
             // How much of the page arrived. Judged here rather than where the response is built,
             // because the answer decides whether the site is worth asking what its missing-page
@@ -4033,6 +4114,7 @@ impl SvipallServer {
                         wall: kind != WallKind::None,
                         elapsed_ms: ms as u64,
                         typical_ms: throttle::typical_ms(&domain, proxy.as_deref()),
+                        data: content_kind != svipall_core::quality::ContentKind::Prose,
                     });
                 if let Some(exit) = proxy.as_deref() {
                     if (200..400).contains(&o.status) {
@@ -4578,7 +4660,7 @@ impl SvipallServer {
                 "cooldown_seconds_left": stopped_wait,
                 "note": refusal_note.as_deref().or(stopped.as_deref()).unwrap_or("Every tier raised an error (see attempts). Check the URL, network, or browser_path.")});
             if stopped_kind == "visit_limit" {
-                value["visit_budget"] = self.visit_budget(0);
+                value["visit_budget"] = self.visit_budget(0, adm.lane);
             }
             return FetchOutcome {
                 blocked_body: None,
@@ -5091,15 +5173,21 @@ impl SvipallServer {
         }
         if !local {
             // A probe is cheap and many: it waits for a slot only briefly, then says how long is left.
+            let lane = svipall_core::lane::of(&url, proxy.as_deref());
             if let Err(e) = self
-                .admit_waiting(&domain, proxy.as_deref(), Duration::from_secs(5))
+                .admit_waiting(&domain, proxy.as_deref(), Duration::from_secs(5), || {
+                    svipall_core::lane::known(&url, proxy.as_deref())
+                })
                 .await
             {
                 out["refused"] = json!(e.to_string());
                 out["retry_in_seconds"] = json!(e.seconds);
                 return out;
             }
-            if let Err(e) = self.pace_visit(&domain, proxy.as_deref(), "http").await {
+            if let Err(e) = self
+                .pace_visit(&domain, proxy.as_deref(), "http", lane)
+                .await
+            {
                 out["refused"] = json!(e.to_string());
                 return out;
             }
@@ -8547,6 +8635,7 @@ impl SvipallServer {
         if let Some(d) = &params.forget_tier {
             svipall_core::forget_tier(d);
             svipall_core::automatic::forget(d);
+            svipall_core::lane::forget(d);
             done.insert("forgot_tier".into(), json!(d));
         }
         if let Some(d) = &params.clear_budget {
