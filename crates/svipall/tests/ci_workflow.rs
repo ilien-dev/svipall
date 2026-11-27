@@ -165,3 +165,18 @@ fn a_release_waits_for_a_green_ci() {
         "`version`, which every other job needs, does not wait for ci: {version}"
     );
 }
+
+/// The Windows runner's system drive holds less than a dev build of the workspace and its test
+/// executables, and the job died there with a full disk more than once.
+#[test]
+fn the_windows_build_is_not_pinned_to_the_system_drive() {
+    let ci = ci();
+    assert!(
+        !ci.contains("CARGO_TARGET_DIR=C:"),
+        "ci.yml builds on C:, the drive that fills"
+    );
+    assert!(
+        ci.contains("Sort-Object Free -Descending"),
+        "ci.yml does not pick the drive with the most room"
+    );
+}
