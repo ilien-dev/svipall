@@ -1727,6 +1727,61 @@ impl SvipallServer {
         Ok(())
     }
 
+    /// The page as one of the alternates it declares, when one of them holds its content: the
+    /// document to read in its place, and what it was read from. At most two are asked, each
+    /// with a plain request at the first tier, paced like any visit to a data route.
+    async fn read_alternate(
+        &self,
+        p: &WebFetchParams,
+        html: &str,
+        page_url: &str,
+        proxy: Option<&str>,
+        local: bool,
+    ) -> Option<(String, String)> {
+        const ASKED: usize = 2;
+        let declared = svipall_core::alternate::declared(html, page_url);
+        if declared.is_empty() {
+            return None;
+        }
+        let title = svipall_core::alternate::page_title(html);
+        for alternate in declared.into_iter().take(ASKED) {
+            let mut ask = p.clone();
+            ask.url = alternate.url.clone();
+            ask.method = None;
+            ask.body = None;
+            ask.out_file = None;
+            let mut headers = ask.headers.take().unwrap_or_default();
+            headers.retain(|k, _| !k.eq_ignore_ascii_case("accept"));
+            headers.insert("Accept".into(), alternate.kind.accept().into());
+            ask.headers = Some(headers);
+            if !local {
+                let domain = domain_from_url(&alternate.url);
+                if self
+                    .pace_visit(&domain, proxy, "http", svipall_core::lane::Lane::Data, 0)
+                    .await
+                    .is_err()
+                {
+                    continue;
+                }
+            }
+            let Ok(answer) = self.tier_http(&ask, proxy, None).await else {
+                continue;
+            };
+            if !(200..300).contains(&answer.status) {
+                continue;
+            }
+            if let Some(document) =
+                svipall_core::alternate::document(alternate.kind, &answer.html, &title, page_url)
+            {
+                return Some((
+                    document,
+                    format!("{} at {}", alternate.kind.name(), alternate.url),
+                ));
+            }
+        }
+        None
+    }
+
     /// The gap this address's host declared for itself, in milliseconds; zero when it named
     /// none. A tenth longer than declared: a host that counts one request a second refuses the
     /// one that arrives 998 milliseconds after the last, and the network decides which that is.
@@ -4116,12 +4171,36 @@ impl SvipallServer {
                 want_links,
                 self.selector_memory(p, &o.final_url),
             );
-            let parts = extraction::parse_page(&o.html, &wants);
-            let view = PageView::new(&o.html, &parts.text)
+            let mut o = o;
+            let mut parts = extraction::parse_page(&o.html, &wants);
+            let mut view = PageView::new(&o.html, &parts.text)
                 .typed(&o.content_type, &o.html)
                 .declared(parts.declared)
                 .on_the_wire(&o.headers, &o.cookies);
             let (mut reason, mut kind) = classify_view(o.status, &o.html, &view);
+            // A page the first tier cannot read may say where the same thing is in a form that
+            // needs no script: a feed, an activity, an embed. One more plain request to its own
+            // site, before a browser is started for it. The second parse happens only here.
+            if bt.is_none() && kind == WallKind::Empty && (200..300).contains(&o.status) {
+                if let Some((document, from)) = self
+                    .read_alternate(p, &o.html, &o.final_url, proxy.as_deref(), local)
+                    .await
+                {
+                    let read = extraction::parse_page(&document, &wants);
+                    o.html = document;
+                    o.content_type = "text/html; charset=utf-8".into();
+                    parts = read;
+                    // What the page declared is the page, however few words a post has.
+                    view = PageView::new(&o.html, &parts.text)
+                        .typed(&o.content_type, &o.html)
+                        .declared(true)
+                        .on_the_wire(&o.headers, &o.cookies);
+                    (reason, kind) = classify_view(o.status, &o.html, &view);
+                    attempts.push(format!(
+                        "{route}: read from the {from} the page declares as its alternate"
+                    ));
+                }
+            }
             // `Empty` means "needs JavaScript to render". Once a browser tier has executed the
             // page and it is still short, that is simply a short page — deliver it.
             if kind == WallKind::Empty

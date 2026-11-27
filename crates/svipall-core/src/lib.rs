@@ -1,6 +1,7 @@
 //! svipall-core — core primitives for unrestricted web exploration.
 //! English only. Port of webone server.py classification, ladder and housekeeping.
 
+pub mod alternate;
 pub mod altsvc;
 pub mod answer;
 pub mod blocklist;

@@ -52,6 +52,16 @@ Lifted out of the README so that file stays readable. Everything here is the sam
   (`Comments (10 of 8,779 loaded)`), which can be fewer replies than a browser shows after
   scrolling; `scroll=auto` asks for the rendered page. A page that renders is read from its markup
   as before.
+- **Script-only pages read from the alternate they declare**: when the `http` tier cannot read
+  a page and its head links another form of the same thing (`<link rel="alternate">`), that form
+  is asked for with one more plain request and read in the page's place. Three types are read: a
+  feed (`application/rss+xml`, `application/atom+xml`), an ActivityPub object
+  (`application/activity+json`) and an embed (`application/json+oembed`). A Mastodon profile
+  comes back as its latest posts, a post on any ActivityPub server with its author, time and
+  counts, and a post on X as its text and date. Only an address on the page's own site is asked.
+  A feed counts only when it names the page as its own, and an embed only when it holds the post
+  and not a frame. A single post read this way comes without its replies and says so;
+  `scroll=auto` reads the rendered page. `attempts` names the alternate that was read.
 - **Reddit from its public pages**: a community's feed, a thread, a search and a community's rules
   are read from the page `www.reddit.com` serves a signed-out visitor, at the `http` tier. Posts
   and comments come back with author, score, time and reply depth, and a feed or a search ends
