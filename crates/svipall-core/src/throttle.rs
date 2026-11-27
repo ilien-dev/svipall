@@ -197,6 +197,23 @@ fn httpdate_secs(v: &str) -> Option<u64> {
     Some(days * 86_400 + hms[0] * 3600 + hms[1] * 60 + hms[2])
 }
 
+/// One request at a time, for a host that said it answers one at a time.
+///
+/// Spacing cannot promise that: a gap of a second is two requests in flight whenever an answer
+/// takes longer than a second. The permit is held from the moment a request leaves until its
+/// answer is in. It is this process's, not the machine's: two sessions against such a host can
+/// still overlap, and the host's 429 is what tells them so.
+pub fn single_file(domain: &str, exit: Option<&str>) -> std::sync::Arc<tokio::sync::Semaphore> {
+    static GATES: LazyLock<Mutex<HashMap<String, std::sync::Arc<tokio::sync::Semaphore>>>> =
+        LazyLock::new(|| Mutex::new(HashMap::new()));
+    GATES
+        .lock()
+        .unwrap()
+        .entry(pace_key(domain, exit))
+        .or_insert_with(|| std::sync::Arc::new(tokio::sync::Semaphore::new(1)))
+        .clone()
+}
+
 /// The gap this `(domain, exit)` has earned at this tier, before any waiting happens.
 ///
 /// Separate from `throttle` so it can be asserted on directly: a test that measures elapsed wall

@@ -45,6 +45,7 @@ pub mod pow;
 pub mod profiles;
 /// What came back, judged as content rather than as a wall.
 pub mod quality;
+pub mod ratelimit;
 pub mod reddit;
 pub mod reputation;
 pub mod robots;

@@ -78,12 +78,22 @@ const PACKAGES: [&str; 30] = [
 ];
 
 async fn burst(server: &SvipallServer, name: &str, urls: Vec<String>) -> (usize, Vec<String>) {
+    burst_within(server, name, urls, 60_000).await
+}
+
+async fn burst_within(
+    server: &SvipallServer,
+    name: &str,
+    urls: Vec<String>,
+    timeout_ms: u64,
+) -> (usize, Vec<String>) {
     let started = std::time::Instant::now();
     let reads = urls.iter().map(|u| async move {
         server
             .fetch_json(
-                serde_json::from_value(json!({"url": u, "max_tokens": 300, "cache": "bypass"}))
-                    .unwrap(),
+                serde_json::from_value(json!({"url": u, "max_tokens": 300, "cache": "bypass",
+                    "timeout": timeout_ms}))
+                .unwrap(),
             )
             .await
             .value
@@ -162,4 +172,30 @@ async fn thirty_reads_at_once_of_an_open_api_are_all_answered() {
         }
     }
     assert!(failed.is_empty(), "{}", failed.join("\n"));
+}
+
+/// A host that names a pace slower than the data lane's: one request a second, one at a time.
+/// Thirty reads take the half minute and more the host asks for, and all of them arrive.
+#[tokio::test]
+#[ignore = "network: reads a real public API"]
+async fn a_host_that_names_its_pace_answers_every_read_at_that_pace() {
+    support::isolate();
+    let server = SvipallServer::new(None, svipall_core::Config::default(), None);
+    let urls: Vec<String> = WORDS
+        .iter()
+        .map(|w| format!("https://api.crossref.org/works?query={w}&rows=1"))
+        .collect();
+    let (ok, refused) = burst_within(&server, "api.crossref.org", urls, 180_000).await;
+    assert_eq!(
+        ok,
+        30,
+        "{}",
+        refused.join(
+            "
+"
+        )
+    );
+    let pace = svipall_core::lane::declared("https://api.crossref.org/works", None);
+    println!("declared: {pace:?}");
+    assert!(pace.is_some_and(|p| p.gap_ms >= 20), "{pace:?}");
 }

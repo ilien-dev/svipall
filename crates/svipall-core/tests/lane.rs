@@ -89,3 +89,26 @@ fn a_servers_backoff_holds_both_lanes_and_a_clear_empties_both() {
     drop(ledger);
     std::fs::remove_file(path).unwrap();
 }
+
+#[test]
+fn a_data_routes_strikes_start_short_and_still_grow() {
+    let (ledger, path) = ledger();
+    let cfg = cfg();
+    let waits: Vec<u64> = (0..4)
+        .map(|i| {
+            ledger
+                .backoff("struck.test", None, Backoff::DataRateLimited, &cfg, 100 + i)
+                .unwrap()
+        })
+        .collect();
+    assert_eq!(waits, [5, 20, 80, 320]);
+    // A page's first strike is the longer one it always was.
+    assert_eq!(
+        ledger
+            .backoff("page-struck.test", None, Backoff::RateLimited, &cfg, 100)
+            .unwrap(),
+        30
+    );
+    drop(ledger);
+    std::fs::remove_file(path).unwrap();
+}
