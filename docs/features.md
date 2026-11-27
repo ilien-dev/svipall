@@ -42,6 +42,16 @@ Lifted out of the README so that file stays readable. Everything here is the sam
   `GITHUB_TOKEN` in `secrets.env` raises it. A rate limit is reported with its reset time and starts
   no cooldown. Code search across GitHub is better served by a `searchGitHub` tool (grep.app) when
   the session has one. Without it Svipall does the whole job.
+- **Script-only pages read from the data they declare**: an application that answers with an
+  empty page and a script often states what the page holds as schema.org data, in a
+  `<script type="application/ld+json">`. When a page shows less text than that data says, it is
+  read from the data at the `http` tier: a profile with its posts, a post with the replies it was
+  served with, a question with its answers, a list with its entries, each with author, time and
+  counts. No site is named in the code. A Bluesky profile or post is read this way in under a
+  second. The reading holds what the page declared and says how much that is
+  (`Comments (10 of 8,779 loaded)`), which can be fewer replies than a browser shows after
+  scrolling; `scroll=auto` asks for the rendered page. A page that renders is read from its markup
+  as before.
 - **Reddit from its public pages**: a community's feed, a thread, a search and a community's rules
   are read from the page `www.reddit.com` serves a signed-out visitor, at the `http` tier. Posts
   and comments come back with author, score, time and reply depth, and a feed or a search ends

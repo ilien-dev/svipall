@@ -199,7 +199,7 @@ fn attr<'a>(el: ElementRef<'a>, name: &str) -> Option<&'a str> {
     el.attr(name).map(str::trim).filter(|v| !v.is_empty())
 }
 
-fn counted(n: &str, one: &str, many: &str) -> String {
+pub(super) fn counted(n: &str, one: &str, many: &str) -> String {
     if n == "1" {
         format!("1 {one}")
     } else {
@@ -209,7 +209,7 @@ fn counted(n: &str, one: &str, many: &str) -> String {
 
 /// `2026-03-04T09:15:30.120000+0000` as `2026-03-04 09:15 UTC`. Anything else is given as it is:
 /// a time in a zone this did not expect is still a time.
-fn when(ts: &str) -> String {
+pub(super) fn when(ts: &str) -> String {
     let utc = ts.ends_with("+0000") || ts.ends_with('Z') || ts.ends_with("+00:00");
     match (ts.get(..10), ts.get(10..11), ts.get(11..16)) {
         (Some(day), Some("T"), Some(clock)) if utc => format!("{day} {clock} UTC"),
