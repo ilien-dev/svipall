@@ -1696,7 +1696,8 @@ impl SvipallServer {
         let lane = svipall_core::lane::Lane::Page;
         self.admit_waiting(&domain, proxy, Duration::from_secs(30), || Some(lane))
             .await?;
-        self.pace_visit(&domain, proxy, tier.as_str(), lane).await?;
+        self.pace_visit(&domain, proxy, tier.as_str(), lane, 0)
+            .await?;
         let left = self.pending_hold(&domain, proxy)?;
         anyhow::ensure!(left == 0, "cooldown: wait {left}s before retrying");
         Ok(())
@@ -1708,8 +1709,10 @@ impl SvipallServer {
         proxy: Option<&str>,
         tier: &str,
         lane: svipall_core::lane::Lane,
+        declared_ms: u64,
     ) -> anyhow::Result<()> {
-        let minimum = lane.min_interval_ms(&self.cfg);
+        // The lane's gap, or the one the host named for itself when that is longer.
+        let minimum = lane.min_interval_ms(&self.cfg).max(declared_ms);
         let ledger = self
             .traffic
             .as_ref()
@@ -1722,6 +1725,15 @@ impl SvipallServer {
         tokio::time::sleep(Duration::from_millis(delay)).await;
         throttle::throttle_in(domain, proxy, tier, Duration::from_millis(minimum), lane).await;
         Ok(())
+    }
+
+    /// The gap this address's host declared for itself, in milliseconds; zero when it named
+    /// none. A tenth longer than declared: a host that counts one request a second refuses the
+    /// one that arrives 998 milliseconds after the last, and the network decides which that is.
+    fn declared_gap_ms(url: &str, proxy: Option<&str>) -> u64 {
+        svipall_core::lane::declared(url, proxy).map_or(0, |pace| {
+            pace.gap_ms + pace.gap_ms / 10 + u64::from(pace.gap_ms > 0) * 20
+        })
     }
 
     /// The address budget, which no wait fixes: checked on every rung, charged by `throttle`.
@@ -3593,6 +3605,8 @@ impl SvipallServer {
         let mut top_tried: Option<String> = None;
         let mut hard_cooldown: Option<u64> = None;
         let mut backoff_note: Option<String> = None;
+        // Whether this fetch has already waited out a server's pause and asked again.
+        let mut paused_once = false;
         let mut refusal_note: Option<String> = None;
         let mut attempts: Vec<String> = Vec::new();
         let mut made = 0;
@@ -3679,44 +3693,100 @@ impl SvipallServer {
                         break;
                     }
                 }
-                let pacing_budget = Duration::from_millis(p.timeout.unwrap_or(60_000))
-                    .saturating_sub(fetch_started.elapsed())
-                    .saturating_sub(Duration::from_millis(100));
-                match tokio::time::timeout(
-                    pacing_budget,
-                    self.pace_visit(&domain, proxy.as_deref(), &tier, lane),
-                )
-                .await
-                {
-                    Ok(Ok(())) => {}
-                    Ok(Err(e)) => {
-                        stopped_kind = "traffic_state";
-                        stopped = Some(e.to_string());
-                        break;
+                // Take a turn in the spacing, then look for a hold another visit earned in the
+                // meantime. Such a hold is waited out like the one a visit meets at admission,
+                // when it fits what this call may wait and the time it has left: the visit is
+                // already charged, and refusing it here would hand back a refusal for a pause of
+                // seconds. After the pause it takes a turn again, because every visit that
+                // waited the same hold wakes at the same moment.
+                let held = loop {
+                    let pacing_budget = Duration::from_millis(p.timeout.unwrap_or(60_000))
+                        .saturating_sub(fetch_started.elapsed())
+                        .saturating_sub(Duration::from_millis(100));
+                    match tokio::time::timeout(
+                        pacing_budget,
+                        self.pace_visit(
+                            &domain,
+                            proxy.as_deref(),
+                            &tier,
+                            lane,
+                            if bt.is_none() {
+                                Self::declared_gap_ms(&url, proxy.as_deref())
+                            } else {
+                                0
+                            },
+                        ),
+                    )
+                    .await
+                    {
+                        Ok(Ok(())) => {}
+                        Ok(Err(e)) => break Err(("traffic_state", 0, e.to_string())),
+                        Err(_) => {
+                            break Err((
+                                "timeout",
+                                0,
+                                "timeout: pacing would exceed the fetch deadline; no further                                  request was sent"
+                                    .to_string(),
+                            ))
+                        }
                     }
-                    Err(_) => {
-                        stopped_kind = "timeout";
-                        stopped = Some("timeout: pacing would exceed the fetch deadline; no further request was sent".into());
-                        break;
+                    match self.pending_hold(&domain, proxy.as_deref()) {
+                        Ok(0) => break Ok(()),
+                        Ok(left) => {
+                            let pause = Duration::from_secs(left) + Duration::from_millis(200);
+                            let time_left = Duration::from_millis(p.timeout.unwrap_or(60_000))
+                                .saturating_sub(fetch_started.elapsed());
+                            if pause < Self::wait_budget(p).saturating_sub(adm.waited)
+                                && pause + Duration::from_secs(1) < time_left
+                            {
+                                tokio::time::sleep(pause).await;
+                                adm.waited += pause;
+                                adm.waited_for = "cooldown";
+                                continue;
+                            }
+                            break Err((
+                                "cooldown",
+                                left,
+                                format!(
+                                    "cooldown: wait {left}s; a concurrent visit triggered backoff"
+                                ),
+                            ));
+                        }
+                        Err(e) => break Err(("traffic_state", 0, e.to_string())),
                     }
-                }
-                match self.pending_hold(&domain, proxy.as_deref()) {
-                    Ok(0) => {}
-                    Ok(left) => {
-                        stopped_wait = left;
-                        stopped_kind = "cooldown";
-                        stopped = Some(format!(
-                            "cooldown: wait {left}s; a concurrent visit triggered backoff"
-                        ));
-                        break;
-                    }
-                    Err(e) => {
-                        stopped_kind = "traffic_state";
-                        stopped = Some(e.to_string());
-                        break;
-                    }
+                };
+                if let Err((kind, left, why)) = held {
+                    stopped_wait = left;
+                    stopped_kind = kind;
+                    stopped = Some(why);
+                    break;
                 }
             }
+            // A host that answers one request at a time gets one at a time: the permit is held
+            // until this rung has its answer.
+            let _single_file = if !local
+                && bt.is_none()
+                && svipall_core::lane::declared(&url, proxy.as_deref()).is_some_and(|p| p.alone)
+            {
+                let left = Duration::from_millis(p.timeout.unwrap_or(60_000))
+                    .saturating_sub(fetch_started.elapsed())
+                    .saturating_sub(Duration::from_millis(100));
+                let gate = throttle::single_file(&domain, proxy.as_deref());
+                match tokio::time::timeout(left, gate.acquire_owned()).await {
+                    Ok(permit) => permit.ok(),
+                    Err(_) => {
+                        stopped_kind = "timeout";
+                        stopped = Some(
+                            "timeout: the host answers one request at a time and the ones ahead \
+                             of this took the whole deadline; no request was sent"
+                                .into(),
+                        );
+                        break;
+                    }
+                }
+            } else {
+                None
+            };
             let t0 = Instant::now();
             let remaining = Duration::from_millis(p.timeout.unwrap_or(60_000))
                 .saturating_sub(fetch_started.elapsed())
@@ -3846,6 +3916,16 @@ impl SvipallServer {
                 }
             }
             let rate_limited = matches!(o.status, 429 | 503);
+            // Whether a limit met here is an API's: the route is known for data, or the refusal
+            // itself is data. A read that left before its route had answered anybody was admitted
+            // as a page and may be told otherwise since, so the lane is asked again; and a route
+            // nobody has seen answer says what it is by refusing in JSON.
+            let data_limit = rate_limited
+                && bt.is_none()
+                && (svipall_core::lane::of(&url, proxy.as_deref())
+                    == svipall_core::lane::Lane::Data
+                    || svipall_core::quality::ContentKind::of(&o.content_type, &o.html)
+                        != svipall_core::quality::ContentKind::Prose);
             if !local && rate_limited {
                 use svipall_core::traffic::Backoff;
                 // The server's own delay when it named one; otherwise a strike that starts short,
@@ -3857,6 +3937,7 @@ impl SvipallServer {
                 let why = match (named, o.status) {
                     (Some(s), _) => Backoff::RetryAfter(s),
                     (None, 503) => Backoff::ServerError,
+                    _ if data_limit => Backoff::DataRateLimited,
                     _ => Backoff::RateLimited,
                 };
                 let held = self.traffic.as_ref().as_ref().map(|ledger| {
@@ -3928,6 +4009,61 @@ impl SvipallServer {
                     if let Some(v) = v {
                         svipall_core::exits::record(&domain, exit, v, ms as u32);
                     }
+                }
+            }
+            // What the host said about its own pace, in the headers of whatever it answered.
+            if !local && bt.is_none() {
+                let said =
+                    svipall_core::ratelimit::read(&o.headers, svipall_core::automatic::now());
+                svipall_core::lane::declare(
+                    &url,
+                    proxy.as_deref(),
+                    said.gap.map_or(0, |g| g.as_millis() as u64),
+                    said.alone,
+                );
+                // A quota declared spent is the 429 the next request would get, said in advance.
+                if let (Some(spent), false) = (said.spent_for, rate_limited) {
+                    if let Ok(ledger) = self.traffic.as_ref().as_ref() {
+                        let _ = ledger.backoff(
+                            &domain,
+                            proxy.as_deref(),
+                            svipall_core::traffic::Backoff::RetryAfter(spent.as_secs().max(1)),
+                            &self.cfg,
+                            svipall_core::automatic::now(),
+                        );
+                    }
+                }
+            }
+            // A limit is a pause, not an answer. When the server named the pause, or the route
+            // serves data and the pause is an API's few seconds, the read waits it out and asks
+            // once more, as long as that fits what this call may wait and the time it has left.
+            // Once: a limit still there after its own pause is reported as what it is.
+            if !local
+                && rate_limited
+                && bt.is_none()
+                && !paused_once
+                && stopped_kind == "cooldown"
+                && (o
+                    .header("retry-after")
+                    .and_then(throttle::parse_retry_after)
+                    .is_some()
+                    || data_limit)
+            {
+                let pause = Duration::from_secs(stopped_wait) + Duration::from_millis(300);
+                let left = Duration::from_millis(p.timeout.unwrap_or(60_000))
+                    .saturating_sub(fetch_started.elapsed());
+                if pause < Self::wait_budget(p) && pause + Duration::from_secs(1) < left {
+                    attempts.push(format!(
+                        "{route}: {} ({ms}ms) -> waited {stopped_wait}s, as the server asked",
+                        o.status
+                    ));
+                    tokio::time::sleep(pause).await;
+                    paused_once = true;
+                    stopped = None;
+                    stopped_kind = "error";
+                    stopped_wait = 0;
+                    backoff_note = None;
+                    continue;
                 }
             }
             // 304 Not Modified: the stored copy is still current, so serve it and push its expiry
@@ -5185,7 +5321,13 @@ impl SvipallServer {
                 return out;
             }
             if let Err(e) = self
-                .pace_visit(&domain, proxy.as_deref(), "http", lane)
+                .pace_visit(
+                    &domain,
+                    proxy.as_deref(),
+                    "http",
+                    lane,
+                    Self::declared_gap_ms(&url, proxy.as_deref()),
+                )
                 .await
             {
                 out["refused"] = json!(e.to_string());

@@ -66,6 +66,18 @@ The record is `~/.svipall/lanes.json`, digests only, and `web_status(forget_tier
 domain's. A server's backoff holds both kinds of route. A short JSON answer is also no longer
 counted as an empty page, which used to charge the address twice for it.
 
+A host that states its own pace is asked at that pace. A quota with its interval
+(`x-rate-limit-limit` and `x-rate-limit-interval`, or `RateLimit-Policy`) becomes the gap between
+requests, a tenth longer than declared, when it is longer than the configured one.
+`x-concurrency-limit: 1` means one request in flight at a time, within one process. A quota
+declared spent (`remaining` at zero with a `reset`) holds the route until it resets. The
+declaration is kept for a week in `~/.svipall/lanes.json`.
+
+A read that meets a limit waits the pause out and asks once more, when the server named the pause
+or the limit is an API's, and the pause fits what the call may wait. A second refusal is
+reported. A 429 from a route that serves data, or that refuses in JSON, pauses 5 seconds, then 20,
+80 and 320, where a page's pauses start at 30.
+
 A server's `Retry-After` is honoured as given, from 1 second to an hour. A 429 without one pauses
 the route for 30 seconds, then 120, 480 and 900: `request_cooldown_seconds` is that longest
 backoff, and strikes are forgotten after 30 quiet minutes. A 503 without `Retry-After` is a server

@@ -245,6 +245,8 @@ a spent session is retired rather than changing its face on every request.*
   latency and refusals, with a default one-second minimum. HTTP 429/503 stops escalation.
   A route that has answered with data, such as an API, a registry or a raw file host, gets a
   wider window and a shorter gap than a page, learned from what it served and not from a list.
+  A host that declares its limit in its headers is asked at that pace, and a read that meets a
+  limit waits out the pause the server asked for and finishes.
   A `Retry-After` is kept as given. Without one, a 429 backs off from 30 seconds up to the
   configured maximum, and a 503 pauses 30 seconds. A crawl stopped by the visit limit says
   `stopped_by: "visit_limit"`.

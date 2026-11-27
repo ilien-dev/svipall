@@ -26,6 +26,9 @@ static UPDATE: Mutex<()> = Mutex::new(());
 
 /// What a route was last seen serving is believed this long.
 const TTL: u64 = 30 * 86_400;
+/// A declared pace is believed this long without being said again. Shorter than a lane's: a
+/// host changes its limits more readily than what it serves.
+const PACE_TTL: u64 = 7 * 86_400;
 /// Route families remembered per host. The oldest is dropped past this.
 const MAX_FAMILIES: usize = 64;
 /// Families a host must be known for, every one of them data, before a family never seen is
@@ -98,10 +101,23 @@ struct Seen {
     at: u64,
 }
 
+/// The pace a host declared for itself, in the headers of an answer.
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq)]
+pub struct Pace {
+    /// The least time between two requests, in milliseconds. Zero when none was named.
+    pub gap_ms: u64,
+    /// The host answers one request at a time.
+    pub alone: bool,
+    at: u64,
+}
+
 /// What is known of one host: its route families and what each last served.
 #[derive(Debug, Clone, Default, Serialize, Deserialize, PartialEq)]
 pub struct Host {
     families: BTreeMap<String, Seen>,
+    /// What the host last said about its own pace.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pace: Option<Pace>,
 }
 
 impl Host {
@@ -200,6 +216,40 @@ pub fn observe(url: &str, exit: Option<&str>, served: Served) {
     }
     host.observe(&family, served, now);
     MEMORY.insert(&key, &serde_json::to_string(&host).unwrap_or_default());
+}
+
+/// Keep the pace a host declared. Written when it differs from what is kept or that is a day
+/// old; a declaration of nothing leaves what is kept to expire.
+pub fn declare(url: &str, exit: Option<&str>, gap_ms: u64, alone: bool) {
+    if gap_ms == 0 && !alone {
+        return;
+    }
+    let Some((key, _)) = keys(url, exit) else {
+        return;
+    };
+    let _lock = UPDATE.lock().unwrap();
+    let now = crate::automatic::now();
+    let mut host = load(&key);
+    if host.pace.is_some_and(|p| {
+        p.gap_ms == gap_ms && p.alone == alone && now.saturating_sub(p.at) < 86_400
+    }) {
+        return;
+    }
+    host.pace = Some(Pace {
+        gap_ms,
+        alone,
+        at: now,
+    });
+    MEMORY.insert(&key, &serde_json::to_string(&host).unwrap_or_default());
+}
+
+/// The pace this address's host declared, while it is still believed.
+pub fn declared(url: &str, exit: Option<&str>) -> Option<Pace> {
+    let (key, _) = keys(url, exit)?;
+    let now = crate::automatic::now();
+    load(&key)
+        .pace
+        .filter(|p| now.saturating_sub(p.at) <= PACE_TTL)
 }
 
 /// Forget every lane learned for a domain.

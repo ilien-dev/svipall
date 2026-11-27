@@ -39,6 +39,9 @@ pub enum Backoff {
     RateLimited,
     /// A 503 with no delay: a server error, so a short pause and no strike.
     ServerError,
+    /// A 429 with no delay from a route that serves data: a strike, starting from the shorter
+    /// pause an API's limit usually lasts.
+    DataRateLimited,
 }
 
 /// The longest `Retry-After` honoured as given. A server that names longer is held this long.
@@ -46,6 +49,9 @@ pub const MAX_RETRY_AFTER_SECS: u64 = 3600;
 /// The first strike's pause. Each further strike multiplies it by four, up to
 /// `request_cooldown_seconds`.
 pub const FIRST_STRIKE_SECS: u64 = 30;
+/// The first strike's pause on a data route. An API's window is seconds, where a site that
+/// refuses a visitor means it for longer.
+pub const FIRST_DATA_STRIKE_SECS: u64 = 5;
 /// Strikes older than this are forgotten: a site that rate-limited once an hour ago starts again
 /// from the short pause.
 pub const STRIKE_MEMORY_SECS: u64 = 1800;
@@ -271,11 +277,16 @@ impl Ledger {
         let (wait, strikes, struck_at) = match why {
             Backoff::RetryAfter(s) => (s.clamp(1, MAX_RETRY_AFTER_SECS), strikes, struck_at),
             Backoff::ServerError => (FIRST_STRIKE_SECS, strikes, struck_at),
-            Backoff::RateLimited => {
+            Backoff::RateLimited | Backoff::DataRateLimited => {
+                let first = if why == Backoff::DataRateLimited {
+                    FIRST_DATA_STRIKE_SECS
+                } else {
+                    FIRST_STRIKE_SECS
+                };
                 let strikes = strikes + 1;
-                let wait = FIRST_STRIKE_SECS
+                let wait = first
                     .saturating_mul(4u64.saturating_pow(strikes - 1))
-                    .min(cfg.request_cooldown_seconds.max(FIRST_STRIKE_SECS));
+                    .min(cfg.request_cooldown_seconds.max(first));
                 (wait, strikes, now)
             }
         };

@@ -51,6 +51,8 @@ what it served, and back to 12 the first time it refuses.
   budget. `waited` says what for.
 - Refused, the result says `blocked_reason: "visit_limit"` (the window) or `"cooldown"`, with
   `cooldown_seconds_left` and `visit_budget`. Wait, or read another host that has the same thing.
+- A 429 whose pause was named by the server, or that came from an API, is waited out inside the
+  call and asked once more when it fits `wait`; `attempts` says so. A second one is reported.
 - `Retry-After` is honoured as given. A 429 without it pauses 30 s, then 120, 480, 900
   (`request_cooldown_seconds` is that maximum); a 503 pauses 30 s. The 15-minute hard-block cooldown
   follows only a status or vendor wall at the real or warm tier when no other exit is left.
