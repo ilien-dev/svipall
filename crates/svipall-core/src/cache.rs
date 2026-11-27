@@ -1818,17 +1818,43 @@ mod tests {
 
     #[test]
     fn the_log_is_bounded_by_time_rather_than_kept_forever() {
-        let s = store();
-        s.log_request("https://a.test/1", "http", 200, None, false, 10, None);
-        assert_eq!(s.recent_requests(None, 3600, 10).len(), 1);
         // A line written this second is not yet older than anything, so trimming leaves it. That
         // is the boundary that matters: a retention pass must never eat what just happened.
-        assert_eq!(s.trim_log(0), 0);
-        assert_eq!(s.recent_requests(None, 3600, 10).len(), 1);
         // Trimming with a negative horizon is the only way to mean "everything", and `max(0)`
         // refuses it, so the log can never be emptied by a bad argument.
-        assert_eq!(s.trim_log(-99), 0);
-        assert_eq!(s.recent_requests(None, 3600, 10).len(), 1);
+        //
+        // Both claims are about one second, so each is made inside one. The clock moving to the
+        // next second between the write and the trim makes the line a second old, which is a
+        // different case with a different answer; such a pass starts again.
+        for horizon in [0, -99] {
+            loop {
+                let s = store();
+                let written = now();
+                s.log_request("https://a.test/1", "http", 200, None, false, 10, None);
+                assert_eq!(s.recent_requests(None, 3600, 10).len(), 1);
+                let gone = s.trim_log(horizon);
+                if now() != written {
+                    continue;
+                }
+                assert_eq!(gone, 0, "horizon {horizon}");
+                assert_eq!(s.recent_requests(None, 3600, 10).len(), 1);
+                break;
+            }
+        }
+    }
+
+    #[test]
+    fn a_line_older_than_the_horizon_is_forgotten() {
+        let s = store();
+        s.log_request("https://a.test/1", "http", 200, None, false, 10, None);
+        // Two seconds later the line is older than a horizon of one.
+        s.write
+            .lock()
+            .unwrap()
+            .execute("UPDATE request_log SET at = at - 2", [])
+            .unwrap();
+        assert_eq!(s.trim_log(1), 1);
+        assert!(s.recent_requests(None, 3600, 10).is_empty());
     }
 
     #[test]
