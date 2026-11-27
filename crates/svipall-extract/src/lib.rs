@@ -220,7 +220,7 @@ pub fn parse_page(html: &str, wants: &ParseWants) -> PageParts {
         .and_then(|m| m.base_url.as_deref())
         .or(wants.schema_base_url.as_deref())
         .and_then(|b| Url::parse(b).ok());
-    let declared = content::post_elements::read(&doc, page_url.as_ref());
+    let declared = declared_reading(&doc, page_url.as_ref(), html.len());
     let text = match &declared {
         Some(d) => d.text.clone(),
         None if wants.text || wants.signals => text_from(&doc, html.len()),
@@ -357,8 +357,20 @@ pub struct Rendered {
 
 fn markdown_from(doc: &Html, opts: &ExtractOpts, size_hint: usize) -> String {
     let base = opts.base_url.and_then(|b| Url::parse(b).ok());
-    let declared = content::post_elements::read(doc, base.as_ref());
+    let declared = declared_reading(doc, base.as_ref(), size_hint);
     render_from(doc, opts, size_hint, declared.as_ref()).markdown
+}
+
+/// The page as it declares itself, when it does: as its own post and comment elements, or, for
+/// a page that shows next to nothing without script, as the schema.org data it carries. The
+/// second only when the data says more than the page shows, so a page that renders is read from
+/// what a person sees on it.
+fn declared_reading(doc: &Html, base: Option<&Url>, size_hint: usize) -> Option<Rendered> {
+    content::post_elements::read(doc, base).or_else(|| {
+        let data = content::linked_data::read(doc, base)?;
+        let shown = text_from(doc, size_hint).len();
+        (shown < content::linked_data::SHELL_TEXT && shown < data.text.len()).then_some(data)
+    })
 }
 
 /// Markdown and text of what one element holds, nothing pruned: for a reader that has already
